@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -171,7 +172,7 @@ func enabledExecutors(cfg *Config) []string {
 // Handler builds the root HTTP handler.
 func (s *Server) Handler() (http.Handler, error) {
 	r := chi.NewMux()
-	r.Use(httpx.SecurityHeaders, httpx.WithRequestID, s.withLogger, s.metrics, s.Auth.Middleware,
+	r.Use(httpx.SecurityHeaders, httpx.WithRequestID, s.withLogger, s.metrics, middleware.GetHead, s.Auth.Middleware,
 		runnerapi.ContentTypeMiddleware, runnerapi.TokenMiddleware(s.Engine))
 	r.Get("/healthz", health.Healthz)
 	r.Get("/readyz", s.Health.Readyz)
@@ -185,6 +186,7 @@ func (s *Server) Handler() (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
+	r.Handle("/api", legacy)
 	r.Handle("/api/*", legacy)
 	r.Handle("/*", spaHandler())
 	return r, nil

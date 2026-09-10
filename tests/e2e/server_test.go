@@ -67,3 +67,44 @@ func TestServerBasics(t *testing.T) {
 		t.Errorf("no structured start log:\n%s", lastLines(p.Logs(), 20))
 	}
 }
+
+// TestServerHeadAndBareAPI checks HEAD support on the health and metrics
+// routes, and the bare /api redirect, both regressions found in the chi
+// router fix round 1.
+func TestServerHeadAndBareAPI(t *testing.T) {
+	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
+
+	for _, path := range []string{"/healthz", "/readyz", "/metrics"} {
+		req, err := http.NewRequest(http.MethodHead, p.URL+path, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("HEAD %s: %d", path, resp.StatusCode)
+		}
+		if len(b) != 0 {
+			t.Fatalf("HEAD %s: non-empty body %q", path, b)
+		}
+	}
+
+	client := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	resp, err := client.Get(p.URL + "/api")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusTemporaryRedirect || resp.Header.Get("Location") != "/api/" {
+		t.Fatalf("bare /api: %d %q", resp.StatusCode, resp.Header.Get("Location"))
+	}
+
+	res, _ := get(t, p.URL+"/api/v1/nothing/here")
+	if res.StatusCode != http.StatusNotFound || !strings.HasPrefix(res.Header.Get("Content-Type"), "application/json") {
+		t.Fatalf("unknown route: %d %s", res.StatusCode, res.Header.Get("Content-Type"))
+	}
+}

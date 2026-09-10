@@ -49,6 +49,7 @@ build: build-ui build-go build-images
 
 build-ui:
     if [ -f ui/package.json ]; then cd ui && bun install --frozen-lockfile && bun run build; fi
+    touch ui/dist/.keep
     if [ -f ui/package.json ]; then go run ./tools/buildtool size-check; fi
 
 build-go:

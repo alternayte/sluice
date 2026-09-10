@@ -1,0 +1,101 @@
+@import "tailwindcss";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/jetbrains-mono/400.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Visual system of REQ-UI-010. */
+:root {
+  --background: #fafaf9;
+  --foreground: #1c1917;
+  --border: #e7e5e4;
+  --muted: #f2f1ef;
+  --muted-foreground: #57534e;
+  --panel: #ffffff;
+  --input: #d6d3d1;
+  --accent: #2f6feb;
+  --accent-foreground: #ffffff;
+  --accent-soft: #e8effd;
+  --ring: #2f6feb;
+  --destructive: #d64545;
+  --destructive-foreground: #ffffff;
+  --state-success: #1f9d55;
+  --state-failed: #d64545;
+  --state-running: #2f6feb;
+  --state-queued: #8a94a6;
+  --state-cancelled: #6b7280;
+  --state-timed-out: #c27c0e;
+  --state-skipped: #a8a29e;
+  color-scheme: light;
+}
+
+.dark {
+  --background: #161a1d;
+  --foreground: #e6e8ea;
+  --border: #2a3036;
+  --muted: #1e2327;
+  --muted-foreground: #a3aab1;
+  --panel: #1b2024;
+  --input: #3a424a;
+  --accent: #2f6feb;
+  --accent-foreground: #ffffff;
+  --accent-soft: #1b2a45;
+  --ring: #5b8ff0;
+  --destructive: #d64545;
+  --destructive-foreground: #ffffff;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-panel: var(--panel);
+  --color-input: var(--input);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-state-success: var(--state-success);
+  --color-state-failed: var(--state-failed);
+  --color-state-running: var(--state-running);
+  --color-state-queued: var(--state-queued);
+  --color-state-cancelled: var(--state-cancelled);
+  --color-state-timed-out: var(--state-timed-out);
+  --color-state-skipped: var(--state-skipped);
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --radius-control: 6px;
+  --radius-panel: 8px;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html,
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

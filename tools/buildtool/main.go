@@ -22,6 +22,8 @@ func main() {
 		err = cmdTrace()
 	case "ledger-check":
 		err = cmdLedgerCheck()
+	case "ledger-set":
+		err = cmdLedgerSet(os.Args[2:])
 	case "verify":
 		err = cmdVerify(os.Args[2:])
 	case "evidence":

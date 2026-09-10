@@ -13,13 +13,13 @@ blocking_findings_open: 0
 
 | ID | Status | Slice | Evidence |
 |---|---|---|---|
-| REQ-API-001 | IN_PROGRESS | S0 | |
+| REQ-API-001 | PASS | S0 | SCN-API-001 |
 | REQ-API-002 | IN_PROGRESS | S0 | |
 | REQ-API-003 | IN_PROGRESS | S0 | |
 | REQ-API-004 | IN_PROGRESS | S0 | |
 | REQ-CORE-001 | IN_PROGRESS | S0 | |
 | REQ-CORE-002 | IN_PROGRESS | S0 | |
-| REQ-CORE-003 | IN_PROGRESS | S0 | |
+| REQ-CORE-003 | PASS | S0 | SCN-CORE-002 |
 | REQ-CORE-004 | IN_PROGRESS | S0 | |
 | REQ-CORE-005 | IN_PROGRESS | S0 | |
 | REQ-CORE-006 | IN_PROGRESS | S0 | |
@@ -30,15 +30,15 @@ blocking_findings_open: 0
 | REQ-DOC-001 | IN_PROGRESS | S0 | |
 | REQ-UI-001 | IN_PROGRESS | S0 | |
 | REQ-UI-010 | IN_PROGRESS | S0 | |
-| SCN-API-001 | IN_PROGRESS | S0 | |
+| SCN-API-001 | PASS | S0 | internal/api/gen_integration_test.go::TestSCN_API_001_RegenerateNoDiff |
 | SCN-API-002 | IN_PROGRESS | S0 | |
 | SCN-API-003 | IN_PROGRESS | S0 | |
 | SCN-API-004 | IN_PROGRESS | S0 | |
 | SCN-CORE-001 | IN_PROGRESS | S0 | |
-| SCN-CORE-002 | IN_PROGRESS | S0 | |
+| SCN-CORE-002 | PASS | S0 | internal/platform/db/db_integration_test.go::TestSCN_CORE_002_ConcurrentMigrations |
 | SCN-CORE-003 | IN_PROGRESS | S0 | |
 | SCN-CORE-004 | IN_PROGRESS | S0 | |
-| SCN-CORE-005 | IN_PROGRESS | S0 | |
+| SCN-CORE-005 | PASS | S0 | internal/platform/lease/lease_integration_test.go::TestSCN_CORE_005_LeaseHandover |
 | SCN-CORE-006 | IN_PROGRESS | S0 | |
 | SCN-CORE-007 | IN_PROGRESS | S0 | |
 | SCN-CORE-008 | IN_PROGRESS | S0 | |

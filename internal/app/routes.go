@@ -27,6 +27,8 @@ type services struct {
 // registerRoutes registers every API operation on api, and the streamed routes on r.
 func registerRoutes(api huma.API, r chi.Router, s services) {
 	auth.Routes(api, s.Auth)
+	audit.Routes(api, s.Audit)
+	instance.Routes(api, s.Instances, s.Clock)
 	_ = r
 }
 

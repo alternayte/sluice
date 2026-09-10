@@ -17,7 +17,9 @@ var (
 	public        = Access{Public: true}
 	authenticated = Access{Min: Viewer, Self: true}
 	viewer        = Access{Min: Viewer}
+	operator      = Access{Min: Operator}
 	editor        = Access{Min: Editor}
+	runToken      = Access{Other: "run token of the task run (SI-04)"}
 	admin         = Access{Min: Admin}
 )
 
@@ -65,6 +67,31 @@ var Operations = map[string]Access{
 	"getFlowRevision":   viewer,
 	"diffFlowRevisions": viewer,
 	"getFlowSchema":     public,
+
+	// Executions. Trigger, cancel, rerun, restart and run file: operator.
+	"triggerFlow":            operator,
+	"runFile":                operator,
+	"listExecutions":         viewer,
+	"getExecution":           viewer,
+	"cancelExecution":        operator,
+	"rerunExecution":         operator,
+	"restartExecution":       operator,
+	"getExecutionLogs":       viewer,
+	"streamExecutionLogs":    viewer,
+	"downloadExecutionLogs":  viewer,
+	"streamExecutionEvents":  viewer,
+	"listExecutionMetrics":   viewer,
+	"listExecutionArtifacts": viewer,
+	"downloadArtifact":       viewer,
+
+	// Runner protocol (Appendix C): bearer run token, checked by the runner middleware.
+	"runnerGetSpec":     runToken,
+	"runnerGetBundle":   runToken,
+	"runnerPostLogs":    runToken,
+	"runnerPostEvents":  runToken,
+	"runnerPutArtifact": runToken,
+	"runnerHeartbeat":   runToken,
+	"runnerComplete":    runToken,
 }
 
 // OperationKey normalizes an operationId. The spec embedded by oapi-codegen has

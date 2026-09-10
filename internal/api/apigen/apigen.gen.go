@@ -49,6 +49,42 @@ func (e AuditEventActorType) Valid() bool {
 	}
 }
 
+// Defines values for ExecutionState.
+const (
+	ExecutionStateCANCELLED  ExecutionState = "CANCELLED"
+	ExecutionStateCANCELLING ExecutionState = "CANCELLING"
+	ExecutionStateFAILED     ExecutionState = "FAILED"
+	ExecutionStateQUEUED     ExecutionState = "QUEUED"
+	ExecutionStateRUNNING    ExecutionState = "RUNNING"
+	ExecutionStateSKIPPED    ExecutionState = "SKIPPED"
+	ExecutionStateSUCCESS    ExecutionState = "SUCCESS"
+	ExecutionStateTIMEDOUT   ExecutionState = "TIMED_OUT"
+)
+
+// Valid indicates whether the value is a known member of the ExecutionState enum.
+func (e ExecutionState) Valid() bool {
+	switch e {
+	case ExecutionStateCANCELLED:
+		return true
+	case ExecutionStateCANCELLING:
+		return true
+	case ExecutionStateFAILED:
+		return true
+	case ExecutionStateQUEUED:
+		return true
+	case ExecutionStateRUNNING:
+		return true
+	case ExecutionStateSKIPPED:
+		return true
+	case ExecutionStateSUCCESS:
+		return true
+	case ExecutionStateTIMEDOUT:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for FileChangeOp.
 const (
 	Delete FileChangeOp = "delete"
@@ -85,6 +121,27 @@ func (e FileDiffStatus) Valid() bool {
 	case Modified:
 		return true
 	case Removed:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LogEntryStream.
+const (
+	LogEntryStreamStderr LogEntryStream = "stderr"
+	LogEntryStreamStdout LogEntryStream = "stdout"
+	LogEntryStreamSystem LogEntryStream = "system"
+)
+
+// Valid indicates whether the value is a known member of the LogEntryStream enum.
+func (e LogEntryStream) Valid() bool {
+	switch e {
+	case LogEntryStreamStderr:
+		return true
+	case LogEntryStreamStdout:
+		return true
+	case LogEntryStreamSystem:
 		return true
 	default:
 		return false
@@ -154,6 +211,81 @@ func (e Role) Valid() bool {
 	}
 }
 
+// Defines values for RunnerEventType.
+const (
+	Metric RunnerEventType = "metric"
+	Output RunnerEventType = "output"
+)
+
+// Valid indicates whether the value is a known member of the RunnerEventType enum.
+func (e RunnerEventType) Valid() bool {
+	switch e {
+	case Metric:
+		return true
+	case Output:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunnerLogLineStream.
+const (
+	RunnerLogLineStreamStderr RunnerLogLineStream = "stderr"
+	RunnerLogLineStreamStdout RunnerLogLineStream = "stdout"
+	RunnerLogLineStreamSystem RunnerLogLineStream = "system"
+)
+
+// Valid indicates whether the value is a known member of the RunnerLogLineStream enum.
+func (e RunnerLogLineStream) Valid() bool {
+	switch e {
+	case RunnerLogLineStreamStderr:
+		return true
+	case RunnerLogLineStreamStdout:
+		return true
+	case RunnerLogLineStreamSystem:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TaskRunState.
+const (
+	TaskRunStateCANCELLED TaskRunState = "CANCELLED"
+	TaskRunStateFAILED    TaskRunState = "FAILED"
+	TaskRunStatePENDING   TaskRunState = "PENDING"
+	TaskRunStateQUEUED    TaskRunState = "QUEUED"
+	TaskRunStateRUNNING   TaskRunState = "RUNNING"
+	TaskRunStateSKIPPED   TaskRunState = "SKIPPED"
+	TaskRunStateSUCCESS   TaskRunState = "SUCCESS"
+	TaskRunStateTIMEDOUT  TaskRunState = "TIMED_OUT"
+)
+
+// Valid indicates whether the value is a known member of the TaskRunState enum.
+func (e TaskRunState) Valid() bool {
+	switch e {
+	case TaskRunStateCANCELLED:
+		return true
+	case TaskRunStateFAILED:
+		return true
+	case TaskRunStatePENDING:
+		return true
+	case TaskRunStateQUEUED:
+		return true
+	case TaskRunStateRUNNING:
+		return true
+	case TaskRunStateSKIPPED:
+		return true
+	case TaskRunStateSUCCESS:
+		return true
+	case TaskRunStateTIMEDOUT:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TriggerInfoType.
 const (
 	TriggerInfoTypeFlow     TriggerInfoType = "flow"
@@ -194,6 +326,76 @@ func (e ValidateFileResultKind) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// Defines values for ListExecutionsParamsTriggerType.
+const (
+	ListExecutionsParamsTriggerTypeFile     ListExecutionsParamsTriggerType = "file"
+	ListExecutionsParamsTriggerTypeFlow     ListExecutionsParamsTriggerType = "flow"
+	ListExecutionsParamsTriggerTypeManual   ListExecutionsParamsTriggerType = "manual"
+	ListExecutionsParamsTriggerTypeRerun    ListExecutionsParamsTriggerType = "rerun"
+	ListExecutionsParamsTriggerTypeRestart  ListExecutionsParamsTriggerType = "restart"
+	ListExecutionsParamsTriggerTypeSchedule ListExecutionsParamsTriggerType = "schedule"
+	ListExecutionsParamsTriggerTypeSubflow  ListExecutionsParamsTriggerType = "subflow"
+	ListExecutionsParamsTriggerTypeWebhook  ListExecutionsParamsTriggerType = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the ListExecutionsParamsTriggerType enum.
+func (e ListExecutionsParamsTriggerType) Valid() bool {
+	switch e {
+	case ListExecutionsParamsTriggerTypeFile:
+		return true
+	case ListExecutionsParamsTriggerTypeFlow:
+		return true
+	case ListExecutionsParamsTriggerTypeManual:
+		return true
+	case ListExecutionsParamsTriggerTypeRerun:
+		return true
+	case ListExecutionsParamsTriggerTypeRestart:
+		return true
+	case ListExecutionsParamsTriggerTypeSchedule:
+		return true
+	case ListExecutionsParamsTriggerTypeSubflow:
+		return true
+	case ListExecutionsParamsTriggerTypeWebhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListExecutionsParamsSort.
+const (
+	Created  ListExecutionsParamsSort = "created"
+	Duration ListExecutionsParamsSort = "duration"
+)
+
+// Valid indicates whether the value is a known member of the ListExecutionsParamsSort enum.
+func (e ListExecutionsParamsSort) Valid() bool {
+	switch e {
+	case Created:
+		return true
+	case Duration:
+		return true
+	default:
+		return false
+	}
+}
+
+// Artifact defines model for Artifact.
+type Artifact struct {
+	ContentType string             `json:"content_type"`
+	CreatedAt   time.Time          `json:"created_at"`
+	Id          openapi_types.UUID `json:"id"`
+	Name        string             `json:"name"`
+	Size        int64              `json:"size"`
+	TaskKey     string             `json:"task_key"`
+	TaskRunId   openapi_types.UUID `json:"task_run_id"`
+}
+
+// ArtifactList defines model for ArtifactList.
+type ArtifactList struct {
+	Items []Artifact `json:"items"`
 }
 
 // AuditEvent defines model for AuditEvent.
@@ -272,11 +474,71 @@ type ErrorEnvelope struct {
 	Error ErrorBody `json:"error"`
 }
 
+// ExecutionDetail defines model for ExecutionDetail.
+type ExecutionDetail struct {
+	ChainDepth int            `json:"chain_depth"`
+	Children   []ExecutionRef `json:"children"`
+	CreatedAt  time.Time      `json:"created_at"`
+	CreatedBy  string         `json:"created_by"`
+	DurationMs *int64         `json:"duration_ms,omitempty"`
+	EndedAt    *time.Time     `json:"ended_at,omitempty"`
+	Error      string         `json:"error"`
+
+	// FlowId Flow ID. Null for file runs.
+	FlowId            *string                 `json:"flow_id,omitempty"`
+	FlowRevisionId    *openapi_types.UUID     `json:"flow_revision_id,omitempty"`
+	GitSha            *string                 `json:"git_sha,omitempty"`
+	Id                openapi_types.UUID      `json:"id"`
+	Inputs            map[string]interface{}  `json:"inputs"`
+	Labels            map[string]string       `json:"labels"`
+	Namespace         string                  `json:"namespace"`
+	Outputs           *map[string]interface{} `json:"outputs,omitempty"`
+	ParentExecutionId *openapi_types.UUID     `json:"parent_execution_id,omitempty"`
+	Reason            string                  `json:"reason"`
+	RestartOfId       *openapi_types.UUID     `json:"restart_of_id,omitempty"`
+	SecretKeysUsed    []string                `json:"secret_keys_used"`
+	SnapshotId        openapi_types.UUID      `json:"snapshot_id"`
+	SnapshotVersion   *int                    `json:"snapshot_version,omitempty"`
+	StartedAt         *time.Time              `json:"started_at,omitempty"`
+	State             ExecutionState          `json:"state"`
+	TaskRuns          []TaskRun               `json:"task_runs"`
+	TriggerPayload    map[string]interface{}  `json:"trigger_payload"`
+	TriggerType       string                  `json:"trigger_type"`
+}
+
+// ExecutionList defines model for ExecutionList.
+type ExecutionList struct {
+	Items      []ExecutionSummary `json:"items"`
+	NextCursor *string            `json:"next_cursor,omitempty"`
+}
+
 // ExecutionRef defines model for ExecutionRef.
 type ExecutionRef struct {
 	CreatedAt time.Time          `json:"created_at"`
 	Id        openapi_types.UUID `json:"id"`
 	State     string             `json:"state"`
+}
+
+// ExecutionState defines model for ExecutionState.
+type ExecutionState string
+
+// ExecutionSummary defines model for ExecutionSummary.
+type ExecutionSummary struct {
+	CreatedAt  time.Time  `json:"created_at"`
+	CreatedBy  string     `json:"created_by"`
+	DurationMs *int64     `json:"duration_ms,omitempty"`
+	EndedAt    *time.Time `json:"ended_at,omitempty"`
+	Error      string     `json:"error"`
+
+	// FlowId Flow ID. Null for file runs.
+	FlowId      *string            `json:"flow_id,omitempty"`
+	Id          openapi_types.UUID `json:"id"`
+	Labels      map[string]string  `json:"labels"`
+	Namespace   string             `json:"namespace"`
+	Reason      string             `json:"reason"`
+	StartedAt   *time.Time         `json:"started_at,omitempty"`
+	State       ExecutionState     `json:"state"`
+	TriggerType string             `json:"trigger_type"`
 }
 
 // FileChange defines model for FileChange.
@@ -388,6 +650,30 @@ type Issue struct {
 	Path    string `json:"path"`
 }
 
+// LogEntry defines model for LogEntry.
+type LogEntry struct {
+	Attempt int `json:"attempt"`
+
+	// N 1-based line number in the task run.
+	N         int64              `json:"n"`
+	Stream    LogEntryStream     `json:"stream"`
+	TaskKey   string             `json:"task_key"`
+	TaskRunId openapi_types.UUID `json:"task_run_id"`
+	Text      string             `json:"text"`
+	Ts        time.Time          `json:"ts"`
+}
+
+// LogEntryStream defines model for LogEntry.Stream.
+type LogEntryStream string
+
+// LogPage defines model for LogPage.
+type LogPage struct {
+	// Done True when the execution ended and no more lines follow.
+	Done       bool       `json:"done"`
+	Lines      []LogEntry `json:"lines"`
+	NextCursor *string    `json:"next_cursor,omitempty"`
+}
+
 // LoginRequest defines model for LoginRequest.
 type LoginRequest struct {
 	Email    string `json:"email"`
@@ -406,6 +692,22 @@ type Me struct {
 
 // MeAuthType defines model for Me.AuthType.
 type MeAuthType string
+
+// MetricList defines model for MetricList.
+type MetricList struct {
+	Items []MetricPoint `json:"items"`
+}
+
+// MetricPoint defines model for MetricPoint.
+type MetricPoint struct {
+	Name      string             `json:"name"`
+	Tags      map[string]string  `json:"tags"`
+	TaskKey   string             `json:"task_key"`
+	TaskRunId openapi_types.UUID `json:"task_run_id"`
+	Ts        time.Time          `json:"ts"`
+	Unit      string             `json:"unit"`
+	Value     float64            `json:"value"`
+}
 
 // Namespace defines model for Namespace.
 type Namespace struct {
@@ -474,6 +776,84 @@ type RevisionSummary struct {
 // Role defines model for Role.
 type Role string
 
+// RunFileRequest defines model for RunFileRequest.
+type RunFileRequest struct {
+	Args *[]string `json:"args,omitempty"`
+	Path string    `json:"path"`
+}
+
+// RunnerComplete defines model for RunnerComplete.
+type RunnerComplete struct {
+	Error    string  `json:"error"`
+	ExitCode int     `json:"exit_code"`
+	Reason   *string `json:"reason,omitempty"`
+}
+
+// RunnerEvent defines model for RunnerEvent.
+type RunnerEvent struct {
+	Key   *string            `json:"key,omitempty"`
+	Name  *string            `json:"name,omitempty"`
+	Tags  *map[string]string `json:"tags,omitempty"`
+	Ts    *time.Time         `json:"ts,omitempty"`
+	Type  RunnerEventType    `json:"type"`
+	Unit  *string            `json:"unit,omitempty"`
+	Value interface{}        `json:"value,omitempty"`
+}
+
+// RunnerEventType defines model for RunnerEvent.Type.
+type RunnerEventType string
+
+// RunnerEventBatch defines model for RunnerEventBatch.
+type RunnerEventBatch struct {
+	Events []RunnerEvent `json:"events"`
+	Seq    int           `json:"seq"`
+}
+
+// RunnerHeartbeatResponse defines model for RunnerHeartbeatResponse.
+type RunnerHeartbeatResponse struct {
+	Cancel bool `json:"cancel"`
+}
+
+// RunnerLimits defines model for RunnerLimits.
+type RunnerLimits struct {
+	MaxArtifactBytes int64 `json:"max_artifact_bytes"`
+	MaxBundleBytes   int64 `json:"max_bundle_bytes"`
+}
+
+// RunnerLogBatch defines model for RunnerLogBatch.
+type RunnerLogBatch struct {
+	Lines []RunnerLogLine `json:"lines"`
+	Seq   int             `json:"seq"`
+}
+
+// RunnerLogLine defines model for RunnerLogLine.
+type RunnerLogLine struct {
+	Stream RunnerLogLineStream `json:"stream"`
+	Text   string              `json:"text"`
+	Ts     time.Time           `json:"ts"`
+}
+
+// RunnerLogLineStream defines model for RunnerLogLine.Stream.
+type RunnerLogLineStream string
+
+// RunnerSpec defines model for RunnerSpec.
+type RunnerSpec struct {
+	Attempt        int               `json:"attempt"`
+	BundleHash     string            `json:"bundle_hash"`
+	Command        []string          `json:"command"`
+	Env            map[string]string `json:"env"`
+	ExecutionId    string            `json:"execution_id"`
+	FlowId         string            `json:"flow_id"`
+	Limits         RunnerLimits      `json:"limits"`
+	MaskValues     []string          `json:"mask_values"`
+	Namespace      string            `json:"namespace"`
+	Runtime        *string           `json:"runtime,omitempty"`
+	TaskId         string            `json:"task_id"`
+	TaskRunId      string            `json:"task_run_id"`
+	TimeoutSeconds int               `json:"timeout_seconds"`
+	Workdir        string            `json:"workdir"`
+}
+
 // SaveChangesRequest defines model for SaveChangesRequest.
 type SaveChangesRequest struct {
 	// BaseVersion Fails with 409 version_conflict when the head version differs.
@@ -498,6 +878,30 @@ type Snapshot struct {
 type SnapshotList struct {
 	Items []Snapshot `json:"items"`
 }
+
+// TaskRun defines model for TaskRun.
+type TaskRun struct {
+	Attempt          int                     `json:"attempt"`
+	ChildExecutionId *openapi_types.UUID     `json:"child_execution_id,omitempty"`
+	DurationMs       *int64                  `json:"duration_ms,omitempty"`
+	EndedAt          *time.Time              `json:"ended_at,omitempty"`
+	Error            string                  `json:"error"`
+	ExecutorType     string                  `json:"executor_type"`
+	ExitCode         *int                    `json:"exit_code,omitempty"`
+	Id               openapi_types.UUID      `json:"id"`
+	Outputs          *map[string]interface{} `json:"outputs,omitempty"`
+	Pool             string                  `json:"pool"`
+	QueuedAt         *time.Time              `json:"queued_at,omitempty"`
+	Reason           string                  `json:"reason"`
+	ReusedFromId     *openapi_types.UUID     `json:"reused_from_id,omitempty"`
+	StartedAt        *time.Time              `json:"started_at,omitempty"`
+	State            TaskRunState            `json:"state"`
+	TaskKey          string                  `json:"task_key"`
+	TaskType         string                  `json:"task_type"`
+}
+
+// TaskRunState defines model for TaskRunState.
+type TaskRunState string
 
 // TextDiff defines model for TextDiff.
 type TextDiff struct {
@@ -537,6 +941,12 @@ type TriggerInfo struct {
 
 // TriggerInfoType defines model for TriggerInfo.Type.
 type TriggerInfoType string
+
+// TriggerRequest defines model for TriggerRequest.
+type TriggerRequest struct {
+	Inputs *map[string]interface{} `json:"inputs,omitempty"`
+	Labels *map[string]string      `json:"labels,omitempty"`
+}
 
 // UpdateFlowRequest defines model for UpdateFlowRequest.
 type UpdateFlowRequest struct {
@@ -600,6 +1010,9 @@ type VersionDiff struct {
 // Cursor defines model for Cursor.
 type Cursor = string
 
+// ExecutionIdPath defines model for ExecutionIdPath.
+type ExecutionIdPath = openapi_types.UUID
+
 // FilePathQuery defines model for FilePathQuery.
 type FilePathQuery = string
 
@@ -611,6 +1024,9 @@ type Limit = int
 
 // NamespacePath defines model for NamespacePath.
 type NamespacePath = string
+
+// TaskRunIdPath defines model for TaskRunIdPath.
+type TaskRunIdPath = openapi_types.UUID
 
 // UserId defines model for UserId.
 type UserId = openapi_types.UUID
@@ -635,6 +1051,64 @@ type ListAuditEventsParams struct {
 	// Cursor Opaque cursor from next_cursor of the previous page.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListExecutionsParams defines parameters for ListExecutions.
+type ListExecutionsParams struct {
+	// State Comma-separated execution states.
+	State *string `form:"state,omitempty" json:"state,omitempty"`
+
+	// Namespace Namespace and its children.
+	Namespace *string `form:"namespace,omitempty" json:"namespace,omitempty"`
+
+	// Flow Flow as <namespace>/<flow_id>.
+	Flow        *string                          `form:"flow,omitempty" json:"flow,omitempty"`
+	TriggerType *ListExecutionsParamsTriggerType `form:"trigger_type,omitempty" json:"trigger_type,omitempty"`
+
+	// Label Label filter key=value. Repeat for several labels.
+	Label *[]string                 `form:"label,omitempty" json:"label,omitempty"`
+	From  *time.Time                `form:"from,omitempty" json:"from,omitempty"`
+	To    *time.Time                `form:"to,omitempty" json:"to,omitempty"`
+	Sort  *ListExecutionsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+
+	// Cursor Opaque cursor from next_cursor of the previous page.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListExecutionsParamsTriggerType defines parameters for ListExecutions.
+type ListExecutionsParamsTriggerType string
+
+// ListExecutionsParamsSort defines parameters for ListExecutions.
+type ListExecutionsParamsSort string
+
+// StreamExecutionEventsParams defines parameters for StreamExecutionEvents.
+type StreamExecutionEventsParams struct {
+	LastEventID *string `json:"Last-Event-ID,omitempty"`
+}
+
+// GetExecutionLogsParams defines parameters for GetExecutionLogs.
+type GetExecutionLogsParams struct {
+	// Task Task ID filter.
+	Task *string `form:"task,omitempty" json:"task,omitempty"`
+
+	// Search Case-insensitive text filter.
+	Search *string `form:"search,omitempty" json:"search,omitempty"`
+
+	// Cursor Opaque cursor from next_cursor of the previous page.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// DownloadExecutionLogsParams defines parameters for DownloadExecutionLogs.
+type DownloadExecutionLogsParams struct {
+	Task *string `form:"task,omitempty" json:"task,omitempty"`
+}
+
+// StreamExecutionLogsParams defines parameters for StreamExecutionLogs.
+type StreamExecutionLogsParams struct {
+	Task        *string `form:"task,omitempty" json:"task,omitempty"`
+	LastEventID *string `json:"Last-Event-ID,omitempty"`
 }
 
 // ListFlowsParams defines parameters for ListFlows.
@@ -709,6 +1183,15 @@ type ListUsersParams struct {
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// RunnerCompleteJSONRequestBody defines body for RunnerComplete for application/json ContentType.
+type RunnerCompleteJSONRequestBody = RunnerComplete
+
+// RunnerPostEventsJSONRequestBody defines body for RunnerPostEvents for application/json ContentType.
+type RunnerPostEventsJSONRequestBody = RunnerEventBatch
+
+// RunnerPostLogsJSONRequestBody defines body for RunnerPostLogs for application/json ContentType.
+type RunnerPostLogsJSONRequestBody = RunnerLogBatch
+
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginRequest
 
@@ -721,6 +1204,9 @@ type ChangePasswordJSONRequestBody = ChangePasswordRequest
 // UpdateFlowJSONRequestBody defines body for UpdateFlow for application/json ContentType.
 type UpdateFlowJSONRequestBody = UpdateFlowRequest
 
+// TriggerFlowJSONRequestBody defines body for TriggerFlow for application/json ContentType.
+type TriggerFlowJSONRequestBody = TriggerRequest
+
 // CreateNamespaceJSONRequestBody defines body for CreateNamespace for application/json ContentType.
 type CreateNamespaceJSONRequestBody = CreateNamespaceRequest
 
@@ -729,6 +1215,9 @@ type SaveChangesJSONRequestBody = SaveChangesRequest
 
 // RevertVersionJSONRequestBody defines body for RevertVersion for application/json ContentType.
 type RevertVersionJSONRequestBody = RevertRequest
+
+// RunFileJSONRequestBody defines body for RunFile for application/json ContentType.
+type RunFileJSONRequestBody = RunFileRequest
 
 // ValidateFileJSONRequestBody defines body for ValidateFile for application/json ContentType.
 type ValidateFileJSONRequestBody = ValidateFileRequest
@@ -747,6 +1236,27 @@ type ResetUserPasswordJSONRequestBody = ResetPasswordRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// RunnerPutArtifact Upload one artifact as a streamed body.
+	// (PUT /api/runner/v1/task-runs/{taskRunId}/artifacts/{name})
+	RunnerPutArtifact(w http.ResponseWriter, r *http.Request, taskRunId TaskRunIdPath, name string)
+	// RunnerGetBundle Snapshot bundle (tar.gz).
+	// (GET /api/runner/v1/task-runs/{taskRunId}/bundle)
+	RunnerGetBundle(w http.ResponseWriter, r *http.Request, taskRunId TaskRunIdPath)
+	// RunnerComplete Report the end of the task.
+	// (POST /api/runner/v1/task-runs/{taskRunId}/complete)
+	RunnerComplete(w http.ResponseWriter, r *http.Request, taskRunId TaskRunIdPath)
+	// RunnerPostEvents Ingest outputs and metrics.
+	// (POST /api/runner/v1/task-runs/{taskRunId}/events)
+	RunnerPostEvents(w http.ResponseWriter, r *http.Request, taskRunId TaskRunIdPath)
+	// RunnerHeartbeat Report liveness. The response says whether to cancel.
+	// (POST /api/runner/v1/task-runs/{taskRunId}/heartbeat)
+	RunnerHeartbeat(w http.ResponseWriter, r *http.Request, taskRunId TaskRunIdPath)
+	// RunnerPostLogs Ingest one log batch. Idempotent per (task run, seq).
+	// (POST /api/runner/v1/task-runs/{taskRunId}/logs)
+	RunnerPostLogs(w http.ResponseWriter, r *http.Request, taskRunId TaskRunIdPath)
+	// RunnerGetSpec Task spec with resolved env, mask values and limits.
+	// (GET /api/runner/v1/task-runs/{taskRunId}/spec)
+	RunnerGetSpec(w http.ResponseWriter, r *http.Request, taskRunId TaskRunIdPath)
 	// ListAuditEvents List audit events, newest first.
 	// (GET /api/v1/audit)
 	ListAuditEvents(w http.ResponseWriter, r *http.Request, params ListAuditEventsParams)
@@ -768,6 +1278,42 @@ type ServerInterface interface {
 	// RevokeOtherSessions Sign out all other sessions of the current user.
 	// (POST /api/v1/auth/sessions/revoke-others)
 	RevokeOtherSessions(w http.ResponseWriter, r *http.Request)
+	// ListExecutions List executions with filters, sort and cursor pagination.
+	// (GET /api/v1/executions)
+	ListExecutions(w http.ResponseWriter, r *http.Request, params ListExecutionsParams)
+	// GetExecution Get an execution with its task runs.
+	// (GET /api/v1/executions/{executionId})
+	GetExecution(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath)
+	// ListExecutionArtifacts List artifacts uploaded by the tasks.
+	// (GET /api/v1/executions/{executionId}/artifacts)
+	ListExecutionArtifacts(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath)
+	// DownloadArtifact Download an artifact.
+	// (GET /api/v1/executions/{executionId}/artifacts/{artifactId})
+	DownloadArtifact(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath, artifactId openapi_types.UUID)
+	// CancelExecution Cancel an execution.
+	// (POST /api/v1/executions/{executionId}/cancel)
+	CancelExecution(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath)
+	// StreamExecutionEvents Stream execution state changes as server-sent events. Supports Last-Event-ID.
+	// (GET /api/v1/executions/{executionId}/events)
+	StreamExecutionEvents(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath, params StreamExecutionEventsParams)
+	// GetExecutionLogs Read log lines from Postgres or the archive.
+	// (GET /api/v1/executions/{executionId}/logs)
+	GetExecutionLogs(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath, params GetExecutionLogsParams)
+	// DownloadExecutionLogs Download all log lines as a text file.
+	// (GET /api/v1/executions/{executionId}/logs/download)
+	DownloadExecutionLogs(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath, params DownloadExecutionLogsParams)
+	// StreamExecutionLogs Stream log lines as server-sent events. Supports Last-Event-ID.
+	// (GET /api/v1/executions/{executionId}/logs/stream)
+	StreamExecutionLogs(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath, params StreamExecutionLogsParams)
+	// ListExecutionMetrics List metrics emitted by the tasks.
+	// (GET /api/v1/executions/{executionId}/metrics)
+	ListExecutionMetrics(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath)
+	// RerunExecution Start a new execution with the same snapshot and inputs.
+	// (POST /api/v1/executions/{executionId}/rerun)
+	RerunExecution(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath)
+	// RestartExecution Start a new execution that reuses the successful tasks and runs the others.
+	// (POST /api/v1/executions/{executionId}/restart)
+	RestartExecution(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath)
 	// ListFlows List flows.
 	// (GET /api/v1/flows)
 	ListFlows(w http.ResponseWriter, r *http.Request, params ListFlowsParams)
@@ -780,6 +1326,9 @@ type ServerInterface interface {
 	// DiffFlowRevisions Unified diff between two revisions of a flow.
 	// (GET /api/v1/flows/{namespace}/{flowId}/diff)
 	DiffFlowRevisions(w http.ResponseWriter, r *http.Request, namespace NamespacePath, flowId FlowIdPath, params DiffFlowRevisionsParams)
+	// TriggerFlow Start a flow manually with inputs and labels.
+	// (POST /api/v1/flows/{namespace}/{flowId}/executions)
+	TriggerFlow(w http.ResponseWriter, r *http.Request, namespace NamespacePath, flowId FlowIdPath)
 	// ListFlowRevisions List revisions of a flow, newest first.
 	// (GET /api/v1/flows/{namespace}/{flowId}/revisions)
 	ListFlowRevisions(w http.ResponseWriter, r *http.Request, namespace NamespacePath, flowId FlowIdPath, params ListFlowRevisionsParams)
@@ -819,6 +1368,9 @@ type ServerInterface interface {
 	// RevertVersion Create a new version with the content of an old version.
 	// (POST /api/v1/namespaces/{namespace}/revert)
 	RevertVersion(w http.ResponseWriter, r *http.Request, namespace NamespacePath)
+	// RunFile Run a script file of the namespace with optional args.
+	// (POST /api/v1/namespaces/{namespace}/run)
+	RunFile(w http.ResponseWriter, r *http.Request, namespace NamespacePath)
 	// ValidateFile Validate proposed file content against the head snapshot. Nothing is saved.
 	// (POST /api/v1/namespaces/{namespace}/validate)
 	ValidateFile(w http.ResponseWriter, r *http.Request, namespace NamespacePath)
@@ -859,6 +1411,197 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// RunnerPutArtifact operation middleware
+func (siw *ServerInterfaceWrapper) RunnerPutArtifact(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "taskRunId" -------------
+	var taskRunId TaskRunIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "taskRunId", r.PathValue("taskRunId"), &taskRunId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "taskRunId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", r.PathValue("name"), &name, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunnerPutArtifact(w, r, taskRunId, name)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RunnerGetBundle operation middleware
+func (siw *ServerInterfaceWrapper) RunnerGetBundle(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "taskRunId" -------------
+	var taskRunId TaskRunIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "taskRunId", r.PathValue("taskRunId"), &taskRunId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "taskRunId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunnerGetBundle(w, r, taskRunId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RunnerComplete operation middleware
+func (siw *ServerInterfaceWrapper) RunnerComplete(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "taskRunId" -------------
+	var taskRunId TaskRunIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "taskRunId", r.PathValue("taskRunId"), &taskRunId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "taskRunId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunnerComplete(w, r, taskRunId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RunnerPostEvents operation middleware
+func (siw *ServerInterfaceWrapper) RunnerPostEvents(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "taskRunId" -------------
+	var taskRunId TaskRunIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "taskRunId", r.PathValue("taskRunId"), &taskRunId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "taskRunId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunnerPostEvents(w, r, taskRunId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RunnerHeartbeat operation middleware
+func (siw *ServerInterfaceWrapper) RunnerHeartbeat(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "taskRunId" -------------
+	var taskRunId TaskRunIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "taskRunId", r.PathValue("taskRunId"), &taskRunId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "taskRunId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunnerHeartbeat(w, r, taskRunId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RunnerPostLogs operation middleware
+func (siw *ServerInterfaceWrapper) RunnerPostLogs(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "taskRunId" -------------
+	var taskRunId TaskRunIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "taskRunId", r.PathValue("taskRunId"), &taskRunId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "taskRunId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunnerPostLogs(w, r, taskRunId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RunnerGetSpec operation middleware
+func (siw *ServerInterfaceWrapper) RunnerGetSpec(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "taskRunId" -------------
+	var taskRunId TaskRunIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "taskRunId", r.PathValue("taskRunId"), &taskRunId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "taskRunId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunnerGetSpec(w, r, taskRunId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // ListAuditEvents operation middleware
 func (siw *ServerInterfaceWrapper) ListAuditEvents(w http.ResponseWriter, r *http.Request) {
@@ -1055,6 +1798,583 @@ func (siw *ServerInterfaceWrapper) RevokeOtherSessions(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// ListExecutions operation middleware
+func (siw *ServerInterfaceWrapper) ListExecutions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListExecutionsParams
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "namespace" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "namespace", r.URL.Query(), &params.Namespace, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "namespace"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "flow" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "flow", r.URL.Query(), &params.Flow, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "flow"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "flow", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "trigger_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "trigger_type", r.URL.Query(), &params.TriggerType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "trigger_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trigger_type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "label" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "label", r.URL.Query(), &params.Label, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "label"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "label", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sort"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListExecutions(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetExecution operation middleware
+func (siw *ServerInterfaceWrapper) GetExecution(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "executionId" -------------
+	var executionId ExecutionIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "executionId", r.PathValue("executionId"), &executionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "executionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetExecution(w, r, executionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListExecutionArtifacts operation middleware
+func (siw *ServerInterfaceWrapper) ListExecutionArtifacts(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "executionId" -------------
+	var executionId ExecutionIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "executionId", r.PathValue("executionId"), &executionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "executionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListExecutionArtifacts(w, r, executionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DownloadArtifact operation middleware
+func (siw *ServerInterfaceWrapper) DownloadArtifact(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "executionId" -------------
+	var executionId ExecutionIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "executionId", r.PathValue("executionId"), &executionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "executionId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "artifactId" -------------
+	var artifactId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "artifactId", r.PathValue("artifactId"), &artifactId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "artifactId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DownloadArtifact(w, r, executionId, artifactId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CancelExecution operation middleware
+func (siw *ServerInterfaceWrapper) CancelExecution(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "executionId" -------------
+	var executionId ExecutionIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "executionId", r.PathValue("executionId"), &executionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "executionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CancelExecution(w, r, executionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StreamExecutionEvents operation middleware
+func (siw *ServerInterfaceWrapper) StreamExecutionEvents(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "executionId" -------------
+	var executionId ExecutionIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "executionId", r.PathValue("executionId"), &executionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "executionId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params StreamExecutionEventsParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "Last-Event-ID" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Last-Event-ID")]; found {
+		var LastEventID string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Last-Event-ID", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Last-Event-ID", valueList[0], &LastEventID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Last-Event-ID", Err: err})
+			return
+		}
+
+		params.LastEventID = &LastEventID
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StreamExecutionEvents(w, r, executionId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetExecutionLogs operation middleware
+func (siw *ServerInterfaceWrapper) GetExecutionLogs(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "executionId" -------------
+	var executionId ExecutionIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "executionId", r.PathValue("executionId"), &executionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "executionId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetExecutionLogsParams
+
+	// ------------- Optional query parameter "task" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "task", r.URL.Query(), &params.Task, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "task"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "task", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "search" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "search", r.URL.Query(), &params.Search, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "search"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetExecutionLogs(w, r, executionId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DownloadExecutionLogs operation middleware
+func (siw *ServerInterfaceWrapper) DownloadExecutionLogs(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "executionId" -------------
+	var executionId ExecutionIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "executionId", r.PathValue("executionId"), &executionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "executionId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DownloadExecutionLogsParams
+
+	// ------------- Optional query parameter "task" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "task", r.URL.Query(), &params.Task, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "task"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "task", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DownloadExecutionLogs(w, r, executionId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StreamExecutionLogs operation middleware
+func (siw *ServerInterfaceWrapper) StreamExecutionLogs(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "executionId" -------------
+	var executionId ExecutionIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "executionId", r.PathValue("executionId"), &executionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "executionId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params StreamExecutionLogsParams
+
+	// ------------- Optional query parameter "task" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "task", r.URL.Query(), &params.Task, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "task"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "task", Err: err})
+		}
+		return
+	}
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "Last-Event-ID" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Last-Event-ID")]; found {
+		var LastEventID string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Last-Event-ID", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Last-Event-ID", valueList[0], &LastEventID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Last-Event-ID", Err: err})
+			return
+		}
+
+		params.LastEventID = &LastEventID
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StreamExecutionLogs(w, r, executionId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListExecutionMetrics operation middleware
+func (siw *ServerInterfaceWrapper) ListExecutionMetrics(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "executionId" -------------
+	var executionId ExecutionIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "executionId", r.PathValue("executionId"), &executionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "executionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListExecutionMetrics(w, r, executionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RerunExecution operation middleware
+func (siw *ServerInterfaceWrapper) RerunExecution(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "executionId" -------------
+	var executionId ExecutionIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "executionId", r.PathValue("executionId"), &executionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "executionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RerunExecution(w, r, executionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RestartExecution operation middleware
+func (siw *ServerInterfaceWrapper) RestartExecution(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "executionId" -------------
+	var executionId ExecutionIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "executionId", r.PathValue("executionId"), &executionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "executionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RestartExecution(w, r, executionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListFlows operation middleware
 func (siw *ServerInterfaceWrapper) ListFlows(w http.ResponseWriter, r *http.Request) {
 
@@ -1239,6 +2559,41 @@ func (siw *ServerInterfaceWrapper) DiffFlowRevisions(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DiffFlowRevisions(w, r, namespace, flowId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TriggerFlow operation middleware
+func (siw *ServerInterfaceWrapper) TriggerFlow(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "flowId" -------------
+	var flowId FlowIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "flowId", r.PathValue("flowId"), &flowId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "flowId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TriggerFlow(w, r, namespace, flowId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1709,6 +3064,32 @@ func (siw *ServerInterfaceWrapper) RevertVersion(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// RunFile operation middleware
+func (siw *ServerInterfaceWrapper) RunFile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunFile(w, r, namespace)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ValidateFile operation middleware
 func (siw *ServerInterfaceWrapper) ValidateFile(w http.ResponseWriter, r *http.Request) {
 
@@ -2155,12 +3536,293 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/flows/{namespace}/{flowId}/revisions", wrapper.ListFlowRevisions)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/flows/{namespace}/{flowId}/revisions/{revisionId}", wrapper.GetFlowRevision)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/flows/{namespace}/{flowId}/diff", wrapper.DiffFlowRevisions)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/flows/{namespace}/{flowId}/executions", wrapper.TriggerFlow)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/namespaces/{namespace}/run", wrapper.RunFile)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/executions", wrapper.ListExecutions)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/executions/{executionId}", wrapper.GetExecution)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/executions/{executionId}/cancel", wrapper.CancelExecution)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/executions/{executionId}/rerun", wrapper.RerunExecution)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/executions/{executionId}/restart", wrapper.RestartExecution)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/executions/{executionId}/logs", wrapper.GetExecutionLogs)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/executions/{executionId}/logs/stream", wrapper.StreamExecutionLogs)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/executions/{executionId}/logs/download", wrapper.DownloadExecutionLogs)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/executions/{executionId}/events", wrapper.StreamExecutionEvents)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/executions/{executionId}/metrics", wrapper.ListExecutionMetrics)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/executions/{executionId}/artifacts", wrapper.ListExecutionArtifacts)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/executions/{executionId}/artifacts/{artifactId}", wrapper.DownloadArtifact)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/runner/v1/task-runs/{taskRunId}/spec", wrapper.RunnerGetSpec)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/runner/v1/task-runs/{taskRunId}/bundle", wrapper.RunnerGetBundle)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/runner/v1/task-runs/{taskRunId}/logs", wrapper.RunnerPostLogs)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/runner/v1/task-runs/{taskRunId}/events", wrapper.RunnerPostEvents)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/runner/v1/task-runs/{taskRunId}/artifacts/{name}", wrapper.RunnerPutArtifact)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/runner/v1/task-runs/{taskRunId}/heartbeat", wrapper.RunnerHeartbeat)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/runner/v1/task-runs/{taskRunId}/complete", wrapper.RunnerComplete)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/schemas/flow.json", wrapper.GetFlowSchema)
 
 	return m
 }
 
 type ErrorJSONResponse ErrorEnvelope
+
+type RunnerPutArtifactRequestObject struct {
+	TaskRunId TaskRunIdPath `json:"taskRunId"`
+	Name      string        `json:"name"`
+	Body      io.Reader
+}
+
+type RunnerPutArtifactResponseObject interface {
+	VisitRunnerPutArtifactResponse(w http.ResponseWriter) error
+}
+
+type RunnerPutArtifact204Response struct {
+}
+
+func (response RunnerPutArtifact204Response) VisitRunnerPutArtifactResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RunnerPutArtifactdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RunnerPutArtifactdefaultJSONResponse) VisitRunnerPutArtifactResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunnerGetBundleRequestObject struct {
+	TaskRunId TaskRunIdPath `json:"taskRunId"`
+}
+
+type RunnerGetBundleResponseObject interface {
+	VisitRunnerGetBundleResponse(w http.ResponseWriter) error
+}
+
+type RunnerGetBundle200ApplicationgzipResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response RunnerGetBundle200ApplicationgzipResponse) VisitRunnerGetBundleResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/gzip")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type RunnerGetBundledefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RunnerGetBundledefaultJSONResponse) VisitRunnerGetBundleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunnerCompleteRequestObject struct {
+	TaskRunId TaskRunIdPath `json:"taskRunId"`
+	Body      *RunnerCompleteJSONRequestBody
+}
+
+type RunnerCompleteResponseObject interface {
+	VisitRunnerCompleteResponse(w http.ResponseWriter) error
+}
+
+type RunnerComplete204Response struct {
+}
+
+func (response RunnerComplete204Response) VisitRunnerCompleteResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RunnerCompletedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RunnerCompletedefaultJSONResponse) VisitRunnerCompleteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunnerPostEventsRequestObject struct {
+	TaskRunId TaskRunIdPath `json:"taskRunId"`
+	Body      *RunnerPostEventsJSONRequestBody
+}
+
+type RunnerPostEventsResponseObject interface {
+	VisitRunnerPostEventsResponse(w http.ResponseWriter) error
+}
+
+type RunnerPostEvents204Response struct {
+}
+
+func (response RunnerPostEvents204Response) VisitRunnerPostEventsResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RunnerPostEventsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RunnerPostEventsdefaultJSONResponse) VisitRunnerPostEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunnerHeartbeatRequestObject struct {
+	TaskRunId TaskRunIdPath `json:"taskRunId"`
+}
+
+type RunnerHeartbeatResponseObject interface {
+	VisitRunnerHeartbeatResponse(w http.ResponseWriter) error
+}
+
+type RunnerHeartbeat200JSONResponse RunnerHeartbeatResponse
+
+func (response RunnerHeartbeat200JSONResponse) VisitRunnerHeartbeatResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunnerHeartbeatdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RunnerHeartbeatdefaultJSONResponse) VisitRunnerHeartbeatResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunnerPostLogsRequestObject struct {
+	TaskRunId TaskRunIdPath `json:"taskRunId"`
+	Body      *RunnerPostLogsJSONRequestBody
+}
+
+type RunnerPostLogsResponseObject interface {
+	VisitRunnerPostLogsResponse(w http.ResponseWriter) error
+}
+
+type RunnerPostLogs204Response struct {
+}
+
+func (response RunnerPostLogs204Response) VisitRunnerPostLogsResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RunnerPostLogsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RunnerPostLogsdefaultJSONResponse) VisitRunnerPostLogsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunnerGetSpecRequestObject struct {
+	TaskRunId TaskRunIdPath `json:"taskRunId"`
+}
+
+type RunnerGetSpecResponseObject interface {
+	VisitRunnerGetSpecResponse(w http.ResponseWriter) error
+}
+
+type RunnerGetSpec200JSONResponse RunnerSpec
+
+func (response RunnerGetSpec200JSONResponse) VisitRunnerGetSpecResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunnerGetSpecdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RunnerGetSpecdefaultJSONResponse) VisitRunnerGetSpecResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type ListAuditEventsRequestObject struct {
 	Params ListAuditEventsParams
@@ -2420,6 +4082,540 @@ func (response RevokeOtherSessionsdefaultJSONResponse) VisitRevokeOtherSessionsR
 	return err
 }
 
+type ListExecutionsRequestObject struct {
+	Params ListExecutionsParams
+}
+
+type ListExecutionsResponseObject interface {
+	VisitListExecutionsResponse(w http.ResponseWriter) error
+}
+
+type ListExecutions200JSONResponse ExecutionList
+
+func (response ListExecutions200JSONResponse) VisitListExecutionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExecutionsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListExecutionsdefaultJSONResponse) VisitListExecutionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExecutionRequestObject struct {
+	ExecutionId ExecutionIdPath `json:"executionId"`
+}
+
+type GetExecutionResponseObject interface {
+	VisitGetExecutionResponse(w http.ResponseWriter) error
+}
+
+type GetExecution200JSONResponse ExecutionDetail
+
+func (response GetExecution200JSONResponse) VisitGetExecutionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExecutiondefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetExecutiondefaultJSONResponse) VisitGetExecutionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExecutionArtifactsRequestObject struct {
+	ExecutionId ExecutionIdPath `json:"executionId"`
+}
+
+type ListExecutionArtifactsResponseObject interface {
+	VisitListExecutionArtifactsResponse(w http.ResponseWriter) error
+}
+
+type ListExecutionArtifacts200JSONResponse ArtifactList
+
+func (response ListExecutionArtifacts200JSONResponse) VisitListExecutionArtifactsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExecutionArtifactsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListExecutionArtifactsdefaultJSONResponse) VisitListExecutionArtifactsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DownloadArtifactRequestObject struct {
+	ExecutionId ExecutionIdPath    `json:"executionId"`
+	ArtifactId  openapi_types.UUID `json:"artifactId"`
+}
+
+type DownloadArtifactResponseObject interface {
+	VisitDownloadArtifactResponse(w http.ResponseWriter) error
+}
+
+type DownloadArtifact200ApplicationoctetStreamResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response DownloadArtifact200ApplicationoctetStreamResponse) VisitDownloadArtifactResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type DownloadArtifactdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DownloadArtifactdefaultJSONResponse) VisitDownloadArtifactResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelExecutionRequestObject struct {
+	ExecutionId ExecutionIdPath `json:"executionId"`
+}
+
+type CancelExecutionResponseObject interface {
+	VisitCancelExecutionResponse(w http.ResponseWriter) error
+}
+
+type CancelExecution202JSONResponse ExecutionDetail
+
+func (response CancelExecution202JSONResponse) VisitCancelExecutionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelExecutiondefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CancelExecutiondefaultJSONResponse) VisitCancelExecutionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StreamExecutionEventsRequestObject struct {
+	ExecutionId ExecutionIdPath `json:"executionId"`
+	Params      StreamExecutionEventsParams
+}
+
+type StreamExecutionEventsResponseObject interface {
+	VisitStreamExecutionEventsResponse(w http.ResponseWriter) error
+}
+
+type StreamExecutionEvents200TexteventStreamResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response StreamExecutionEvents200TexteventStreamResponse) VisitStreamExecutionEventsResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		// If w doesn't support flushing, fall back to io.Copy.
+		_, err := io.Copy(w, response.Body)
+		return err
+	}
+	// text/event-stream messages are typically small; use a
+	// modest buffer and flush after each chunk so clients see
+	// events immediately instead of waiting on OS buffering.
+	buf := make([]byte, 4096)
+	for {
+		n, err := response.Body.Read(buf)
+		if n > 0 {
+			if _, writeErr := w.Write(buf[:n]); writeErr != nil {
+				return writeErr
+			}
+			flusher.Flush()
+		}
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+	}
+}
+
+type StreamExecutionEventsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response StreamExecutionEventsdefaultJSONResponse) VisitStreamExecutionEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExecutionLogsRequestObject struct {
+	ExecutionId ExecutionIdPath `json:"executionId"`
+	Params      GetExecutionLogsParams
+}
+
+type GetExecutionLogsResponseObject interface {
+	VisitGetExecutionLogsResponse(w http.ResponseWriter) error
+}
+
+type GetExecutionLogs200JSONResponse LogPage
+
+func (response GetExecutionLogs200JSONResponse) VisitGetExecutionLogsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExecutionLogsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetExecutionLogsdefaultJSONResponse) VisitGetExecutionLogsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DownloadExecutionLogsRequestObject struct {
+	ExecutionId ExecutionIdPath `json:"executionId"`
+	Params      DownloadExecutionLogsParams
+}
+
+type DownloadExecutionLogsResponseObject interface {
+	VisitDownloadExecutionLogsResponse(w http.ResponseWriter) error
+}
+
+type DownloadExecutionLogs200TextResponse string
+
+func (response DownloadExecutionLogs200TextResponse) VisitDownloadExecutionLogsResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(200)
+
+	_, err := w.Write([]byte(fmt.Sprint(response)))
+	return err
+}
+
+type DownloadExecutionLogsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DownloadExecutionLogsdefaultJSONResponse) VisitDownloadExecutionLogsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StreamExecutionLogsRequestObject struct {
+	ExecutionId ExecutionIdPath `json:"executionId"`
+	Params      StreamExecutionLogsParams
+}
+
+type StreamExecutionLogsResponseObject interface {
+	VisitStreamExecutionLogsResponse(w http.ResponseWriter) error
+}
+
+type StreamExecutionLogs200TexteventStreamResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response StreamExecutionLogs200TexteventStreamResponse) VisitStreamExecutionLogsResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		// If w doesn't support flushing, fall back to io.Copy.
+		_, err := io.Copy(w, response.Body)
+		return err
+	}
+	// text/event-stream messages are typically small; use a
+	// modest buffer and flush after each chunk so clients see
+	// events immediately instead of waiting on OS buffering.
+	buf := make([]byte, 4096)
+	for {
+		n, err := response.Body.Read(buf)
+		if n > 0 {
+			if _, writeErr := w.Write(buf[:n]); writeErr != nil {
+				return writeErr
+			}
+			flusher.Flush()
+		}
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+	}
+}
+
+type StreamExecutionLogsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response StreamExecutionLogsdefaultJSONResponse) VisitStreamExecutionLogsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExecutionMetricsRequestObject struct {
+	ExecutionId ExecutionIdPath `json:"executionId"`
+}
+
+type ListExecutionMetricsResponseObject interface {
+	VisitListExecutionMetricsResponse(w http.ResponseWriter) error
+}
+
+type ListExecutionMetrics200JSONResponse MetricList
+
+func (response ListExecutionMetrics200JSONResponse) VisitListExecutionMetricsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExecutionMetricsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListExecutionMetricsdefaultJSONResponse) VisitListExecutionMetricsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RerunExecutionRequestObject struct {
+	ExecutionId ExecutionIdPath `json:"executionId"`
+}
+
+type RerunExecutionResponseObject interface {
+	VisitRerunExecutionResponse(w http.ResponseWriter) error
+}
+
+type RerunExecution201JSONResponse ExecutionDetail
+
+func (response RerunExecution201JSONResponse) VisitRerunExecutionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RerunExecutiondefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RerunExecutiondefaultJSONResponse) VisitRerunExecutionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RestartExecutionRequestObject struct {
+	ExecutionId ExecutionIdPath `json:"executionId"`
+}
+
+type RestartExecutionResponseObject interface {
+	VisitRestartExecutionResponse(w http.ResponseWriter) error
+}
+
+type RestartExecution201JSONResponse ExecutionDetail
+
+func (response RestartExecution201JSONResponse) VisitRestartExecutionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RestartExecutiondefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RestartExecutiondefaultJSONResponse) VisitRestartExecutionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListFlowsRequestObject struct {
 	Params ListFlowsParams
 }
@@ -2570,6 +4766,47 @@ type DiffFlowRevisionsdefaultJSONResponse struct {
 }
 
 func (response DiffFlowRevisionsdefaultJSONResponse) VisitDiffFlowRevisionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TriggerFlowRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+	FlowId    FlowIdPath    `json:"flowId"`
+	Body      *TriggerFlowJSONRequestBody
+}
+
+type TriggerFlowResponseObject interface {
+	VisitTriggerFlowResponse(w http.ResponseWriter) error
+}
+
+type TriggerFlow201JSONResponse ExecutionDetail
+
+func (response TriggerFlow201JSONResponse) VisitTriggerFlowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TriggerFlowdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response TriggerFlowdefaultJSONResponse) VisitTriggerFlowResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -3097,6 +5334,46 @@ func (response RevertVersiondefaultJSONResponse) VisitRevertVersionResponse(w ht
 	return err
 }
 
+type RunFileRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+	Body      *RunFileJSONRequestBody
+}
+
+type RunFileResponseObject interface {
+	VisitRunFileResponse(w http.ResponseWriter) error
+}
+
+type RunFile201JSONResponse ExecutionDetail
+
+func (response RunFile201JSONResponse) VisitRunFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunFiledefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RunFiledefaultJSONResponse) VisitRunFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ValidateFileRequestObject struct {
 	Namespace NamespacePath `json:"namespace"`
 	Body      *ValidateFileJSONRequestBody
@@ -3480,6 +5757,27 @@ func (response ResetUserPassworddefaultJSONResponse) VisitResetUserPasswordRespo
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// RunnerPutArtifact Upload one artifact as a streamed body.
+	// (PUT /api/runner/v1/task-runs/{taskRunId}/artifacts/{name})
+	RunnerPutArtifact(ctx context.Context, request RunnerPutArtifactRequestObject) (RunnerPutArtifactResponseObject, error)
+	// RunnerGetBundle Snapshot bundle (tar.gz).
+	// (GET /api/runner/v1/task-runs/{taskRunId}/bundle)
+	RunnerGetBundle(ctx context.Context, request RunnerGetBundleRequestObject) (RunnerGetBundleResponseObject, error)
+	// RunnerComplete Report the end of the task.
+	// (POST /api/runner/v1/task-runs/{taskRunId}/complete)
+	RunnerComplete(ctx context.Context, request RunnerCompleteRequestObject) (RunnerCompleteResponseObject, error)
+	// RunnerPostEvents Ingest outputs and metrics.
+	// (POST /api/runner/v1/task-runs/{taskRunId}/events)
+	RunnerPostEvents(ctx context.Context, request RunnerPostEventsRequestObject) (RunnerPostEventsResponseObject, error)
+	// RunnerHeartbeat Report liveness. The response says whether to cancel.
+	// (POST /api/runner/v1/task-runs/{taskRunId}/heartbeat)
+	RunnerHeartbeat(ctx context.Context, request RunnerHeartbeatRequestObject) (RunnerHeartbeatResponseObject, error)
+	// RunnerPostLogs Ingest one log batch. Idempotent per (task run, seq).
+	// (POST /api/runner/v1/task-runs/{taskRunId}/logs)
+	RunnerPostLogs(ctx context.Context, request RunnerPostLogsRequestObject) (RunnerPostLogsResponseObject, error)
+	// RunnerGetSpec Task spec with resolved env, mask values and limits.
+	// (GET /api/runner/v1/task-runs/{taskRunId}/spec)
+	RunnerGetSpec(ctx context.Context, request RunnerGetSpecRequestObject) (RunnerGetSpecResponseObject, error)
 	// ListAuditEvents List audit events, newest first.
 	// (GET /api/v1/audit)
 	ListAuditEvents(ctx context.Context, request ListAuditEventsRequestObject) (ListAuditEventsResponseObject, error)
@@ -3501,6 +5799,42 @@ type StrictServerInterface interface {
 	// RevokeOtherSessions Sign out all other sessions of the current user.
 	// (POST /api/v1/auth/sessions/revoke-others)
 	RevokeOtherSessions(ctx context.Context, request RevokeOtherSessionsRequestObject) (RevokeOtherSessionsResponseObject, error)
+	// ListExecutions List executions with filters, sort and cursor pagination.
+	// (GET /api/v1/executions)
+	ListExecutions(ctx context.Context, request ListExecutionsRequestObject) (ListExecutionsResponseObject, error)
+	// GetExecution Get an execution with its task runs.
+	// (GET /api/v1/executions/{executionId})
+	GetExecution(ctx context.Context, request GetExecutionRequestObject) (GetExecutionResponseObject, error)
+	// ListExecutionArtifacts List artifacts uploaded by the tasks.
+	// (GET /api/v1/executions/{executionId}/artifacts)
+	ListExecutionArtifacts(ctx context.Context, request ListExecutionArtifactsRequestObject) (ListExecutionArtifactsResponseObject, error)
+	// DownloadArtifact Download an artifact.
+	// (GET /api/v1/executions/{executionId}/artifacts/{artifactId})
+	DownloadArtifact(ctx context.Context, request DownloadArtifactRequestObject) (DownloadArtifactResponseObject, error)
+	// CancelExecution Cancel an execution.
+	// (POST /api/v1/executions/{executionId}/cancel)
+	CancelExecution(ctx context.Context, request CancelExecutionRequestObject) (CancelExecutionResponseObject, error)
+	// StreamExecutionEvents Stream execution state changes as server-sent events. Supports Last-Event-ID.
+	// (GET /api/v1/executions/{executionId}/events)
+	StreamExecutionEvents(ctx context.Context, request StreamExecutionEventsRequestObject) (StreamExecutionEventsResponseObject, error)
+	// GetExecutionLogs Read log lines from Postgres or the archive.
+	// (GET /api/v1/executions/{executionId}/logs)
+	GetExecutionLogs(ctx context.Context, request GetExecutionLogsRequestObject) (GetExecutionLogsResponseObject, error)
+	// DownloadExecutionLogs Download all log lines as a text file.
+	// (GET /api/v1/executions/{executionId}/logs/download)
+	DownloadExecutionLogs(ctx context.Context, request DownloadExecutionLogsRequestObject) (DownloadExecutionLogsResponseObject, error)
+	// StreamExecutionLogs Stream log lines as server-sent events. Supports Last-Event-ID.
+	// (GET /api/v1/executions/{executionId}/logs/stream)
+	StreamExecutionLogs(ctx context.Context, request StreamExecutionLogsRequestObject) (StreamExecutionLogsResponseObject, error)
+	// ListExecutionMetrics List metrics emitted by the tasks.
+	// (GET /api/v1/executions/{executionId}/metrics)
+	ListExecutionMetrics(ctx context.Context, request ListExecutionMetricsRequestObject) (ListExecutionMetricsResponseObject, error)
+	// RerunExecution Start a new execution with the same snapshot and inputs.
+	// (POST /api/v1/executions/{executionId}/rerun)
+	RerunExecution(ctx context.Context, request RerunExecutionRequestObject) (RerunExecutionResponseObject, error)
+	// RestartExecution Start a new execution that reuses the successful tasks and runs the others.
+	// (POST /api/v1/executions/{executionId}/restart)
+	RestartExecution(ctx context.Context, request RestartExecutionRequestObject) (RestartExecutionResponseObject, error)
 	// ListFlows List flows.
 	// (GET /api/v1/flows)
 	ListFlows(ctx context.Context, request ListFlowsRequestObject) (ListFlowsResponseObject, error)
@@ -3513,6 +5847,9 @@ type StrictServerInterface interface {
 	// DiffFlowRevisions Unified diff between two revisions of a flow.
 	// (GET /api/v1/flows/{namespace}/{flowId}/diff)
 	DiffFlowRevisions(ctx context.Context, request DiffFlowRevisionsRequestObject) (DiffFlowRevisionsResponseObject, error)
+	// TriggerFlow Start a flow manually with inputs and labels.
+	// (POST /api/v1/flows/{namespace}/{flowId}/executions)
+	TriggerFlow(ctx context.Context, request TriggerFlowRequestObject) (TriggerFlowResponseObject, error)
 	// ListFlowRevisions List revisions of a flow, newest first.
 	// (GET /api/v1/flows/{namespace}/{flowId}/revisions)
 	ListFlowRevisions(ctx context.Context, request ListFlowRevisionsRequestObject) (ListFlowRevisionsResponseObject, error)
@@ -3552,6 +5889,9 @@ type StrictServerInterface interface {
 	// RevertVersion Create a new version with the content of an old version.
 	// (POST /api/v1/namespaces/{namespace}/revert)
 	RevertVersion(ctx context.Context, request RevertVersionRequestObject) (RevertVersionResponseObject, error)
+	// RunFile Run a script file of the namespace with optional args.
+	// (POST /api/v1/namespaces/{namespace}/run)
+	RunFile(ctx context.Context, request RunFileRequestObject) (RunFileResponseObject, error)
 	// ValidateFile Validate proposed file content against the head snapshot. Nothing is saved.
 	// (POST /api/v1/namespaces/{namespace}/validate)
 	ValidateFile(ctx context.Context, request ValidateFileRequestObject) (ValidateFileResponseObject, error)
@@ -3621,6 +5961,212 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// RunnerPutArtifact operation middleware
+func (sh *strictHandler) RunnerPutArtifact(w http.ResponseWriter, r *http.Request, taskRunId TaskRunIdPath, name string) {
+	var request RunnerPutArtifactRequestObject
+
+	request.TaskRunId = taskRunId
+	request.Name = name
+
+	request.Body = r.Body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RunnerPutArtifact(ctx, request.(RunnerPutArtifactRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RunnerPutArtifact")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RunnerPutArtifactResponseObject); ok {
+		if err := validResponse.VisitRunnerPutArtifactResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RunnerGetBundle operation middleware
+func (sh *strictHandler) RunnerGetBundle(w http.ResponseWriter, r *http.Request, taskRunId TaskRunIdPath) {
+	var request RunnerGetBundleRequestObject
+
+	request.TaskRunId = taskRunId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RunnerGetBundle(ctx, request.(RunnerGetBundleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RunnerGetBundle")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RunnerGetBundleResponseObject); ok {
+		if err := validResponse.VisitRunnerGetBundleResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RunnerComplete operation middleware
+func (sh *strictHandler) RunnerComplete(w http.ResponseWriter, r *http.Request, taskRunId TaskRunIdPath) {
+	var request RunnerCompleteRequestObject
+
+	request.TaskRunId = taskRunId
+
+	var body RunnerCompleteJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RunnerComplete(ctx, request.(RunnerCompleteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RunnerComplete")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RunnerCompleteResponseObject); ok {
+		if err := validResponse.VisitRunnerCompleteResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RunnerPostEvents operation middleware
+func (sh *strictHandler) RunnerPostEvents(w http.ResponseWriter, r *http.Request, taskRunId TaskRunIdPath) {
+	var request RunnerPostEventsRequestObject
+
+	request.TaskRunId = taskRunId
+
+	var body RunnerPostEventsJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RunnerPostEvents(ctx, request.(RunnerPostEventsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RunnerPostEvents")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RunnerPostEventsResponseObject); ok {
+		if err := validResponse.VisitRunnerPostEventsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RunnerHeartbeat operation middleware
+func (sh *strictHandler) RunnerHeartbeat(w http.ResponseWriter, r *http.Request, taskRunId TaskRunIdPath) {
+	var request RunnerHeartbeatRequestObject
+
+	request.TaskRunId = taskRunId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RunnerHeartbeat(ctx, request.(RunnerHeartbeatRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RunnerHeartbeat")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RunnerHeartbeatResponseObject); ok {
+		if err := validResponse.VisitRunnerHeartbeatResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RunnerPostLogs operation middleware
+func (sh *strictHandler) RunnerPostLogs(w http.ResponseWriter, r *http.Request, taskRunId TaskRunIdPath) {
+	var request RunnerPostLogsRequestObject
+
+	request.TaskRunId = taskRunId
+
+	var body RunnerPostLogsJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RunnerPostLogs(ctx, request.(RunnerPostLogsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RunnerPostLogs")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RunnerPostLogsResponseObject); ok {
+		if err := validResponse.VisitRunnerPostLogsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RunnerGetSpec operation middleware
+func (sh *strictHandler) RunnerGetSpec(w http.ResponseWriter, r *http.Request, taskRunId TaskRunIdPath) {
+	var request RunnerGetSpecRequestObject
+
+	request.TaskRunId = taskRunId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RunnerGetSpec(ctx, request.(RunnerGetSpecRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RunnerGetSpec")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RunnerGetSpecResponseObject); ok {
+		if err := validResponse.VisitRunnerGetSpecResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // ListAuditEvents operation middleware
@@ -3814,6 +6360,323 @@ func (sh *strictHandler) RevokeOtherSessions(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+// ListExecutions operation middleware
+func (sh *strictHandler) ListExecutions(w http.ResponseWriter, r *http.Request, params ListExecutionsParams) {
+	var request ListExecutionsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListExecutions(ctx, request.(ListExecutionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListExecutions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListExecutionsResponseObject); ok {
+		if err := validResponse.VisitListExecutionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetExecution operation middleware
+func (sh *strictHandler) GetExecution(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath) {
+	var request GetExecutionRequestObject
+
+	request.ExecutionId = executionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetExecution(ctx, request.(GetExecutionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetExecution")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetExecutionResponseObject); ok {
+		if err := validResponse.VisitGetExecutionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListExecutionArtifacts operation middleware
+func (sh *strictHandler) ListExecutionArtifacts(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath) {
+	var request ListExecutionArtifactsRequestObject
+
+	request.ExecutionId = executionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListExecutionArtifacts(ctx, request.(ListExecutionArtifactsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListExecutionArtifacts")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListExecutionArtifactsResponseObject); ok {
+		if err := validResponse.VisitListExecutionArtifactsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DownloadArtifact operation middleware
+func (sh *strictHandler) DownloadArtifact(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath, artifactId openapi_types.UUID) {
+	var request DownloadArtifactRequestObject
+
+	request.ExecutionId = executionId
+	request.ArtifactId = artifactId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DownloadArtifact(ctx, request.(DownloadArtifactRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DownloadArtifact")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DownloadArtifactResponseObject); ok {
+		if err := validResponse.VisitDownloadArtifactResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CancelExecution operation middleware
+func (sh *strictHandler) CancelExecution(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath) {
+	var request CancelExecutionRequestObject
+
+	request.ExecutionId = executionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CancelExecution(ctx, request.(CancelExecutionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CancelExecution")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CancelExecutionResponseObject); ok {
+		if err := validResponse.VisitCancelExecutionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StreamExecutionEvents operation middleware
+func (sh *strictHandler) StreamExecutionEvents(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath, params StreamExecutionEventsParams) {
+	var request StreamExecutionEventsRequestObject
+
+	request.ExecutionId = executionId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StreamExecutionEvents(ctx, request.(StreamExecutionEventsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StreamExecutionEvents")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StreamExecutionEventsResponseObject); ok {
+		if err := validResponse.VisitStreamExecutionEventsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetExecutionLogs operation middleware
+func (sh *strictHandler) GetExecutionLogs(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath, params GetExecutionLogsParams) {
+	var request GetExecutionLogsRequestObject
+
+	request.ExecutionId = executionId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetExecutionLogs(ctx, request.(GetExecutionLogsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetExecutionLogs")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetExecutionLogsResponseObject); ok {
+		if err := validResponse.VisitGetExecutionLogsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DownloadExecutionLogs operation middleware
+func (sh *strictHandler) DownloadExecutionLogs(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath, params DownloadExecutionLogsParams) {
+	var request DownloadExecutionLogsRequestObject
+
+	request.ExecutionId = executionId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DownloadExecutionLogs(ctx, request.(DownloadExecutionLogsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DownloadExecutionLogs")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DownloadExecutionLogsResponseObject); ok {
+		if err := validResponse.VisitDownloadExecutionLogsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StreamExecutionLogs operation middleware
+func (sh *strictHandler) StreamExecutionLogs(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath, params StreamExecutionLogsParams) {
+	var request StreamExecutionLogsRequestObject
+
+	request.ExecutionId = executionId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StreamExecutionLogs(ctx, request.(StreamExecutionLogsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StreamExecutionLogs")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StreamExecutionLogsResponseObject); ok {
+		if err := validResponse.VisitStreamExecutionLogsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListExecutionMetrics operation middleware
+func (sh *strictHandler) ListExecutionMetrics(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath) {
+	var request ListExecutionMetricsRequestObject
+
+	request.ExecutionId = executionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListExecutionMetrics(ctx, request.(ListExecutionMetricsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListExecutionMetrics")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListExecutionMetricsResponseObject); ok {
+		if err := validResponse.VisitListExecutionMetricsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RerunExecution operation middleware
+func (sh *strictHandler) RerunExecution(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath) {
+	var request RerunExecutionRequestObject
+
+	request.ExecutionId = executionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RerunExecution(ctx, request.(RerunExecutionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RerunExecution")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RerunExecutionResponseObject); ok {
+		if err := validResponse.VisitRerunExecutionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RestartExecution operation middleware
+func (sh *strictHandler) RestartExecution(w http.ResponseWriter, r *http.Request, executionId ExecutionIdPath) {
+	var request RestartExecutionRequestObject
+
+	request.ExecutionId = executionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RestartExecution(ctx, request.(RestartExecutionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RestartExecution")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RestartExecutionResponseObject); ok {
+		if err := validResponse.VisitRestartExecutionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListFlows operation middleware
 func (sh *strictHandler) ListFlows(w http.ResponseWriter, r *http.Request, params ListFlowsParams) {
 	var request ListFlowsRequestObject
@@ -3922,6 +6785,40 @@ func (sh *strictHandler) DiffFlowRevisions(w http.ResponseWriter, r *http.Reques
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(DiffFlowRevisionsResponseObject); ok {
 		if err := validResponse.VisitDiffFlowRevisionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// TriggerFlow operation middleware
+func (sh *strictHandler) TriggerFlow(w http.ResponseWriter, r *http.Request, namespace NamespacePath, flowId FlowIdPath) {
+	var request TriggerFlowRequestObject
+
+	request.Namespace = namespace
+	request.FlowId = flowId
+
+	var body TriggerFlowJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.TriggerFlow(ctx, request.(TriggerFlowRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "TriggerFlow")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(TriggerFlowResponseObject); ok {
+		if err := validResponse.VisitTriggerFlowResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -4292,6 +7189,39 @@ func (sh *strictHandler) RevertVersion(w http.ResponseWriter, r *http.Request, n
 	}
 }
 
+// RunFile operation middleware
+func (sh *strictHandler) RunFile(w http.ResponseWriter, r *http.Request, namespace NamespacePath) {
+	var request RunFileRequestObject
+
+	request.Namespace = namespace
+
+	var body RunFileJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RunFile(ctx, request.(RunFileRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RunFile")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RunFileResponseObject); ok {
+		if err := validResponse.VisitRunFileResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ValidateFile operation middleware
 func (sh *strictHandler) ValidateFile(w http.ResponseWriter, r *http.Request, namespace NamespacePath) {
 	var request ValidateFileRequestObject
@@ -4587,80 +7517,120 @@ func (sh *strictHandler) ResetUserPassword(w http.ResponseWriter, r *http.Reques
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

@@ -491,6 +491,406 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/flows/{namespace}/{flowId}/executions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+        flowId: components["parameters"]["FlowIdPath"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Start a flow manually with inputs and labels. */
+    post: operations["triggerFlow"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/namespaces/{namespace}/run": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Run a script file of the namespace with optional args. */
+    post: operations["runFile"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List executions with filters, sort and cursor pagination. */
+    get: operations["listExecutions"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    /** Get an execution with its task runs. */
+    get: operations["getExecution"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Cancel an execution. */
+    post: operations["cancelExecution"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/rerun": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Start a new execution with the same snapshot and inputs. */
+    post: operations["rerunExecution"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/restart": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Start a new execution that reuses the successful tasks and runs the others. */
+    post: operations["restartExecution"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/logs": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    /** Read log lines from Postgres or the archive. */
+    get: operations["getExecutionLogs"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/logs/stream": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    /** Stream log lines as server-sent events. Supports Last-Event-ID. */
+    get: operations["streamExecutionLogs"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/logs/download": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    /** Download all log lines as a text file. */
+    get: operations["downloadExecutionLogs"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/events": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    /** Stream execution state changes as server-sent events. Supports Last-Event-ID. */
+    get: operations["streamExecutionEvents"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/metrics": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    /** List metrics emitted by the tasks. */
+    get: operations["listExecutionMetrics"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/artifacts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    /** List artifacts uploaded by the tasks. */
+    get: operations["listExecutionArtifacts"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/artifacts/{artifactId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+        artifactId: string;
+      };
+      cookie?: never;
+    };
+    /** Download an artifact. */
+    get: operations["downloadArtifact"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/runner/v1/task-runs/{taskRunId}/spec": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: components["parameters"]["TaskRunIdPath"];
+      };
+      cookie?: never;
+    };
+    /** Task spec with resolved env, mask values and limits. */
+    get: operations["runnerGetSpec"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/runner/v1/task-runs/{taskRunId}/bundle": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: components["parameters"]["TaskRunIdPath"];
+      };
+      cookie?: never;
+    };
+    /** Snapshot bundle (tar.gz). */
+    get: operations["runnerGetBundle"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/runner/v1/task-runs/{taskRunId}/logs": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: components["parameters"]["TaskRunIdPath"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Ingest one log batch. Idempotent per (task run, seq). */
+    post: operations["runnerPostLogs"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/runner/v1/task-runs/{taskRunId}/events": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: components["parameters"]["TaskRunIdPath"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Ingest outputs and metrics. */
+    post: operations["runnerPostEvents"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/runner/v1/task-runs/{taskRunId}/artifacts/{name}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: components["parameters"]["TaskRunIdPath"];
+        name: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Upload one artifact as a streamed body. */
+    put: operations["runnerPutArtifact"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/runner/v1/task-runs/{taskRunId}/heartbeat": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: components["parameters"]["TaskRunIdPath"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Report liveness. The response says whether to cancel. */
+    post: operations["runnerHeartbeat"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/runner/v1/task-runs/{taskRunId}/complete": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: components["parameters"]["TaskRunIdPath"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Report the end of the task. */
+    post: operations["runnerComplete"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/schemas/flow.json": {
     parameters: {
       query?: never;
@@ -831,6 +1231,233 @@ export interface components {
     TextDiff: {
       diff: string;
     };
+    TriggerRequest: {
+      inputs?: {
+        [key: string]: unknown;
+      };
+      labels?: {
+        [key: string]: string;
+      };
+    };
+    RunFileRequest: {
+      path: string;
+      args?: string[];
+    };
+    /** @enum {string} */
+    ExecutionState:
+      | "QUEUED"
+      | "RUNNING"
+      | "CANCELLING"
+      | "SUCCESS"
+      | "FAILED"
+      | "TIMED_OUT"
+      | "CANCELLED"
+      | "SKIPPED";
+    /** @enum {string} */
+    TaskRunState:
+      | "PENDING"
+      | "QUEUED"
+      | "RUNNING"
+      | "SUCCESS"
+      | "FAILED"
+      | "TIMED_OUT"
+      | "CANCELLED"
+      | "SKIPPED";
+    ExecutionSummary: {
+      /** Format: uuid */
+      id: string;
+      namespace: string;
+      /** @description Flow ID. Null for file runs. */
+      flow_id?: string | null;
+      state: components["schemas"]["ExecutionState"];
+      trigger_type: string;
+      labels: {
+        [key: string]: string;
+      };
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at?: string | null;
+      /** Format: date-time */
+      ended_at?: string | null;
+      /** Format: int64 */
+      duration_ms?: number | null;
+      error: string;
+      reason: string;
+      created_by: string;
+    };
+    ExecutionList: {
+      items: components["schemas"]["ExecutionSummary"][];
+      next_cursor?: string;
+    };
+    TaskRun: {
+      /** Format: uuid */
+      id: string;
+      task_key: string;
+      task_type: string;
+      attempt: number;
+      state: components["schemas"]["TaskRunState"];
+      reason: string;
+      executor_type: string;
+      pool: string;
+      /** Format: date-time */
+      queued_at?: string | null;
+      /** Format: date-time */
+      started_at?: string | null;
+      /** Format: date-time */
+      ended_at?: string | null;
+      /** Format: int64 */
+      duration_ms?: number | null;
+      exit_code?: number | null;
+      error: string;
+      outputs?: {
+        [key: string]: unknown;
+      } | null;
+      /** Format: uuid */
+      reused_from_id?: string | null;
+      /** Format: uuid */
+      child_execution_id?: string | null;
+    };
+    ExecutionDetail: components["schemas"]["ExecutionSummary"] & {
+      inputs: {
+        [key: string]: unknown;
+      };
+      outputs?: {
+        [key: string]: unknown;
+      } | null;
+      trigger_payload: {
+        [key: string]: unknown;
+      };
+      /** Format: uuid */
+      snapshot_id: string;
+      snapshot_version?: number | null;
+      git_sha?: string;
+      /** Format: uuid */
+      flow_revision_id?: string | null;
+      /** Format: uuid */
+      parent_execution_id?: string | null;
+      /** Format: uuid */
+      restart_of_id?: string | null;
+      chain_depth: number;
+      secret_keys_used: string[];
+      task_runs: components["schemas"]["TaskRun"][];
+      children: components["schemas"]["ExecutionRef"][];
+    };
+    LogEntry: {
+      /** Format: uuid */
+      task_run_id: string;
+      task_key: string;
+      attempt: number;
+      /**
+       * Format: int64
+       * @description 1-based line number in the task run.
+       */
+      n: number;
+      /** Format: date-time */
+      ts: string;
+      /** @enum {string} */
+      stream: "stdout" | "stderr" | "system";
+      text: string;
+    };
+    LogPage: {
+      lines: components["schemas"]["LogEntry"][];
+      next_cursor?: string;
+      /** @description True when the execution ended and no more lines follow. */
+      done: boolean;
+    };
+    MetricPoint: {
+      /** Format: uuid */
+      task_run_id: string;
+      task_key: string;
+      name: string;
+      /** Format: double */
+      value: number;
+      unit: string;
+      tags: {
+        [key: string]: string;
+      };
+      /** Format: date-time */
+      ts: string;
+    };
+    MetricList: {
+      items: components["schemas"]["MetricPoint"][];
+    };
+    Artifact: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      task_run_id: string;
+      task_key: string;
+      name: string;
+      /** Format: int64 */
+      size: number;
+      content_type: string;
+      /** Format: date-time */
+      created_at: string;
+    };
+    ArtifactList: {
+      items: components["schemas"]["Artifact"][];
+    };
+    RunnerLimits: {
+      /** Format: int64 */
+      max_artifact_bytes: number;
+      /** Format: int64 */
+      max_bundle_bytes: number;
+    };
+    RunnerSpec: {
+      task_run_id: string;
+      execution_id: string;
+      namespace: string;
+      flow_id: string;
+      task_id: string;
+      attempt: number;
+      command: string[];
+      workdir: string;
+      env: {
+        [key: string]: string;
+      };
+      runtime?: string;
+      timeout_seconds: number;
+      mask_values: string[];
+      bundle_hash: string;
+      limits: components["schemas"]["RunnerLimits"];
+    };
+    RunnerLogLine: {
+      /** Format: date-time */
+      ts: string;
+      /** @enum {string} */
+      stream: "stdout" | "stderr" | "system";
+      text: string;
+    };
+    RunnerLogBatch: {
+      seq: number;
+      lines: components["schemas"]["RunnerLogLine"][];
+    };
+    RunnerEvent: {
+      /** @enum {string} */
+      type: "output" | "metric";
+      key?: string;
+      value?: unknown;
+      name?: string;
+      unit?: string;
+      tags?: {
+        [key: string]: string;
+      };
+      /** Format: date-time */
+      ts?: string;
+    };
+    RunnerEventBatch: {
+      seq: number;
+      events: components["schemas"]["RunnerEvent"][];
+    };
+    RunnerHeartbeatResponse: {
+      cancel: boolean;
+    };
+    RunnerComplete: {
+      exit_code: number;
+      error: string;
+      reason?: string;
+    };
   };
   responses: {
     /** @description Error envelope. */
@@ -844,6 +1471,8 @@ export interface components {
     };
   };
   parameters: {
+    ExecutionIdPath: string;
+    TaskRunIdPath: string;
     /** @description Opaque cursor from next_cursor of the previous page. */
     Cursor: string;
     Limit: number;
@@ -1683,6 +2312,546 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["TextDiff"];
         };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  triggerFlow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+        flowId: components["parameters"]["FlowIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TriggerRequest"];
+      };
+    };
+    responses: {
+      /** @description Execution created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExecutionDetail"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  runFile: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RunFileRequest"];
+      };
+    };
+    responses: {
+      /** @description Execution created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExecutionDetail"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  listExecutions: {
+    parameters: {
+      query?: {
+        /** @description Comma-separated execution states. */
+        state?: string;
+        /** @description Namespace and its children. */
+        namespace?: string;
+        /** @description Flow as <namespace>/<flow_id>. */
+        flow?: string;
+        trigger_type?:
+          | "manual"
+          | "schedule"
+          | "webhook"
+          | "flow"
+          | "file"
+          | "subflow"
+          | "rerun"
+          | "restart";
+        /** @description Label filter key=value. Repeat for several labels. */
+        label?: string[];
+        from?: string;
+        to?: string;
+        sort?: "created" | "duration";
+        /** @description Opaque cursor from next_cursor of the previous page. */
+        cursor?: components["parameters"]["Cursor"];
+        limit?: components["parameters"]["Limit"];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Executions. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExecutionList"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  getExecution: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Execution. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExecutionDetail"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  cancelExecution: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cancel requested. */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExecutionDetail"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  rerunExecution: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Execution created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExecutionDetail"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  restartExecution: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Execution created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExecutionDetail"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  getExecutionLogs: {
+    parameters: {
+      query?: {
+        /** @description Task ID filter. */
+        task?: string;
+        /** @description Case-insensitive text filter. */
+        search?: string;
+        /** @description Opaque cursor from next_cursor of the previous page. */
+        cursor?: components["parameters"]["Cursor"];
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Log lines. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LogPage"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  streamExecutionLogs: {
+    parameters: {
+      query?: {
+        task?: string;
+      };
+      header?: {
+        "Last-Event-ID"?: string;
+      };
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Event stream. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "text/event-stream": string;
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  downloadExecutionLogs: {
+    parameters: {
+      query?: {
+        task?: string;
+      };
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Log file. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "text/plain": string;
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  streamExecutionEvents: {
+    parameters: {
+      query?: never;
+      header?: {
+        "Last-Event-ID"?: string;
+      };
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Event stream. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "text/event-stream": string;
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  listExecutionMetrics: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Metrics. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MetricList"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  listExecutionArtifacts: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Artifacts. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ArtifactList"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  downloadArtifact: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: components["parameters"]["ExecutionIdPath"];
+        artifactId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Artifact content. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/octet-stream": string;
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  runnerGetSpec: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: components["parameters"]["TaskRunIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Spec. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RunnerSpec"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  runnerGetBundle: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: components["parameters"]["TaskRunIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Bundle. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/gzip": string;
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  runnerPostLogs: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: components["parameters"]["TaskRunIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RunnerLogBatch"];
+      };
+    };
+    responses: {
+      /** @description Stored. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  runnerPostEvents: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: components["parameters"]["TaskRunIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RunnerEventBatch"];
+      };
+    };
+    responses: {
+      /** @description Stored. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  runnerPutArtifact: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: components["parameters"]["TaskRunIdPath"];
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/octet-stream": string;
+      };
+    };
+    responses: {
+      /** @description Stored. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  runnerHeartbeat: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: components["parameters"]["TaskRunIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Heartbeat response. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RunnerHeartbeatResponse"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  runnerComplete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: components["parameters"]["TaskRunIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RunnerComplete"];
+      };
+    };
+    responses: {
+      /** @description Recorded. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       default: components["responses"]["Error"];
     };

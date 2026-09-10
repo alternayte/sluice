@@ -31,6 +31,8 @@ type command struct {
 func commands() []command {
 	return []command{
 		{"server", "Run the HTTP server, scheduler and executors.", runServer},
+		{"exec", "Run one task run (the runner). Reads SLUICE_API_URL, SLUICE_RUN_TOKEN, SLUICE_TASK_RUN_ID.", runExec},
+		{"runner-install", "Copy this binary into a directory (runner injection).", runRunnerInstall},
 		{"migrate", "Apply database migrations and exit.", runMigrate},
 		{"user create", "Create a user in the database.", runUserCreate},
 		{"user reset-password", "Set a new password for a user.", runUserResetPassword},

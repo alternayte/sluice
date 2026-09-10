@@ -5,9 +5,11 @@ import (
 
 	"github.com/alternayte/sluice/internal/api/apigen"
 	"github.com/alternayte/sluice/internal/auth"
+	"github.com/alternayte/sluice/internal/execution"
 	"github.com/alternayte/sluice/internal/namespace"
 	"github.com/alternayte/sluice/internal/platform/clock"
 	"github.com/alternayte/sluice/internal/platform/instance"
+	"github.com/alternayte/sluice/internal/runnerapi"
 )
 
 // Server implements apigen.StrictServerInterface by embedding the feature handlers.
@@ -15,6 +17,8 @@ type Server struct {
 	System
 	auth.Handlers
 	namespace.API
+	execution.ExecAPI
+	runnerapi.RunnerAPI
 }
 
 var _ apigen.StrictServerInterface = (*Server)(nil)

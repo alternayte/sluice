@@ -34,10 +34,11 @@ const toneIcons = {
 
 /** ExecutionStateBadge shows an execution state with an icon and text. */
 export function ExecutionStateBadge({ state }: { state: string }) {
-  const tone = executionStateTone(state);
+  const s = state.toLowerCase();
+  const tone = executionStateTone(s);
   return (
     <Badge tone={tone} icon={toneIcons[tone]}>
-      {stateLabel(state)}
+      {stateLabel(s)}
     </Badge>
   );
 }

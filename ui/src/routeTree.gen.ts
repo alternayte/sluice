@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ExecutionsIndexRouteImport } from './routes/executions/index'
+import { Route as ExecutionsExecutionIdRouteImport } from './routes/executions/$executionId'
 import { Route as FlowsIndexRouteImport } from './routes/flows/index'
 import { Route as NamespacesIndexRouteImport } from './routes/namespaces/index'
 import { Route as NamespacesNamespaceRouteImport } from './routes/namespaces/$namespace'
@@ -29,6 +31,16 @@ const IndexRoute = IndexRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExecutionsIndexRoute = ExecutionsIndexRouteImport.update({
+  id: '/executions/',
+  path: '/executions/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExecutionsExecutionIdRoute = ExecutionsExecutionIdRouteImport.update({
+  id: '/executions/$executionId',
+  path: '/executions/$executionId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FlowsIndexRoute = FlowsIndexRouteImport.update({
@@ -80,12 +92,14 @@ const FlowsNamespaceFlowIdRoute = FlowsNamespaceFlowIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/namespaces/$namespace': typeof NamespacesNamespaceRoute
   '/settings/audit': typeof SettingsAuditRoute
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/tokens': typeof SettingsTokensRoute
   '/settings/users': typeof SettingsUsersRoute
+  '/executions/': typeof ExecutionsIndexRoute
   '/flows/': typeof FlowsIndexRoute
   '/namespaces/': typeof NamespacesIndexRoute
   '/flows/$namespace/$flowId': typeof FlowsNamespaceFlowIdRoute
@@ -93,12 +107,14 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/namespaces/$namespace': typeof NamespacesNamespaceRoute
   '/settings/audit': typeof SettingsAuditRoute
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/tokens': typeof SettingsTokensRoute
   '/settings/users': typeof SettingsUsersRoute
+  '/executions': typeof ExecutionsIndexRoute
   '/flows': typeof FlowsIndexRoute
   '/namespaces': typeof NamespacesIndexRoute
   '/flows/$namespace/$flowId': typeof FlowsNamespaceFlowIdRoute
@@ -107,12 +123,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/namespaces/$namespace': typeof NamespacesNamespaceRoute
   '/settings/audit': typeof SettingsAuditRoute
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/tokens': typeof SettingsTokensRoute
   '/settings/users': typeof SettingsUsersRoute
+  '/executions/': typeof ExecutionsIndexRoute
   '/flows/': typeof FlowsIndexRoute
   '/namespaces/': typeof NamespacesIndexRoute
   '/flows/$namespace/$flowId': typeof FlowsNamespaceFlowIdRoute
@@ -122,12 +140,14 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/executions/$executionId'
     | '/namespaces/$namespace'
     | '/settings/audit'
     | '/settings/instances'
     | '/settings/profile'
     | '/settings/tokens'
     | '/settings/users'
+    | '/executions/'
     | '/flows/'
     | '/namespaces/'
     | '/flows/$namespace/$flowId'
@@ -135,12 +155,14 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/executions/$executionId'
     | '/namespaces/$namespace'
     | '/settings/audit'
     | '/settings/instances'
     | '/settings/profile'
     | '/settings/tokens'
     | '/settings/users'
+    | '/executions'
     | '/flows'
     | '/namespaces'
     | '/flows/$namespace/$flowId'
@@ -148,12 +170,14 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/executions/$executionId'
     | '/namespaces/$namespace'
     | '/settings/audit'
     | '/settings/instances'
     | '/settings/profile'
     | '/settings/tokens'
     | '/settings/users'
+    | '/executions/'
     | '/flows/'
     | '/namespaces/'
     | '/flows/$namespace/$flowId'
@@ -162,12 +186,14 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  ExecutionsExecutionIdRoute: typeof ExecutionsExecutionIdRoute
   NamespacesNamespaceRoute: typeof NamespacesNamespaceRoute
   SettingsAuditRoute: typeof SettingsAuditRoute
   SettingsInstancesRoute: typeof SettingsInstancesRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
   SettingsTokensRoute: typeof SettingsTokensRoute
   SettingsUsersRoute: typeof SettingsUsersRoute
+  ExecutionsIndexRoute: typeof ExecutionsIndexRoute
   FlowsIndexRoute: typeof FlowsIndexRoute
   NamespacesIndexRoute: typeof NamespacesIndexRoute
   FlowsNamespaceFlowIdRoute: typeof FlowsNamespaceFlowIdRoute
@@ -187,6 +213,20 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/executions/': {
+      id: '/executions/'
+      path: '/executions'
+      fullPath: '/executions/'
+      preLoaderRoute: typeof ExecutionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/executions/$executionId': {
+      id: '/executions/$executionId'
+      path: '/executions/$executionId'
+      fullPath: '/executions/$executionId'
+      preLoaderRoute: typeof ExecutionsExecutionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/flows/': {
@@ -258,12 +298,14 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  ExecutionsExecutionIdRoute: ExecutionsExecutionIdRoute,
   NamespacesNamespaceRoute: NamespacesNamespaceRoute,
   SettingsAuditRoute: SettingsAuditRoute,
   SettingsInstancesRoute: SettingsInstancesRoute,
   SettingsProfileRoute: SettingsProfileRoute,
   SettingsTokensRoute: SettingsTokensRoute,
   SettingsUsersRoute: SettingsUsersRoute,
+  ExecutionsIndexRoute: ExecutionsIndexRoute,
   FlowsIndexRoute: FlowsIndexRoute,
   NamespacesIndexRoute: NamespacesIndexRoute,
   FlowsNamespaceFlowIdRoute: FlowsNamespaceFlowIdRoute,

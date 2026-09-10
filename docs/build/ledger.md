@@ -2,7 +2,7 @@
 
 status: IN_PROGRESS
 sdd_sha256: da422836d9c5d45d47c51c922e16ca0acfac0a3288d59d76c87f25d4f5272fbc
-current_slice: S3
+current_slice: S4
 review_round: 0
 review_complete: false
 blocking_findings_open: 0
@@ -32,8 +32,8 @@ blocking_findings_open: 0
 | REQ-UI-010 | IN_PROGRESS | S0 | |
 | SCN-API-001 | PASS | S0 | internal/api/gen_integration_test.go::TestSCN_API_001_RegenerateNoDiff |
 | SCN-API-002 | PASS | S0 | tests/e2e/auth_test.go::TestSCN_API_002_ErrorEnvelope |
-| SCN-API-003 | IN_PROGRESS | S0 | |
-| SCN-API-004 | IN_PROGRESS | S0 | |
+| SCN-API-003 | PASS | S0 | tests/e2e/s4_misc_test.go::TestSCN_API_003_StablePagination |
+| SCN-API-004 | PASS | S0 | tests/e2e/s4_misc_test.go::TestSCN_API_004_LogStreamResume |
 | SCN-CORE-001 | IN_PROGRESS | S0 | |
 | SCN-CORE-002 | PASS | S0 | internal/platform/db/db_integration_test.go::TestSCN_CORE_002_ConcurrentMigrations |
 | SCN-CORE-003 | PASS | S0 | tests/e2e/storage_test.go::TestSCN_CORE_003_HealthReadyMetrics |
@@ -49,7 +49,7 @@ blocking_findings_open: 0
 | REQ-AUTH-003 | PASS | S1 | SCN-AUTH-003; SCN-AUTH-004 |
 | REQ-AUTH-004 | PASS | S1 | SCN-AUTH-007 |
 | REQ-AUTH-005 | IN_PROGRESS | S1 |  |
-| REQ-AUTH-006 | IN_PROGRESS | S1 |  |
+| REQ-AUTH-006 | PASS | S1 | SCN-AUTH-005; SCN-AUTH-006 |
 | REQ-AUTH-007 | IN_PROGRESS | S1 |  |
 | REQ-AUTH-008 | PASS | S1 | SCN-AUTH-008 |
 | REQ-AUTH-009 | PASS | S1 | SCN-AUTH-009 |
@@ -63,7 +63,7 @@ blocking_findings_open: 0
 | SCN-AUTH-002 | PASS | S1 | tests/e2e/auth_test.go::TestSCN_AUTH_002_BootstrapAdminAndCLI |
 | SCN-AUTH-003 | PASS | S1 | tests/ui/specs/auth.spec.ts::SCN-AUTH-003 admin creates an editor who must set a new password |
 | SCN-AUTH-004 | PASS | S1 | tests/e2e/auth_test.go::TestSCN_AUTH_004_LastAdminGuard |
-| SCN-AUTH-005 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-005 | PASS | S1 | tests/e2e/s4_misc_test.go::TestSCN_AUTH_005_TokenRoles |
 | SCN-AUTH-006 | PASS | S1 | internal/app/routes_integration_test.go::TestSCN_AUTH_006_RouteInventory |
 | SCN-AUTH-007 | PASS | S1 | tests/e2e/auth_test.go::TestSCN_AUTH_007_ChangePassword |
 | SCN-AUTH-008 | PASS | S1 | tests/e2e/auth_test.go::TestSCN_AUTH_008_LoginRateLimit |
@@ -117,83 +117,83 @@ blocking_findings_open: 0
 | SCN-NS-003 | IN_PROGRESS | S3 |  |
 | SCN-NS-004 | IN_PROGRESS | S3 |  |
 | SCN-NS-005 | IN_PROGRESS | S3 |  |
-| SCN-NS-006 | IN_PROGRESS | S3 |  |
+| SCN-NS-006 | PASS | S3 | tests/e2e/s4_misc_test.go::TestSCN_NS_006_NamespaceDefaults |
 | SCN-NS-007 | IN_PROGRESS | S3 |  |
-| SCN-NS-008 | IN_PROGRESS | S3 |  |
+| SCN-NS-008 | PASS | S3 | tests/e2e/s4_misc_test.go::TestSCN_NS_008_DeleteWithRunningExecution |
 | SCN-NS-009 | PASS | S3 | tests/e2e/namespace_test.go::TestSCN_NS_009_FileAndSnapshotLimits |
 | SCN-UI-010 | IN_PROGRESS | S3 |  |
-| REQ-EXE-001 | OPEN | S4 | |
-| REQ-EXE-002 | OPEN | S4 | |
-| REQ-EXE-003 | OPEN | S4 | |
-| REQ-EXE-004 | OPEN | S4 | |
-| REQ-EXE-005 | OPEN | S4 | |
-| REQ-EXE-006 | OPEN | S4 | |
-| REQ-EXE-007 | OPEN | S4 | |
-| REQ-EXE-008 | OPEN | S4 | |
-| REQ-EXE-009 | OPEN | S4 | |
-| REQ-EXE-010 | OPEN | S4 | |
-| REQ-EXE-011 | OPEN | S4 | |
-| REQ-EXE-012 | OPEN | S4 | |
-| REQ-EXE-013 | OPEN | S4 | |
-| REQ-EXE-014 | OPEN | S4 | |
-| REQ-EXE-015 | OPEN | S4 | |
-| REQ-EXE-016 | OPEN | S4 | |
-| REQ-EXE-017 | OPEN | S4 | |
-| REQ-EXR-001 | OPEN | S4 | |
-| REQ-EXR-002 | OPEN | S4 | |
-| REQ-EXR-003 | OPEN | S4 | |
-| REQ-EXR-008 | OPEN | S4 | |
-| REQ-RUN-001 | OPEN | S4 | |
-| REQ-RUN-002 | OPEN | S4 | |
-| REQ-RUN-003 | OPEN | S4 | |
-| REQ-RUN-004 | OPEN | S4 | |
-| REQ-RUN-005 | OPEN | S4 | |
-| REQ-RUN-006 | OPEN | S4 | |
-| REQ-RUN-007 | OPEN | S4 | |
-| REQ-RUN-008 | OPEN | S4 | |
-| REQ-RUN-009 | OPEN | S4 | |
-| REQ-RUN-010 | OPEN | S4 | |
-| REQ-TRG-001 | OPEN | S4 | |
-| REQ-UI-004 | OPEN | S4 | |
-| REQ-UI-005 | OPEN | S4 | |
-| REQ-UI-012 | OPEN | S4 | |
-| NFR-002 | OPEN | S4 | |
-| SI-04 | OPEN | S4 | |
-| SCN-EXE-001 | OPEN | S4 | |
-| SCN-EXE-002 | OPEN | S4 | |
-| SCN-EXE-003 | OPEN | S4 | |
-| SCN-EXE-004 | OPEN | S4 | |
-| SCN-EXE-005 | OPEN | S4 | |
-| SCN-EXE-006 | OPEN | S4 | |
-| SCN-EXE-007 | OPEN | S4 | |
-| SCN-EXE-008 | OPEN | S4 | |
-| SCN-EXE-009 | OPEN | S4 | |
-| SCN-EXE-010 | OPEN | S4 | |
-| SCN-EXE-011 | OPEN | S4 | |
-| SCN-EXE-012 | OPEN | S4 | |
-| SCN-EXE-013 | OPEN | S4 | |
-| SCN-EXE-014 | OPEN | S4 | |
-| SCN-EXE-015 | OPEN | S4 | |
-| SCN-EXE-016 | OPEN | S4 | |
-| SCN-EXE-017 | OPEN | S4 | |
-| SCN-EXR-001 | OPEN | S4 | |
-| SCN-EXR-002 | OPEN | S4 | |
-| SCN-EXR-008 | OPEN | S4 | |
-| SCN-NFR-002 | OPEN | S4 | |
-| SCN-RUN-001 | OPEN | S4 | |
-| SCN-RUN-002 | OPEN | S4 | |
-| SCN-RUN-003 | OPEN | S4 | |
-| SCN-RUN-004 | OPEN | S4 | |
-| SCN-RUN-005 | OPEN | S4 | |
-| SCN-RUN-006 | OPEN | S4 | |
-| SCN-RUN-007 | OPEN | S4 | |
-| SCN-RUN-008 | OPEN | S4 | |
-| SCN-RUN-009 | OPEN | S4 | |
-| SCN-RUN-010 | OPEN | S4 | |
-| SCN-TRG-001 | OPEN | S4 | |
-| SCN-UI-002 | OPEN | S4 | |
-| SCN-UI-003 | OPEN | S4 | |
-| SCN-UI-008 | OPEN | S4 | |
+| REQ-EXE-001 | IN_PROGRESS | S4 |  |
+| REQ-EXE-002 | IN_PROGRESS | S4 |  |
+| REQ-EXE-003 | IN_PROGRESS | S4 |  |
+| REQ-EXE-004 | IN_PROGRESS | S4 |  |
+| REQ-EXE-005 | IN_PROGRESS | S4 |  |
+| REQ-EXE-006 | IN_PROGRESS | S4 |  |
+| REQ-EXE-007 | IN_PROGRESS | S4 |  |
+| REQ-EXE-008 | IN_PROGRESS | S4 |  |
+| REQ-EXE-009 | IN_PROGRESS | S4 |  |
+| REQ-EXE-010 | IN_PROGRESS | S4 |  |
+| REQ-EXE-011 | IN_PROGRESS | S4 |  |
+| REQ-EXE-012 | IN_PROGRESS | S4 |  |
+| REQ-EXE-013 | IN_PROGRESS | S4 |  |
+| REQ-EXE-014 | IN_PROGRESS | S4 |  |
+| REQ-EXE-015 | IN_PROGRESS | S4 |  |
+| REQ-EXE-016 | PASS | S4 | SCN-EXE-013; SCN-EXE-016 |
+| REQ-EXE-017 | IN_PROGRESS | S4 |  |
+| REQ-EXR-001 | IN_PROGRESS | S4 |  |
+| REQ-EXR-002 | IN_PROGRESS | S4 |  |
+| REQ-EXR-003 | IN_PROGRESS | S4 |  |
+| REQ-EXR-008 | IN_PROGRESS | S4 |  |
+| REQ-RUN-001 | IN_PROGRESS | S4 |  |
+| REQ-RUN-002 | PASS | S4 | SCN-RUN-001; SCN-RUN-002 |
+| REQ-RUN-003 | IN_PROGRESS | S4 |  |
+| REQ-RUN-004 | IN_PROGRESS | S4 |  |
+| REQ-RUN-005 | IN_PROGRESS | S4 |  |
+| REQ-RUN-006 | IN_PROGRESS | S4 |  |
+| REQ-RUN-007 | IN_PROGRESS | S4 |  |
+| REQ-RUN-008 | IN_PROGRESS | S4 |  |
+| REQ-RUN-009 | IN_PROGRESS | S4 |  |
+| REQ-RUN-010 | IN_PROGRESS | S4 |  |
+| REQ-TRG-001 | IN_PROGRESS | S4 |  |
+| REQ-UI-004 | IN_PROGRESS | S4 |  |
+| REQ-UI-005 | IN_PROGRESS | S4 |  |
+| REQ-UI-012 | IN_PROGRESS | S4 |  |
+| NFR-002 | IN_PROGRESS | S4 |  |
+| SI-04 | IN_PROGRESS | S4 |  |
+| SCN-EXE-001 | PASS | S4 | tests/e2e/exe_test.go::TestSCN_EXE_001_PinnedSnapshot |
+| SCN-EXE-002 | PASS | S4 | internal/execution/state_integration_test.go::TestSCN_EXE_002_StateTransitions |
+| SCN-EXE-003 | PASS | S4 | tests/e2e/exe_test.go::TestSCN_EXE_003_ParallelAndMaxParallel |
+| SCN-EXE-004 | PASS | S4 | tests/e2e/exe_test.go::TestSCN_EXE_004_RunIf |
+| SCN-EXE-005 | PASS | S4 | tests/e2e/exe_test.go::TestSCN_EXE_005_RetriesWithBackoff |
+| SCN-EXE-006 | PASS | S4 | tests/e2e/exe_test.go::TestSCN_EXE_006_Timeouts |
+| SCN-EXE-007 | PASS | S4 | tests/e2e/exe_test.go::TestSCN_EXE_007_Concurrency |
+| SCN-EXE-008 | IN_PROGRESS | S4 |  |
+| SCN-EXE-009 | IN_PROGRESS | S4 |  |
+| SCN-EXE-010 | IN_PROGRESS | S4 |  |
+| SCN-EXE-011 | PASS | S4 | tests/e2e/s4_misc_test.go::TestSCN_EXE_011_LostRunner |
+| SCN-EXE-012 | IN_PROGRESS | S4 |  |
+| SCN-EXE-013 | PASS | S4 | tests/e2e/exe_test.go::TestSCN_EXE_013_FlowAndSubflowOutputs |
+| SCN-EXE-014 | IN_PROGRESS | S4 |  |
+| SCN-EXE-015 | PASS | S4 | tests/e2e/exe_test.go::TestSCN_EXE_015_LabelFilter |
+| SCN-EXE-016 | PASS | S4 | tests/e2e/exe_test.go::TestSCN_EXE_016_SubflowCancelAndDepth |
+| SCN-EXE-017 | PASS | S4 | tests/e2e/exe_test.go::TestSCN_EXE_017_HTTPTask |
+| SCN-EXR-001 | IN_PROGRESS | S4 |  |
+| SCN-EXR-002 | PASS | S4 | tests/e2e/s4_misc_test.go::TestSCN_EXR_002_CancelProcessGroup |
+| SCN-EXR-008 | PASS | S4 | tests/e2e/s4_misc_test.go::TestSCN_EXR_008_NoInstanceForPool |
+| SCN-NFR-002 | IN_PROGRESS | S4 |  |
+| SCN-RUN-001 | PASS | S4 | tests/e2e/run_test.go::TestSCN_RUN_001_InterleavedLines |
+| SCN-RUN-002 | PASS | S4 | tests/e2e/run_test.go::TestSCN_RUN_002_LongLineTruncated |
+| SCN-RUN-003 | PASS | S4 | tests/e2e/run_test.go::TestSCN_RUN_003_OutputsMetricsArtifacts |
+| SCN-RUN-004 | PASS | S4 | tests/e2e/run_test.go::TestSCN_RUN_004_CancelSignals |
+| SCN-RUN-005 | IN_PROGRESS | S4 |  |
+| SCN-RUN-006 | IN_PROGRESS | S4 |  |
+| SCN-RUN-007 | IN_PROGRESS | S4 |  |
+| SCN-RUN-008 | IN_PROGRESS | S4 |  |
+| SCN-RUN-009 | PASS | S4 | tests/e2e/run_test.go::TestSCN_RUN_009_TaskEnvironment |
+| SCN-RUN-010 | PASS | S4 | tests/e2e/run_test.go::TestSCN_RUN_010_RunTokens |
+| SCN-TRG-001 | PASS | S4 | tests/e2e/s4_misc_test.go::TestSCN_TRG_001_ManualTrigger |
+| SCN-UI-002 | IN_PROGRESS | S4 |  |
+| SCN-UI-003 | IN_PROGRESS | S4 |  |
+| SCN-UI-008 | IN_PROGRESS | S4 |  |
 | REQ-DEP-004 | OPEN | S5 | |
 | REQ-TRG-002 | OPEN | S5 | |
 | REQ-TRG-003 | OPEN | S5 | |

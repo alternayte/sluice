@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { FilePlus, GitBranch, Pencil, RotateCcw, Save, Trash2, Upload } from "lucide-react";
+import { FilePlus, GitBranch, Pencil, Play, RotateCcw, Save, Trash2, Upload } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
 import { ApiError, api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema";
@@ -10,6 +10,7 @@ import { DiffView } from "@/components/diff-view";
 import { CodeEditor, type Issue } from "@/components/editor/code-editor";
 import { isValidatedPath } from "@/components/editor/languages";
 import { SourceBadges, invalidateNamespace } from "@/components/namespace-source";
+import { RunFileDialog } from "@/components/run-dialogs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -20,6 +21,7 @@ import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
 import { Tabs } from "@/components/ui/tabs";
 import { useCurrentUser } from "@/lib/auth";
 import { errorMessage } from "@/lib/errors";
+import { runnableFile } from "@/lib/executions";
 import { can } from "@/lib/roles";
 import { cn, formatBytes, formatTime } from "@/lib/utils";
 
@@ -274,8 +276,10 @@ function FileEditor({
   });
   const [draft, setDraft] = useState<string | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
-  const [dialog, setDialog] = useState<"save" | "rename" | "delete" | null>(null);
+  const [dialog, setDialog] = useState<"save" | "rename" | "delete" | "run" | null>(null);
   const del = useSaveChanges(namespace);
+  const me = useCurrentUser();
+  const canRun = can(me.role, "operator") && runnableFile(path);
   const validated = isValidatedPath(path);
 
   const validate = useCallback(
@@ -303,20 +307,30 @@ function FileEditor({
                 </h2>
                 {dirty && <Badge tone="warning">Unsaved changes</Badge>}
               </div>
-              {canEdit && (
+              {(canEdit || canRun) && (
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => setDialog("rename")}>
-                    <Pencil className="h-3.5 w-3.5" aria-hidden />
-                    Rename
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setDialog("delete")}>
-                    <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                    Delete
-                  </Button>
-                  <Button size="sm" disabled={!dirty} onClick={() => setDialog("save")}>
-                    <Save className="h-3.5 w-3.5" aria-hidden />
-                    Save
-                  </Button>
+                  {canRun && (
+                    <Button size="sm" variant="secondary" onClick={() => setDialog("run")}>
+                      <Play className="h-3.5 w-3.5" aria-hidden />
+                      Run
+                    </Button>
+                  )}
+                  {canEdit && (
+                    <>
+                      <Button size="sm" variant="ghost" onClick={() => setDialog("rename")}>
+                        <Pencil className="h-3.5 w-3.5" aria-hidden />
+                        Rename
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setDialog("delete")}>
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                        Delete
+                      </Button>
+                      <Button size="sm" disabled={!dirty} onClick={() => setDialog("save")}>
+                        <Save className="h-3.5 w-3.5" aria-hidden />
+                        Save
+                      </Button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -366,6 +380,9 @@ function FileEditor({
                   invalidateNamespace(qc, namespace);
                 }}
               />
+            )}
+            {dialog === "run" && (
+              <RunFileDialog namespace={namespace} path={path} onClose={() => setDialog(null)} />
             )}
             {dialog === "rename" && (
               <PathDialog

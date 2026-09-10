@@ -215,6 +215,11 @@ func (s *Service) ReadFile(ctx context.Context, name, path string, version *int)
 	return r, e, nil
 }
 
+// ReadBlob reads a file object by content hash.
+func (s *Service) ReadBlob(ctx context.Context, hash string) ([]byte, error) {
+	return s.readBlob(ctx, hash)
+}
+
 func (s *Service) readBlob(ctx context.Context, hash string) ([]byte, error) {
 	r, err := s.Store.Get(ctx, storage.FileKey(hash))
 	if err != nil {

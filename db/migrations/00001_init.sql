@@ -206,6 +206,7 @@ CREATE TABLE executions (
     trigger_id uuid,
     scheduled_for timestamptz,
     trigger_payload jsonb NOT NULL DEFAULT '{}',
+    definition jsonb NOT NULL DEFAULT '{}',
     inputs jsonb NOT NULL DEFAULT '{}',
     labels jsonb NOT NULL DEFAULT '{}',
     outputs jsonb,
@@ -237,6 +238,7 @@ CREATE TABLE task_runs (
     id uuid PRIMARY KEY,
     execution_id uuid NOT NULL REFERENCES executions (id) ON DELETE CASCADE,
     task_key text NOT NULL,
+    task_type text NOT NULL DEFAULT '',
     attempt integer NOT NULL DEFAULT 1,
     state text NOT NULL CHECK (state IN ('PENDING', 'QUEUED', 'RUNNING', 'SUCCESS', 'FAILED', 'TIMED_OUT', 'CANCELLED', 'SKIPPED')),
     reason text NOT NULL DEFAULT '',
@@ -256,8 +258,10 @@ CREATE TABLE task_runs (
     error text NOT NULL DEFAULT '',
     outputs jsonb,
     reused_from_id uuid,
+    child_execution_id uuid,
     UNIQUE (execution_id, task_key, attempt)
 );
+CREATE INDEX task_runs_exec_idx ON task_runs (execution_id, task_key, attempt);
 CREATE INDEX task_runs_queue_idx ON task_runs (pool, executor_type, queued_at) WHERE state = 'QUEUED';
 CREATE INDEX task_runs_running_idx ON task_runs (claimed_by) WHERE state = 'RUNNING';
 CREATE INDEX task_runs_pending_idx ON task_runs (not_before) WHERE state = 'PENDING';
@@ -285,7 +289,10 @@ CREATE TABLE metrics (
     value double precision NOT NULL,
     unit text NOT NULL DEFAULT '',
     tags jsonb NOT NULL DEFAULT '{}',
-    ts timestamptz NOT NULL
+    ts timestamptz NOT NULL,
+    seq integer NOT NULL DEFAULT 0,
+    idx integer NOT NULL DEFAULT 0,
+    UNIQUE (task_run_id, seq, idx)
 );
 CREATE INDEX metrics_exec_idx ON metrics (execution_id);
 CREATE INDEX metrics_flow_idx ON metrics (flow_id, name, ts);

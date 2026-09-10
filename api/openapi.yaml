@@ -14,6 +14,8 @@ tags:
   - name: namespaces
   - name: files
   - name: flows
+  - name: executions
+  - name: runner
 paths:
   /api/v1/instances:
     get:
@@ -672,6 +674,477 @@ paths:
                 $ref: "#/components/schemas/TextDiff"
         default:
           $ref: "#/components/responses/Error"
+  /api/v1/flows/{namespace}/{flowId}/executions:
+    parameters:
+      - $ref: "#/components/parameters/NamespacePath"
+      - $ref: "#/components/parameters/FlowIdPath"
+    post:
+      operationId: triggerFlow
+      tags: [executions]
+      summary: Start a flow manually with inputs and labels.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TriggerRequest"
+      responses:
+        "201":
+          description: Execution created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionDetail"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/namespaces/{namespace}/run:
+    parameters:
+      - $ref: "#/components/parameters/NamespacePath"
+    post:
+      operationId: runFile
+      tags: [executions]
+      summary: Run a script file of the namespace with optional args.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunFileRequest"
+      responses:
+        "201":
+          description: Execution created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionDetail"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/executions:
+    get:
+      operationId: listExecutions
+      tags: [executions]
+      summary: List executions with filters, sort and cursor pagination.
+      parameters:
+        - name: state
+          in: query
+          description: Comma-separated execution states.
+          schema:
+            type: string
+        - name: namespace
+          in: query
+          description: Namespace and its children.
+          schema:
+            type: string
+        - name: flow
+          in: query
+          description: Flow as <namespace>/<flow_id>.
+          schema:
+            type: string
+        - name: trigger_type
+          in: query
+          schema:
+            type: string
+            enum: [manual, schedule, webhook, flow, file, subflow, rerun, restart]
+        - name: label
+          in: query
+          description: Label filter key=value. Repeat for several labels.
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [created, duration]
+            default: created
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Executions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionList"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/executions/{executionId}:
+    parameters:
+      - $ref: "#/components/parameters/ExecutionIdPath"
+    get:
+      operationId: getExecution
+      tags: [executions]
+      summary: Get an execution with its task runs.
+      responses:
+        "200":
+          description: Execution.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionDetail"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/executions/{executionId}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/ExecutionIdPath"
+    post:
+      operationId: cancelExecution
+      tags: [executions]
+      summary: Cancel an execution.
+      responses:
+        "202":
+          description: Cancel requested.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionDetail"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/executions/{executionId}/rerun:
+    parameters:
+      - $ref: "#/components/parameters/ExecutionIdPath"
+    post:
+      operationId: rerunExecution
+      tags: [executions]
+      summary: Start a new execution with the same snapshot and inputs.
+      responses:
+        "201":
+          description: Execution created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionDetail"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/executions/{executionId}/restart:
+    parameters:
+      - $ref: "#/components/parameters/ExecutionIdPath"
+    post:
+      operationId: restartExecution
+      tags: [executions]
+      summary: Start a new execution that reuses the successful tasks and runs the others.
+      responses:
+        "201":
+          description: Execution created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionDetail"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/executions/{executionId}/logs:
+    parameters:
+      - $ref: "#/components/parameters/ExecutionIdPath"
+    get:
+      operationId: getExecutionLogs
+      tags: [executions]
+      summary: Read log lines from Postgres or the archive.
+      parameters:
+        - name: task
+          in: query
+          description: Task ID filter.
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: Case-insensitive text filter.
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Cursor"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5000
+            default: 1000
+      responses:
+        "200":
+          description: Log lines.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/executions/{executionId}/logs/stream:
+    parameters:
+      - $ref: "#/components/parameters/ExecutionIdPath"
+    get:
+      operationId: streamExecutionLogs
+      tags: [executions]
+      summary: Stream log lines as server-sent events. Supports Last-Event-ID.
+      parameters:
+        - name: task
+          in: query
+          schema:
+            type: string
+        - name: Last-Event-ID
+          in: header
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Event stream.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/executions/{executionId}/logs/download:
+    parameters:
+      - $ref: "#/components/parameters/ExecutionIdPath"
+    get:
+      operationId: downloadExecutionLogs
+      tags: [executions]
+      summary: Download all log lines as a text file.
+      parameters:
+        - name: task
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Log file.
+          content:
+            text/plain:
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/executions/{executionId}/events:
+    parameters:
+      - $ref: "#/components/parameters/ExecutionIdPath"
+    get:
+      operationId: streamExecutionEvents
+      tags: [executions]
+      summary: Stream execution state changes as server-sent events. Supports Last-Event-ID.
+      parameters:
+        - name: Last-Event-ID
+          in: header
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Event stream.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/executions/{executionId}/metrics:
+    parameters:
+      - $ref: "#/components/parameters/ExecutionIdPath"
+    get:
+      operationId: listExecutionMetrics
+      tags: [executions]
+      summary: List metrics emitted by the tasks.
+      responses:
+        "200":
+          description: Metrics.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricList"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/executions/{executionId}/artifacts:
+    parameters:
+      - $ref: "#/components/parameters/ExecutionIdPath"
+    get:
+      operationId: listExecutionArtifacts
+      tags: [executions]
+      summary: List artifacts uploaded by the tasks.
+      responses:
+        "200":
+          description: Artifacts.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtifactList"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/executions/{executionId}/artifacts/{artifactId}:
+    parameters:
+      - $ref: "#/components/parameters/ExecutionIdPath"
+      - name: artifactId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: downloadArtifact
+      tags: [executions]
+      summary: Download an artifact.
+      responses:
+        "200":
+          description: Artifact content.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: "#/components/responses/Error"
+
+  /api/runner/v1/task-runs/{taskRunId}/spec:
+    parameters:
+      - $ref: "#/components/parameters/TaskRunIdPath"
+    get:
+      operationId: runnerGetSpec
+      tags: [runner]
+      summary: Task spec with resolved env, mask values and limits.
+      security:
+        - runToken: []
+      responses:
+        "200":
+          description: Spec.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunnerSpec"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/runner/v1/task-runs/{taskRunId}/bundle:
+    parameters:
+      - $ref: "#/components/parameters/TaskRunIdPath"
+    get:
+      operationId: runnerGetBundle
+      tags: [runner]
+      summary: Snapshot bundle (tar.gz).
+      security:
+        - runToken: []
+      responses:
+        "200":
+          description: Bundle.
+          content:
+            application/gzip:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: "#/components/responses/Error"
+  /api/runner/v1/task-runs/{taskRunId}/logs:
+    parameters:
+      - $ref: "#/components/parameters/TaskRunIdPath"
+    post:
+      operationId: runnerPostLogs
+      tags: [runner]
+      summary: Ingest one log batch. Idempotent per (task run, seq).
+      security:
+        - runToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunnerLogBatch"
+      responses:
+        "204":
+          description: Stored.
+        default:
+          $ref: "#/components/responses/Error"
+  /api/runner/v1/task-runs/{taskRunId}/events:
+    parameters:
+      - $ref: "#/components/parameters/TaskRunIdPath"
+    post:
+      operationId: runnerPostEvents
+      tags: [runner]
+      summary: Ingest outputs and metrics.
+      security:
+        - runToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunnerEventBatch"
+      responses:
+        "204":
+          description: Stored.
+        default:
+          $ref: "#/components/responses/Error"
+  /api/runner/v1/task-runs/{taskRunId}/artifacts/{name}:
+    parameters:
+      - $ref: "#/components/parameters/TaskRunIdPath"
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 200
+    put:
+      operationId: runnerPutArtifact
+      tags: [runner]
+      summary: Upload one artifact as a streamed body.
+      security:
+        - runToken: []
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "204":
+          description: Stored.
+        default:
+          $ref: "#/components/responses/Error"
+  /api/runner/v1/task-runs/{taskRunId}/heartbeat:
+    parameters:
+      - $ref: "#/components/parameters/TaskRunIdPath"
+    post:
+      operationId: runnerHeartbeat
+      tags: [runner]
+      summary: Report liveness. The response says whether to cancel.
+      security:
+        - runToken: []
+      responses:
+        "200":
+          description: Heartbeat response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunnerHeartbeatResponse"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/runner/v1/task-runs/{taskRunId}/complete:
+    parameters:
+      - $ref: "#/components/parameters/TaskRunIdPath"
+    post:
+      operationId: runnerComplete
+      tags: [runner]
+      summary: Report the end of the task.
+      security:
+        - runToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunnerComplete"
+      responses:
+        "204":
+          description: Recorded.
+        default:
+          $ref: "#/components/responses/Error"
+
   /api/v1/schemas/flow.json:
     get:
       operationId: getFlowSchema
@@ -698,7 +1171,25 @@ components:
     token:
       type: http
       scheme: bearer
+    runToken:
+      type: http
+      scheme: bearer
+      description: Run token of one task run (SI-04).
   parameters:
+    ExecutionIdPath:
+      name: executionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TaskRunIdPath:
+      name: taskRunId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     Cursor:
       name: cursor
       in: query
@@ -1418,6 +1909,411 @@ components:
       required: [diff]
       properties:
         diff:
+          type: string
+
+    TriggerRequest:
+      type: object
+      properties:
+        inputs:
+          type: object
+          additionalProperties: true
+        labels:
+          type: object
+          maxProperties: 20
+          additionalProperties:
+            type: string
+            maxLength: 256
+    RunFileRequest:
+      type: object
+      required: [path]
+      properties:
+        path:
+          type: string
+          maxLength: 512
+        args:
+          type: array
+          maxItems: 100
+          items:
+            type: string
+    ExecutionState:
+      type: string
+      enum: [QUEUED, RUNNING, CANCELLING, SUCCESS, FAILED, TIMED_OUT, CANCELLED, SKIPPED]
+    TaskRunState:
+      type: string
+      enum: [PENDING, QUEUED, RUNNING, SUCCESS, FAILED, TIMED_OUT, CANCELLED, SKIPPED]
+    ExecutionSummary:
+      type: object
+      required: [id, namespace, state, trigger_type, labels, created_at, error, reason, created_by]
+      properties:
+        id:
+          type: string
+          format: uuid
+        namespace:
+          type: string
+        flow_id:
+          type: string
+          nullable: true
+          description: Flow ID. Null for file runs.
+        state:
+          $ref: "#/components/schemas/ExecutionState"
+        trigger_type:
+          type: string
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+        duration_ms:
+          type: integer
+          format: int64
+          nullable: true
+        error:
+          type: string
+        reason:
+          type: string
+        created_by:
+          type: string
+    ExecutionList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExecutionSummary"
+        next_cursor:
+          type: string
+    TaskRun:
+      type: object
+      required: [id, task_key, task_type, attempt, state, reason, executor_type, pool, error]
+      properties:
+        id:
+          type: string
+          format: uuid
+        task_key:
+          type: string
+        task_type:
+          type: string
+        attempt:
+          type: integer
+        state:
+          $ref: "#/components/schemas/TaskRunState"
+        reason:
+          type: string
+        executor_type:
+          type: string
+        pool:
+          type: string
+        queued_at:
+          type: string
+          format: date-time
+          nullable: true
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+        duration_ms:
+          type: integer
+          format: int64
+          nullable: true
+        exit_code:
+          type: integer
+          nullable: true
+        error:
+          type: string
+        outputs:
+          type: object
+          nullable: true
+          additionalProperties: true
+        reused_from_id:
+          type: string
+          format: uuid
+          nullable: true
+        child_execution_id:
+          type: string
+          format: uuid
+          nullable: true
+    ExecutionDetail:
+      allOf:
+        - $ref: "#/components/schemas/ExecutionSummary"
+        - type: object
+          required: [inputs, trigger_payload, snapshot_id, chain_depth, secret_keys_used, task_runs, children]
+          properties:
+            inputs:
+              type: object
+              additionalProperties: true
+            outputs:
+              type: object
+              nullable: true
+              additionalProperties: true
+            trigger_payload:
+              type: object
+              additionalProperties: true
+            snapshot_id:
+              type: string
+              format: uuid
+            snapshot_version:
+              type: integer
+              nullable: true
+            git_sha:
+              type: string
+            flow_revision_id:
+              type: string
+              format: uuid
+              nullable: true
+            parent_execution_id:
+              type: string
+              format: uuid
+              nullable: true
+            restart_of_id:
+              type: string
+              format: uuid
+              nullable: true
+            chain_depth:
+              type: integer
+            secret_keys_used:
+              type: array
+              items:
+                type: string
+            task_runs:
+              type: array
+              items:
+                $ref: "#/components/schemas/TaskRun"
+            children:
+              type: array
+              items:
+                $ref: "#/components/schemas/ExecutionRef"
+    LogEntry:
+      type: object
+      required: [task_run_id, task_key, attempt, n, ts, stream, text]
+      properties:
+        task_run_id:
+          type: string
+          format: uuid
+        task_key:
+          type: string
+        attempt:
+          type: integer
+        n:
+          type: integer
+          format: int64
+          description: 1-based line number in the task run.
+        ts:
+          type: string
+          format: date-time
+        stream:
+          type: string
+          enum: [stdout, stderr, system]
+        text:
+          type: string
+    LogPage:
+      type: object
+      required: [lines, done]
+      properties:
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/LogEntry"
+        next_cursor:
+          type: string
+        done:
+          type: boolean
+          description: True when the execution ended and no more lines follow.
+    MetricPoint:
+      type: object
+      required: [task_run_id, task_key, name, value, unit, tags, ts]
+      properties:
+        task_run_id:
+          type: string
+          format: uuid
+        task_key:
+          type: string
+        name:
+          type: string
+        value:
+          type: number
+          format: double
+        unit:
+          type: string
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        ts:
+          type: string
+          format: date-time
+    MetricList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MetricPoint"
+    Artifact:
+      type: object
+      required: [id, task_run_id, task_key, name, size, content_type, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        task_run_id:
+          type: string
+          format: uuid
+        task_key:
+          type: string
+        name:
+          type: string
+        size:
+          type: integer
+          format: int64
+        content_type:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    ArtifactList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Artifact"
+
+    RunnerLimits:
+      type: object
+      required: [max_artifact_bytes, max_bundle_bytes]
+      properties:
+        max_artifact_bytes:
+          type: integer
+          format: int64
+        max_bundle_bytes:
+          type: integer
+          format: int64
+    RunnerSpec:
+      type: object
+      required: [task_run_id, execution_id, namespace, flow_id, task_id, attempt, command, workdir, env, timeout_seconds, mask_values, bundle_hash, limits]
+      properties:
+        task_run_id:
+          type: string
+        execution_id:
+          type: string
+        namespace:
+          type: string
+        flow_id:
+          type: string
+        task_id:
+          type: string
+        attempt:
+          type: integer
+        command:
+          type: array
+          items:
+            type: string
+        workdir:
+          type: string
+        env:
+          type: object
+          additionalProperties:
+            type: string
+        runtime:
+          type: string
+        timeout_seconds:
+          type: integer
+        mask_values:
+          type: array
+          items:
+            type: string
+        bundle_hash:
+          type: string
+        limits:
+          $ref: "#/components/schemas/RunnerLimits"
+    RunnerLogLine:
+      type: object
+      required: [ts, stream, text]
+      properties:
+        ts:
+          type: string
+          format: date-time
+        stream:
+          type: string
+          enum: [stdout, stderr, system]
+        text:
+          type: string
+    RunnerLogBatch:
+      type: object
+      required: [seq, lines]
+      properties:
+        seq:
+          type: integer
+          minimum: 1
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/RunnerLogLine"
+    RunnerEvent:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [output, metric]
+        key:
+          type: string
+        value: {}
+        name:
+          type: string
+        unit:
+          type: string
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        ts:
+          type: string
+          format: date-time
+    RunnerEventBatch:
+      type: object
+      required: [seq, events]
+      properties:
+        seq:
+          type: integer
+          minimum: 1
+        events:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: "#/components/schemas/RunnerEvent"
+    RunnerHeartbeatResponse:
+      type: object
+      required: [cancel]
+      properties:
+        cancel:
+          type: boolean
+    RunnerComplete:
+      type: object
+      required: [exit_code, error]
+      properties:
+        exit_code:
+          type: integer
+        error:
+          type: string
+        reason:
           type: string
 security:
   - session: []

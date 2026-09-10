@@ -1,14 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { CheckCircle2, CircleOff } from "lucide-react";
+import { CheckCircle2, CircleOff, Play } from "lucide-react";
 import { useState } from "react";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema";
 import { DataState } from "@/components/data-state";
 import { DiffView } from "@/components/diff-view";
 import { CodeEditor } from "@/components/editor/code-editor";
+import { CompactExecutionTable } from "@/components/execution-bits";
+import { RunFlowDialog } from "@/components/run-dialogs";
 import { DisabledBadge, ValidBadge } from "@/components/state-badges";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Field, FormError } from "@/components/ui/field";
 import { Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
@@ -23,11 +26,12 @@ import { cn, formatTime } from "@/lib/utils";
 type FlowDetail = components["schemas"]["FlowDetail"];
 type Issue = components["schemas"]["Issue"];
 type RevisionSummary = components["schemas"]["RevisionSummary"];
-type Tab = "overview" | "triggers" | "source" | "revisions";
+type Tab = "overview" | "executions" | "triggers" | "source" | "revisions";
 type FlowSearch = { tab?: Exclude<Tab, "overview"> };
 
 const tabs: { value: Tab; label: string }[] = [
   { value: "overview", label: "Overview" },
+  { value: "executions", label: "Executions" },
   { value: "triggers", label: "Triggers" },
   { value: "source", label: "Source" },
   { value: "revisions", label: "Revisions" },
@@ -35,7 +39,9 @@ const tabs: { value: Tab; label: string }[] = [
 
 export const Route = createFileRoute("/flows/$namespace/$flowId")({
   validateSearch: (s: Record<string, unknown>): FlowSearch =>
-    s.tab === "triggers" || s.tab === "source" || s.tab === "revisions" ? { tab: s.tab } : {},
+    s.tab === "executions" || s.tab === "triggers" || s.tab === "source" || s.tab === "revisions"
+      ? { tab: s.tab }
+      : {},
   component: FlowPage,
 });
 
@@ -50,6 +56,7 @@ function FlowPage() {
       unwrap(await api.GET("/api/v1/flows/{namespace}/{flowId}", { params: { path: { namespace, flowId } } })),
   });
   const tab: Tab = search.tab ?? "overview";
+  const [runOpen, setRunOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-4">
@@ -65,17 +72,33 @@ function FlowPage() {
               title={f.flow_id}
               description={f.description || undefined}
               actions={
-                can(me.role, "editor") ? (
-                  <EnableToggle flow={f} />
-                ) : f.disabled ? (
-                  <DisabledBadge />
-                ) : (
-                  <Badge tone="success" icon={CheckCircle2}>
-                    Enabled
-                  </Badge>
-                )
+                <>
+                  {can(me.role, "operator") && f.valid && f.revision && (
+                    <Button onClick={() => setRunOpen(true)}>
+                      <Play className="h-4 w-4" aria-hidden />
+                      Run
+                    </Button>
+                  )}
+                  {can(me.role, "editor") ? (
+                    <EnableToggle flow={f} />
+                  ) : f.disabled ? (
+                    <DisabledBadge />
+                  ) : (
+                    <Badge tone="success" icon={CheckCircle2}>
+                      Enabled
+                    </Badge>
+                  )}
+                </>
               }
             />
+            {runOpen && (
+              <RunFlowDialog
+                namespace={namespace}
+                flowId={flowId}
+                definition={f.revision?.definition}
+                onClose={() => setRunOpen(false)}
+              />
+            )}
             <Tabs
               label="Flow sections"
               tabs={tabs}
@@ -83,6 +106,7 @@ function FlowPage() {
               onChange={(t) => void navigate({ search: t === "overview" ? {} : { tab: t } })}
             />
             {tab === "overview" && <Overview flow={f} />}
+            {tab === "executions" && <FlowExecutions namespace={namespace} flowId={flowId} />}
             {tab === "triggers" && <Triggers flow={f} />}
             {tab === "source" &&
               (f.revision ? (
@@ -101,6 +125,20 @@ function FlowPage() {
         )}
       </DataState>
     </div>
+  );
+}
+
+function FlowExecutions({ namespace, flowId }: { namespace: string; flowId: string }) {
+  const executions = useQuery({
+    queryKey: ["executions", "flow", namespace, flowId],
+    queryFn: async () =>
+      unwrap(await api.GET("/api/v1/executions", { params: { query: { flow: `${namespace}/${flowId}`, limit: 50 } } })),
+    refetchInterval: 2000,
+  });
+  return (
+    <DataState query={executions} empty={(d) => d.items.length === 0} emptyText="This flow has no executions.">
+      {(d) => <CompactExecutionTable items={d.items} />}
+    </DataState>
   );
 }
 

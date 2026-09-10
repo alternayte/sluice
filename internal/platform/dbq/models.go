@@ -107,6 +107,7 @@ type Execution struct {
 	TriggerID         *uuid.UUID
 	ScheduledFor      *time.Time
 	TriggerPayload    json.RawMessage
+	Definition        json.RawMessage
 	Inputs            json.RawMessage
 	Labels            json.RawMessage
 	Outputs           json.RawMessage
@@ -236,6 +237,8 @@ type Metric struct {
 	Unit        string
 	Tags        json.RawMessage
 	Ts          time.Time
+	Seq         int32
+	Idx         int32
 }
 
 type Namespace struct {
@@ -328,28 +331,30 @@ type StorageObject struct {
 }
 
 type TaskRun struct {
-	ID              uuid.UUID
-	ExecutionID     uuid.UUID
-	TaskKey         string
-	Attempt         int32
-	State           string
-	Reason          string
-	ExecutorType    string
-	Pool            string
-	ClaimedBy       *uuid.UUID
-	ExternalRef     string
-	RunTokenHash    []byte
-	TokenExpiresAt  *time.Time
-	HeartbeatAt     *time.Time
-	CancelRequested bool
-	NotBefore       *time.Time
-	QueuedAt        *time.Time
-	StartedAt       *time.Time
-	EndedAt         *time.Time
-	ExitCode        *int32
-	Error           string
-	Outputs         json.RawMessage
-	ReusedFromID    *uuid.UUID
+	ID               uuid.UUID
+	ExecutionID      uuid.UUID
+	TaskKey          string
+	TaskType         string
+	Attempt          int32
+	State            string
+	Reason           string
+	ExecutorType     string
+	Pool             string
+	ClaimedBy        *uuid.UUID
+	ExternalRef      string
+	RunTokenHash     []byte
+	TokenExpiresAt   *time.Time
+	HeartbeatAt      *time.Time
+	CancelRequested  bool
+	NotBefore        *time.Time
+	QueuedAt         *time.Time
+	StartedAt        *time.Time
+	EndedAt          *time.Time
+	ExitCode         *int32
+	Error            string
+	Outputs          json.RawMessage
+	ReusedFromID     *uuid.UUID
+	ChildExecutionID *uuid.UUID
 }
 
 type Trigger struct {

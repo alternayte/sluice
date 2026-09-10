@@ -18,6 +18,8 @@ import (
 	"github.com/alternayte/sluice/internal/api"
 	"github.com/alternayte/sluice/internal/audit"
 	"github.com/alternayte/sluice/internal/auth"
+	"github.com/alternayte/sluice/internal/execution"
+	"github.com/alternayte/sluice/internal/executor"
 	"github.com/alternayte/sluice/internal/namespace"
 	"github.com/alternayte/sluice/internal/platform/clock"
 	"github.com/alternayte/sluice/internal/platform/db"
@@ -27,6 +29,7 @@ import (
 	"github.com/alternayte/sluice/internal/platform/lease"
 	"github.com/alternayte/sluice/internal/platform/logging"
 	"github.com/alternayte/sluice/internal/platform/promx"
+	"github.com/alternayte/sluice/internal/runnerapi"
 	"github.com/alternayte/sluice/internal/storage"
 )
 
@@ -57,6 +60,7 @@ type Server struct {
 	Store      storage.Store
 	GC         *storage.GC
 	Namespaces *namespace.Service
+	Engine     *execution.Engine
 
 	httpServer *http.Server
 	listener   net.Listener
@@ -115,6 +119,20 @@ func NewServer(ctx context.Context, cfg *Config, log *slog.Logger) (*Server, err
 	s.GC = &storage.GC{Pool: pool, Store: s.Store, Clock: clk, Log: log}
 	s.Namespaces = &namespace.Service{Pool: pool, Store: s.Store, Clock: clk, Audit: s.Audit, Log: log,
 		MaxFileBytes: int64(cfg.MaxFileBytes), MaxBundleBytes: int64(cfg.MaxBundleBytes)}
+	s.Engine = &execution.Engine{Pool: pool, Clock: clk, Log: log, Audit: s.Audit, Namespaces: s.Namespaces, Store: s.Store,
+		Instance: id, Pools: cfg.Pools, Cfg: execution.Config{WorkerSlots: cfg.WorkerSlots, K8sMaxJobs: cfg.K8sMaxJobs,
+			PollInterval: cfg.QueuePollInterval, HeartbeatTimeout: cfg.HeartbeatTimeout, APIURL: cfg.InternalURL,
+			DockerAPIURL: cfg.DockerAPIURL, ClusterAPIURL: cfg.InternalURL,
+			MaxArtifactBytes: int64(cfg.MaxArtifactBytes), MaxBundleBytes: int64(cfg.MaxBundleBytes)}}
+	s.Engine.Executors = map[string]executor.Executor{}
+	for _, t := range s.Instance.Executors {
+		switch t {
+		case executor.Inline:
+			s.Engine.Executors[t] = &executor.InlineExecutor{Run: s.Engine.RunInline}
+		case executor.Process:
+			s.Engine.Executors[t] = &executor.ProcessExecutor{Log: log, Output: os.Stderr}
+		}
+	}
 	created, err := s.Auth.Bootstrap(ctx, cfg.BootstrapAdminEmail, cfg.BootstrapAdminPassword)
 	if err != nil {
 		pool.Close()
@@ -174,9 +192,11 @@ func (s *Server) Routes() (*RecordingMux, error) {
 	mux.HandleFunc("GET /readyz", s.Health.Readyz)
 	mux.Handle("GET /metrics", s.Metrics.Handler())
 	apiServer := &api.Server{
-		System:   api.System{Instances: s.Registry, Clock: s.Clock},
-		Handlers: auth.Handlers{Svc: s.Auth},
-		API:      namespace.API{Svc: s.Namespaces},
+		System:    api.System{Instances: s.Registry, Clock: s.Clock},
+		Handlers:  auth.Handlers{Svc: s.Auth},
+		API:       namespace.API{Svc: s.Namespaces},
+		ExecAPI:   execution.ExecAPI{E: s.Engine},
+		RunnerAPI: runnerapi.RunnerAPI{B: s.Engine, MaxArtifactBytes: int64(s.Cfg.MaxArtifactBytes)},
 	}
 	if err := api.Mount(mux, apiServer, nil); err != nil {
 		return nil, err
@@ -201,7 +221,8 @@ func (s *Server) Handler() (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	h := s.Auth.Middleware(authorize(s.Metrics.Middleware(route, mux)))
+	inner := runnerapi.ContentTypeMiddleware(runnerapi.TokenMiddleware(s.Engine)(s.Metrics.Middleware(route, mux)))
+	h := s.Auth.Middleware(authorize(inner))
 	h = withLogger(s.Log, h)
 	h = httpx.WithRequestID(h)
 	return httpx.SecurityHeaders(h), nil
@@ -231,7 +252,8 @@ func (s *Server) Run(ctx context.Context) error {
 
 	bg, stopBG := context.WithCancel(context.WithoutCancel(ctx))
 	s.goBG(func() { s.Registry.Run(bg, s.Instance) })
-	maintenance := &lease.Leader{Store: s.Leases, Name: lease.Maintenance, Log: s.Log, Work: s.maintenance}
+	s.goBG(func() { s.Engine.Run(bg) })
+	maintenance := &lease.Leader{Store: s.Leases, Name: lease.Maintenance, Log: s.Log, Work: s.leaderWork}
 	s.goBG(func() { maintenance.Run(bg) })
 
 	errc := make(chan error, 1)
@@ -249,6 +271,7 @@ func (s *Server) Run(ctx context.Context) error {
 	deadline := time.Now().Add(s.Cfg.ShutdownGrace)
 	sctx, cancel := context.WithDeadline(context.Background(), deadline)
 	defer cancel()
+	s.Engine.Shutdown(sctx)
 	stopBG()
 	s.wg.Wait()
 	if err := s.httpServer.Shutdown(sctx); err != nil && !errors.Is(err, context.DeadlineExceeded) {
@@ -275,6 +298,28 @@ func (s *Server) Addr() string {
 	return s.listener.Addr().String()
 }
 
+// leaderWork runs while this instance holds the maintenance lease: the engine checks
+// every 2 s and the hourly maintenance.
+func (s *Server) leaderWork(ctx context.Context) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		t := time.NewTicker(2 * time.Second)
+		defer t.Stop()
+		for {
+			s.Engine.LeaderTick(ctx)
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+			}
+		}
+	}()
+	s.maintenance(ctx)
+	wg.Wait()
+}
+
 // maintenance runs cleanup while this instance holds the maintenance lease.
 func (s *Server) maintenance(ctx context.Context) {
 	t := time.NewTicker(time.Hour)
@@ -297,6 +342,10 @@ func (s *Server) runMaintenance(ctx context.Context) {
 		{"instances", func(ctx context.Context) error { _, err := s.Registry.DeleteStale(ctx); return err }},
 		{"sessions", s.Auth.Cleanup},
 		{"audit", func(ctx context.Context) error { _, err := s.Audit.DeleteExpired(ctx); return err }},
+		{"retention", func(ctx context.Context) error {
+			_, err := s.Engine.DeleteExpired(ctx, time.Duration(s.Cfg.RetentionDays)*24*time.Hour)
+			return err
+		}},
 		{"storage_gc", func(ctx context.Context) error { _, err := s.GC.RunIfDue(ctx); return err }},
 	}
 	for _, st := range steps {

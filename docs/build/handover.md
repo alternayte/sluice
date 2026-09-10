@@ -86,6 +86,9 @@ This file records where the build stopped. `decisions.md` is the authoritative r
 - Fast loop: `just check` (generated-file check, lint, forbid scan, unit and
   UI tests). Full definition of done: `just check`, `just build`, `just e2e`,
   `just trace`, `scripts/e2e-compare.sh` (SDD §10, §12, §13).
+- CI: `.github/workflows/ci.yml` runs on each pull request and each push to
+  main, with jobs `check` (`just check`), `e2e` (Go e2e compare against the
+  baseline, then the Playwright suite), and `image` (the container build).
 - Commit chains must use `set -eo pipefail` and must not pipe a failing command into
   `tail` or `grep -v` without checking the status.
 

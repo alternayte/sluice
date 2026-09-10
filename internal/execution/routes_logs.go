@@ -19,7 +19,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/alternayte/sluice/internal/platform/dbq"
+	"github.com/alternayte/sluice/internal/execution/executiondb"
 	"github.com/alternayte/sluice/internal/platform/httpx"
 )
 
@@ -343,7 +343,7 @@ func registerArtifacts(api huma.API, r chi.Router, e *Engine, viewer httpx.Acces
 			if _, err := e.execEnded(ctx, in.ExecutionID); err != nil {
 				return nil, err
 			}
-			rows, err := dbq.New(e.Pool).ListExecutionMetrics(ctx, in.ExecutionID)
+			rows, err := executiondb.New(e.Pool).ListExecutionMetrics(ctx, in.ExecutionID)
 			if err != nil {
 				return nil, err
 			}
@@ -360,7 +360,7 @@ func registerArtifacts(api huma.API, r chi.Router, e *Engine, viewer httpx.Acces
 			if _, err := e.execEnded(ctx, in.ExecutionID); err != nil {
 				return nil, err
 			}
-			rows, err := dbq.New(e.Pool).ListExecutionArtifacts(ctx, in.ExecutionID)
+			rows, err := executiondb.New(e.Pool).ListExecutionArtifacts(ctx, in.ExecutionID)
 			if err != nil {
 				return nil, err
 			}
@@ -384,7 +384,7 @@ func registerArtifacts(api huma.API, r chi.Router, e *Engine, viewer httpx.Acces
 			return
 		}
 		ctx := req.Context()
-		a, err := dbq.New(e.Pool).GetArtifact(ctx, dbq.GetArtifactParams{ID: artID, ExecutionID: execID})
+		a, err := executiondb.New(e.Pool).GetArtifact(ctx, executiondb.GetArtifactParams{ID: artID, ExecutionID: execID})
 		if errors.Is(err, pgx.ErrNoRows) {
 			httpx.WriteError(w, req, httpx.Errorf(http.StatusNotFound, "artifact_not_found", "artifact not found"))
 			return

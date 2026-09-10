@@ -15,8 +15,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/alternayte/sluice/internal/execution/executiondb"
 	"github.com/alternayte/sluice/internal/kernel"
-	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/httpx"
 	"github.com/alternayte/sluice/internal/platform/page"
 )
@@ -148,7 +148,7 @@ func durOf(start, end *time.Time) *int64 {
 
 // Detail returns the API view of an execution.
 func (e *Engine) Detail(ctx context.Context, id uuid.UUID) (ExecutionDetail, error) {
-	q := dbq.New(e.Pool)
+	q := executiondb.New(e.Pool)
 	ex, err := q.GetExecution(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ExecutionDetail{}, ErrNotFound

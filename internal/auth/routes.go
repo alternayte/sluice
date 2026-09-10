@@ -8,8 +8,8 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
 
+	"github.com/alternayte/sluice/internal/auth/authdb"
 	"github.com/alternayte/sluice/internal/kernel"
-	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/httpx"
 	"github.com/alternayte/sluice/internal/platform/page"
 )
@@ -83,12 +83,12 @@ func toMeOp(p *kernel.Principal) Me {
 	return Me{ID: p.UserID, Email: p.Email, Name: p.Name, Role: p.Role.String(), MustChangePassword: p.MustChangePassword, AuthType: kind}
 }
 
-func toUserOp(u dbq.User) User {
+func toUserOp(u authdb.User) User {
 	return User{ID: u.ID, Email: u.Email, Name: u.Name, Role: u.Role, MustChangePassword: u.MustChangePassword,
 		Disabled: u.DisabledAt != nil, CreatedAt: u.CreatedAt, LastLoginAt: u.LastLoginAt}
 }
 
-func toTokenOp(t dbq.ListTokensRow) Token {
+func toTokenOp(t authdb.ListTokensRow) Token {
 	return Token{ID: t.ID, UserID: t.UserID, UserEmail: t.UserEmail, Name: t.Name, Prefix: t.Prefix, Role: t.Role,
 		CreatedAt: t.CreatedAt, ExpiresAt: t.ExpiresAt, LastUsedAt: t.LastUsedAt, RevokedAt: t.RevokedAt}
 }
@@ -220,7 +220,7 @@ func registerUsers(api huma.API, s *Service) {
 				return nil, err
 			}
 			limit := page.Limit(in.Limit)
-			rows, err := s.q(nil).ListUsers(ctx, dbq.ListUsersParams{AfterCreated: after, AfterID: afterID, Lim: int32(limit + 1)})
+			rows, err := s.q(nil).ListUsers(ctx, authdb.ListUsersParams{AfterCreated: after, AfterID: afterID, Lim: int32(limit + 1)})
 			if err != nil {
 				return nil, err
 			}

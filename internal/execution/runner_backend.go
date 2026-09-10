@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/alternayte/sluice/internal/platform/dbq"
+	"github.com/alternayte/sluice/internal/execution/executiondb"
 	"github.com/alternayte/sluice/internal/platform/httpx"
 	"github.com/alternayte/sluice/internal/runnerproto"
 	"github.com/alternayte/sluice/internal/storage"
@@ -23,12 +23,12 @@ var artifactNameRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$`)
 func (e *Engine) Now() time.Time { return e.Clock.Now() }
 
 // TaskRunByTokenHash finds the task run of a run token.
-func (e *Engine) TaskRunByTokenHash(ctx context.Context, hash []byte) (dbq.TaskRun, error) {
-	return dbq.New(e.Pool).GetTaskRunByTokenHash(ctx, hash)
+func (e *Engine) TaskRunByTokenHash(ctx context.Context, hash []byte) (executiondb.TaskRun, error) {
+	return executiondb.New(e.Pool).GetTaskRunByTokenHash(ctx, hash)
 }
 
 // Spec returns the runner spec with resolved env and mask values.
-func (e *Engine) Spec(ctx context.Context, tr dbq.TaskRun) (*runnerproto.Spec, error) {
+func (e *Engine) Spec(ctx context.Context, tr executiondb.TaskRun) (*runnerproto.Spec, error) {
 	s, err := e.RunnerSpec(ctx, tr)
 	var pe *PlanError
 	if errors.As(err, &pe) {
@@ -38,8 +38,8 @@ func (e *Engine) Spec(ctx context.Context, tr dbq.TaskRun) (*runnerproto.Spec, e
 }
 
 // Bundle returns the bundle of the pinned snapshot (REQ-EXE-001).
-func (e *Engine) Bundle(ctx context.Context, tr dbq.TaskRun) (io.ReadCloser, int64, error) {
-	ex, err := dbq.New(e.Pool).GetExecution(ctx, tr.ExecutionID)
+func (e *Engine) Bundle(ctx context.Context, tr executiondb.TaskRun) (io.ReadCloser, int64, error) {
+	ex, err := executiondb.New(e.Pool).GetExecution(ctx, tr.ExecutionID)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -60,9 +60,9 @@ func (e *Engine) Bundle(ctx context.Context, tr dbq.TaskRun) (io.ReadCloser, int
 }
 
 // IngestEvents stores outputs and metrics (REQ-RUN-003). Values are masked again (SI-10).
-func (e *Engine) IngestEvents(ctx context.Context, tr dbq.TaskRun, seq int, events []runnerproto.Event) error {
+func (e *Engine) IngestEvents(ctx context.Context, tr executiondb.TaskRun, seq int, events []runnerproto.Event) error {
 	m := e.MaskerFor(ctx, tr)
-	q := dbq.New(e.Pool)
+	q := executiondb.New(e.Pool)
 	ex, err := q.GetExecution(ctx, tr.ExecutionID)
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func (e *Engine) IngestEvents(ctx context.Context, tr dbq.TaskRun, seq int, even
 			if ts.IsZero() {
 				ts = e.Clock.Now()
 			}
-			if err := q.InsertMetric(ctx, dbq.InsertMetricParams{ExecutionID: tr.ExecutionID, TaskRunID: tr.ID, FlowID: ex.FlowID, Name: ev.Name,
+			if err := q.InsertMetric(ctx, executiondb.InsertMetricParams{ExecutionID: tr.ExecutionID, TaskRunID: tr.ID, FlowID: ex.FlowID, Name: ev.Name,
 				Value: val, Unit: ev.Unit, Tags: tb, Ts: ts, Seq: int32(seq), Idx: int32(i)}); err != nil {
 				return err
 			}
@@ -104,13 +104,13 @@ func (e *Engine) IngestEvents(ctx context.Context, tr dbq.TaskRun, seq int, even
 		if len(b) > runnerproto.MaxOutputBytes {
 			return httpx.Errorf(http.StatusRequestEntityTooLarge, "outputs_too_large", "outputs exceed 1 MiB")
 		}
-		return q.MergeTaskOutputs(ctx, dbq.MergeTaskOutputsParams{ID: tr.ID, Outputs: b})
+		return q.MergeTaskOutputs(ctx, executiondb.MergeTaskOutputsParams{ID: tr.ID, Outputs: b})
 	}
 	return nil
 }
 
 // PutArtifact streams an artifact to storage.
-func (e *Engine) PutArtifact(ctx context.Context, tr dbq.TaskRun, name, contentType string, body io.Reader) error {
+func (e *Engine) PutArtifact(ctx context.Context, tr executiondb.TaskRun, name, contentType string, body io.Reader) error {
 	if !artifactNameRe.MatchString(name) {
 		return httpx.Validation(httpx.FieldError{Field: "name", Message: "invalid artifact name"})
 	}
@@ -128,7 +128,7 @@ func (e *Engine) PutArtifact(ctx context.Context, tr dbq.TaskRun, name, contentT
 		return httpx.Errorf(http.StatusRequestEntityTooLarge, "artifact_too_large", "the artifact is larger than %d bytes", e.Cfg.MaxArtifactBytes)
 	}
 	id, _ := uuid.NewV7()
-	return dbq.New(e.Pool).UpsertArtifact(ctx, dbq.UpsertArtifactParams{ID: id, ExecutionID: tr.ExecutionID, TaskRunID: tr.ID, Name: name,
+	return executiondb.New(e.Pool).UpsertArtifact(ctx, executiondb.UpsertArtifactParams{ID: id, ExecutionID: tr.ExecutionID, TaskRunID: tr.ID, Name: name,
 		StorageKey: key, Size: n, ContentType: contentType, CreatedAt: e.Clock.Now()})
 }
 
@@ -144,13 +144,13 @@ func (c *countingReader) Read(b []byte) (int, error) {
 }
 
 // Heartbeat records liveness and returns whether the task must stop (REQ-RUN-004).
-func (e *Engine) Heartbeat(ctx context.Context, tr dbq.TaskRun) (bool, error) {
+func (e *Engine) Heartbeat(ctx context.Context, tr executiondb.TaskRun) (bool, error) {
 	now := e.Clock.Now()
-	return dbq.New(e.Pool).TouchHeartbeat(ctx, dbq.TouchHeartbeatParams{ID: tr.ID, HeartbeatAt: &now})
+	return executiondb.New(e.Pool).TouchHeartbeat(ctx, executiondb.TouchHeartbeatParams{ID: tr.ID, HeartbeatAt: &now})
 }
 
 // Complete ends the task run from the runner report (§4.3 step 6).
-func (e *Engine) Complete(ctx context.Context, tr dbq.TaskRun, c runnerproto.Complete) error {
+func (e *Engine) Complete(ctx context.Context, tr executiondb.TaskRun, c runnerproto.Complete) error {
 	m := e.MaskerFor(ctx, tr)
 	state, reason := TaskSuccess, ""
 	switch {

@@ -99,9 +99,3 @@ WHERE (sqlc.narg('user_id')::uuid IS NULL OR t.user_id = sqlc.narg('user_id')::u
 ORDER BY t.created_at DESC, t.id DESC
 LIMIT sqlc.arg('lim');
 
--- name: InsertAuditEvent :exec
-INSERT INTO audit_events (id, ts, actor_type, actor_id, action, target_type, target_id, details, ip)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
-
--- name: DeleteOldAuditEvents :execrows
-DELETE FROM audit_events WHERE ts < $1;

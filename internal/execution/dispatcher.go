@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/alternayte/sluice/internal/execution/executiondb"
 	"github.com/alternayte/sluice/internal/executor"
-	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/token"
 	"github.com/alternayte/sluice/internal/runnerproto"
 )
@@ -212,7 +212,7 @@ func (e *Engine) apiURLFor(typ string) string {
 // launch resolves the plan and starts the executor. A template or secret error fails
 // the task before any process starts (REQ-EXE-012).
 func (e *Engine) launch(ctx context.Context, id uuid.UUID, token string) {
-	tr, err := dbq.New(e.Pool).GetTaskRun(ctx, id)
+	tr, err := executiondb.New(e.Pool).GetTaskRun(ctx, id)
 	if err != nil {
 		e.Log.Warn("launch: load task run", "task_run", id, "err", err)
 		return
@@ -261,7 +261,7 @@ func (e *Engine) launch(ctx context.Context, id uuid.UUID, token string) {
 	e.mu.Lock()
 	lr.ref = ref
 	e.mu.Unlock()
-	if err := dbq.New(e.Pool).SetTaskRunExternal(ctx, dbq.SetTaskRunExternalParams{ID: tr.ID, ExternalRef: ref}); err != nil {
+	if err := executiondb.New(e.Pool).SetTaskRunExternal(ctx, executiondb.SetTaskRunExternalParams{ID: tr.ID, ExternalRef: ref}); err != nil {
 		e.Log.Warn("set external ref", "err", err)
 	}
 	go func() {

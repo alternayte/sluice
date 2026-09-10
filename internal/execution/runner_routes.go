@@ -15,7 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/alternayte/sluice/internal/platform/dbq"
+	"github.com/alternayte/sluice/internal/execution/executiondb"
 	"github.com/alternayte/sluice/internal/platform/httpx"
 	"github.com/alternayte/sluice/internal/platform/token"
 	"github.com/alternayte/sluice/internal/runnerproto"
@@ -137,13 +137,13 @@ func runnerContentType(ctx context.Context) string {
 }
 
 // runnerTaskRun returns the authenticated task run and checks the path ID.
-func runnerTaskRun(ctx context.Context, id uuid.UUID) (dbq.TaskRun, error) {
-	tr, ok := ctx.Value(runTaskRunKey{}).(dbq.TaskRun)
+func runnerTaskRun(ctx context.Context, id uuid.UUID) (executiondb.TaskRun, error) {
+	tr, ok := ctx.Value(runTaskRunKey{}).(executiondb.TaskRun)
 	if !ok {
-		return dbq.TaskRun{}, httpx.ErrUnauthorized
+		return executiondb.TaskRun{}, httpx.ErrUnauthorized
 	}
 	if tr.ID != id {
-		return dbq.TaskRun{}, ErrWrongTaskRun
+		return executiondb.TaskRun{}, ErrWrongTaskRun
 	}
 	return tr, nil
 }

@@ -12,7 +12,7 @@ import (
 
 	"github.com/alternayte/sluice/internal/flow"
 	"github.com/alternayte/sluice/internal/kernel"
-	"github.com/alternayte/sluice/internal/platform/dbq"
+	"github.com/alternayte/sluice/internal/namespace/namespacedb"
 	"github.com/alternayte/sluice/internal/platform/httpx"
 	"github.com/alternayte/sluice/internal/platform/page"
 )
@@ -136,7 +136,7 @@ func detailOp(ctx context.Context, s *Service, namespace, flowID string) (FlowDe
 	sum := rows[0].summaryOp()
 	d := FlowDetail{ID: sum.ID, Namespace: sum.Namespace, FlowID: sum.FlowID, Path: sum.Path, Valid: sum.Valid, Disabled: sum.Disabled,
 		Description: sum.Description, ErrorCount: sum.ErrorCount, Labels: sum.Labels, LastExecution: sum.LastExecution, Triggers: []TriggerInfo{}}
-	q := dbq.New(s.Pool)
+	q := namespacedb.New(s.Pool)
 	if f.CurrentRevisionID != nil {
 		rev, err := revisionOp(ctx, s, f.ID, *f.CurrentRevisionID)
 		if err != nil {
@@ -158,7 +158,7 @@ func detailOp(ctx context.Context, s *Service, namespace, flowID string) (FlowDe
 }
 
 func revisionOp(ctx context.Context, s *Service, flowID, revID uuid.UUID) (Revision, error) {
-	q := dbq.New(s.Pool)
+	q := namespacedb.New(s.Pool)
 	r, err := q.GetFlowRevision(ctx, revID)
 	if err != nil || r.FlowID != flowID {
 		return Revision{}, httpx.Errorf(http.StatusNotFound, "revision_not_found", "revision not found")
@@ -257,7 +257,7 @@ func registerFlows(api huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			rows, err := dbq.New(s.Pool).ListFlowRevisions(ctx, dbq.ListFlowRevisionsParams{FlowID: f.ID, Limit: int32(page.Limit(in.Limit))})
+			rows, err := namespacedb.New(s.Pool).ListFlowRevisions(ctx, namespacedb.ListFlowRevisionsParams{FlowID: f.ID, Limit: int32(page.Limit(in.Limit))})
 			if err != nil {
 				return nil, err
 			}

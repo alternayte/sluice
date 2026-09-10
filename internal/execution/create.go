@@ -14,9 +14,9 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/alternayte/sluice/internal/audit"
+	"github.com/alternayte/sluice/internal/execution/executiondb"
 	"github.com/alternayte/sluice/internal/flow"
 	"github.com/alternayte/sluice/internal/kernel"
-	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/httpx"
 )
 
@@ -76,7 +76,7 @@ func (e *Engine) Create(ctx context.Context, tx pgx.Tx, p CreateParams) (uuid.UU
 	var endedAt *time.Time
 	now := e.Clock.Now()
 	if c := p.Def.Flow.Concurrency; c != nil && p.FlowID != nil {
-		if err := dbq.New(tx).LockFlowRow(ctx, *p.FlowID); err != nil {
+		if err := executiondb.New(tx).LockFlowRow(ctx, *p.FlowID); err != nil {
 			return uuid.Nil, "", err
 		}
 		if c.Behavior == "skip" {
@@ -99,7 +99,7 @@ func (e *Engine) Create(ctx context.Context, tx pgx.Tx, p CreateParams) (uuid.UU
 	if createdBy == "" {
 		createdBy = actorLabel(ctx)
 	}
-	err := dbq.New(tx).InsertExecution(ctx, dbq.InsertExecutionParams{ID: id, NamespaceID: p.NamespaceID, FlowID: p.FlowID,
+	err := executiondb.New(tx).InsertExecution(ctx, executiondb.InsertExecutionParams{ID: id, NamespaceID: p.NamespaceID, FlowID: p.FlowID,
 		FlowRevisionID: p.RevisionID, SnapshotID: p.SnapshotID, State: state, TriggerType: p.TriggerType, TriggerID: p.TriggerID,
 		ScheduledFor: p.ScheduledFor, TriggerPayload: payload, Definition: def, Inputs: inputs, Labels: lb,
 		ParentExecutionID: p.ParentExecID, ParentTaskRunID: p.ParentTaskRun, RestartOfID: p.RestartOf, ChainDepth: int32(p.ChainDepth),
@@ -136,8 +136,8 @@ func validateLabels(labels map[string]string) error {
 
 // FlowRef is a loaded flow with its current revision.
 type FlowRef struct {
-	Flow     dbq.GetFlowRow
-	Revision dbq.FlowRevision
+	Flow     FlowInfo
+	Revision executiondb.FlowRevision
 	Def      *Definition
 }
 
@@ -150,7 +150,7 @@ func (e *Engine) LoadFlow(ctx context.Context, ns, flowKey string) (*FlowRef, er
 	if !f.Valid || f.CurrentRevisionID == nil {
 		return nil, ErrFlowInvalid
 	}
-	rev, err := dbq.New(e.Pool).GetFlowRevision(ctx, *f.CurrentRevisionID)
+	rev, err := executiondb.New(e.Pool).GetFlowRevision(ctx, *f.CurrentRevisionID)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (e *Engine) LoadFlow(ctx context.Context, ns, flowKey string) (*FlowRef, er
 
 // namespaceDefaults parses namespace.yaml of a snapshot.
 func (e *Engine) namespaceDefaults(ctx context.Context, snapshotID uuid.UUID) (*flow.Defaults, error) {
-	entry, err := dbq.New(e.Pool).GetSnapshotFile(ctx, dbq.GetSnapshotFileParams{SnapshotID: snapshotID, Path: flow.NamespaceFileName})
+	entry, err := executiondb.New(e.Pool).GetSnapshotFile(ctx, executiondb.GetSnapshotFileParams{SnapshotID: snapshotID, Path: flow.NamespaceFileName})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -257,7 +257,7 @@ func (e *Engine) RunFile(ctx context.Context, ns, filePath string, args []string
 	if nsRow.HeadSnapshotID == nil {
 		return uuid.Nil, ErrFileNotFound
 	}
-	if _, err := dbq.New(e.Pool).GetSnapshotFile(ctx, dbq.GetSnapshotFileParams{SnapshotID: *nsRow.HeadSnapshotID, Path: filePath}); err != nil {
+	if _, err := executiondb.New(e.Pool).GetSnapshotFile(ctx, executiondb.GetSnapshotFileParams{SnapshotID: *nsRow.HeadSnapshotID, Path: filePath}); err != nil {
 		return uuid.Nil, ErrFileNotFound
 	}
 	defaults, err := e.namespaceDefaults(ctx, *nsRow.HeadSnapshotID)
@@ -295,7 +295,7 @@ func (e *Engine) Restart(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
 }
 
 func (e *Engine) copyExecution(ctx context.Context, id uuid.UUID, restart bool) (uuid.UUID, error) {
-	old, err := dbq.New(e.Pool).GetExecution(ctx, id)
+	old, err := executiondb.New(e.Pool).GetExecution(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, ErrNotFound
 	}
@@ -314,9 +314,9 @@ func (e *Engine) copyExecution(ctx context.Context, id uuid.UUID, restart bool) 
 	_ = json.Unmarshal(old.TriggerPayload, &payload)
 	var labels map[string]string
 	_ = json.Unmarshal(old.Labels, &labels)
-	var reuse []dbq.TaskRun
+	var reuse []executiondb.TaskRun
 	if restart {
-		runs, err := dbq.New(e.Pool).ListExecutionTaskRuns(ctx, id)
+		runs, err := executiondb.New(e.Pool).ListExecutionTaskRuns(ctx, id)
 		if err != nil {
 			return uuid.Nil, err
 		}
@@ -343,7 +343,7 @@ func (e *Engine) copyExecution(ctx context.Context, id uuid.UUID, restart bool) 
 		for _, tr := range reuse {
 			rid := tr.ID
 			nid, _ := uuid.NewV7()
-			if err := dbq.New(tx).InsertTaskRun(ctx, dbq.InsertTaskRunParams{ID: nid, ExecutionID: newID, TaskKey: tr.TaskKey, TaskType: tr.TaskType,
+			if err := executiondb.New(tx).InsertTaskRun(ctx, executiondb.InsertTaskRunParams{ID: nid, ExecutionID: newID, TaskKey: tr.TaskKey, TaskType: tr.TaskType,
 				Attempt: 1, State: TaskSuccess, Reason: "reused", ExecutorType: tr.ExecutorType, Pool: tr.Pool, StartedAt: tr.StartedAt,
 				EndedAt: &now, Outputs: tr.Outputs, ReusedFromID: &rid, ExitCode: tr.ExitCode}); err != nil {
 				return err
@@ -360,8 +360,8 @@ func (e *Engine) copyExecution(ctx context.Context, id uuid.UUID, restart bool) 
 }
 
 // latestRuns returns the latest attempt per task key.
-func latestRuns(runs []dbq.TaskRun) map[string]dbq.TaskRun {
-	out := map[string]dbq.TaskRun{}
+func latestRuns(runs []executiondb.TaskRun) map[string]executiondb.TaskRun {
+	out := map[string]executiondb.TaskRun{}
 	for _, tr := range runs {
 		if cur, ok := out[tr.TaskKey]; !ok || tr.Attempt > cur.Attempt {
 			out[tr.TaskKey] = tr

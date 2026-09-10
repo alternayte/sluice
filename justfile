@@ -59,7 +59,7 @@ gen:
 # Fail when generated files differ from the committed files.
 gen-check: gen
     git diff --exit-code
-    test -z "$(git status --porcelain --untracked-files=all -- api/openapi.yaml internal/platform/dbq ui/src/api schemas docs/reference)"
+    test -z "$(git status --porcelain --untracked-files=all -- api/openapi.yaml internal/*/*db ui/src/api schemas docs/reference)"
 
 lint: forbid
     golangci-lint run ./...

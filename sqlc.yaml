@@ -1,37 +1,83 @@
 version: "2"
+overrides:
+  go:
+    overrides:
+      - db_type: uuid
+        go_type: github.com/google/uuid.UUID
+      - db_type: uuid
+        nullable: true
+        go_type:
+          import: github.com/google/uuid
+          type: UUID
+          pointer: true
+      - db_type: timestamptz
+        go_type: time.Time
+      - db_type: timestamptz
+        nullable: true
+        go_type:
+          import: time
+          type: Time
+          pointer: true
+      - db_type: jsonb
+        go_type: encoding/json.RawMessage
+      - db_type: jsonb
+        nullable: true
+        go_type: encoding/json.RawMessage
+      - db_type: citext
+        go_type: string
 sql:
   - engine: postgresql
     schema: db/migrations
-    queries: db/queries
+    queries: internal/auth/queries.sql
     gen:
       go:
-        package: dbq
-        out: internal/platform/dbq
+        package: authdb
+        out: internal/auth/authdb
         sql_package: pgx/v5
         emit_json_tags: false
         emit_empty_slices: true
         emit_pointers_for_null_types: true
-        overrides:
-          - db_type: uuid
-            go_type: github.com/google/uuid.UUID
-          - db_type: uuid
-            nullable: true
-            go_type:
-              import: github.com/google/uuid
-              type: UUID
-              pointer: true
-          - db_type: timestamptz
-            go_type: time.Time
-          - db_type: timestamptz
-            nullable: true
-            go_type:
-              import: time
-              type: Time
-              pointer: true
-          - db_type: jsonb
-            go_type: encoding/json.RawMessage
-          - db_type: jsonb
-            nullable: true
-            go_type: encoding/json.RawMessage
-          - db_type: citext
-            go_type: string
+  - engine: postgresql
+    schema: db/migrations
+    queries: internal/audit/queries.sql
+    gen:
+      go:
+        package: auditdb
+        out: internal/audit/auditdb
+        sql_package: pgx/v5
+        emit_json_tags: false
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: internal/instance/queries.sql
+    gen:
+      go:
+        package: instancedb
+        out: internal/instance/instancedb
+        sql_package: pgx/v5
+        emit_json_tags: false
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: internal/namespace/queries.sql
+    gen:
+      go:
+        package: namespacedb
+        out: internal/namespace/namespacedb
+        sql_package: pgx/v5
+        emit_json_tags: false
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: internal/execution/queries.sql
+    gen:
+      go:
+        package: executiondb
+        out: internal/execution/executiondb
+        sql_package: pgx/v5
+        emit_json_tags: false
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true

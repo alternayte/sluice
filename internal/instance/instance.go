@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/alternayte/sluice/internal/instance/instancedb"
 	"github.com/alternayte/sluice/internal/platform/clock"
-	"github.com/alternayte/sluice/internal/platform/dbq"
 )
 
 // Timings from REQ-CORE-007.
@@ -45,7 +45,7 @@ type Registry struct {
 
 // Register inserts or updates the row of this instance.
 func (r *Registry) Register(ctx context.Context, info Info) error {
-	return dbq.New(r.Pool).UpsertInstance(ctx, dbq.UpsertInstanceParams{
+	return instancedb.New(r.Pool).UpsertInstance(ctx, instancedb.UpsertInstanceParams{
 		ID: info.ID, Hostname: info.Hostname, Version: info.Version,
 		Pools: info.Pools, Executors: info.Executors, StartedAt: r.Clock.Now(),
 	})
@@ -53,7 +53,7 @@ func (r *Registry) Register(ctx context.Context, info Info) error {
 
 // Heartbeat updates heartbeat_at. It re-registers when the row was deleted.
 func (r *Registry) Heartbeat(ctx context.Context, info Info) error {
-	n, err := dbq.New(r.Pool).HeartbeatInstance(ctx, dbq.HeartbeatInstanceParams{ID: info.ID, HeartbeatAt: r.Clock.Now()})
+	n, err := instancedb.New(r.Pool).HeartbeatInstance(ctx, instancedb.HeartbeatInstanceParams{ID: info.ID, HeartbeatAt: r.Clock.Now()})
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func (r *Registry) Run(ctx context.Context, info Info) {
 
 // List returns all instance rows, newest start first.
 func (r *Registry) List(ctx context.Context) ([]Info, error) {
-	rows, err := dbq.New(r.Pool).ListInstances(ctx)
+	rows, err := instancedb.New(r.Pool).ListInstances(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -99,5 +99,5 @@ func (r *Registry) List(ctx context.Context) ([]Info, error) {
 
 // DeleteStale deletes rows without heartbeat for 24 h. The maintenance leader calls it.
 func (r *Registry) DeleteStale(ctx context.Context) (int64, error) {
-	return dbq.New(r.Pool).DeleteStaleInstances(ctx, r.Clock.Now().Add(-DeleteAfter))
+	return instancedb.New(r.Pool).DeleteStaleInstances(ctx, r.Clock.Now().Add(-DeleteAfter))
 }

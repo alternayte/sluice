@@ -115,3 +115,21 @@ SELECT id, state, created_at FROM executions WHERE parent_execution_id = $1 ORDE
 
 -- name: SetLogArchived :exec
 UPDATE executions SET log_archived = true WHERE id = $1;
+
+-- Copy of namespace query GetFlow: execution owns its reads (SDD S4.4).
+-- name: GetFlow :one
+SELECT f.*, n.name AS namespace_name FROM flows f JOIN namespaces n ON n.id = f.namespace_id
+WHERE n.name = $1 AND f.flow_key = $2 AND f.deleted_at IS NULL AND n.deleted_at IS NULL;
+
+-- Copy of namespace query GetFlowRevision: execution owns its reads (SDD S4.4).
+-- name: GetFlowRevision :one
+SELECT * FROM flow_revisions WHERE id = $1;
+
+-- Copy of namespace query GetSnapshot: execution owns its reads (SDD S4.4).
+-- name: GetSnapshot :one
+SELECT s.*, u.email AS author_email FROM snapshots s LEFT JOIN users u ON u.id = s.created_by WHERE s.id = $1;
+
+-- Copy of namespace query GetSnapshotFile: execution owns its reads (SDD S4.4).
+-- name: GetSnapshotFile :one
+SELECT * FROM snapshot_files WHERE snapshot_id = $1 AND path = $2;
+

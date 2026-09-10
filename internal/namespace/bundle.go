@@ -8,7 +8,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/alternayte/sluice/internal/platform/dbq"
+	"github.com/alternayte/sluice/internal/namespace/namespacedb"
 	"github.com/alternayte/sluice/internal/snapshot"
 	"github.com/alternayte/sluice/internal/storage"
 )
@@ -18,11 +18,11 @@ import (
 func (s *Service) EnsureBundle(ctx context.Context, m snapshot.Manifest) (string, error) {
 	hash := m.Hash()
 	key := storage.BundleKey(hash)
-	q := dbq.New(s.Pool)
+	q := namespacedb.New(s.Pool)
 	now := s.Clock.Now()
 	if b, err := q.GetBundle(ctx, hash); err == nil {
 		if _, err := s.Store.Stat(ctx, b.StorageKey); err == nil {
-			_ = q.TouchBundle(ctx, dbq.TouchBundleParams{ManifestHash: hash, LastUsedAt: now})
+			_ = q.TouchBundle(ctx, namespacedb.TouchBundleParams{ManifestHash: hash, LastUsedAt: now})
 			return b.StorageKey, nil
 		}
 	}
@@ -33,7 +33,7 @@ func (s *Service) EnsureBundle(ctx context.Context, m snapshot.Manifest) (string
 	if err != nil {
 		return "", err
 	}
-	if err := q.InsertBundle(ctx, dbq.InsertBundleParams{ManifestHash: hash, StorageKey: key, Size: n, LastUsedAt: now}); err != nil {
+	if err := q.InsertBundle(ctx, namespacedb.InsertBundleParams{ManifestHash: hash, StorageKey: key, Size: n, LastUsedAt: now}); err != nil {
 		return "", err
 	}
 	return key, nil

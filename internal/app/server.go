@@ -119,7 +119,7 @@ func NewServer(ctx context.Context, cfg *Config, log *slog.Logger) (*Server, err
 	s.GC = &storage.GC{Pool: pool, Store: s.Store, Clock: clk, Log: log}
 	s.Namespaces = &namespace.Service{Pool: pool, Store: s.Store, Clock: clk, Audit: s.Audit, Log: log,
 		MaxFileBytes: int64(cfg.MaxFileBytes), MaxBundleBytes: int64(cfg.MaxBundleBytes)}
-	s.Engine = &execution.Engine{Pool: pool, OfflineAfter: instance.OfflineAfter, Clock: clk, Log: log, Audit: s.Audit, Namespaces: s.Namespaces, Store: s.Store,
+	s.Engine = &execution.Engine{Pool: pool, OfflineAfter: instance.OfflineAfter, Clock: clk, Log: log, Audit: s.Audit, Namespaces: namespacesAdapter{s.Namespaces}, Store: s.Store,
 		Instance: id, Pools: cfg.Pools, Cfg: execution.Config{WorkerSlots: cfg.WorkerSlots, K8sMaxJobs: cfg.K8sMaxJobs,
 			PollInterval: cfg.QueuePollInterval, HeartbeatTimeout: cfg.HeartbeatTimeout, APIURL: cfg.InternalURL,
 			DockerAPIURL: cfg.DockerAPIURL, ClusterAPIURL: cfg.InternalURL,

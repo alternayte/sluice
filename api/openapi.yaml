@@ -1,2320 +1,3057 @@
-openapi: 3.0.3
-info:
-  title: Sluice API
-  version: 1.0.0
-  description: Sluice workflow orchestrator API. Errors use the envelope {"error":{"code","message","details"}}.
-servers:
-  - url: /
-tags:
-  - name: system
-  - name: auth
-  - name: users
-  - name: tokens
-  - name: audit
-  - name: namespaces
-  - name: files
-  - name: flows
-  - name: executions
-  - name: runner
-paths:
-  /api/v1/instances:
-    get:
-      operationId: listInstances
-      tags: [system]
-      summary: List server instances with pools and executors.
-      responses:
-        "200":
-          description: Instances.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/InstanceList"
-        default:
-          $ref: "#/components/responses/Error"
-
-  /api/v1/auth/login:
-    post:
-      operationId: login
-      tags: [auth]
-      summary: Sign in with email and password. Sets the sluice_session cookie.
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/LoginRequest"
-      responses:
-        "200":
-          description: Signed in.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Me"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/auth/logout:
-    post:
-      operationId: logout
-      tags: [auth]
-      summary: Sign out and delete the current session.
-      responses:
-        "204":
-          description: Signed out.
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/auth/me:
-    get:
-      operationId: getMe
-      tags: [auth]
-      summary: Return the current user.
-      responses:
-        "200":
-          description: Current user.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Me"
-        default:
-          $ref: "#/components/responses/Error"
-    patch:
-      operationId: updateMe
-      tags: [auth]
-      summary: Update the own profile.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateMeRequest"
-      responses:
-        "200":
-          description: Updated.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Me"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/auth/password:
-    post:
-      operationId: changePassword
-      tags: [auth]
-      summary: Change the own password. Other sessions are signed out.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ChangePasswordRequest"
-      responses:
-        "204":
-          description: Changed.
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/auth/sessions/revoke-others:
-    post:
-      operationId: revokeOtherSessions
-      tags: [auth]
-      summary: Sign out all other sessions of the current user.
-      responses:
-        "200":
-          description: Other sessions deleted.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CountResult"
-        default:
-          $ref: "#/components/responses/Error"
-
-  /api/v1/users:
-    get:
-      operationId: listUsers
-      tags: [users]
-      summary: List users.
-      parameters:
-        - $ref: "#/components/parameters/Cursor"
-        - $ref: "#/components/parameters/Limit"
-      responses:
-        "200":
-          description: Users.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UserList"
-        default:
-          $ref: "#/components/responses/Error"
-    post:
-      operationId: createUser
-      tags: [users]
-      summary: Create a user with a temporary password.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateUserRequest"
-      responses:
-        "201":
-          description: Created.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/users/{userId}:
-    parameters:
-      - $ref: "#/components/parameters/UserId"
-    patch:
-      operationId: updateUser
-      tags: [users]
-      summary: Change the name or role of a user, or disable or enable the user.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateUserRequest"
-      responses:
-        "200":
-          description: Updated.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/users/{userId}/reset-password:
-    parameters:
-      - $ref: "#/components/parameters/UserId"
-    post:
-      operationId: resetUserPassword
-      tags: [users]
-      summary: Set a temporary password. The user must change it at next login.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ResetPasswordRequest"
-      responses:
-        "204":
-          description: Reset.
-        default:
-          $ref: "#/components/responses/Error"
-
-  /api/v1/tokens:
-    get:
-      operationId: listTokens
-      tags: [tokens]
-      summary: List own API tokens. Admins can list all tokens with all=true.
-      parameters:
-        - name: all
-          in: query
-          schema:
-            type: boolean
-        - $ref: "#/components/parameters/Cursor"
-        - $ref: "#/components/parameters/Limit"
-      responses:
-        "200":
-          description: Tokens.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TokenList"
-        default:
-          $ref: "#/components/responses/Error"
-    post:
-      operationId: createToken
-      tags: [tokens]
-      summary: Create an API token. The secret is shown once.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateTokenRequest"
-      responses:
-        "201":
-          description: Created.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CreatedToken"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/tokens/{tokenId}:
-    parameters:
-      - name: tokenId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-    delete:
-      operationId: revokeToken
-      tags: [tokens]
-      summary: Revoke an API token. Owners and admins can revoke.
-      responses:
-        "204":
-          description: Revoked.
-        default:
-          $ref: "#/components/responses/Error"
-
-  /api/v1/audit:
-    get:
-      operationId: listAuditEvents
-      tags: [audit]
-      summary: List audit events, newest first.
-      parameters:
-        - name: actor
-          in: query
-          description: Actor ID or email.
-          schema:
-            type: string
-        - name: action
-          in: query
-          schema:
-            type: string
-        - name: target
-          in: query
-          description: Target type, or type:id.
-          schema:
-            type: string
-        - name: from
-          in: query
-          schema:
-            type: string
-            format: date-time
-        - name: to
-          in: query
-          schema:
-            type: string
-            format: date-time
-        - $ref: "#/components/parameters/Cursor"
-        - $ref: "#/components/parameters/Limit"
-      responses:
-        "200":
-          description: Audit events.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuditList"
-        default:
-          $ref: "#/components/responses/Error"
-
-  /api/v1/namespaces:
-    get:
-      operationId: listNamespaces
-      tags: [namespaces]
-      summary: List namespaces with implicit parents.
-      responses:
-        "200":
-          description: Namespaces in name order.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NamespaceList"
-        default:
-          $ref: "#/components/responses/Error"
-    post:
-      operationId: createNamespace
-      tags: [namespaces]
-      summary: Create a managed namespace.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateNamespaceRequest"
-      responses:
-        "201":
-          description: Created.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Namespace"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/namespaces/{namespace}:
-    parameters:
-      - $ref: "#/components/parameters/NamespacePath"
-    get:
-      operationId: getNamespace
-      tags: [namespaces]
-      summary: Get a namespace.
-      responses:
-        "200":
-          description: Namespace.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Namespace"
-        default:
-          $ref: "#/components/responses/Error"
-    delete:
-      operationId: deleteNamespace
-      tags: [namespaces]
-      summary: Delete a managed namespace. Fails with 409 while executions run.
-      responses:
-        "204":
-          description: Deleted.
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/namespaces/{namespace}/files:
-    parameters:
-      - $ref: "#/components/parameters/NamespacePath"
-    get:
-      operationId: listFiles
-      tags: [files]
-      summary: List the files of the head snapshot or of a version.
-      parameters:
-        - $ref: "#/components/parameters/VersionQuery"
-      responses:
-        "200":
-          description: Files.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FileList"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/namespaces/{namespace}/file:
-    parameters:
-      - $ref: "#/components/parameters/NamespacePath"
-      - $ref: "#/components/parameters/FilePathQuery"
-    get:
-      operationId: getFile
-      tags: [files]
-      summary: Download one file of the head snapshot or of a version.
-      parameters:
-        - $ref: "#/components/parameters/VersionQuery"
-      responses:
-        "200":
-          description: File content.
-          content:
-            application/octet-stream:
-              schema:
-                type: string
-                format: binary
-        default:
-          $ref: "#/components/responses/Error"
-    put:
-      operationId: uploadFile
-      tags: [files]
-      summary: Upload one file. This creates a new version.
-      parameters:
-        - name: message
-          in: query
-          schema:
-            type: string
-            maxLength: 500
-        - name: executable
-          in: query
-          schema:
-            type: boolean
-      requestBody:
-        required: true
-        content:
-          application/octet-stream:
-            schema:
-              type: string
-              format: binary
-      responses:
-        "201":
-          description: New version.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Snapshot"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/namespaces/{namespace}/changes:
-    parameters:
-      - $ref: "#/components/parameters/NamespacePath"
-    post:
-      operationId: saveChanges
-      tags: [files]
-      summary: Create, update, rename and delete files in one new version.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/SaveChangesRequest"
-      responses:
-        "201":
-          description: New version.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Snapshot"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/namespaces/{namespace}/versions:
-    parameters:
-      - $ref: "#/components/parameters/NamespacePath"
-    get:
-      operationId: listVersions
-      tags: [files]
-      summary: List versions (snapshots), newest first.
-      parameters:
-        - $ref: "#/components/parameters/Limit"
-      responses:
-        "200":
-          description: Versions.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SnapshotList"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/namespaces/{namespace}/diff:
-    parameters:
-      - $ref: "#/components/parameters/NamespacePath"
-    get:
-      operationId: diffVersions
-      tags: [files]
-      summary: Diff two versions.
-      parameters:
-        - name: from
-          in: query
-          required: true
-          schema:
-            type: integer
-            minimum: 1
-        - name: to
-          in: query
-          required: true
-          schema:
-            type: integer
-            minimum: 1
-      responses:
-        "200":
-          description: Diff.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/VersionDiff"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/namespaces/{namespace}/revert:
-    parameters:
-      - $ref: "#/components/parameters/NamespacePath"
-    post:
-      operationId: revertVersion
-      tags: [files]
-      summary: Create a new version with the content of an old version.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RevertRequest"
-      responses:
-        "201":
-          description: New version.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Snapshot"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/namespaces/{namespace}/validate:
-    parameters:
-      - $ref: "#/components/parameters/NamespacePath"
-    post:
-      operationId: validateFile
-      tags: [files]
-      summary: Validate proposed file content against the head snapshot. Nothing is saved.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ValidateFileRequest"
-      responses:
-        "200":
-          description: Validation result.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ValidateFileResult"
-        default:
-          $ref: "#/components/responses/Error"
-
-  /api/v1/flows:
-    get:
-      operationId: listFlows
-      tags: [flows]
-      summary: List flows.
-      parameters:
-        - name: namespace
-          in: query
-          description: Namespace and its children.
-          schema:
-            type: string
-        - $ref: "#/components/parameters/Cursor"
-        - $ref: "#/components/parameters/Limit"
-      responses:
-        "200":
-          description: Flows.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FlowList"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/flows/{namespace}/{flowId}:
-    parameters:
-      - $ref: "#/components/parameters/NamespacePath"
-      - $ref: "#/components/parameters/FlowIdPath"
-    get:
-      operationId: getFlow
-      tags: [flows]
-      summary: Get a flow with its current revision and triggers.
-      responses:
-        "200":
-          description: Flow.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FlowDetail"
-        default:
-          $ref: "#/components/responses/Error"
-    patch:
-      operationId: updateFlow
-      tags: [flows]
-      summary: Enable or disable a flow.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateFlowRequest"
-      responses:
-        "200":
-          description: Updated.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FlowDetail"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/flows/{namespace}/{flowId}/revisions:
-    parameters:
-      - $ref: "#/components/parameters/NamespacePath"
-      - $ref: "#/components/parameters/FlowIdPath"
-    get:
-      operationId: listFlowRevisions
-      tags: [flows]
-      summary: List revisions of a flow, newest first.
-      parameters:
-        - $ref: "#/components/parameters/Limit"
-      responses:
-        "200":
-          description: Revisions.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RevisionList"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/flows/{namespace}/{flowId}/revisions/{revisionId}:
-    parameters:
-      - $ref: "#/components/parameters/NamespacePath"
-      - $ref: "#/components/parameters/FlowIdPath"
-      - name: revisionId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-    get:
-      operationId: getFlowRevision
-      tags: [flows]
-      summary: Get one revision with its source.
-      responses:
-        "200":
-          description: Revision.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Revision"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/flows/{namespace}/{flowId}/diff:
-    parameters:
-      - $ref: "#/components/parameters/NamespacePath"
-      - $ref: "#/components/parameters/FlowIdPath"
-    get:
-      operationId: diffFlowRevisions
-      tags: [flows]
-      summary: Unified diff between two revisions of a flow.
-      parameters:
-        - name: from
-          in: query
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: to
-          in: query
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: Diff.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TextDiff"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/flows/{namespace}/{flowId}/executions:
-    parameters:
-      - $ref: "#/components/parameters/NamespacePath"
-      - $ref: "#/components/parameters/FlowIdPath"
-    post:
-      operationId: triggerFlow
-      tags: [executions]
-      summary: Start a flow manually with inputs and labels.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TriggerRequest"
-      responses:
-        "201":
-          description: Execution created.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ExecutionDetail"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/namespaces/{namespace}/run:
-    parameters:
-      - $ref: "#/components/parameters/NamespacePath"
-    post:
-      operationId: runFile
-      tags: [executions]
-      summary: Run a script file of the namespace with optional args.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RunFileRequest"
-      responses:
-        "201":
-          description: Execution created.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ExecutionDetail"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/executions:
-    get:
-      operationId: listExecutions
-      tags: [executions]
-      summary: List executions with filters, sort and cursor pagination.
-      parameters:
-        - name: state
-          in: query
-          description: Comma-separated execution states.
-          schema:
-            type: string
-        - name: namespace
-          in: query
-          description: Namespace and its children.
-          schema:
-            type: string
-        - name: flow
-          in: query
-          description: Flow as <namespace>/<flow_id>.
-          schema:
-            type: string
-        - name: trigger_type
-          in: query
-          schema:
-            type: string
-            enum: [manual, schedule, webhook, flow, file, subflow, rerun, restart]
-        - name: label
-          in: query
-          description: Label filter key=value. Repeat for several labels.
-          explode: true
-          schema:
-            type: array
-            items:
-              type: string
-        - name: from
-          in: query
-          schema:
-            type: string
-            format: date-time
-        - name: to
-          in: query
-          schema:
-            type: string
-            format: date-time
-        - name: sort
-          in: query
-          schema:
-            type: string
-            enum: [created, duration]
-            default: created
-        - $ref: "#/components/parameters/Cursor"
-        - $ref: "#/components/parameters/Limit"
-      responses:
-        "200":
-          description: Executions.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ExecutionList"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/executions/{executionId}:
-    parameters:
-      - $ref: "#/components/parameters/ExecutionIdPath"
-    get:
-      operationId: getExecution
-      tags: [executions]
-      summary: Get an execution with its task runs.
-      responses:
-        "200":
-          description: Execution.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ExecutionDetail"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/executions/{executionId}/cancel:
-    parameters:
-      - $ref: "#/components/parameters/ExecutionIdPath"
-    post:
-      operationId: cancelExecution
-      tags: [executions]
-      summary: Cancel an execution.
-      responses:
-        "202":
-          description: Cancel requested.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ExecutionDetail"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/executions/{executionId}/rerun:
-    parameters:
-      - $ref: "#/components/parameters/ExecutionIdPath"
-    post:
-      operationId: rerunExecution
-      tags: [executions]
-      summary: Start a new execution with the same snapshot and inputs.
-      responses:
-        "201":
-          description: Execution created.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ExecutionDetail"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/executions/{executionId}/restart:
-    parameters:
-      - $ref: "#/components/parameters/ExecutionIdPath"
-    post:
-      operationId: restartExecution
-      tags: [executions]
-      summary: Start a new execution that reuses the successful tasks and runs the others.
-      responses:
-        "201":
-          description: Execution created.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ExecutionDetail"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/executions/{executionId}/logs:
-    parameters:
-      - $ref: "#/components/parameters/ExecutionIdPath"
-    get:
-      operationId: getExecutionLogs
-      tags: [executions]
-      summary: Read log lines from Postgres or the archive.
-      parameters:
-        - name: task
-          in: query
-          description: Task ID filter.
-          schema:
-            type: string
-        - name: search
-          in: query
-          description: Case-insensitive text filter.
-          schema:
-            type: string
-        - $ref: "#/components/parameters/Cursor"
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 5000
-            default: 1000
-      responses:
-        "200":
-          description: Log lines.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LogPage"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/executions/{executionId}/logs/stream:
-    parameters:
-      - $ref: "#/components/parameters/ExecutionIdPath"
-    get:
-      operationId: streamExecutionLogs
-      tags: [executions]
-      summary: Stream log lines as server-sent events. Supports Last-Event-ID.
-      parameters:
-        - name: task
-          in: query
-          schema:
-            type: string
-        - name: Last-Event-ID
-          in: header
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Event stream.
-          content:
-            text/event-stream:
-              schema:
-                type: string
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/executions/{executionId}/logs/download:
-    parameters:
-      - $ref: "#/components/parameters/ExecutionIdPath"
-    get:
-      operationId: downloadExecutionLogs
-      tags: [executions]
-      summary: Download all log lines as a text file.
-      parameters:
-        - name: task
-          in: query
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Log file.
-          content:
-            text/plain:
-              schema:
-                type: string
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/executions/{executionId}/events:
-    parameters:
-      - $ref: "#/components/parameters/ExecutionIdPath"
-    get:
-      operationId: streamExecutionEvents
-      tags: [executions]
-      summary: Stream execution state changes as server-sent events. Supports Last-Event-ID.
-      parameters:
-        - name: Last-Event-ID
-          in: header
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Event stream.
-          content:
-            text/event-stream:
-              schema:
-                type: string
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/executions/{executionId}/metrics:
-    parameters:
-      - $ref: "#/components/parameters/ExecutionIdPath"
-    get:
-      operationId: listExecutionMetrics
-      tags: [executions]
-      summary: List metrics emitted by the tasks.
-      responses:
-        "200":
-          description: Metrics.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/MetricList"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/executions/{executionId}/artifacts:
-    parameters:
-      - $ref: "#/components/parameters/ExecutionIdPath"
-    get:
-      operationId: listExecutionArtifacts
-      tags: [executions]
-      summary: List artifacts uploaded by the tasks.
-      responses:
-        "200":
-          description: Artifacts.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ArtifactList"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/v1/executions/{executionId}/artifacts/{artifactId}:
-    parameters:
-      - $ref: "#/components/parameters/ExecutionIdPath"
-      - name: artifactId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-    get:
-      operationId: downloadArtifact
-      tags: [executions]
-      summary: Download an artifact.
-      responses:
-        "200":
-          description: Artifact content.
-          content:
-            application/octet-stream:
-              schema:
-                type: string
-                format: binary
-        default:
-          $ref: "#/components/responses/Error"
-
-  /api/runner/v1/task-runs/{taskRunId}/spec:
-    parameters:
-      - $ref: "#/components/parameters/TaskRunIdPath"
-    get:
-      operationId: runnerGetSpec
-      tags: [runner]
-      summary: Task spec with resolved env, mask values and limits.
-      security:
-        - runToken: []
-      responses:
-        "200":
-          description: Spec.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RunnerSpec"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/runner/v1/task-runs/{taskRunId}/bundle:
-    parameters:
-      - $ref: "#/components/parameters/TaskRunIdPath"
-    get:
-      operationId: runnerGetBundle
-      tags: [runner]
-      summary: Snapshot bundle (tar.gz).
-      security:
-        - runToken: []
-      responses:
-        "200":
-          description: Bundle.
-          content:
-            application/gzip:
-              schema:
-                type: string
-                format: binary
-        default:
-          $ref: "#/components/responses/Error"
-  /api/runner/v1/task-runs/{taskRunId}/logs:
-    parameters:
-      - $ref: "#/components/parameters/TaskRunIdPath"
-    post:
-      operationId: runnerPostLogs
-      tags: [runner]
-      summary: Ingest one log batch. Idempotent per (task run, seq).
-      security:
-        - runToken: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RunnerLogBatch"
-      responses:
-        "204":
-          description: Stored.
-        default:
-          $ref: "#/components/responses/Error"
-  /api/runner/v1/task-runs/{taskRunId}/events:
-    parameters:
-      - $ref: "#/components/parameters/TaskRunIdPath"
-    post:
-      operationId: runnerPostEvents
-      tags: [runner]
-      summary: Ingest outputs and metrics.
-      security:
-        - runToken: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RunnerEventBatch"
-      responses:
-        "204":
-          description: Stored.
-        default:
-          $ref: "#/components/responses/Error"
-  /api/runner/v1/task-runs/{taskRunId}/artifacts/{name}:
-    parameters:
-      - $ref: "#/components/parameters/TaskRunIdPath"
-      - name: name
-        in: path
-        required: true
-        schema:
-          type: string
-          maxLength: 200
-    put:
-      operationId: runnerPutArtifact
-      tags: [runner]
-      summary: Upload one artifact as a streamed body.
-      security:
-        - runToken: []
-      requestBody:
-        required: true
-        content:
-          application/octet-stream:
-            schema:
-              type: string
-              format: binary
-      responses:
-        "204":
-          description: Stored.
-        default:
-          $ref: "#/components/responses/Error"
-  /api/runner/v1/task-runs/{taskRunId}/heartbeat:
-    parameters:
-      - $ref: "#/components/parameters/TaskRunIdPath"
-    post:
-      operationId: runnerHeartbeat
-      tags: [runner]
-      summary: Report liveness. The response says whether to cancel.
-      security:
-        - runToken: []
-      responses:
-        "200":
-          description: Heartbeat response.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RunnerHeartbeatResponse"
-        default:
-          $ref: "#/components/responses/Error"
-  /api/runner/v1/task-runs/{taskRunId}/complete:
-    parameters:
-      - $ref: "#/components/parameters/TaskRunIdPath"
-    post:
-      operationId: runnerComplete
-      tags: [runner]
-      summary: Report the end of the task.
-      security:
-        - runToken: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RunnerComplete"
-      responses:
-        "204":
-          description: Recorded.
-        default:
-          $ref: "#/components/responses/Error"
-
-  /api/v1/schemas/flow.json:
-    get:
-      operationId: getFlowSchema
-      tags: [flows]
-      summary: JSON Schema of flow files.
-      security: []
-      responses:
-        "200":
-          description: JSON Schema.
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: true
-        default:
-          $ref: "#/components/responses/Error"
-
 components:
-  securitySchemes:
-    session:
-      type: apiKey
-      in: cookie
-      name: sluice_session
-    token:
-      type: http
-      scheme: bearer
-    runToken:
-      type: http
-      scheme: bearer
-      description: Run token of one task run (SI-04).
-  parameters:
-    ExecutionIdPath:
-      name: executionId
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    TaskRunIdPath:
-      name: taskRunId
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    Cursor:
-      name: cursor
-      in: query
-      description: Opaque cursor from next_cursor of the previous page.
-      schema:
-        type: string
-    Limit:
-      name: limit
-      in: query
-      schema:
-        type: integer
-        minimum: 1
-        maximum: 200
-        default: 50
-    UserId:
-      name: userId
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    NamespacePath:
-      name: namespace
-      in: path
-      required: true
-      schema:
-        type: string
-        maxLength: 128
-        pattern: "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$"
-    FlowIdPath:
-      name: flowId
-      in: path
-      required: true
-      schema:
-        type: string
-        maxLength: 63
-        pattern: "^[a-z0-9][a-z0-9-]*$"
-    FilePathQuery:
-      name: path
-      in: query
-      required: true
-      description: File path relative to the namespace root.
-      schema:
-        type: string
-        minLength: 1
-        maxLength: 512
-    VersionQuery:
-      name: version
-      in: query
-      description: Version number. Default is the head version.
-      schema:
-        type: integer
-        minimum: 1
-  responses:
-    Error:
-      description: Error envelope.
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ErrorEnvelope"
   schemas:
-    ErrorEnvelope:
-      type: object
-      required: [error]
+    Artifact:
+      additionalProperties: true
       properties:
-        error:
-          $ref: "#/components/schemas/ErrorBody"
-    ErrorBody:
+        content_type:
+          type: string
+        created_at:
+          format: date-time
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+        size:
+          format: int64
+          type: integer
+        task_key:
+          type: string
+        task_run_id:
+          type: string
+      required:
+        - id
+        - task_run_id
+        - task_key
+        - name
+        - size
+        - content_type
+        - created_at
       type: object
-      required: [code, message]
+    ArtifactList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/Artifact"
+          type: array
+      required:
+        - items
+      type: object
+    AuditEvent:
+      additionalProperties: true
+      properties:
+        action:
+          type: string
+        actor_id:
+          type: string
+        actor_label:
+          type: string
+        actor_type:
+          enum:
+            - user
+            - token
+            - system
+            - ai
+          type: string
+        details:
+          additionalProperties: {}
+          type: object
+        id:
+          type: string
+        ip:
+          type: string
+        target_id:
+          type: string
+        target_type:
+          type: string
+        ts:
+          format: date-time
+          type: string
+      required:
+        - id
+        - ts
+        - actor_type
+        - actor_id
+        - actor_label
+        - action
+        - target_type
+        - target_id
+        - details
+        - ip
+      type: object
+    AuditList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/AuditEvent"
+          type: array
+        next_cursor:
+          type: string
+      required:
+        - items
+      type: object
+    ChangePasswordRequest:
+      additionalProperties: true
+      properties:
+        current_password:
+          maxLength: 1024
+          type: string
+        new_password:
+          maxLength: 1024
+          minLength: 10
+          type: string
+      required:
+        - current_password
+        - new_password
+      type: object
+    CountResult:
+      additionalProperties: true
+      properties:
+        count:
+          format: int64
+          type: integer
+      required:
+        - count
+      type: object
+    CreateNamespaceRequest:
+      additionalProperties: true
+      properties:
+        description:
+          maxLength: 2000
+          type: string
+        name:
+          maxLength: 128
+          type: string
+      required:
+        - name
+      type: object
+    CreateTokenRequest:
+      additionalProperties: true
+      properties:
+        expires_in_days:
+          format: int64
+          maximum: 365
+          minimum: 1
+          type: integer
+        name:
+          maxLength: 100
+          minLength: 1
+          type: string
+        role:
+          enum:
+            - viewer
+            - operator
+            - editor
+            - admin
+          type: string
+      required:
+        - name
+        - role
+      type: object
+    CreateUserRequest:
+      additionalProperties: true
+      properties:
+        email:
+          format: email
+          maxLength: 320
+          type: string
+        name:
+          maxLength: 200
+          type: string
+        password:
+          description: Temporary password. The user must change it at first login.
+          maxLength: 1024
+          minLength: 10
+          type: string
+        role:
+          enum:
+            - viewer
+            - operator
+            - editor
+            - admin
+          type: string
+      required:
+        - email
+        - role
+        - password
+      type: object
+    CreatedToken:
+      additionalProperties: true
+      properties:
+        secret:
+          type: string
+        token:
+          $ref: "#/components/schemas/Token"
+      required:
+        - token
+        - secret
+      type: object
+    ErrorBody:
+      additionalProperties: true
       properties:
         code:
           type: string
+        details: {}
         message:
           type: string
-        details: {}
-    CountResult:
+      required:
+        - code
+        - message
       type: object
-      required: [count]
+    ErrorEnvelope:
+      additionalProperties: true
       properties:
-        count:
+        error:
+          $ref: "#/components/schemas/ErrorBody"
+      required:
+        - error
+      type: object
+    ExecutionDetail:
+      additionalProperties: true
+      properties:
+        chain_depth:
+          format: int64
           type: integer
-    Role:
-      type: string
-      enum: [viewer, operator, editor, admin]
-    Instance:
-      type: object
-      required: [id, hostname, version, pools, executors, started_at, heartbeat_at, online]
-      properties:
+        children:
+          items:
+            $ref: "#/components/schemas/ExecutionRef"
+          type: array
+        created_at:
+          format: date-time
+          type: string
+        created_by:
+          type: string
+        duration_ms:
+          format: int64
+          type:
+            - integer
+            - "null"
+        ended_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        error:
+          type: string
+        flow_id:
+          description: Flow ID. Null for file runs.
+          type:
+            - string
+            - "null"
+        flow_revision_id:
+          type:
+            - string
+            - "null"
+        git_sha:
+          type: string
         id:
           type: string
-          format: uuid
+        inputs:
+          additionalProperties: {}
+          type: object
+        labels:
+          additionalProperties:
+            type: string
+          type: object
+        namespace:
+          type: string
+        outputs:
+          additionalProperties: {}
+          type:
+            - object
+            - "null"
+        parent_execution_id:
+          type:
+            - string
+            - "null"
+        reason:
+          type: string
+        restart_of_id:
+          type:
+            - string
+            - "null"
+        secret_keys_used:
+          items:
+            type: string
+          type: array
+        snapshot_id:
+          type: string
+        snapshot_version:
+          format: int64
+          type:
+            - integer
+            - "null"
+        started_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        state:
+          enum:
+            - QUEUED
+            - RUNNING
+            - CANCELLING
+            - SUCCESS
+            - FAILED
+            - TIMED_OUT
+            - CANCELLED
+            - SKIPPED
+          type: string
+        task_runs:
+          items:
+            $ref: "#/components/schemas/TaskRun"
+          type: array
+        trigger_payload:
+          additionalProperties: {}
+          type: object
+        trigger_type:
+          type: string
+      required:
+        - inputs
+        - trigger_payload
+        - snapshot_id
+        - chain_depth
+        - secret_keys_used
+        - task_runs
+        - children
+        - id
+        - namespace
+        - state
+        - trigger_type
+        - labels
+        - created_at
+        - error
+        - reason
+        - created_by
+      type: object
+    ExecutionList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/ExecutionSummary"
+          type: array
+        next_cursor:
+          type: string
+      required:
+        - items
+      type: object
+    ExecutionRef:
+      additionalProperties: true
+      properties:
+        created_at:
+          format: date-time
+          type: string
+        id:
+          type: string
+        state:
+          type: string
+      required:
+        - id
+        - state
+        - created_at
+      type: object
+    ExecutionSummary:
+      additionalProperties: true
+      properties:
+        created_at:
+          format: date-time
+          type: string
+        created_by:
+          type: string
+        duration_ms:
+          format: int64
+          type:
+            - integer
+            - "null"
+        ended_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        error:
+          type: string
+        flow_id:
+          description: Flow ID. Null for file runs.
+          type:
+            - string
+            - "null"
+        id:
+          type: string
+        labels:
+          additionalProperties:
+            type: string
+          type: object
+        namespace:
+          type: string
+        reason:
+          type: string
+        started_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        state:
+          enum:
+            - QUEUED
+            - RUNNING
+            - CANCELLING
+            - SUCCESS
+            - FAILED
+            - TIMED_OUT
+            - CANCELLED
+            - SKIPPED
+          type: string
+        trigger_type:
+          type: string
+      required:
+        - id
+        - namespace
+        - state
+        - trigger_type
+        - labels
+        - created_at
+        - error
+        - reason
+        - created_by
+      type: object
+    FileChange:
+      additionalProperties: true
+      properties:
+        content:
+          description: put only. UTF-8 text content.
+          type: string
+        content_base64:
+          description: put only. Binary content as base64. Used instead of content.
+          type: string
+        executable:
+          type: boolean
+        new_path:
+          description: rename only.
+          maxLength: 512
+          type: string
+        op:
+          enum:
+            - put
+            - delete
+            - rename
+          type: string
+        path:
+          maxLength: 512
+          type: string
+      required:
+        - op
+        - path
+      type: object
+    FileDiff:
+      additionalProperties: true
+      properties:
+        binary:
+          type: boolean
+        diff:
+          description: Unified diff for text files.
+          type: string
+        path:
+          type: string
+        status:
+          enum:
+            - added
+            - removed
+            - modified
+          type: string
+      required:
+        - path
+        - status
+        - binary
+        - diff
+      type: object
+    FileEntry:
+      additionalProperties: true
+      properties:
+        executable:
+          type: boolean
+        hash:
+          type: string
+        path:
+          type: string
+        size:
+          format: int64
+          type: integer
+      required:
+        - path
+        - size
+        - hash
+        - executable
+      type: object
+    FileList:
+      additionalProperties: true
+      properties:
+        git_sha:
+          type: string
+        items:
+          items:
+            $ref: "#/components/schemas/FileEntry"
+          type: array
+        snapshot_id:
+          type:
+            - string
+            - "null"
+        version:
+          format: int64
+          type:
+            - integer
+            - "null"
+      required:
+        - items
+      type: object
+    FlowDetail:
+      additionalProperties: true
+      properties:
+        description:
+          type: string
+        disabled:
+          type: boolean
+        error_count:
+          format: int64
+          type: integer
+        flow_id:
+          type: string
+        id:
+          type: string
+        labels:
+          additionalProperties:
+            type: string
+          type: object
+        last_execution:
+          $ref: "#/components/schemas/ExecutionRef"
+        namespace:
+          type: string
+        path:
+          type: string
+        revision:
+          $ref: "#/components/schemas/Revision"
+        triggers:
+          items:
+            $ref: "#/components/schemas/TriggerInfo"
+          type: array
+        valid:
+          type: boolean
+      required:
+        - id
+        - namespace
+        - flow_id
+        - path
+        - valid
+        - disabled
+        - description
+        - error_count
+        - triggers
+      type: object
+    FlowList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/FlowSummary"
+          type: array
+        next_cursor:
+          type: string
+      required:
+        - items
+      type: object
+    FlowSummary:
+      additionalProperties: true
+      properties:
+        description:
+          type: string
+        disabled:
+          type: boolean
+        error_count:
+          format: int64
+          type: integer
+        flow_id:
+          type: string
+        id:
+          type: string
+        labels:
+          additionalProperties:
+            type: string
+          type: object
+        last_execution:
+          $ref: "#/components/schemas/ExecutionRef"
+        namespace:
+          type: string
+        path:
+          type: string
+        valid:
+          type: boolean
+      required:
+        - id
+        - namespace
+        - flow_id
+        - path
+        - valid
+        - disabled
+        - description
+        - error_count
+      type: object
+    Instance:
+      additionalProperties: true
+      properties:
+        executors:
+          items:
+            type: string
+          type: array
+        heartbeat_at:
+          format: date-time
+          type: string
         hostname:
+          type: string
+        id:
+          type: string
+        online:
+          type: boolean
+        pools:
+          items:
+            type: string
+          type: array
+        started_at:
+          format: date-time
           type: string
         version:
           type: string
-        pools:
-          type: array
-          items:
-            type: string
-        executors:
-          type: array
-          items:
-            type: string
-        started_at:
-          type: string
-          format: date-time
-        heartbeat_at:
-          type: string
-          format: date-time
-        online:
-          type: boolean
-    InstanceList:
+      required:
+        - id
+        - hostname
+        - version
+        - pools
+        - executors
+        - started_at
+        - heartbeat_at
+        - online
       type: object
-      required: [items]
+    InstanceList:
+      additionalProperties: true
       properties:
         items:
-          type: array
           items:
             $ref: "#/components/schemas/Instance"
-
-    LoginRequest:
-      type: object
-      required: [email, password]
-      properties:
-        email:
-          type: string
-          minLength: 3
-          maxLength: 320
-        password:
-          type: string
-          minLength: 1
-          maxLength: 1024
-    Me:
-      type: object
-      required: [id, email, name, role, must_change_password, auth_type]
-      properties:
-        id:
-          type: string
-          format: uuid
-        email:
-          type: string
-        name:
-          type: string
-        role:
-          $ref: "#/components/schemas/Role"
-        must_change_password:
-          type: boolean
-        auth_type:
-          type: string
-          enum: [session, token]
-    UpdateMeRequest:
-      type: object
-      required: [name]
-      properties:
-        name:
-          type: string
-          maxLength: 200
-    ChangePasswordRequest:
-      type: object
-      required: [current_password, new_password]
-      properties:
-        current_password:
-          type: string
-          maxLength: 1024
-        new_password:
-          type: string
-          minLength: 10
-          maxLength: 1024
-    User:
-      type: object
-      required: [id, email, name, role, must_change_password, disabled, created_at]
-      properties:
-        id:
-          type: string
-          format: uuid
-        email:
-          type: string
-        name:
-          type: string
-        role:
-          $ref: "#/components/schemas/Role"
-        must_change_password:
-          type: boolean
-        disabled:
-          type: boolean
-        created_at:
-          type: string
-          format: date-time
-        last_login_at:
-          type: string
-          format: date-time
-          nullable: true
-    UserList:
-      type: object
-      required: [items]
-      properties:
-        items:
           type: array
+      required:
+        - items
+      type: object
+    Issue:
+      additionalProperties: true
+      properties:
+        code:
+          type: string
+        column:
+          format: int64
+          type: integer
+        line:
+          format: int64
+          type: integer
+        message:
+          type: string
+        path:
+          type: string
+      required:
+        - code
+        - path
+        - line
+        - column
+        - message
+      type: object
+    LogEntry:
+      additionalProperties: true
+      properties:
+        attempt:
+          format: int64
+          type: integer
+        "n":
+          description: 1-based line number in the task run.
+          format: int64
+          type: integer
+        stream:
+          enum:
+            - stdout
+            - stderr
+            - system
+          type: string
+        task_key:
+          type: string
+        task_run_id:
+          type: string
+        text:
+          type: string
+        ts:
+          format: date-time
+          type: string
+      required:
+        - task_run_id
+        - task_key
+        - attempt
+        - "n"
+        - ts
+        - stream
+        - text
+      type: object
+    LogPage:
+      additionalProperties: true
+      properties:
+        done:
+          description: True when the execution ended and no more lines follow.
+          type: boolean
+        lines:
           items:
-            $ref: "#/components/schemas/User"
+            $ref: "#/components/schemas/LogEntry"
+          type: array
         next_cursor:
           type: string
-    CreateUserRequest:
+      required:
+        - lines
+        - done
       type: object
-      required: [email, role, password]
+    LoginRequest:
+      additionalProperties: true
       properties:
         email:
-          type: string
-          format: email
           maxLength: 320
-        name:
+          minLength: 3
           type: string
-          maxLength: 200
-        role:
-          $ref: "#/components/schemas/Role"
         password:
-          type: string
-          minLength: 10
           maxLength: 1024
-          description: Temporary password. The user must change it at first login.
-    UpdateUserRequest:
-      type: object
-      properties:
-        name:
+          minLength: 1
           type: string
-          maxLength: 200
-        role:
-          $ref: "#/components/schemas/Role"
-        disabled:
-          type: boolean
-    ResetPasswordRequest:
+      required:
+        - email
+        - password
       type: object
-      required: [password]
+    Me:
+      additionalProperties: true
       properties:
-        password:
+        auth_type:
+          enum:
+            - session
+            - token
           type: string
-          minLength: 10
-          maxLength: 1024
-    Token:
-      type: object
-      required: [id, user_id, user_email, name, prefix, role, created_at]
-      properties:
+        email:
+          type: string
         id:
           type: string
-          format: uuid
-        user_id:
+        must_change_password:
+          type: boolean
+        name:
           type: string
-          format: uuid
-        user_email:
+        role:
+          enum:
+            - viewer
+            - operator
+            - editor
+            - admin
+          type: string
+      required:
+        - id
+        - email
+        - name
+        - role
+        - must_change_password
+        - auth_type
+      type: object
+    MetricList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/MetricPoint"
+          type: array
+      required:
+        - items
+      type: object
+    MetricPoint:
+      additionalProperties: true
+      properties:
+        name:
+          type: string
+        tags:
+          additionalProperties:
+            type: string
+          type: object
+        task_key:
+          type: string
+        task_run_id:
+          type: string
+        ts:
+          format: date-time
+          type: string
+        unit:
+          type: string
+        value:
+          format: double
+          type: number
+      required:
+        - task_run_id
+        - task_key
+        - name
+        - value
+        - unit
+        - tags
+        - ts
+      type: object
+    Namespace:
+      additionalProperties: true
+      properties:
+        description:
+          type: string
+        git_source_id:
+          type:
+            - string
+            - "null"
+        head_git_sha:
+          type: string
+        head_version:
+          format: int64
+          type:
+            - integer
+            - "null"
+        implicit:
+          description: True for a parent that exists only because of its children.
+          type: boolean
+        name:
+          type: string
+        parent:
+          type: string
+        read_only:
+          type: boolean
+        source_type:
+          enum:
+            - managed
+            - git
+            - implicit
+          type: string
+      required:
+        - name
+        - source_type
+        - description
+        - implicit
+      type: object
+    NamespaceList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/Namespace"
+          type: array
+      required:
+        - items
+      type: object
+    ResetPasswordRequest:
+      additionalProperties: true
+      properties:
+        password:
+          maxLength: 1024
+          minLength: 10
+          type: string
+      required:
+        - password
+      type: object
+    RevertRequest:
+      additionalProperties: true
+      properties:
+        message:
+          maxLength: 500
+          type: string
+        version:
+          format: int64
+          minimum: 1
+          type: integer
+      required:
+        - version
+      type: object
+    Revision:
+      additionalProperties: true
+      properties:
+        created_at:
+          format: date-time
+          type: string
+        definition:
+          additionalProperties: {}
+          type:
+            - object
+            - "null"
+        errors:
+          items:
+            $ref: "#/components/schemas/Issue"
+          type: array
+        git_sha:
+          type: string
+        id:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        snapshot_version:
+          format: int64
+          type:
+            - integer
+            - "null"
+        source:
+          type: string
+        valid:
+          type: boolean
+      required:
+        - id
+        - created_at
+        - path
+        - source
+        - valid
+        - errors
+      type: object
+    RevisionList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/RevisionSummary"
+          type: array
+      required:
+        - items
+      type: object
+    RevisionSummary:
+      additionalProperties: true
+      properties:
+        created_at:
+          format: date-time
+          type: string
+        error_count:
+          format: int64
+          type: integer
+        git_sha:
+          type: string
+        id:
+          type: string
+        message:
+          type: string
+        snapshot_version:
+          format: int64
+          type:
+            - integer
+            - "null"
+        valid:
+          type: boolean
+      required:
+        - id
+        - created_at
+        - valid
+        - error_count
+      type: object
+    RunFileRequest:
+      additionalProperties: true
+      properties:
+        args:
+          items:
+            type: string
+          maxItems: 100
+          type: array
+        path:
+          maxLength: 512
+          type: string
+      required:
+        - path
+      type: object
+    RunnerComplete:
+      additionalProperties: true
+      properties:
+        error:
+          type: string
+        exit_code:
+          format: int64
+          type: integer
+        reason:
+          type: string
+      required:
+        - exit_code
+        - error
+      type: object
+    RunnerEvent:
+      additionalProperties: true
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+        tags:
+          additionalProperties:
+            type: string
+          type: object
+        ts:
+          format: date-time
+          type: string
+        type:
+          enum:
+            - output
+            - metric
+          type: string
+        unit:
+          type: string
+        value: {}
+      required:
+        - type
+      type: object
+    RunnerEventBatch:
+      additionalProperties: true
+      properties:
+        events:
+          items:
+            $ref: "#/components/schemas/RunnerEvent"
+          maxItems: 1000
+          type: array
+        seq:
+          format: int64
+          minimum: 1
+          type: integer
+      required:
+        - seq
+        - events
+      type: object
+    RunnerHeartbeatResponse:
+      additionalProperties: true
+      properties:
+        cancel:
+          type: boolean
+      required:
+        - cancel
+      type: object
+    RunnerLimits:
+      additionalProperties: true
+      properties:
+        max_artifact_bytes:
+          format: int64
+          type: integer
+        max_bundle_bytes:
+          format: int64
+          type: integer
+      required:
+        - max_artifact_bytes
+        - max_bundle_bytes
+      type: object
+    RunnerLogBatch:
+      additionalProperties: true
+      properties:
+        lines:
+          items:
+            $ref: "#/components/schemas/RunnerLogLine"
+          type: array
+        seq:
+          format: int64
+          minimum: 1
+          type: integer
+      required:
+        - seq
+        - lines
+      type: object
+    RunnerLogLine:
+      additionalProperties: true
+      properties:
+        stream:
+          enum:
+            - stdout
+            - stderr
+            - system
+          type: string
+        text:
+          type: string
+        ts:
+          format: date-time
+          type: string
+      required:
+        - ts
+        - stream
+        - text
+      type: object
+    RunnerSpec:
+      additionalProperties: true
+      properties:
+        attempt:
+          format: int64
+          type: integer
+        bundle_hash:
+          type: string
+        command:
+          items:
+            type: string
+          type: array
+        env:
+          additionalProperties:
+            type: string
+          type: object
+        execution_id:
+          type: string
+        flow_id:
+          type: string
+        limits:
+          $ref: "#/components/schemas/RunnerLimits"
+        mask_values:
+          items:
+            type: string
+          type: array
+        namespace:
+          type: string
+        runtime:
+          type: string
+        task_id:
+          type: string
+        task_run_id:
+          type: string
+        timeout_seconds:
+          format: int64
+          type: integer
+        workdir:
+          type: string
+      required:
+        - task_run_id
+        - execution_id
+        - namespace
+        - flow_id
+        - task_id
+        - attempt
+        - command
+        - workdir
+        - env
+        - timeout_seconds
+        - mask_values
+        - bundle_hash
+        - limits
+      type: object
+    SaveChangesRequest:
+      additionalProperties: true
+      properties:
+        base_version:
+          description: Fails with 409 version_conflict when the head version differs.
+          format: int64
+          type: integer
+        changes:
+          items:
+            $ref: "#/components/schemas/FileChange"
+          maxItems: 1000
+          minItems: 1
+          type: array
+        message:
+          maxLength: 500
+          minLength: 1
+          type: string
+      required:
+        - message
+        - changes
+      type: object
+    Snapshot:
+      additionalProperties: true
+      properties:
+        author:
+          type: string
+        created_at:
+          format: date-time
+          type: string
+        file_count:
+          format: int64
+          type: integer
+        git_sha:
+          type: string
+        id:
+          type: string
+        manifest_hash:
+          type: string
+        message:
+          type: string
+        version:
+          format: int64
+          type:
+            - integer
+            - "null"
+      required:
+        - id
+        - message
+        - author
+        - created_at
+        - manifest_hash
+        - file_count
+      type: object
+    SnapshotList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/Snapshot"
+          type: array
+      required:
+        - items
+      type: object
+    TaskRun:
+      additionalProperties: true
+      properties:
+        attempt:
+          format: int64
+          type: integer
+        child_execution_id:
+          type:
+            - string
+            - "null"
+        duration_ms:
+          format: int64
+          type:
+            - integer
+            - "null"
+        ended_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        error:
+          type: string
+        executor_type:
+          type: string
+        exit_code:
+          format: int64
+          type:
+            - integer
+            - "null"
+        id:
+          type: string
+        outputs:
+          additionalProperties: {}
+          type:
+            - object
+            - "null"
+        pool:
+          type: string
+        queued_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        reason:
+          type: string
+        reused_from_id:
+          type:
+            - string
+            - "null"
+        started_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        state:
+          enum:
+            - PENDING
+            - QUEUED
+            - RUNNING
+            - SUCCESS
+            - FAILED
+            - TIMED_OUT
+            - CANCELLED
+            - SKIPPED
+          type: string
+        task_key:
+          type: string
+        task_type:
+          type: string
+      required:
+        - id
+        - task_key
+        - task_type
+        - attempt
+        - state
+        - reason
+        - executor_type
+        - pool
+        - error
+      type: object
+    TextDiff:
+      additionalProperties: true
+      properties:
+        diff:
+          type: string
+      required:
+        - diff
+      type: object
+    Token:
+      additionalProperties: true
+      properties:
+        created_at:
+          format: date-time
+          type: string
+        expires_at:
+          format: date-time
+          type: string
+        id:
+          type: string
+        last_used_at:
+          format: date-time
           type: string
         name:
           type: string
         prefix:
           type: string
-        role:
-          $ref: "#/components/schemas/Role"
-        created_at:
-          type: string
-          format: date-time
-        expires_at:
-          type: string
-          format: date-time
-          nullable: true
-        last_used_at:
-          type: string
-          format: date-time
-          nullable: true
         revoked_at:
-          type: string
           format: date-time
-          nullable: true
-    TokenList:
+          type: string
+        role:
+          enum:
+            - viewer
+            - operator
+            - editor
+            - admin
+          type: string
+        user_email:
+          type: string
+        user_id:
+          type: string
+      required:
+        - id
+        - user_id
+        - user_email
+        - name
+        - prefix
+        - role
+        - created_at
       type: object
-      required: [items]
+    TokenList:
+      additionalProperties: true
       properties:
         items:
-          type: array
           items:
             $ref: "#/components/schemas/Token"
+          type: array
         next_cursor:
           type: string
-    CreateTokenRequest:
+      required:
+        - items
       type: object
-      required: [name, role]
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 100
-        role:
-          $ref: "#/components/schemas/Role"
-        expires_in_days:
-          type: integer
-          minimum: 1
-          maximum: 365
-    CreatedToken:
-      type: object
-      required: [token, secret]
-      properties:
-        token:
-          $ref: "#/components/schemas/Token"
-        secret:
-          type: string
-          description: The token value. It is shown only once.
-    AuditEvent:
-      type: object
-      required: [id, ts, actor_type, actor_id, actor_label, action, target_type, target_id, details, ip]
-      properties:
-        id:
-          type: string
-          format: uuid
-        ts:
-          type: string
-          format: date-time
-        actor_type:
-          type: string
-          enum: [user, token, system, ai]
-        actor_id:
-          type: string
-        actor_label:
-          type: string
-        action:
-          type: string
-        target_type:
-          type: string
-        target_id:
-          type: string
-        details:
-          type: object
-          additionalProperties: true
-        ip:
-          type: string
-    AuditList:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/AuditEvent"
-        next_cursor:
-          type: string
-
-    Namespace:
-      type: object
-      required: [name, source_type, description, implicit]
-      properties:
-        name:
-          type: string
-        source_type:
-          type: string
-          enum: [managed, git, implicit]
-        description:
-          type: string
-        implicit:
-          type: boolean
-          description: True for a parent that exists only because of its children.
-        parent:
-          type: string
-        head_version:
-          type: integer
-          nullable: true
-        head_git_sha:
-          type: string
-        git_source_id:
-          type: string
-          format: uuid
-          nullable: true
-        read_only:
-          type: boolean
-    NamespaceList:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/Namespace"
-    CreateNamespaceRequest:
-      type: object
-      required: [name]
-      properties:
-        name:
-          type: string
-          maxLength: 128
-        description:
-          type: string
-          maxLength: 2000
-    FileEntry:
-      type: object
-      required: [path, size, hash, executable]
-      properties:
-        path:
-          type: string
-        size:
-          type: integer
-          format: int64
-        hash:
-          type: string
-        executable:
-          type: boolean
-    FileList:
-      type: object
-      required: [items]
-      properties:
-        version:
-          type: integer
-          nullable: true
-        snapshot_id:
-          type: string
-          format: uuid
-          nullable: true
-        git_sha:
-          type: string
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/FileEntry"
-    FileChange:
-      type: object
-      required: [op, path]
-      properties:
-        op:
-          type: string
-          enum: [put, delete, rename]
-        path:
-          type: string
-          maxLength: 512
-        new_path:
-          type: string
-          maxLength: 512
-          description: rename only.
-        content:
-          type: string
-          description: put only. UTF-8 text content.
-        content_base64:
-          type: string
-          description: put only. Binary content as base64. Used instead of content.
-        executable:
-          type: boolean
-    SaveChangesRequest:
-      type: object
-      required: [message, changes]
-      properties:
-        message:
-          type: string
-          minLength: 1
-          maxLength: 500
-        base_version:
-          type: integer
-          description: Fails with 409 version_conflict when the head version differs.
-        changes:
-          type: array
-          minItems: 1
-          maxItems: 1000
-          items:
-            $ref: "#/components/schemas/FileChange"
-    Snapshot:
-      type: object
-      required: [id, message, author, created_at, manifest_hash, file_count]
-      properties:
-        id:
-          type: string
-          format: uuid
-        version:
-          type: integer
-          nullable: true
-        git_sha:
-          type: string
-        message:
-          type: string
-        author:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        manifest_hash:
-          type: string
-        file_count:
-          type: integer
-    SnapshotList:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/Snapshot"
-    FileDiff:
-      type: object
-      required: [path, status, binary, diff]
-      properties:
-        path:
-          type: string
-        status:
-          type: string
-          enum: [added, removed, modified]
-        binary:
-          type: boolean
-        diff:
-          type: string
-          description: Unified diff for text files.
-    VersionDiff:
-      type: object
-      required: [from, to, files]
-      properties:
-        from:
-          type: integer
-        to:
-          type: integer
-        files:
-          type: array
-          items:
-            $ref: "#/components/schemas/FileDiff"
-    RevertRequest:
-      type: object
-      required: [version]
-      properties:
-        version:
-          type: integer
-          minimum: 1
-        message:
-          type: string
-          maxLength: 500
-    Issue:
-      type: object
-      required: [code, path, line, column, message]
-      properties:
-        code:
-          type: string
-        path:
-          type: string
-        line:
-          type: integer
-        column:
-          type: integer
-        message:
-          type: string
-    ValidateFileRequest:
-      type: object
-      required: [path, content]
-      properties:
-        path:
-          type: string
-          maxLength: 512
-        content:
-          type: string
-    ValidateFileResult:
-      type: object
-      required: [valid, kind, errors]
-      properties:
-        valid:
-          type: boolean
-        kind:
-          type: string
-          enum: [flow, namespace, other]
-        flow_id:
-          type: string
-        errors:
-          type: array
-          items:
-            $ref: "#/components/schemas/Issue"
-    ExecutionRef:
-      type: object
-      required: [id, state, created_at]
-      properties:
-        id:
-          type: string
-          format: uuid
-        state:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-    FlowSummary:
-      type: object
-      required: [id, namespace, flow_id, path, valid, disabled, description, error_count]
-      properties:
-        id:
-          type: string
-          format: uuid
-        namespace:
-          type: string
-        flow_id:
-          type: string
-        path:
-          type: string
-        valid:
-          type: boolean
-        disabled:
-          type: boolean
-        description:
-          type: string
-        error_count:
-          type: integer
-        labels:
-          type: object
-          additionalProperties:
-            type: string
-        last_execution:
-          $ref: "#/components/schemas/ExecutionRef"
-    FlowList:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/FlowSummary"
-        next_cursor:
-          type: string
     TriggerInfo:
-      type: object
-      required: [key, type, active, config, has_webhook_key]
+      additionalProperties: true
       properties:
-        key:
-          type: string
-        type:
-          type: string
-          enum: [schedule, webhook, flow]
         active:
           type: boolean
         config:
+          additionalProperties: {}
           type: object
-          additionalProperties: true
-        next_fire_at:
-          type: string
-          format: date-time
-          nullable: true
-        last_fired_at:
-          type: string
-          format: date-time
-          nullable: true
         has_webhook_key:
           type: boolean
-    Revision:
-      type: object
-      required: [id, created_at, path, source, valid, errors]
-      properties:
-        id:
+        key:
           type: string
-          format: uuid
-        created_at:
-          type: string
+        last_fired_at:
           format: date-time
-        snapshot_version:
-          type: integer
-          nullable: true
-        git_sha:
+          type:
+            - string
+            - "null"
+        next_fire_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        type:
+          enum:
+            - schedule
+            - webhook
+            - flow
           type: string
-        message:
-          type: string
-        path:
-          type: string
-        source:
-          type: string
-        valid:
-          type: boolean
-        definition:
+      required:
+        - key
+        - type
+        - active
+        - config
+        - has_webhook_key
+      type: object
+    TriggerRequest:
+      additionalProperties: true
+      properties:
+        inputs:
+          additionalProperties: {}
           type: object
-          nullable: true
-          additionalProperties: true
-        errors:
-          type: array
-          items:
-            $ref: "#/components/schemas/Issue"
-    RevisionSummary:
+        labels:
+          additionalProperties:
+            maxLength: 256
+            type: string
+          maxProperties: 20
+          type: object
       type: object
-      required: [id, created_at, valid, error_count]
-      properties:
-        id:
-          type: string
-          format: uuid
-        created_at:
-          type: string
-          format: date-time
-        snapshot_version:
-          type: integer
-          nullable: true
-        git_sha:
-          type: string
-        message:
-          type: string
-        valid:
-          type: boolean
-        error_count:
-          type: integer
-    RevisionList:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/RevisionSummary"
-    FlowDetail:
-      allOf:
-        - $ref: "#/components/schemas/FlowSummary"
-        - type: object
-          required: [triggers]
-          properties:
-            revision:
-              $ref: "#/components/schemas/Revision"
-            triggers:
-              type: array
-              items:
-                $ref: "#/components/schemas/TriggerInfo"
     UpdateFlowRequest:
-      type: object
-      required: [disabled]
+      additionalProperties: true
       properties:
         disabled:
           type: boolean
-    TextDiff:
+      required:
+        - disabled
       type: object
-      required: [diff]
+    UpdateMeRequest:
+      additionalProperties: true
       properties:
-        diff:
+        name:
+          maxLength: 200
           type: string
-
-    TriggerRequest:
+      required:
+        - name
       type: object
+    UpdateUserRequest:
+      additionalProperties: true
       properties:
-        inputs:
-          type: object
-          additionalProperties: true
-        labels:
-          type: object
-          maxProperties: 20
-          additionalProperties:
-            type: string
-            maxLength: 256
-    RunFileRequest:
+        disabled:
+          type: boolean
+        name:
+          maxLength: 200
+          type: string
+        role:
+          enum:
+            - viewer
+            - operator
+            - editor
+            - admin
+          type: string
       type: object
-      required: [path]
+    User:
+      additionalProperties: true
       properties:
+        created_at:
+          format: date-time
+          type: string
+        disabled:
+          type: boolean
+        email:
+          type: string
+        id:
+          type: string
+        last_login_at:
+          format: date-time
+          type: string
+        must_change_password:
+          type: boolean
+        name:
+          type: string
+        role:
+          enum:
+            - viewer
+            - operator
+            - editor
+            - admin
+          type: string
+      required:
+        - id
+        - email
+        - name
+        - role
+        - must_change_password
+        - disabled
+        - created_at
+      type: object
+    UserList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/User"
+          type: array
+        next_cursor:
+          type: string
+      required:
+        - items
+      type: object
+    ValidateFileRequest:
+      additionalProperties: true
+      properties:
+        content:
+          type: string
         path:
-          type: string
           maxLength: 512
-        args:
-          type: array
-          maxItems: 100
-          items:
-            type: string
-    ExecutionState:
-      type: string
-      enum: [QUEUED, RUNNING, CANCELLING, SUCCESS, FAILED, TIMED_OUT, CANCELLED, SKIPPED]
-    TaskRunState:
-      type: string
-      enum: [PENDING, QUEUED, RUNNING, SUCCESS, FAILED, TIMED_OUT, CANCELLED, SKIPPED]
-    ExecutionSummary:
+          type: string
+      required:
+        - path
+        - content
       type: object
-      required: [id, namespace, state, trigger_type, labels, created_at, error, reason, created_by]
+    ValidateFileResult:
+      additionalProperties: true
       properties:
-        id:
-          type: string
-          format: uuid
-        namespace:
-          type: string
+        errors:
+          items:
+            $ref: "#/components/schemas/Issue"
+          type: array
         flow_id:
           type: string
-          nullable: true
-          description: Flow ID. Null for file runs.
-        state:
-          $ref: "#/components/schemas/ExecutionState"
-        trigger_type:
+        kind:
+          enum:
+            - flow
+            - namespace
+            - other
           type: string
-        labels:
-          type: object
-          additionalProperties:
-            type: string
-        created_at:
-          type: string
-          format: date-time
-        started_at:
-          type: string
-          format: date-time
-          nullable: true
-        ended_at:
-          type: string
-          format: date-time
-          nullable: true
-        duration_ms:
-          type: integer
-          format: int64
-          nullable: true
-        error:
-          type: string
-        reason:
-          type: string
-        created_by:
-          type: string
-    ExecutionList:
+        valid:
+          type: boolean
+      required:
+        - valid
+        - kind
+        - errors
       type: object
-      required: [items]
+    VersionDiff:
+      additionalProperties: true
       properties:
-        items:
-          type: array
+        files:
           items:
-            $ref: "#/components/schemas/ExecutionSummary"
-        next_cursor:
-          type: string
-    TaskRun:
-      type: object
-      required: [id, task_key, task_type, attempt, state, reason, executor_type, pool, error]
-      properties:
-        id:
-          type: string
-          format: uuid
-        task_key:
-          type: string
-        task_type:
-          type: string
-        attempt:
-          type: integer
-        state:
-          $ref: "#/components/schemas/TaskRunState"
-        reason:
-          type: string
-        executor_type:
-          type: string
-        pool:
-          type: string
-        queued_at:
-          type: string
-          format: date-time
-          nullable: true
-        started_at:
-          type: string
-          format: date-time
-          nullable: true
-        ended_at:
-          type: string
-          format: date-time
-          nullable: true
-        duration_ms:
-          type: integer
+            $ref: "#/components/schemas/FileDiff"
+          type: array
+        from:
           format: int64
-          nullable: true
-        exit_code:
           type: integer
-          nullable: true
-        error:
-          type: string
-        outputs:
-          type: object
-          nullable: true
-          additionalProperties: true
-        reused_from_id:
-          type: string
-          format: uuid
-          nullable: true
-        child_execution_id:
-          type: string
-          format: uuid
-          nullable: true
-    ExecutionDetail:
-      allOf:
-        - $ref: "#/components/schemas/ExecutionSummary"
-        - type: object
-          required: [inputs, trigger_payload, snapshot_id, chain_depth, secret_keys_used, task_runs, children]
-          properties:
-            inputs:
-              type: object
-              additionalProperties: true
-            outputs:
-              type: object
-              nullable: true
-              additionalProperties: true
-            trigger_payload:
-              type: object
-              additionalProperties: true
-            snapshot_id:
+        to:
+          format: int64
+          type: integer
+      required:
+        - from
+        - to
+        - files
+      type: object
+info:
+  title: Sluice API
+  version: "1"
+openapi: 3.1.0
+paths:
+  /api/runner/v1/task-runs/{taskRunId}/artifacts/{name}:
+    put:
+      operationId: runnerPutArtifact
+      parameters:
+        - in: path
+          name: taskRunId
+          required: true
+          schema:
+            format: uuid
+            type: string
+        - in: path
+          name: name
+          required: true
+          schema:
+            maxLength: 200
+            type: string
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              contentMediaType: application/octet-stream
+              format: binary
               type: string
-              format: uuid
-            snapshot_version:
-              type: integer
-              nullable: true
-            git_sha:
-              type: string
-            flow_revision_id:
-              type: string
-              format: uuid
-              nullable: true
-            parent_execution_id:
-              type: string
-              format: uuid
-              nullable: true
-            restart_of_id:
-              type: string
-              format: uuid
-              nullable: true
-            chain_depth:
-              type: integer
-            secret_keys_used:
-              type: array
-              items:
+        required: true
+      responses:
+        "204":
+          description: Stored.
+  /api/runner/v1/task-runs/{taskRunId}/bundle:
+    get:
+      operationId: runnerGetBundle
+      parameters:
+        - in: path
+          name: taskRunId
+          required: true
+          schema:
+            format: uuid
+            type: string
+      responses:
+        "200":
+          content:
+            application/gzip: {}
+          description: Bundle.
+  /api/runner/v1/task-runs/{taskRunId}/complete:
+    post:
+      operationId: runnerComplete
+      parameters:
+        - in: path
+          name: taskRunId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunnerComplete"
+        required: true
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/runner/v1/task-runs/{taskRunId}/events:
+    post:
+      operationId: runnerPostEvents
+      parameters:
+        - in: path
+          name: taskRunId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunnerEventBatch"
+        required: true
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/runner/v1/task-runs/{taskRunId}/heartbeat:
+    post:
+      operationId: runnerHeartbeat
+      parameters:
+        - in: path
+          name: taskRunId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunnerHeartbeatResponse"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/runner/v1/task-runs/{taskRunId}/logs:
+    post:
+      operationId: runnerPostLogs
+      parameters:
+        - in: path
+          name: taskRunId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunnerLogBatch"
+        required: true
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/runner/v1/task-runs/{taskRunId}/spec:
+    get:
+      operationId: runnerGetSpec
+      parameters:
+        - in: path
+          name: taskRunId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunnerSpec"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/audit:
+    get:
+      operationId: listAuditEvents
+      parameters:
+        - explode: false
+          in: query
+          name: actor
+          schema:
+            type: string
+        - explode: false
+          in: query
+          name: action
+          schema:
+            type: string
+        - explode: false
+          in: query
+          name: target
+          schema:
+            type: string
+        - explode: false
+          in: query
+          name: from
+          schema:
+            format: date-time
+            type: string
+        - explode: false
+          in: query
+          name: to
+          schema:
+            format: date-time
+            type: string
+        - explode: false
+          in: query
+          name: cursor
+          schema:
+            type: string
+        - explode: false
+          in: query
+          name: limit
+          schema:
+            default: 50
+            format: int64
+            maximum: 200
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/auth/login:
+    post:
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+          description: OK
+          headers:
+            Set-Cookie:
+              schema:
                 type: string
-            task_runs:
-              type: array
-              items:
-                $ref: "#/components/schemas/TaskRun"
-            children:
-              type: array
-              items:
-                $ref: "#/components/schemas/ExecutionRef"
-    LogEntry:
-      type: object
-      required: [task_run_id, task_key, attempt, n, ts, stream, text]
-      properties:
-        task_run_id:
-          type: string
-          format: uuid
-        task_key:
-          type: string
-        attempt:
-          type: integer
-        n:
-          type: integer
-          format: int64
-          description: 1-based line number in the task run.
-        ts:
-          type: string
-          format: date-time
-        stream:
-          type: string
-          enum: [stdout, stderr, system]
-        text:
-          type: string
-    LogPage:
-      type: object
-      required: [lines, done]
-      properties:
-        lines:
-          type: array
-          items:
-            $ref: "#/components/schemas/LogEntry"
-        next_cursor:
-          type: string
-        done:
-          type: boolean
-          description: True when the execution ended and no more lines follow.
-    MetricPoint:
-      type: object
-      required: [task_run_id, task_key, name, value, unit, tags, ts]
-      properties:
-        task_run_id:
-          type: string
-          format: uuid
-        task_key:
-          type: string
-        name:
-          type: string
-        value:
-          type: number
-          format: double
-        unit:
-          type: string
-        tags:
-          type: object
-          additionalProperties:
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/auth/logout:
+    post:
+      operationId: logout
+      responses:
+        "204":
+          description: No Content
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/auth/me:
+    get:
+      operationId: getMe
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    patch:
+      operationId: updateMe
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMeRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/auth/password:
+    post:
+      operationId: changePassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+        required: true
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/auth/sessions/revoke-others:
+    post:
+      operationId: revokeOtherSessions
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CountResult"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/executions:
+    get:
+      operationId: listExecutions
+      parameters:
+        - description: Comma-separated execution states.
+          explode: false
+          in: query
+          name: state
+          schema:
+            description: Comma-separated execution states.
             type: string
-        ts:
-          type: string
-          format: date-time
-    MetricList:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/MetricPoint"
-    Artifact:
-      type: object
-      required: [id, task_run_id, task_key, name, size, content_type, created_at]
-      properties:
-        id:
-          type: string
-          format: uuid
-        task_run_id:
-          type: string
-          format: uuid
-        task_key:
-          type: string
-        name:
-          type: string
-        size:
-          type: integer
-          format: int64
-        content_type:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-    ArtifactList:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/Artifact"
-
-    RunnerLimits:
-      type: object
-      required: [max_artifact_bytes, max_bundle_bytes]
-      properties:
-        max_artifact_bytes:
-          type: integer
-          format: int64
-        max_bundle_bytes:
-          type: integer
-          format: int64
-    RunnerSpec:
-      type: object
-      required: [task_run_id, execution_id, namespace, flow_id, task_id, attempt, command, workdir, env, timeout_seconds, mask_values, bundle_hash, limits]
-      properties:
-        task_run_id:
-          type: string
-        execution_id:
-          type: string
-        namespace:
-          type: string
-        flow_id:
-          type: string
-        task_id:
-          type: string
-        attempt:
-          type: integer
-        command:
-          type: array
-          items:
+        - description: Namespace and its children.
+          explode: false
+          in: query
+          name: namespace
+          schema:
+            description: Namespace and its children.
             type: string
-        workdir:
-          type: string
-        env:
-          type: object
-          additionalProperties:
+        - description: Flow as <namespace>/<flow_id>.
+          explode: false
+          in: query
+          name: flow
+          schema:
+            description: Flow as <namespace>/<flow_id>.
             type: string
-        runtime:
-          type: string
-        timeout_seconds:
-          type: integer
-        mask_values:
-          type: array
-          items:
+        - explode: false
+          in: query
+          name: trigger_type
+          schema:
+            enum:
+              - manual
+              - schedule
+              - webhook
+              - flow
+              - file
+              - subflow
+              - rerun
+              - restart
             type: string
-        bundle_hash:
-          type: string
-        limits:
-          $ref: "#/components/schemas/RunnerLimits"
-    RunnerLogLine:
-      type: object
-      required: [ts, stream, text]
-      properties:
-        ts:
-          type: string
-          format: date-time
-        stream:
-          type: string
-          enum: [stdout, stderr, system]
-        text:
-          type: string
-    RunnerLogBatch:
-      type: object
-      required: [seq, lines]
-      properties:
-        seq:
-          type: integer
-          minimum: 1
-        lines:
-          type: array
-          items:
-            $ref: "#/components/schemas/RunnerLogLine"
-    RunnerEvent:
-      type: object
-      required: [type]
-      properties:
-        type:
-          type: string
-          enum: [output, metric]
-        key:
-          type: string
-        value: {}
-        name:
-          type: string
-        unit:
-          type: string
-        tags:
-          type: object
-          additionalProperties:
+        - description: Label filter key=value. Repeat for several labels.
+          explode: true
+          in: query
+          name: label
+          schema:
+            description: Label filter key=value. Repeat for several labels.
+            items:
+              type: string
+            type: array
+        - explode: false
+          in: query
+          name: from
+          schema:
+            format: date-time
             type: string
-        ts:
-          type: string
-          format: date-time
-    RunnerEventBatch:
-      type: object
-      required: [seq, events]
-      properties:
-        seq:
-          type: integer
-          minimum: 1
-        events:
-          type: array
-          maxItems: 1000
-          items:
-            $ref: "#/components/schemas/RunnerEvent"
-    RunnerHeartbeatResponse:
-      type: object
-      required: [cancel]
-      properties:
-        cancel:
-          type: boolean
-    RunnerComplete:
-      type: object
-      required: [exit_code, error]
-      properties:
-        exit_code:
-          type: integer
-        error:
-          type: string
-        reason:
-          type: string
-security:
-  - session: []
-  - token: []
+        - explode: false
+          in: query
+          name: to
+          schema:
+            format: date-time
+            type: string
+        - explode: false
+          in: query
+          name: sort
+          schema:
+            default: created
+            enum:
+              - created
+              - duration
+            type: string
+        - description: Opaque cursor from next_cursor of the previous page.
+          explode: false
+          in: query
+          name: cursor
+          schema:
+            description: Opaque cursor from next_cursor of the previous page.
+            type: string
+        - explode: false
+          in: query
+          name: limit
+          schema:
+            default: 50
+            format: int64
+            maximum: 200
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/executions/{executionId}:
+    get:
+      operationId: getExecution
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionDetail"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/executions/{executionId}/artifacts:
+    get:
+      operationId: listExecutionArtifacts
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtifactList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/executions/{executionId}/artifacts/{artifactId}:
+    get:
+      operationId: downloadArtifact
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            format: uuid
+            type: string
+        - in: path
+          name: artifactId
+          required: true
+          schema:
+            format: uuid
+            type: string
+      responses:
+        "200":
+          content:
+            application/octet-stream: {}
+          description: Artifact content.
+  /api/v1/executions/{executionId}/cancel:
+    post:
+      operationId: cancelExecution
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionDetail"
+          description: Accepted
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/executions/{executionId}/events:
+    get:
+      operationId: streamExecutionEvents
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            format: uuid
+            type: string
+        - in: header
+          name: Last-Event-ID
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            text/event-stream: {}
+          description: Event stream.
+  /api/v1/executions/{executionId}/logs:
+    get:
+      operationId: getExecutionLogs
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            type: string
+        - description: Task ID filter.
+          explode: false
+          in: query
+          name: task
+          schema:
+            description: Task ID filter.
+            type: string
+        - description: Case-insensitive text filter.
+          explode: false
+          in: query
+          name: search
+          schema:
+            description: Case-insensitive text filter.
+            type: string
+        - description: Opaque cursor from next_cursor of the previous page.
+          explode: false
+          in: query
+          name: cursor
+          schema:
+            description: Opaque cursor from next_cursor of the previous page.
+            type: string
+        - explode: false
+          in: query
+          name: limit
+          schema:
+            default: 1000
+            format: int64
+            maximum: 5000
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogPage"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/executions/{executionId}/logs/download:
+    get:
+      operationId: downloadExecutionLogs
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            format: uuid
+            type: string
+        - in: query
+          name: task
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            text/plain: {}
+          description: Log file.
+  /api/v1/executions/{executionId}/logs/stream:
+    get:
+      operationId: streamExecutionLogs
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            format: uuid
+            type: string
+        - in: query
+          name: task
+          schema:
+            type: string
+        - in: header
+          name: Last-Event-ID
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            text/event-stream: {}
+          description: Event stream.
+  /api/v1/executions/{executionId}/metrics:
+    get:
+      operationId: listExecutionMetrics
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/executions/{executionId}/rerun:
+    post:
+      operationId: rerunExecution
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionDetail"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/executions/{executionId}/restart:
+    post:
+      operationId: restartExecution
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionDetail"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/flows:
+    get:
+      operationId: listFlows
+      parameters:
+        - description: Namespace and its children.
+          explode: false
+          in: query
+          name: namespace
+          schema:
+            description: Namespace and its children.
+            type: string
+        - description: Opaque cursor from next_cursor of the previous page.
+          explode: false
+          in: query
+          name: cursor
+          schema:
+            description: Opaque cursor from next_cursor of the previous page.
+            type: string
+        - explode: false
+          in: query
+          name: limit
+          schema:
+            default: 50
+            format: int64
+            maximum: 200
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlowList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/flows/{namespace}/{flowId}:
+    get:
+      operationId: getFlow
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: flowId
+          required: true
+          schema:
+            maxLength: 63
+            pattern: ^[a-z0-9][a-z0-9-]*$
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlowDetail"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    patch:
+      operationId: updateFlow
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: flowId
+          required: true
+          schema:
+            maxLength: 63
+            pattern: ^[a-z0-9][a-z0-9-]*$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFlowRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlowDetail"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/flows/{namespace}/{flowId}/diff:
+    get:
+      operationId: diffFlowRevisions
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: flowId
+          required: true
+          schema:
+            maxLength: 63
+            pattern: ^[a-z0-9][a-z0-9-]*$
+            type: string
+        - explode: false
+          in: query
+          name: from
+          required: true
+          schema:
+            type: string
+        - explode: false
+          in: query
+          name: to
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TextDiff"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/flows/{namespace}/{flowId}/executions:
+    post:
+      operationId: triggerFlow
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: flowId
+          required: true
+          schema:
+            maxLength: 63
+            pattern: ^[a-z0-9][a-z0-9-]*$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TriggerRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionDetail"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/flows/{namespace}/{flowId}/revisions:
+    get:
+      operationId: listFlowRevisions
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: flowId
+          required: true
+          schema:
+            maxLength: 63
+            pattern: ^[a-z0-9][a-z0-9-]*$
+            type: string
+        - explode: false
+          in: query
+          name: limit
+          schema:
+            default: 50
+            format: int64
+            maximum: 200
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevisionList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/flows/{namespace}/{flowId}/revisions/{revisionId}:
+    get:
+      operationId: getFlowRevision
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: flowId
+          required: true
+          schema:
+            maxLength: 63
+            pattern: ^[a-z0-9][a-z0-9-]*$
+            type: string
+        - in: path
+          name: revisionId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Revision"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/instances:
+    get:
+      operationId: listInstances
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces:
+    get:
+      operationId: listNamespaces
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NamespaceList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    post:
+      operationId: createNamespace
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNamespaceRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Namespace"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}:
+    delete:
+      operationId: deleteNamespace
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    get:
+      operationId: getNamespace
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Namespace"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/changes:
+    post:
+      operationId: saveChanges
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveChangesRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Snapshot"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/diff:
+    get:
+      operationId: diffVersions
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - explode: false
+          in: query
+          name: from
+          required: true
+          schema:
+            format: int64
+            minimum: 1
+            type: integer
+        - explode: false
+          in: query
+          name: to
+          required: true
+          schema:
+            format: int64
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionDiff"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/file:
+    get:
+      operationId: getFile
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - description: File path relative to the namespace root.
+          in: query
+          name: path
+          required: true
+          schema:
+            maxLength: 512
+            minLength: 1
+            type: string
+        - description: Version number. Default is the head version.
+          in: query
+          name: version
+          schema:
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/octet-stream: {}
+          description: File content.
+    put:
+      operationId: uploadFile
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - description: File path relative to the namespace root.
+          in: query
+          name: path
+          required: true
+          schema:
+            maxLength: 512
+            minLength: 1
+            type: string
+        - in: query
+          name: message
+          schema:
+            maxLength: 500
+            type: string
+        - in: query
+          name: executable
+          schema:
+            type: boolean
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              contentMediaType: application/octet-stream
+              format: binary
+              type: string
+        required: true
+      responses:
+        "201":
+          content:
+            application/json: {}
+          description: New version.
+  /api/v1/namespaces/{namespace}/files:
+    get:
+      operationId: listFiles
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - description: Version number. Default is the head version.
+          explode: false
+          in: query
+          name: version
+          schema:
+            description: Version number. Default is the head version.
+            format: int64
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/revert:
+    post:
+      operationId: revertVersion
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevertRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Snapshot"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/run:
+    post:
+      operationId: runFile
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunFileRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionDetail"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/validate:
+    post:
+      operationId: validateFile
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateFileRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidateFileResult"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/versions:
+    get:
+      operationId: listVersions
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - explode: false
+          in: query
+          name: limit
+          schema:
+            default: 50
+            format: int64
+            maximum: 200
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SnapshotList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/schemas/flow.json:
+    get:
+      operationId: getFlowSchema
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/tokens:
+    get:
+      operationId: listTokens
+      parameters:
+        - explode: false
+          in: query
+          name: cursor
+          schema:
+            type: string
+        - explode: false
+          in: query
+          name: limit
+          schema:
+            default: 50
+            format: int64
+            maximum: 200
+            minimum: 1
+            type: integer
+        - description: All users. Needs admin.
+          explode: false
+          in: query
+          name: all
+          schema:
+            description: All users. Needs admin.
+            type: boolean
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    post:
+      operationId: createToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTokenRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatedToken"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/tokens/{tokenId}:
+    delete:
+      operationId: revokeToken
+      parameters:
+        - in: path
+          name: tokenId
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/users:
+    get:
+      operationId: listUsers
+      parameters:
+        - explode: false
+          in: query
+          name: cursor
+          schema:
+            type: string
+        - explode: false
+          in: query
+          name: limit
+          schema:
+            default: 50
+            format: int64
+            maximum: 200
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    post:
+      operationId: createUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/users/{userId}:
+    patch:
+      operationId: updateUser
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/users/{userId}/reset-password:
+    post:
+      operationId: resetUserPassword
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+        required: true
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error

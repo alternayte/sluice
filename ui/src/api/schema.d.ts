@@ -4,15 +4,126 @@
  */
 
 export interface paths {
-  "/api/v1/instances": {
+  "/api/runner/v1/task-runs/{taskRunId}/artifacts/{name}": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List server instances with pools and executors. */
-    get: operations["listInstances"];
+    get?: never;
+    put: operations["runnerPutArtifact"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/runner/v1/task-runs/{taskRunId}/bundle": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["runnerGetBundle"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/runner/v1/task-runs/{taskRunId}/complete": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["runnerComplete"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/runner/v1/task-runs/{taskRunId}/events": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["runnerPostEvents"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/runner/v1/task-runs/{taskRunId}/heartbeat": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["runnerHeartbeat"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/runner/v1/task-runs/{taskRunId}/logs": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["runnerPostLogs"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/runner/v1/task-runs/{taskRunId}/spec": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["runnerGetSpec"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/audit": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["listAuditEvents"];
     put?: never;
     post?: never;
     delete?: never;
@@ -30,7 +141,6 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Sign in with email and password. Sets the sluice_session cookie. */
     post: operations["login"];
     delete?: never;
     options?: never;
@@ -47,7 +157,6 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Sign out and delete the current session. */
     post: operations["logout"];
     delete?: never;
     options?: never;
@@ -62,14 +171,12 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Return the current user. */
     get: operations["getMe"];
     put?: never;
     post?: never;
     delete?: never;
     options?: never;
     head?: never;
-    /** Update the own profile. */
     patch: operations["updateMe"];
     trace?: never;
   };
@@ -82,7 +189,6 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Change the own password. Other sessions are signed out. */
     post: operations["changePassword"];
     delete?: never;
     options?: never;
@@ -99,7 +205,6 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Sign out all other sessions of the current user. */
     post: operations["revokeOtherSessions"];
     delete?: never;
     options?: never;
@@ -107,108 +212,302 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/v1/users": {
+  "/api/v1/executions": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List users. */
-    get: operations["listUsers"];
-    put?: never;
-    /** Create a user with a temporary password. */
-    post: operations["createUser"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/users/{userId}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        userId: components["parameters"]["UserId"];
-      };
-      cookie?: never;
-    };
-    get?: never;
+    get: operations["listExecutions"];
     put?: never;
     post?: never;
     delete?: never;
     options?: never;
     head?: never;
-    /** Change the name or role of a user, or disable or enable the user. */
-    patch: operations["updateUser"];
-    trace?: never;
-  };
-  "/api/v1/users/{userId}/reset-password": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        userId: components["parameters"]["UserId"];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Set a temporary password. The user must change it at next login. */
-    post: operations["resetUserPassword"];
-    delete?: never;
-    options?: never;
-    head?: never;
     patch?: never;
     trace?: never;
   };
-  "/api/v1/tokens": {
+  "/api/v1/executions/{executionId}": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List own API tokens. Admins can list all tokens with all=true. */
-    get: operations["listTokens"];
-    put?: never;
-    /** Create an API token. The secret is shown once. */
-    post: operations["createToken"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/tokens/{tokenId}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        tokenId: string;
-      };
-      cookie?: never;
-    };
-    get?: never;
+    get: operations["getExecution"];
     put?: never;
     post?: never;
-    /** Revoke an API token. Owners and admins can revoke. */
-    delete: operations["revokeToken"];
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  "/api/v1/audit": {
+  "/api/v1/executions/{executionId}/artifacts": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List audit events, newest first. */
-    get: operations["listAuditEvents"];
+    get: operations["listExecutionArtifacts"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/artifacts/{artifactId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["downloadArtifact"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["cancelExecution"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/events": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["streamExecutionEvents"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/logs": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["getExecutionLogs"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/logs/download": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["downloadExecutionLogs"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/logs/stream": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["streamExecutionLogs"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/metrics": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["listExecutionMetrics"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/rerun": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["rerunExecution"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/executions/{executionId}/restart": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["restartExecution"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/flows": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["listFlows"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/flows/{namespace}/{flowId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["getFlow"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch: operations["updateFlow"];
+    trace?: never;
+  };
+  "/api/v1/flows/{namespace}/{flowId}/diff": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["diffFlowRevisions"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/flows/{namespace}/{flowId}/executions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["triggerFlow"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/flows/{namespace}/{flowId}/revisions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["listFlowRevisions"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/flows/{namespace}/{flowId}/revisions/{revisionId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["getFlowRevision"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/instances": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["listInstances"];
     put?: never;
     post?: never;
     delete?: never;
@@ -224,10 +523,8 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List namespaces with implicit parents. */
     get: operations["listNamespaces"];
     put?: never;
-    /** Create a managed namespace. */
     post: operations["createNamespace"];
     delete?: never;
     options?: never;
@@ -239,59 +536,13 @@ export interface paths {
     parameters: {
       query?: never;
       header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
+      path?: never;
       cookie?: never;
     };
-    /** Get a namespace. */
     get: operations["getNamespace"];
     put?: never;
     post?: never;
-    /** Delete a managed namespace. Fails with 409 while executions run. */
     delete: operations["deleteNamespace"];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/namespaces/{namespace}/files": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    /** List the files of the head snapshot or of a version. */
-    get: operations["listFiles"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/namespaces/{namespace}/file": {
-    parameters: {
-      query: {
-        /** @description File path relative to the namespace root. */
-        path: components["parameters"]["FilePathQuery"];
-      };
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    /** Download one file of the head snapshot or of a version. */
-    get: operations["getFile"];
-    /** Upload one file. This creates a new version. */
-    put: operations["uploadFile"];
-    post?: never;
-    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -301,34 +552,12 @@ export interface paths {
     parameters: {
       query?: never;
       header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
+      path?: never;
       cookie?: never;
     };
     get?: never;
     put?: never;
-    /** Create, update, rename and delete files in one new version. */
     post: operations["saveChanges"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/namespaces/{namespace}/versions": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    /** List versions (snapshots), newest first. */
-    get: operations["listVersions"];
-    put?: never;
-    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -339,13 +568,42 @@ export interface paths {
     parameters: {
       query?: never;
       header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
+      path?: never;
       cookie?: never;
     };
-    /** Diff two versions. */
     get: operations["diffVersions"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/namespaces/{namespace}/file": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["getFile"];
+    put: operations["uploadFile"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/namespaces/{namespace}/files": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["listFiles"];
     put?: never;
     post?: never;
     delete?: never;
@@ -358,153 +616,12 @@ export interface paths {
     parameters: {
       query?: never;
       header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Create a new version with the content of an old version. */
-    post: operations["revertVersion"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/namespaces/{namespace}/validate": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Validate proposed file content against the head snapshot. Nothing is saved. */
-    post: operations["validateFile"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/flows": {
-    parameters: {
-      query?: never;
-      header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List flows. */
-    get: operations["listFlows"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/flows/{namespace}/{flowId}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-        flowId: components["parameters"]["FlowIdPath"];
-      };
-      cookie?: never;
-    };
-    /** Get a flow with its current revision and triggers. */
-    get: operations["getFlow"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** Enable or disable a flow. */
-    patch: operations["updateFlow"];
-    trace?: never;
-  };
-  "/api/v1/flows/{namespace}/{flowId}/revisions": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-        flowId: components["parameters"]["FlowIdPath"];
-      };
-      cookie?: never;
-    };
-    /** List revisions of a flow, newest first. */
-    get: operations["listFlowRevisions"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/flows/{namespace}/{flowId}/revisions/{revisionId}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-        flowId: components["parameters"]["FlowIdPath"];
-        revisionId: string;
-      };
-      cookie?: never;
-    };
-    /** Get one revision with its source. */
-    get: operations["getFlowRevision"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/flows/{namespace}/{flowId}/diff": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-        flowId: components["parameters"]["FlowIdPath"];
-      };
-      cookie?: never;
-    };
-    /** Unified diff between two revisions of a flow. */
-    get: operations["diffFlowRevisions"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/flows/{namespace}/{flowId}/executions": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-        flowId: components["parameters"]["FlowIdPath"];
-      };
-      cookie?: never;
-    };
     get?: never;
     put?: never;
-    /** Start a flow manually with inputs and labels. */
-    post: operations["triggerFlow"];
+    post: operations["revertVersion"];
     delete?: never;
     options?: never;
     head?: never;
@@ -515,14 +632,11 @@ export interface paths {
     parameters: {
       query?: never;
       header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
+      path?: never;
       cookie?: never;
     };
     get?: never;
     put?: never;
-    /** Run a script file of the namespace with optional args. */
     post: operations["runFile"];
     delete?: never;
     options?: never;
@@ -530,361 +644,32 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/v1/executions": {
+  "/api/v1/namespaces/{namespace}/validate": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List executions with filters, sort and cursor pagination. */
-    get: operations["listExecutions"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/executions/{executionId}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    /** Get an execution with its task runs. */
-    get: operations["getExecution"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/executions/{executionId}/cancel": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
     get?: never;
     put?: never;
-    /** Cancel an execution. */
-    post: operations["cancelExecution"];
+    post: operations["validateFile"];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  "/api/v1/executions/{executionId}/rerun": {
+  "/api/v1/namespaces/{namespace}/versions": {
     parameters: {
       query?: never;
       header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
+      path?: never;
       cookie?: never;
     };
-    get?: never;
-    put?: never;
-    /** Start a new execution with the same snapshot and inputs. */
-    post: operations["rerunExecution"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/executions/{executionId}/restart": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Start a new execution that reuses the successful tasks and runs the others. */
-    post: operations["restartExecution"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/executions/{executionId}/logs": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    /** Read log lines from Postgres or the archive. */
-    get: operations["getExecutionLogs"];
+    get: operations["listVersions"];
     put?: never;
     post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/executions/{executionId}/logs/stream": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    /** Stream log lines as server-sent events. Supports Last-Event-ID. */
-    get: operations["streamExecutionLogs"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/executions/{executionId}/logs/download": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    /** Download all log lines as a text file. */
-    get: operations["downloadExecutionLogs"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/executions/{executionId}/events": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    /** Stream execution state changes as server-sent events. Supports Last-Event-ID. */
-    get: operations["streamExecutionEvents"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/executions/{executionId}/metrics": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    /** List metrics emitted by the tasks. */
-    get: operations["listExecutionMetrics"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/executions/{executionId}/artifacts": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    /** List artifacts uploaded by the tasks. */
-    get: operations["listExecutionArtifacts"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/executions/{executionId}/artifacts/{artifactId}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-        artifactId: string;
-      };
-      cookie?: never;
-    };
-    /** Download an artifact. */
-    get: operations["downloadArtifact"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/runner/v1/task-runs/{taskRunId}/spec": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        taskRunId: components["parameters"]["TaskRunIdPath"];
-      };
-      cookie?: never;
-    };
-    /** Task spec with resolved env, mask values and limits. */
-    get: operations["runnerGetSpec"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/runner/v1/task-runs/{taskRunId}/bundle": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        taskRunId: components["parameters"]["TaskRunIdPath"];
-      };
-      cookie?: never;
-    };
-    /** Snapshot bundle (tar.gz). */
-    get: operations["runnerGetBundle"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/runner/v1/task-runs/{taskRunId}/logs": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        taskRunId: components["parameters"]["TaskRunIdPath"];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Ingest one log batch. Idempotent per (task run, seq). */
-    post: operations["runnerPostLogs"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/runner/v1/task-runs/{taskRunId}/events": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        taskRunId: components["parameters"]["TaskRunIdPath"];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Ingest outputs and metrics. */
-    post: operations["runnerPostEvents"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/runner/v1/task-runs/{taskRunId}/artifacts/{name}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        taskRunId: components["parameters"]["TaskRunIdPath"];
-        name: string;
-      };
-      cookie?: never;
-    };
-    get?: never;
-    /** Upload one artifact as a streamed body. */
-    put: operations["runnerPutArtifact"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/runner/v1/task-runs/{taskRunId}/heartbeat": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        taskRunId: components["parameters"]["TaskRunIdPath"];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Report liveness. The response says whether to cancel. */
-    post: operations["runnerHeartbeat"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/runner/v1/task-runs/{taskRunId}/complete": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        taskRunId: components["parameters"]["TaskRunIdPath"];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Report the end of the task. */
-    post: operations["runnerComplete"];
     delete?: never;
     options?: never;
     head?: never;
@@ -898,10 +683,89 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** JSON Schema of flow files. */
     get: operations["getFlowSchema"];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/tokens": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["listTokens"];
+    put?: never;
+    post: operations["createToken"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/tokens/{tokenId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations["revokeToken"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/users": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["listUsers"];
+    put?: never;
+    post: operations["createUser"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/users/{userId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch: operations["updateUser"];
+    trace?: never;
+  };
+  "/api/v1/users/{userId}/reset-password": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["resetUserPassword"];
     delete?: never;
     options?: never;
     head?: never;
@@ -912,324 +776,654 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    ErrorEnvelope: {
-      error: components["schemas"]["ErrorBody"];
-    };
-    ErrorBody: {
-      code: string;
-      message: string;
-      details?: unknown;
-    };
-    CountResult: {
-      count: number;
-    };
-    /** @enum {string} */
-    Role: "viewer" | "operator" | "editor" | "admin";
-    Instance: {
-      /** Format: uuid */
-      id: string;
-      hostname: string;
-      version: string;
-      pools: string[];
-      executors: string[];
+    Artifact: {
+      content_type: string;
       /** Format: date-time */
-      started_at: string;
-      /** Format: date-time */
-      heartbeat_at: string;
-      online: boolean;
-    };
-    InstanceList: {
-      items: components["schemas"]["Instance"][];
-    };
-    LoginRequest: {
-      email: string;
-      password: string;
-    };
-    Me: {
-      /** Format: uuid */
+      created_at: string;
       id: string;
-      email: string;
       name: string;
-      role: components["schemas"]["Role"];
-      must_change_password: boolean;
+      /** Format: int64 */
+      size: number;
+      task_key: string;
+      task_run_id: string;
+    } & {
+      [key: string]: unknown;
+    };
+    ArtifactList: {
+      items: components["schemas"]["Artifact"][];
+    } & {
+      [key: string]: unknown;
+    };
+    AuditEvent: {
+      action: string;
+      actor_id: string;
+      actor_label: string;
       /** @enum {string} */
-      auth_type: "session" | "token";
+      actor_type: "user" | "token" | "system" | "ai";
+      details: {
+        [key: string]: unknown;
+      };
+      id: string;
+      ip: string;
+      target_id: string;
+      target_type: string;
+      /** Format: date-time */
+      ts: string;
+    } & {
+      [key: string]: unknown;
     };
-    UpdateMeRequest: {
-      name: string;
+    AuditList: {
+      items: components["schemas"]["AuditEvent"][];
+      next_cursor?: string;
+    } & {
+      [key: string]: unknown;
     };
     ChangePasswordRequest: {
       current_password: string;
       new_password: string;
+    } & {
+      [key: string]: unknown;
     };
-    User: {
-      /** Format: uuid */
-      id: string;
-      email: string;
+    CountResult: {
+      /** Format: int64 */
+      count: number;
+    } & {
+      [key: string]: unknown;
+    };
+    CreateNamespaceRequest: {
+      description?: string;
       name: string;
-      role: components["schemas"]["Role"];
-      must_change_password: boolean;
-      disabled: boolean;
-      /** Format: date-time */
-      created_at: string;
-      /** Format: date-time */
-      last_login_at?: string | null;
+    } & {
+      [key: string]: unknown;
     };
-    UserList: {
-      items: components["schemas"]["User"][];
-      next_cursor?: string;
+    CreateTokenRequest: {
+      /** Format: int64 */
+      expires_in_days?: number;
+      name: string;
+      /** @enum {string} */
+      role: "viewer" | "operator" | "editor" | "admin";
+    } & {
+      [key: string]: unknown;
     };
     CreateUserRequest: {
       /** Format: email */
       email: string;
       name?: string;
-      role: components["schemas"]["Role"];
       /** @description Temporary password. The user must change it at first login. */
       password: string;
-    };
-    UpdateUserRequest: {
-      name?: string;
-      role?: components["schemas"]["Role"];
-      disabled?: boolean;
-    };
-    ResetPasswordRequest: {
-      password: string;
-    };
-    Token: {
-      /** Format: uuid */
-      id: string;
-      /** Format: uuid */
-      user_id: string;
-      user_email: string;
-      name: string;
-      prefix: string;
-      role: components["schemas"]["Role"];
-      /** Format: date-time */
-      created_at: string;
-      /** Format: date-time */
-      expires_at?: string | null;
-      /** Format: date-time */
-      last_used_at?: string | null;
-      /** Format: date-time */
-      revoked_at?: string | null;
-    };
-    TokenList: {
-      items: components["schemas"]["Token"][];
-      next_cursor?: string;
-    };
-    CreateTokenRequest: {
-      name: string;
-      role: components["schemas"]["Role"];
-      expires_in_days?: number;
+      /** @enum {string} */
+      role: "viewer" | "operator" | "editor" | "admin";
+    } & {
+      [key: string]: unknown;
     };
     CreatedToken: {
-      token: components["schemas"]["Token"];
-      /** @description The token value. It is shown only once. */
       secret: string;
+      token: components["schemas"]["Token"];
+    } & {
+      [key: string]: unknown;
     };
-    AuditEvent: {
-      /** Format: uuid */
-      id: string;
+    ErrorBody: {
+      code: string;
+      details?: unknown;
+      message: string;
+    } & {
+      [key: string]: unknown;
+    };
+    ErrorEnvelope: {
+      error: components["schemas"]["ErrorBody"];
+    } & {
+      [key: string]: unknown;
+    };
+    ExecutionDetail: {
+      /** Format: int64 */
+      chain_depth: number;
+      children: components["schemas"]["ExecutionRef"][];
       /** Format: date-time */
-      ts: string;
-      /** @enum {string} */
-      actor_type: "user" | "token" | "system" | "ai";
-      actor_id: string;
-      actor_label: string;
-      action: string;
-      target_type: string;
-      target_id: string;
-      details: {
+      created_at: string;
+      created_by: string;
+      /** Format: int64 */
+      duration_ms?: number | null;
+      /** Format: date-time */
+      ended_at?: string | null;
+      error: string;
+      /** @description Flow ID. Null for file runs. */
+      flow_id?: string | null;
+      flow_revision_id?: string | null;
+      git_sha?: string;
+      id: string;
+      inputs: {
         [key: string]: unknown;
       };
-      ip: string;
-    };
-    AuditList: {
-      items: components["schemas"]["AuditEvent"][];
-      next_cursor?: string;
-    };
-    Namespace: {
-      name: string;
-      /** @enum {string} */
-      source_type: "managed" | "git" | "implicit";
-      description: string;
-      /** @description True for a parent that exists only because of its children. */
-      implicit: boolean;
-      parent?: string;
-      head_version?: number | null;
-      head_git_sha?: string;
-      /** Format: uuid */
-      git_source_id?: string | null;
-      read_only?: boolean;
-    };
-    NamespaceList: {
-      items: components["schemas"]["Namespace"][];
-    };
-    CreateNamespaceRequest: {
-      name: string;
-      description?: string;
-    };
-    FileEntry: {
-      path: string;
+      labels: {
+        [key: string]: string;
+      };
+      namespace: string;
+      outputs?: {
+        [key: string]: unknown;
+      } | null;
+      parent_execution_id?: string | null;
+      reason: string;
+      restart_of_id?: string | null;
+      secret_keys_used: string[];
+      snapshot_id: string;
       /** Format: int64 */
-      size: number;
-      hash: string;
-      executable: boolean;
+      snapshot_version?: number | null;
+      /** Format: date-time */
+      started_at?: string | null;
+      /** @enum {string} */
+      state:
+        | "QUEUED"
+        | "RUNNING"
+        | "CANCELLING"
+        | "SUCCESS"
+        | "FAILED"
+        | "TIMED_OUT"
+        | "CANCELLED"
+        | "SKIPPED";
+      task_runs: components["schemas"]["TaskRun"][];
+      trigger_payload: {
+        [key: string]: unknown;
+      };
+      trigger_type: string;
+    } & {
+      [key: string]: unknown;
     };
-    FileList: {
-      version?: number | null;
-      /** Format: uuid */
-      snapshot_id?: string | null;
-      git_sha?: string;
-      items: components["schemas"]["FileEntry"][];
+    ExecutionList: {
+      items: components["schemas"]["ExecutionSummary"][];
+      next_cursor?: string;
+    } & {
+      [key: string]: unknown;
+    };
+    ExecutionRef: {
+      /** Format: date-time */
+      created_at: string;
+      id: string;
+      state: string;
+    } & {
+      [key: string]: unknown;
+    };
+    ExecutionSummary: {
+      /** Format: date-time */
+      created_at: string;
+      created_by: string;
+      /** Format: int64 */
+      duration_ms?: number | null;
+      /** Format: date-time */
+      ended_at?: string | null;
+      error: string;
+      /** @description Flow ID. Null for file runs. */
+      flow_id?: string | null;
+      id: string;
+      labels: {
+        [key: string]: string;
+      };
+      namespace: string;
+      reason: string;
+      /** Format: date-time */
+      started_at?: string | null;
+      /** @enum {string} */
+      state:
+        | "QUEUED"
+        | "RUNNING"
+        | "CANCELLING"
+        | "SUCCESS"
+        | "FAILED"
+        | "TIMED_OUT"
+        | "CANCELLED"
+        | "SKIPPED";
+      trigger_type: string;
+    } & {
+      [key: string]: unknown;
     };
     FileChange: {
-      /** @enum {string} */
-      op: "put" | "delete" | "rename";
-      path: string;
-      /** @description rename only. */
-      new_path?: string;
       /** @description put only. UTF-8 text content. */
       content?: string;
       /** @description put only. Binary content as base64. Used instead of content. */
       content_base64?: string;
       executable?: boolean;
-    };
-    SaveChangesRequest: {
-      message: string;
-      /** @description Fails with 409 version_conflict when the head version differs. */
-      base_version?: number;
-      changes: components["schemas"]["FileChange"][];
-    };
-    Snapshot: {
-      /** Format: uuid */
-      id: string;
-      version?: number | null;
-      git_sha?: string;
-      message: string;
-      author: string;
-      /** Format: date-time */
-      created_at: string;
-      manifest_hash: string;
-      file_count: number;
-    };
-    SnapshotList: {
-      items: components["schemas"]["Snapshot"][];
+      /** @description rename only. */
+      new_path?: string;
+      /** @enum {string} */
+      op: "put" | "delete" | "rename";
+      path: string;
+    } & {
+      [key: string]: unknown;
     };
     FileDiff: {
-      path: string;
-      /** @enum {string} */
-      status: "added" | "removed" | "modified";
       binary: boolean;
       /** @description Unified diff for text files. */
       diff: string;
-    };
-    VersionDiff: {
-      from: number;
-      to: number;
-      files: components["schemas"]["FileDiff"][];
-    };
-    RevertRequest: {
-      version: number;
-      message?: string;
-    };
-    Issue: {
-      code: string;
       path: string;
-      line: number;
-      column: number;
-      message: string;
-    };
-    ValidateFileRequest: {
-      path: string;
-      content: string;
-    };
-    ValidateFileResult: {
-      valid: boolean;
       /** @enum {string} */
-      kind: "flow" | "namespace" | "other";
-      flow_id?: string;
-      errors: components["schemas"]["Issue"][];
+      status: "added" | "removed" | "modified";
+    } & {
+      [key: string]: unknown;
     };
-    ExecutionRef: {
-      /** Format: uuid */
-      id: string;
-      state: string;
-      /** Format: date-time */
-      created_at: string;
-    };
-    FlowSummary: {
-      /** Format: uuid */
-      id: string;
-      namespace: string;
-      flow_id: string;
+    FileEntry: {
+      executable: boolean;
+      hash: string;
       path: string;
-      valid: boolean;
-      disabled: boolean;
+      /** Format: int64 */
+      size: number;
+    } & {
+      [key: string]: unknown;
+    };
+    FileList: {
+      git_sha?: string;
+      items: components["schemas"]["FileEntry"][];
+      snapshot_id?: string | null;
+      /** Format: int64 */
+      version?: number | null;
+    } & {
+      [key: string]: unknown;
+    };
+    FlowDetail: {
       description: string;
+      disabled: boolean;
+      /** Format: int64 */
       error_count: number;
+      flow_id: string;
+      id: string;
       labels?: {
         [key: string]: string;
       };
       last_execution?: components["schemas"]["ExecutionRef"];
+      namespace: string;
+      path: string;
+      revision?: components["schemas"]["Revision"];
+      triggers: components["schemas"]["TriggerInfo"][];
+      valid: boolean;
+    } & {
+      [key: string]: unknown;
     };
     FlowList: {
       items: components["schemas"]["FlowSummary"][];
       next_cursor?: string;
+    } & {
+      [key: string]: unknown;
     };
-    TriggerInfo: {
-      key: string;
-      /** @enum {string} */
-      type: "schedule" | "webhook" | "flow";
-      active: boolean;
-      config: {
-        [key: string]: unknown;
+    FlowSummary: {
+      description: string;
+      disabled: boolean;
+      /** Format: int64 */
+      error_count: number;
+      flow_id: string;
+      id: string;
+      labels?: {
+        [key: string]: string;
       };
+      last_execution?: components["schemas"]["ExecutionRef"];
+      namespace: string;
+      path: string;
+      valid: boolean;
+    } & {
+      [key: string]: unknown;
+    };
+    Instance: {
+      executors: string[];
       /** Format: date-time */
-      next_fire_at?: string | null;
+      heartbeat_at: string;
+      hostname: string;
+      id: string;
+      online: boolean;
+      pools: string[];
       /** Format: date-time */
-      last_fired_at?: string | null;
-      has_webhook_key: boolean;
+      started_at: string;
+      version: string;
+    } & {
+      [key: string]: unknown;
+    };
+    InstanceList: {
+      items: components["schemas"]["Instance"][];
+    } & {
+      [key: string]: unknown;
+    };
+    Issue: {
+      code: string;
+      /** Format: int64 */
+      column: number;
+      /** Format: int64 */
+      line: number;
+      message: string;
+      path: string;
+    } & {
+      [key: string]: unknown;
+    };
+    LogEntry: {
+      /** Format: int64 */
+      attempt: number;
+      /**
+       * Format: int64
+       * @description 1-based line number in the task run.
+       */
+      n: number;
+      /** @enum {string} */
+      stream: "stdout" | "stderr" | "system";
+      task_key: string;
+      task_run_id: string;
+      text: string;
+      /** Format: date-time */
+      ts: string;
+    } & {
+      [key: string]: unknown;
+    };
+    LogPage: {
+      /** @description True when the execution ended and no more lines follow. */
+      done: boolean;
+      lines: components["schemas"]["LogEntry"][];
+      next_cursor?: string;
+    } & {
+      [key: string]: unknown;
+    };
+    LoginRequest: {
+      email: string;
+      password: string;
+    } & {
+      [key: string]: unknown;
+    };
+    Me: {
+      /** @enum {string} */
+      auth_type: "session" | "token";
+      email: string;
+      id: string;
+      must_change_password: boolean;
+      name: string;
+      /** @enum {string} */
+      role: "viewer" | "operator" | "editor" | "admin";
+    } & {
+      [key: string]: unknown;
+    };
+    MetricList: {
+      items: components["schemas"]["MetricPoint"][];
+    } & {
+      [key: string]: unknown;
+    };
+    MetricPoint: {
+      name: string;
+      tags: {
+        [key: string]: string;
+      };
+      task_key: string;
+      task_run_id: string;
+      /** Format: date-time */
+      ts: string;
+      unit: string;
+      /** Format: double */
+      value: number;
+    } & {
+      [key: string]: unknown;
+    };
+    Namespace: {
+      description: string;
+      git_source_id?: string | null;
+      head_git_sha?: string;
+      /** Format: int64 */
+      head_version?: number | null;
+      /** @description True for a parent that exists only because of its children. */
+      implicit: boolean;
+      name: string;
+      parent?: string;
+      read_only?: boolean;
+      /** @enum {string} */
+      source_type: "managed" | "git" | "implicit";
+    } & {
+      [key: string]: unknown;
+    };
+    NamespaceList: {
+      items: components["schemas"]["Namespace"][];
+    } & {
+      [key: string]: unknown;
+    };
+    ResetPasswordRequest: {
+      password: string;
+    } & {
+      [key: string]: unknown;
+    };
+    RevertRequest: {
+      message?: string;
+      /** Format: int64 */
+      version: number;
+    } & {
+      [key: string]: unknown;
     };
     Revision: {
-      /** Format: uuid */
-      id: string;
       /** Format: date-time */
       created_at: string;
-      snapshot_version?: number | null;
-      git_sha?: string;
-      message?: string;
-      path: string;
-      source: string;
-      valid: boolean;
       definition?: {
         [key: string]: unknown;
       } | null;
       errors: components["schemas"]["Issue"][];
-    };
-    RevisionSummary: {
-      /** Format: uuid */
-      id: string;
-      /** Format: date-time */
-      created_at: string;
-      snapshot_version?: number | null;
       git_sha?: string;
+      id: string;
       message?: string;
+      path: string;
+      /** Format: int64 */
+      snapshot_version?: number | null;
+      source: string;
       valid: boolean;
-      error_count: number;
+    } & {
+      [key: string]: unknown;
     };
     RevisionList: {
       items: components["schemas"]["RevisionSummary"][];
+    } & {
+      [key: string]: unknown;
     };
-    FlowDetail: components["schemas"]["FlowSummary"] & {
-      revision?: components["schemas"]["Revision"];
-      triggers: components["schemas"]["TriggerInfo"][];
+    RevisionSummary: {
+      /** Format: date-time */
+      created_at: string;
+      /** Format: int64 */
+      error_count: number;
+      git_sha?: string;
+      id: string;
+      message?: string;
+      /** Format: int64 */
+      snapshot_version?: number | null;
+      valid: boolean;
+    } & {
+      [key: string]: unknown;
     };
-    UpdateFlowRequest: {
-      disabled: boolean;
+    RunFileRequest: {
+      args?: string[];
+      path: string;
+    } & {
+      [key: string]: unknown;
+    };
+    RunnerComplete: {
+      error: string;
+      /** Format: int64 */
+      exit_code: number;
+      reason?: string;
+    } & {
+      [key: string]: unknown;
+    };
+    RunnerEvent: {
+      key?: string;
+      name?: string;
+      tags?: {
+        [key: string]: string;
+      };
+      /** Format: date-time */
+      ts?: string;
+      /** @enum {string} */
+      type: "output" | "metric";
+      unit?: string;
+      value?: unknown;
+    } & {
+      [key: string]: unknown;
+    };
+    RunnerEventBatch: {
+      events: components["schemas"]["RunnerEvent"][];
+      /** Format: int64 */
+      seq: number;
+    } & {
+      [key: string]: unknown;
+    };
+    RunnerHeartbeatResponse: {
+      cancel: boolean;
+    } & {
+      [key: string]: unknown;
+    };
+    RunnerLimits: {
+      /** Format: int64 */
+      max_artifact_bytes: number;
+      /** Format: int64 */
+      max_bundle_bytes: number;
+    } & {
+      [key: string]: unknown;
+    };
+    RunnerLogBatch: {
+      lines: components["schemas"]["RunnerLogLine"][];
+      /** Format: int64 */
+      seq: number;
+    } & {
+      [key: string]: unknown;
+    };
+    RunnerLogLine: {
+      /** @enum {string} */
+      stream: "stdout" | "stderr" | "system";
+      text: string;
+      /** Format: date-time */
+      ts: string;
+    } & {
+      [key: string]: unknown;
+    };
+    RunnerSpec: {
+      /** Format: int64 */
+      attempt: number;
+      bundle_hash: string;
+      command: string[];
+      env: {
+        [key: string]: string;
+      };
+      execution_id: string;
+      flow_id: string;
+      limits: components["schemas"]["RunnerLimits"];
+      mask_values: string[];
+      namespace: string;
+      runtime?: string;
+      task_id: string;
+      task_run_id: string;
+      /** Format: int64 */
+      timeout_seconds: number;
+      workdir: string;
+    } & {
+      [key: string]: unknown;
+    };
+    SaveChangesRequest: {
+      /**
+       * Format: int64
+       * @description Fails with 409 version_conflict when the head version differs.
+       */
+      base_version?: number;
+      changes: components["schemas"]["FileChange"][];
+      message: string;
+    } & {
+      [key: string]: unknown;
+    };
+    Snapshot: {
+      author: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: int64 */
+      file_count: number;
+      git_sha?: string;
+      id: string;
+      manifest_hash: string;
+      message: string;
+      /** Format: int64 */
+      version?: number | null;
+    } & {
+      [key: string]: unknown;
+    };
+    SnapshotList: {
+      items: components["schemas"]["Snapshot"][];
+    } & {
+      [key: string]: unknown;
+    };
+    TaskRun: {
+      /** Format: int64 */
+      attempt: number;
+      child_execution_id?: string | null;
+      /** Format: int64 */
+      duration_ms?: number | null;
+      /** Format: date-time */
+      ended_at?: string | null;
+      error: string;
+      executor_type: string;
+      /** Format: int64 */
+      exit_code?: number | null;
+      id: string;
+      outputs?: {
+        [key: string]: unknown;
+      } | null;
+      pool: string;
+      /** Format: date-time */
+      queued_at?: string | null;
+      reason: string;
+      reused_from_id?: string | null;
+      /** Format: date-time */
+      started_at?: string | null;
+      /** @enum {string} */
+      state:
+        | "PENDING"
+        | "QUEUED"
+        | "RUNNING"
+        | "SUCCESS"
+        | "FAILED"
+        | "TIMED_OUT"
+        | "CANCELLED"
+        | "SKIPPED";
+      task_key: string;
+      task_type: string;
+    } & {
+      [key: string]: unknown;
     };
     TextDiff: {
       diff: string;
+    } & {
+      [key: string]: unknown;
+    };
+    Token: {
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      expires_at?: string;
+      id: string;
+      /** Format: date-time */
+      last_used_at?: string;
+      name: string;
+      prefix: string;
+      /** Format: date-time */
+      revoked_at?: string;
+      /** @enum {string} */
+      role: "viewer" | "operator" | "editor" | "admin";
+      user_email: string;
+      user_id: string;
+    } & {
+      [key: string]: unknown;
+    };
+    TokenList: {
+      items: components["schemas"]["Token"][];
+      next_cursor?: string;
+    } & {
+      [key: string]: unknown;
+    };
+    TriggerInfo: {
+      active: boolean;
+      config: {
+        [key: string]: unknown;
+      };
+      has_webhook_key: boolean;
+      key: string;
+      /** Format: date-time */
+      last_fired_at?: string | null;
+      /** Format: date-time */
+      next_fire_at?: string | null;
+      /** @enum {string} */
+      type: "schedule" | "webhook" | "flow";
+    } & {
+      [key: string]: unknown;
     };
     TriggerRequest: {
       inputs?: {
@@ -1238,277 +1432,324 @@ export interface components {
       labels?: {
         [key: string]: string;
       };
+    } & {
+      [key: string]: unknown;
     };
-    RunFileRequest: {
-      path: string;
-      args?: string[];
+    UpdateFlowRequest: {
+      disabled: boolean;
+    } & {
+      [key: string]: unknown;
     };
-    /** @enum {string} */
-    ExecutionState:
-      | "QUEUED"
-      | "RUNNING"
-      | "CANCELLING"
-      | "SUCCESS"
-      | "FAILED"
-      | "TIMED_OUT"
-      | "CANCELLED"
-      | "SKIPPED";
-    /** @enum {string} */
-    TaskRunState:
-      | "PENDING"
-      | "QUEUED"
-      | "RUNNING"
-      | "SUCCESS"
-      | "FAILED"
-      | "TIMED_OUT"
-      | "CANCELLED"
-      | "SKIPPED";
-    ExecutionSummary: {
-      /** Format: uuid */
-      id: string;
-      namespace: string;
-      /** @description Flow ID. Null for file runs. */
-      flow_id?: string | null;
-      state: components["schemas"]["ExecutionState"];
-      trigger_type: string;
-      labels: {
-        [key: string]: string;
-      };
-      /** Format: date-time */
-      created_at: string;
-      /** Format: date-time */
-      started_at?: string | null;
-      /** Format: date-time */
-      ended_at?: string | null;
-      /** Format: int64 */
-      duration_ms?: number | null;
-      error: string;
-      reason: string;
-      created_by: string;
-    };
-    ExecutionList: {
-      items: components["schemas"]["ExecutionSummary"][];
-      next_cursor?: string;
-    };
-    TaskRun: {
-      /** Format: uuid */
-      id: string;
-      task_key: string;
-      task_type: string;
-      attempt: number;
-      state: components["schemas"]["TaskRunState"];
-      reason: string;
-      executor_type: string;
-      pool: string;
-      /** Format: date-time */
-      queued_at?: string | null;
-      /** Format: date-time */
-      started_at?: string | null;
-      /** Format: date-time */
-      ended_at?: string | null;
-      /** Format: int64 */
-      duration_ms?: number | null;
-      exit_code?: number | null;
-      error: string;
-      outputs?: {
-        [key: string]: unknown;
-      } | null;
-      /** Format: uuid */
-      reused_from_id?: string | null;
-      /** Format: uuid */
-      child_execution_id?: string | null;
-    };
-    ExecutionDetail: components["schemas"]["ExecutionSummary"] & {
-      inputs: {
-        [key: string]: unknown;
-      };
-      outputs?: {
-        [key: string]: unknown;
-      } | null;
-      trigger_payload: {
-        [key: string]: unknown;
-      };
-      /** Format: uuid */
-      snapshot_id: string;
-      snapshot_version?: number | null;
-      git_sha?: string;
-      /** Format: uuid */
-      flow_revision_id?: string | null;
-      /** Format: uuid */
-      parent_execution_id?: string | null;
-      /** Format: uuid */
-      restart_of_id?: string | null;
-      chain_depth: number;
-      secret_keys_used: string[];
-      task_runs: components["schemas"]["TaskRun"][];
-      children: components["schemas"]["ExecutionRef"][];
-    };
-    LogEntry: {
-      /** Format: uuid */
-      task_run_id: string;
-      task_key: string;
-      attempt: number;
-      /**
-       * Format: int64
-       * @description 1-based line number in the task run.
-       */
-      n: number;
-      /** Format: date-time */
-      ts: string;
-      /** @enum {string} */
-      stream: "stdout" | "stderr" | "system";
-      text: string;
-    };
-    LogPage: {
-      lines: components["schemas"]["LogEntry"][];
-      next_cursor?: string;
-      /** @description True when the execution ended and no more lines follow. */
-      done: boolean;
-    };
-    MetricPoint: {
-      /** Format: uuid */
-      task_run_id: string;
-      task_key: string;
+    UpdateMeRequest: {
       name: string;
-      /** Format: double */
-      value: number;
-      unit: string;
-      tags: {
-        [key: string]: string;
-      };
-      /** Format: date-time */
-      ts: string;
+    } & {
+      [key: string]: unknown;
     };
-    MetricList: {
-      items: components["schemas"]["MetricPoint"][];
-    };
-    Artifact: {
-      /** Format: uuid */
-      id: string;
-      /** Format: uuid */
-      task_run_id: string;
-      task_key: string;
-      name: string;
-      /** Format: int64 */
-      size: number;
-      content_type: string;
-      /** Format: date-time */
-      created_at: string;
-    };
-    ArtifactList: {
-      items: components["schemas"]["Artifact"][];
-    };
-    RunnerLimits: {
-      /** Format: int64 */
-      max_artifact_bytes: number;
-      /** Format: int64 */
-      max_bundle_bytes: number;
-    };
-    RunnerSpec: {
-      task_run_id: string;
-      execution_id: string;
-      namespace: string;
-      flow_id: string;
-      task_id: string;
-      attempt: number;
-      command: string[];
-      workdir: string;
-      env: {
-        [key: string]: string;
-      };
-      runtime?: string;
-      timeout_seconds: number;
-      mask_values: string[];
-      bundle_hash: string;
-      limits: components["schemas"]["RunnerLimits"];
-    };
-    RunnerLogLine: {
-      /** Format: date-time */
-      ts: string;
-      /** @enum {string} */
-      stream: "stdout" | "stderr" | "system";
-      text: string;
-    };
-    RunnerLogBatch: {
-      seq: number;
-      lines: components["schemas"]["RunnerLogLine"][];
-    };
-    RunnerEvent: {
-      /** @enum {string} */
-      type: "output" | "metric";
-      key?: string;
-      value?: unknown;
+    UpdateUserRequest: {
+      disabled?: boolean;
       name?: string;
-      unit?: string;
-      tags?: {
-        [key: string]: string;
-      };
+      /** @enum {string} */
+      role?: "viewer" | "operator" | "editor" | "admin";
+    } & {
+      [key: string]: unknown;
+    };
+    User: {
       /** Format: date-time */
-      ts?: string;
+      created_at: string;
+      disabled: boolean;
+      email: string;
+      id: string;
+      /** Format: date-time */
+      last_login_at?: string;
+      must_change_password: boolean;
+      name: string;
+      /** @enum {string} */
+      role: "viewer" | "operator" | "editor" | "admin";
+    } & {
+      [key: string]: unknown;
     };
-    RunnerEventBatch: {
-      seq: number;
-      events: components["schemas"]["RunnerEvent"][];
+    UserList: {
+      items: components["schemas"]["User"][];
+      next_cursor?: string;
+    } & {
+      [key: string]: unknown;
     };
-    RunnerHeartbeatResponse: {
-      cancel: boolean;
+    ValidateFileRequest: {
+      content: string;
+      path: string;
+    } & {
+      [key: string]: unknown;
     };
-    RunnerComplete: {
-      exit_code: number;
-      error: string;
-      reason?: string;
+    ValidateFileResult: {
+      errors: components["schemas"]["Issue"][];
+      flow_id?: string;
+      /** @enum {string} */
+      kind: "flow" | "namespace" | "other";
+      valid: boolean;
+    } & {
+      [key: string]: unknown;
+    };
+    VersionDiff: {
+      files: components["schemas"]["FileDiff"][];
+      /** Format: int64 */
+      from: number;
+      /** Format: int64 */
+      to: number;
+    } & {
+      [key: string]: unknown;
     };
   };
-  responses: {
-    /** @description Error envelope. */
-    Error: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["ErrorEnvelope"];
-      };
-    };
-  };
-  parameters: {
-    ExecutionIdPath: string;
-    TaskRunIdPath: string;
-    /** @description Opaque cursor from next_cursor of the previous page. */
-    Cursor: string;
-    Limit: number;
-    UserId: string;
-    NamespacePath: string;
-    FlowIdPath: string;
-    /** @description File path relative to the namespace root. */
-    FilePathQuery: string;
-    /** @description Version number. Default is the head version. */
-    VersionQuery: number;
-  };
+  responses: never;
+  parameters: never;
   requestBodies: never;
   headers: never;
   pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  listInstances: {
+  runnerPutArtifact: {
     parameters: {
       query?: never;
+      header?: never;
+      path: {
+        taskRunId: string;
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/octet-stream": string;
+      };
+    };
+    responses: {
+      /** @description Stored. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  runnerGetBundle: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Bundle. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/gzip": unknown;
+        };
+      };
+    };
+  };
+  runnerComplete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RunnerComplete"];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  runnerPostEvents: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RunnerEventBatch"];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  runnerHeartbeat: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RunnerHeartbeatResponse"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  runnerPostLogs: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RunnerLogBatch"];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  runnerGetSpec: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        taskRunId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RunnerSpec"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  listAuditEvents: {
+    parameters: {
+      query?: {
+        actor?: string;
+        action?: string;
+        target?: string;
+        from?: string;
+        to?: string;
+        cursor?: string;
+        limit?: number;
+      };
       header?: never;
       path?: never;
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Instances. */
+      /** @description OK */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["InstanceList"];
+          "application/json": components["schemas"]["AuditList"];
         };
       };
-      default: components["responses"]["Error"];
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
     };
   };
   login: {
@@ -1524,16 +1765,25 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Signed in. */
+      /** @description OK */
       200: {
         headers: {
+          "Set-Cookie"?: string;
           [name: string]: unknown;
         };
         content: {
           "application/json": components["schemas"]["Me"];
         };
       };
-      default: components["responses"]["Error"];
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
     };
   };
   logout: {
@@ -1545,14 +1795,23 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Signed out. */
+      /** @description No Content */
       204: {
         headers: {
+          "Set-Cookie"?: string;
           [name: string]: unknown;
         };
         content?: never;
       };
-      default: components["responses"]["Error"];
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
     };
   };
   getMe: {
@@ -1564,7 +1823,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Current user. */
+      /** @description OK */
       200: {
         headers: {
           [name: string]: unknown;
@@ -1573,7 +1832,15 @@ export interface operations {
           "application/json": components["schemas"]["Me"];
         };
       };
-      default: components["responses"]["Error"];
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
     };
   };
   updateMe: {
@@ -1589,7 +1856,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Updated. */
+      /** @description OK */
       200: {
         headers: {
           [name: string]: unknown;
@@ -1598,7 +1865,15 @@ export interface operations {
           "application/json": components["schemas"]["Me"];
         };
       };
-      default: components["responses"]["Error"];
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
     };
   };
   changePassword: {
@@ -1614,14 +1889,22 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Changed. */
+      /** @description No Content */
       204: {
         headers: {
           [name: string]: unknown;
         };
         content?: never;
       };
-      default: components["responses"]["Error"];
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
     };
   };
   revokeOtherSessions: {
@@ -1633,7 +1916,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Other sessions deleted. */
+      /** @description OK */
       200: {
         headers: {
           [name: string]: unknown;
@@ -1642,733 +1925,15 @@ export interface operations {
           "application/json": components["schemas"]["CountResult"];
         };
       };
-      default: components["responses"]["Error"];
-    };
-  };
-  listUsers: {
-    parameters: {
-      query?: {
-        /** @description Opaque cursor from next_cursor of the previous page. */
-        cursor?: components["parameters"]["Cursor"];
-        limit?: components["parameters"]["Limit"];
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Users. */
-      200: {
+      /** @description Error */
+      default: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["UserList"];
+          "application/json": components["schemas"]["ErrorEnvelope"];
         };
       };
-      default: components["responses"]["Error"];
-    };
-  };
-  createUser: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreateUserRequest"];
-      };
-    };
-    responses: {
-      /** @description Created. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["User"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  updateUser: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        userId: components["parameters"]["UserId"];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["UpdateUserRequest"];
-      };
-    };
-    responses: {
-      /** @description Updated. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["User"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  resetUserPassword: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        userId: components["parameters"]["UserId"];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ResetPasswordRequest"];
-      };
-    };
-    responses: {
-      /** @description Reset. */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  listTokens: {
-    parameters: {
-      query?: {
-        all?: boolean;
-        /** @description Opaque cursor from next_cursor of the previous page. */
-        cursor?: components["parameters"]["Cursor"];
-        limit?: components["parameters"]["Limit"];
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Tokens. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TokenList"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  createToken: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreateTokenRequest"];
-      };
-    };
-    responses: {
-      /** @description Created. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CreatedToken"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  revokeToken: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        tokenId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Revoked. */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  listAuditEvents: {
-    parameters: {
-      query?: {
-        /** @description Actor ID or email. */
-        actor?: string;
-        action?: string;
-        /** @description Target type, or type:id. */
-        target?: string;
-        from?: string;
-        to?: string;
-        /** @description Opaque cursor from next_cursor of the previous page. */
-        cursor?: components["parameters"]["Cursor"];
-        limit?: components["parameters"]["Limit"];
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Audit events. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AuditList"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  listNamespaces: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Namespaces in name order. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["NamespaceList"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  createNamespace: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreateNamespaceRequest"];
-      };
-    };
-    responses: {
-      /** @description Created. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Namespace"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  getNamespace: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Namespace. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Namespace"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  deleteNamespace: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Deleted. */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  listFiles: {
-    parameters: {
-      query?: {
-        /** @description Version number. Default is the head version. */
-        version?: components["parameters"]["VersionQuery"];
-      };
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Files. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["FileList"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  getFile: {
-    parameters: {
-      query: {
-        /** @description File path relative to the namespace root. */
-        path: components["parameters"]["FilePathQuery"];
-        /** @description Version number. Default is the head version. */
-        version?: components["parameters"]["VersionQuery"];
-      };
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description File content. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/octet-stream": string;
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  uploadFile: {
-    parameters: {
-      query: {
-        /** @description File path relative to the namespace root. */
-        path: components["parameters"]["FilePathQuery"];
-        message?: string;
-        executable?: boolean;
-      };
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/octet-stream": string;
-      };
-    };
-    responses: {
-      /** @description New version. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Snapshot"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  saveChanges: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["SaveChangesRequest"];
-      };
-    };
-    responses: {
-      /** @description New version. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Snapshot"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  listVersions: {
-    parameters: {
-      query?: {
-        limit?: components["parameters"]["Limit"];
-      };
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Versions. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SnapshotList"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  diffVersions: {
-    parameters: {
-      query: {
-        from: number;
-        to: number;
-      };
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Diff. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VersionDiff"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  revertVersion: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RevertRequest"];
-      };
-    };
-    responses: {
-      /** @description New version. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Snapshot"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  validateFile: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ValidateFileRequest"];
-      };
-    };
-    responses: {
-      /** @description Validation result. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ValidateFileResult"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  listFlows: {
-    parameters: {
-      query?: {
-        /** @description Namespace and its children. */
-        namespace?: string;
-        /** @description Opaque cursor from next_cursor of the previous page. */
-        cursor?: components["parameters"]["Cursor"];
-        limit?: components["parameters"]["Limit"];
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Flows. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["FlowList"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  getFlow: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-        flowId: components["parameters"]["FlowIdPath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Flow. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["FlowDetail"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  updateFlow: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-        flowId: components["parameters"]["FlowIdPath"];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["UpdateFlowRequest"];
-      };
-    };
-    responses: {
-      /** @description Updated. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["FlowDetail"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  listFlowRevisions: {
-    parameters: {
-      query?: {
-        limit?: components["parameters"]["Limit"];
-      };
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-        flowId: components["parameters"]["FlowIdPath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Revisions. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["RevisionList"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  getFlowRevision: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-        flowId: components["parameters"]["FlowIdPath"];
-        revisionId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Revision. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Revision"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  diffFlowRevisions: {
-    parameters: {
-      query: {
-        from: string;
-        to: string;
-      };
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-        flowId: components["parameters"]["FlowIdPath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Diff. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TextDiff"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  triggerFlow: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-        flowId: components["parameters"]["FlowIdPath"];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TriggerRequest"];
-      };
-    };
-    responses: {
-      /** @description Execution created. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ExecutionDetail"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  runFile: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: components["parameters"]["NamespacePath"];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RunFileRequest"];
-      };
-    };
-    responses: {
-      /** @description Execution created. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ExecutionDetail"];
-        };
-      };
-      default: components["responses"]["Error"];
     };
   };
   listExecutions: {
@@ -2395,8 +1960,8 @@ export interface operations {
         to?: string;
         sort?: "created" | "duration";
         /** @description Opaque cursor from next_cursor of the previous page. */
-        cursor?: components["parameters"]["Cursor"];
-        limit?: components["parameters"]["Limit"];
+        cursor?: string;
+        limit?: number;
       };
       header?: never;
       path?: never;
@@ -2404,7 +1969,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Executions. */
+      /** @description OK */
       200: {
         headers: {
           [name: string]: unknown;
@@ -2413,7 +1978,15 @@ export interface operations {
           "application/json": components["schemas"]["ExecutionList"];
         };
       };
-      default: components["responses"]["Error"];
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
     };
   };
   getExecution: {
@@ -2421,13 +1994,13 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
+        executionId: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Execution. */
+      /** @description OK */
       200: {
         headers: {
           [name: string]: unknown;
@@ -2436,207 +2009,15 @@ export interface operations {
           "application/json": components["schemas"]["ExecutionDetail"];
         };
       };
-      default: components["responses"]["Error"];
-    };
-  };
-  cancelExecution: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Cancel requested. */
-      202: {
+      /** @description Error */
+      default: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["ExecutionDetail"];
+          "application/json": components["schemas"]["ErrorEnvelope"];
         };
       };
-      default: components["responses"]["Error"];
-    };
-  };
-  rerunExecution: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Execution created. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ExecutionDetail"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  restartExecution: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Execution created. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ExecutionDetail"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  getExecutionLogs: {
-    parameters: {
-      query?: {
-        /** @description Task ID filter. */
-        task?: string;
-        /** @description Case-insensitive text filter. */
-        search?: string;
-        /** @description Opaque cursor from next_cursor of the previous page. */
-        cursor?: components["parameters"]["Cursor"];
-        limit?: number;
-      };
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Log lines. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["LogPage"];
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  streamExecutionLogs: {
-    parameters: {
-      query?: {
-        task?: string;
-      };
-      header?: {
-        "Last-Event-ID"?: string;
-      };
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Event stream. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "text/event-stream": string;
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  downloadExecutionLogs: {
-    parameters: {
-      query?: {
-        task?: string;
-      };
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Log file. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "text/plain": string;
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  streamExecutionEvents: {
-    parameters: {
-      query?: never;
-      header?: {
-        "Last-Event-ID"?: string;
-      };
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Event stream. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "text/event-stream": string;
-        };
-      };
-      default: components["responses"]["Error"];
-    };
-  };
-  listExecutionMetrics: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Metrics. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["MetricList"];
-        };
-      };
-      default: components["responses"]["Error"];
     };
   };
   listExecutionArtifacts: {
@@ -2644,13 +2025,13 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
+        executionId: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Artifacts. */
+      /** @description OK */
       200: {
         headers: {
           [name: string]: unknown;
@@ -2659,7 +2040,15 @@ export interface operations {
           "application/json": components["schemas"]["ArtifactList"];
         };
       };
-      default: components["responses"]["Error"];
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
     };
   };
   downloadArtifact: {
@@ -2667,7 +2056,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        executionId: components["parameters"]["ExecutionIdPath"];
+        executionId: string;
         artifactId: string;
       };
       cookie?: never;
@@ -2680,115 +2069,747 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/octet-stream": string;
+          "application/octet-stream": unknown;
         };
       };
-      default: components["responses"]["Error"];
     };
   };
-  runnerGetSpec: {
+  cancelExecution: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        taskRunId: components["parameters"]["TaskRunIdPath"];
+        executionId: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Spec. */
-      200: {
+      /** @description Accepted */
+      202: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["RunnerSpec"];
+          "application/json": components["schemas"]["ExecutionDetail"];
         };
       };
-      default: components["responses"]["Error"];
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
     };
   };
-  runnerGetBundle: {
+  streamExecutionEvents: {
     parameters: {
       query?: never;
-      header?: never;
+      header?: {
+        "Last-Event-ID"?: string;
+      };
       path: {
-        taskRunId: components["parameters"]["TaskRunIdPath"];
+        executionId: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Bundle. */
+      /** @description Event stream. */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          "application/gzip": string;
+          "text/event-stream": unknown;
         };
       };
-      default: components["responses"]["Error"];
     };
   };
-  runnerPostLogs: {
+  getExecutionLogs: {
+    parameters: {
+      query?: {
+        /** @description Task ID filter. */
+        task?: string;
+        /** @description Case-insensitive text filter. */
+        search?: string;
+        /** @description Opaque cursor from next_cursor of the previous page. */
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        executionId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["LogPage"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  downloadExecutionLogs: {
+    parameters: {
+      query?: {
+        task?: string;
+      };
+      header?: never;
+      path: {
+        executionId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Log file. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "text/plain": unknown;
+        };
+      };
+    };
+  };
+  streamExecutionLogs: {
+    parameters: {
+      query?: {
+        task?: string;
+      };
+      header?: {
+        "Last-Event-ID"?: string;
+      };
+      path: {
+        executionId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Event stream. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "text/event-stream": unknown;
+        };
+      };
+    };
+  };
+  listExecutionMetrics: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        taskRunId: components["parameters"]["TaskRunIdPath"];
+        executionId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MetricList"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  rerunExecution: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExecutionDetail"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  restartExecution: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        executionId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExecutionDetail"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  listFlows: {
+    parameters: {
+      query?: {
+        /** @description Namespace and its children. */
+        namespace?: string;
+        /** @description Opaque cursor from next_cursor of the previous page. */
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FlowList"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  getFlow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+        flowId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FlowDetail"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  updateFlow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+        flowId: string;
       };
       cookie?: never;
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["RunnerLogBatch"];
+        "application/json": components["schemas"]["UpdateFlowRequest"];
       };
     };
     responses: {
-      /** @description Stored. */
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FlowDetail"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  diffFlowRevisions: {
+    parameters: {
+      query: {
+        from: string;
+        to: string;
+      };
+      header?: never;
+      path: {
+        namespace: string;
+        flowId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TextDiff"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  triggerFlow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+        flowId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TriggerRequest"];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExecutionDetail"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  listFlowRevisions: {
+    parameters: {
+      query?: {
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        namespace: string;
+        flowId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RevisionList"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  getFlowRevision: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+        flowId: string;
+        revisionId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Revision"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  listInstances: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InstanceList"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  listNamespaces: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NamespaceList"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  createNamespace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateNamespaceRequest"];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Namespace"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  getNamespace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Namespace"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  deleteNamespace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
       204: {
         headers: {
           [name: string]: unknown;
         };
         content?: never;
       };
-      default: components["responses"]["Error"];
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
     };
   };
-  runnerPostEvents: {
+  saveChanges: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        taskRunId: components["parameters"]["TaskRunIdPath"];
+        namespace: string;
       };
       cookie?: never;
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["RunnerEventBatch"];
+        "application/json": components["schemas"]["SaveChangesRequest"];
       };
     };
     responses: {
-      /** @description Stored. */
-      204: {
+      /** @description Created */
+      201: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          "application/json": components["schemas"]["Snapshot"];
+        };
       };
-      default: components["responses"]["Error"];
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
     };
   };
-  runnerPutArtifact: {
+  diffVersions: {
     parameters: {
-      query?: never;
+      query: {
+        from: number;
+        to: number;
+      };
       header?: never;
       path: {
-        taskRunId: components["parameters"]["TaskRunIdPath"];
-        name: string;
+        namespace: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["VersionDiff"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  getFile: {
+    parameters: {
+      query: {
+        /** @description File path relative to the namespace root. */
+        path: string;
+        /** @description Version number. Default is the head version. */
+        version?: number;
+      };
+      header?: never;
+      path: {
+        namespace: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description File content. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/octet-stream": unknown;
+        };
+      };
+    };
+  };
+  uploadFile: {
+    parameters: {
+      query: {
+        /** @description File path relative to the namespace root. */
+        path: string;
+        message?: string;
+        executable?: boolean;
+      };
+      header?: never;
+      path: {
+        namespace: string;
       };
       cookie?: never;
     };
@@ -2798,62 +2819,187 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Stored. */
-      204: {
+      /** @description New version. */
+      201: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          "application/json": unknown;
+        };
       };
-      default: components["responses"]["Error"];
     };
   };
-  runnerHeartbeat: {
+  listFiles: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Version number. Default is the head version. */
+        version?: number;
+      };
       header?: never;
       path: {
-        taskRunId: components["parameters"]["TaskRunIdPath"];
+        namespace: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Heartbeat response. */
+      /** @description OK */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["RunnerHeartbeatResponse"];
+          "application/json": components["schemas"]["FileList"];
         };
       };
-      default: components["responses"]["Error"];
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
     };
   };
-  runnerComplete: {
+  revertVersion: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        taskRunId: components["parameters"]["TaskRunIdPath"];
+        namespace: string;
       };
       cookie?: never;
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["RunnerComplete"];
+        "application/json": components["schemas"]["RevertRequest"];
       };
     };
     responses: {
-      /** @description Recorded. */
-      204: {
+      /** @description Created */
+      201: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          "application/json": components["schemas"]["Snapshot"];
+        };
       };
-      default: components["responses"]["Error"];
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  runFile: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RunFileRequest"];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExecutionDetail"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  validateFile: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ValidateFileRequest"];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ValidateFileResult"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  listVersions: {
+    parameters: {
+      query?: {
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        namespace: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SnapshotList"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
     };
   };
   getFlowSchema: {
@@ -2865,18 +3011,253 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description JSON Schema. */
+      /** @description OK */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          "application/json": {
-            [key: string]: unknown;
-          };
+          "application/json": unknown;
         };
       };
-      default: components["responses"]["Error"];
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  listTokens: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+        /** @description All users. Needs admin. */
+        all?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TokenList"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  createToken: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateTokenRequest"];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CreatedToken"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  revokeToken: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tokenId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  listUsers: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UserList"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  createUser: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateUserRequest"];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["User"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  updateUser: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        userId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateUserRequest"];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["User"];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
+    };
+  };
+  resetUserPassword: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        userId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ResetPasswordRequest"];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+      };
     };
   };
 }

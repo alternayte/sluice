@@ -68,11 +68,12 @@ type listIn struct {
 	Limit  int    `query:"limit" minimum:"1" maximum:"200" default:"50"`
 }
 
-type countOut struct {
-	Body struct {
-		Count int `json:"count"`
-	}
+// CountResult is the number of changed items.
+type CountResult struct {
+	Count int `json:"count"`
 }
+
+type countOut struct{ Body CountResult }
 
 func toMeOp(p *kernel.Principal) Me {
 	kind := "session"
@@ -276,12 +277,15 @@ func registerUsers(api huma.API, s *Service) {
 	huma.Register(api, withStatus(httpx.Op("resetUserPassword", http.MethodPost, "/api/v1/users/{userId}/reset-password", admin), http.StatusNoContent),
 		func(ctx context.Context, in *struct {
 			UserID uuid.UUID `path:"userId"`
-			Body   struct {
-				Password string `json:"password" minLength:"10" maxLength:"1024"`
-			}
+			Body   ResetPasswordRequest
 		}) (*struct{}, error) {
 			return nil, s.ResetPassword(ctx, in.UserID, in.Body.Password, true)
 		})
+}
+
+// ResetPasswordRequest is the body of resetUserPassword.
+type ResetPasswordRequest struct {
+	Password string `json:"password" minLength:"10" maxLength:"1024"`
 }
 
 // TokenList is one page of tokens.

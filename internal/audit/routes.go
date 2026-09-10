@@ -27,8 +27,8 @@ type AuditEvent struct {
 	IP         string         `json:"ip"`
 }
 
-// EventList is one page of audit events.
-type EventList struct {
+// AuditList is one page of audit events.
+type AuditList struct {
 	Items      []AuditEvent `json:"items"`
 	NextCursor *string      `json:"next_cursor,omitempty"`
 }
@@ -46,7 +46,7 @@ type listIn struct {
 // Routes registers the audit log operation (REQ-AUTH-007).
 func Routes(api huma.API, w *Writer) {
 	huma.Register(api, httpx.Op("listAuditEvents", http.MethodGet, "/api/v1/audit", httpx.MinRole(kernel.Admin)),
-		func(ctx context.Context, in *listIn) (*struct{ Body EventList }, error) {
+		func(ctx context.Context, in *listIn) (*struct{ Body AuditList }, error) {
 			f := Filter{Actor: in.Actor, Action: in.Action, Target: in.Target, Cursor: in.Cursor, Limit: page.Limit(in.Limit)}
 			if !in.From.IsZero() {
 				f.From = &in.From
@@ -58,7 +58,7 @@ func Routes(api huma.API, w *Writer) {
 			if err != nil {
 				return nil, err
 			}
-			out := &struct{ Body EventList }{Body: EventList{Items: []AuditEvent{}}}
+			out := &struct{ Body AuditList }{Body: AuditList{Items: []AuditEvent{}}}
 			if next != "" {
 				out.Body.NextCursor = &next
 			}

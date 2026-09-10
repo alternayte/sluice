@@ -92,49 +92,20 @@ func (s *Service) sameOrigin(r *http.Request) bool {
 	}
 }
 
-// Authorize checks the permission of an operation for the request context. It returns
-// nil when the call is allowed.
-func Authorize(ctx context.Context, operationID string) error {
-	acc, ok := Operations[OperationKey(operationID)]
-	if !ok {
-		return httpx.ErrForbidden
-	}
-	return check(ctx, acc)
+type metaKey struct{}
+
+// RequestMeta holds request data for handlers.
+type RequestMeta struct {
+	IP        string
+	UserAgent string
 }
 
-// AuthorizeRoute checks a non-OpenAPI route permission by its pattern.
-func AuthorizeRoute(ctx context.Context, pattern string) error {
-	acc, ok := RoutePatterns[pattern]
-	if !ok {
-		return httpx.ErrForbidden
-	}
-	return check(ctx, acc)
+func withMeta(ctx context.Context, m RequestMeta) context.Context {
+	return context.WithValue(ctx, metaKey{}, m)
 }
 
-func check(ctx context.Context, acc Access) error {
-	if acc.Public || acc.Other != "" {
-		return nil
-	}
-	p := kernel.FromContext(ctx)
-	if p == nil {
-		return httpx.ErrUnauthorized
-	}
-	if p.MustChangePassword && !acc.Self {
-		return ErrPasswordChange
-	}
-	if !p.Can(acc.Min) {
-		return httpx.ErrForbidden
-	}
-	return nil
-}
-
-// RequireRole wraps a non-OpenAPI handler with a route permission.
-func RequireRole(pattern string, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := AuthorizeRoute(r.Context(), pattern); err != nil {
-			httpx.WriteError(w, r, err)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+// MetaFrom returns the request metadata.
+func MetaFrom(ctx context.Context) RequestMeta {
+	m, _ := ctx.Value(metaKey{}).(RequestMeta)
+	return m
 }

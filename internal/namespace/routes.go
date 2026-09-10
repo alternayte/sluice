@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/alternayte/sluice/internal/kernel"
+	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/httpx"
 )
 
@@ -137,4 +138,10 @@ func registerNamespaces(api huma.API, s *Service) {
 		}) (*struct{}, error) {
 			return nil, s.Delete(ctx, in.Namespace)
 		})
+}
+
+func rowToNode(r dbq.GetNamespaceRow) TreeNode {
+	return TreeNode{Name: r.Name, Parent: ParentOf(r.Name), Row: &dbq.ListNamespacesRow{ID: r.ID, Name: r.Name, SourceType: r.SourceType,
+		GitSourceID: r.GitSourceID, HeadSnapshotID: r.HeadSnapshotID, Description: r.Description, CreatedAt: r.CreatedAt,
+		HeadVersion: r.HeadVersion, HeadGitSha: r.HeadGitSha}}
 }

@@ -328,7 +328,7 @@ func registerRunnerArtifact(api huma.API, r chi.Router, e *Engine) {
 }
 
 // artifactBodyErrors checks the runnerPutArtifact body as the old validator did
-// (internal/api/server.go). The old validator skipped only a non-empty body with a
+// (the deleted internal/api/server.go). The old validator skipped only a non-empty body with a
 // Content-Type that is not JSON. In each other case it checked the required
 // application/octet-stream body: an empty body, no Content-Type and a JSON Content-Type
 // each gave 422 validation_failed with the field "body".

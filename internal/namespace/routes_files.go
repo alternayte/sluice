@@ -370,7 +370,7 @@ func registerFileTransfer(api huma.API, r chi.Router, s *Service, viewer, editor
 	})
 }
 
-// uploadBodyErrors checks the uploadFile body as the old validator did (internal/api/server.go).
+// uploadBodyErrors checks the uploadFile body as the old validator did (the deleted internal/api/server.go).
 // The old validator skipped only a non-empty body with a Content-Type that is not JSON. In each
 // other case it checked the required application/octet-stream body: an empty body, no
 // Content-Type and a JSON Content-Type each gave 422 validation_failed with the field "body".

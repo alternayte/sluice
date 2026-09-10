@@ -69,8 +69,8 @@ func TestServerBasics(t *testing.T) {
 }
 
 // TestServerHeadAndBareAPI checks HEAD support on the health and metrics
-// routes, and the bare /api redirect, both regressions found in the chi
-// router fix round 1.
+// routes, and the JSON 404 of the bare /api. The HEAD check guards a
+// regression found in the chi router fix round 1.
 func TestServerHeadAndBareAPI(t *testing.T) {
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 
@@ -98,9 +98,16 @@ func TestServerHeadAndBareAPI(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	var bare struct {
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	_ = json.NewDecoder(resp.Body).Decode(&bare)
 	_ = resp.Body.Close()
-	if resp.StatusCode != http.StatusTemporaryRedirect || resp.Header.Get("Location") != "/api/" {
-		t.Fatalf("bare /api: %d %q", resp.StatusCode, resp.Header.Get("Location"))
+	if resp.StatusCode != http.StatusNotFound || bare.Error.Code != "not_found" ||
+		!strings.HasPrefix(resp.Header.Get("Content-Type"), "application/json") {
+		t.Fatalf("bare /api: %d %s %q", resp.StatusCode, resp.Header.Get("Content-Type"), bare.Error.Code)
 	}
 
 	res, _ := get(t, p.URL+"/api/v1/nothing/here")

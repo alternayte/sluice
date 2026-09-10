@@ -25,24 +25,21 @@ type Instance struct {
 	Online      bool      `json:"online"`
 }
 
+// InstanceList is the list of instances.
+type InstanceList struct {
+	Items []Instance `json:"items"`
+}
+
 // Routes registers the instance list operation (REQ-CORE-007).
 func Routes(api huma.API, reg *Registry, clk clock.Clock) {
 	huma.Register(api, httpx.Op("listInstances", http.MethodGet, "/api/v1/instances", httpx.MinRole(kernel.Admin)),
-		func(ctx context.Context, _ *struct{}) (*struct {
-			Body struct {
-				Items []Instance `json:"items"`
-			}
-		}, error) {
+		func(ctx context.Context, _ *struct{}) (*struct{ Body InstanceList }, error) {
 			list, err := reg.List(ctx)
 			if err != nil {
 				return nil, err
 			}
 			now := clk.Now()
-			out := &struct {
-				Body struct {
-					Items []Instance `json:"items"`
-				}
-			}{}
+			out := &struct{ Body InstanceList }{}
 			out.Body.Items = make([]Instance, 0, len(list))
 			for _, i := range list {
 				out.Body.Items = append(out.Body.Items, Instance{

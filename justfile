@@ -52,14 +52,14 @@ e2e-compare:
 # Generate code, schemas and reference docs.
 gen:
     go tool sqlc generate
-    go tool oapi-codegen -config api/oapi-codegen.yaml api/openapi.yaml
+    go run ./cmd/sluice openapi > api/openapi.yaml
     if [ -f ui/package.json ]; then cd ui && bun install --frozen-lockfile >/dev/null && bun run gen:api; fi
     go run ./tools/buildtool gen
 
 # Fail when generated files differ from the committed files.
 gen-check: gen
     git diff --exit-code
-    test -z "$(git status --porcelain --untracked-files=all -- internal/api/apigen internal/platform/dbq ui/src/api schemas docs/reference)"
+    test -z "$(git status --porcelain --untracked-files=all -- api/openapi.yaml internal/platform/dbq ui/src/api schemas docs/reference)"
 
 lint: forbid
     golangci-lint run ./...

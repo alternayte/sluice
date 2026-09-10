@@ -26,16 +26,21 @@ type Error struct {
 
 func (e *Error) Error() string { return fmt.Sprintf("%d %s: %s", e.Status, e.Code, e.Message) }
 
+// ErrorBody is the content of the error envelope.
+type ErrorBody struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Details any    `json:"details,omitempty"`
+}
+
+// ErrorEnvelope is the wire form of Error. The OpenAPI spec describes Error with this type.
+type ErrorEnvelope struct {
+	Error ErrorBody `json:"error"`
+}
+
 // MarshalJSON writes the envelope {"error":{"code","message","details"}} (REQ-API-002).
 func (e *Error) MarshalJSON() ([]byte, error) {
-	type body struct {
-		Code    string `json:"code"`
-		Message string `json:"message"`
-		Details any    `json:"details,omitempty"`
-	}
-	return json.Marshal(struct {
-		Error body `json:"error"`
-	}{body{Code: e.Code, Message: e.Message, Details: e.Details}})
+	return json.Marshal(ErrorEnvelope{Error: ErrorBody{Code: e.Code, Message: e.Message, Details: e.Details}})
 }
 
 // GetStatus returns the HTTP status. huma uses it.

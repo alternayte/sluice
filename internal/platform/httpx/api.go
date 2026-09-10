@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -86,6 +87,8 @@ func Check(ctx context.Context, acc Access) error {
 func init() {
 	huma.NewError = newError
 	huma.NewErrorWithContext = newErrorWithContext
+	// api/openapi.yaml never allowed null for an array, and the handlers send [] for an empty list.
+	huma.DefaultArrayNullable = false
 }
 
 // NewAPI creates the huma API on r. It serves no spec and no docs: `sluice openapi` prints the spec.
@@ -102,6 +105,8 @@ func NewAPI(r *chi.Mux) huma.API {
 	// unknown body properties. Keep that contract: a newer client or runner can send a new field.
 	cfg.AllowAdditionalPropertiesByDefault = true
 	api := humachi.New(r, cfg)
+	// huma describes an error response with the fields of Error. The wire form is the envelope.
+	api.OpenAPI().Components.Schemas.RegisterTypeAlias(reflect.TypeFor[Error](), reflect.TypeFor[ErrorEnvelope]())
 	api.UseMiddleware(func(ctx huma.Context, next func(huma.Context)) {
 		acc, ok := AccessOf(ctx.Operation())
 		if !ok {

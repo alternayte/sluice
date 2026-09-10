@@ -17,7 +17,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/alternayte/sluice/internal/api"
 	"github.com/alternayte/sluice/internal/audit"
 	"github.com/alternayte/sluice/internal/auth"
 	"github.com/alternayte/sluice/internal/execution"
@@ -31,7 +30,6 @@ import (
 	"github.com/alternayte/sluice/internal/platform/lease"
 	"github.com/alternayte/sluice/internal/platform/logging"
 	"github.com/alternayte/sluice/internal/platform/promx"
-	"github.com/alternayte/sluice/internal/runnerapi"
 	"github.com/alternayte/sluice/internal/storage"
 )
 
@@ -182,35 +180,10 @@ func (s *Server) Handler() (http.Handler, error) {
 	if err := httpx.CheckAccess(api); err != nil {
 		return nil, err
 	}
-	legacy, err := s.legacyAPI()
-	if err != nil {
-		return nil, err
-	}
-	r.Handle("/api", legacy)
-	r.Handle("/api/*", legacy)
+	r.Handle("/api", httpx.NotFoundJSON())
+	r.Handle("/api/*", httpx.NotFoundJSON())
 	r.Handle("/*", spaHandler())
 	return r, nil
-}
-
-// legacyAPI serves the operations of the old generated server until each feature moves to huma.
-// chi matches the huma routes first, because a static path segment wins over the /api/* wildcard.
-func (s *Server) legacyAPI() (http.Handler, error) {
-	mux := http.NewServeMux()
-	apiServer := &api.Server{
-		System:    api.System{Instances: s.Registry, Clock: s.Clock},
-		Handlers:  auth.Handlers{Svc: s.Auth},
-		API:       namespace.API{Svc: s.Namespaces},
-		ExecAPI:   execution.ExecAPI{E: s.Engine},
-		RunnerAPI: runnerapi.RunnerAPI{B: s.Engine, MaxArtifactBytes: int64(s.Cfg.MaxArtifactBytes)},
-	}
-	if err := api.Mount(mux, apiServer, nil); err != nil {
-		return nil, err
-	}
-	authorize, err := api.AuthorizeMiddleware(auth.Authorize)
-	if err != nil {
-		return nil, err
-	}
-	return authorize(mux), nil
 }
 
 func (s *Server) withLogger(next http.Handler) http.Handler { return withLogger(s.Log, next) }

@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
-import { api, unwrap } from "@/api/client";
+import { changePasswordMutation } from "@/api/@tanstack/react-query.gen";
 import { Button } from "@/components/ui/button";
 import { Field, FormError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -15,8 +15,7 @@ export function ChangePasswordForm({ onSuccess, submitLabel = "Change password" 
   const [done, setDone] = useState(false);
 
   const mutation = useMutation({
-    mutationFn: async () =>
-      unwrap(await api.POST("/api/v1/auth/password", { body: { current_password: current, new_password: next } })),
+    ...changePasswordMutation(),
     onSuccess: () => {
       setCurrent("");
       setNext("");
@@ -36,7 +35,7 @@ export function ChangePasswordForm({ onSuccess, submitLabel = "Change password" 
       return;
     }
     setMismatch(false);
-    mutation.mutate();
+    mutation.mutate({ body: { current_password: current, new_password: next } });
   };
 
   return (

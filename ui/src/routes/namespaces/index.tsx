@@ -2,7 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plus, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { api, unwrap } from "@/api/client";
+import {
+  createNamespaceMutation,
+  deleteNamespaceMutation,
+  listNamespacesOptions,
+} from "@/api/@tanstack/react-query.gen";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DataState } from "@/components/data-state";
 import { SourceBadges, invalidateNamespace, type Namespace } from "@/components/namespace-source";
@@ -27,10 +31,7 @@ function NamespacesPage() {
   const me = useCurrentUser();
   const [createOpen, setCreateOpen] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const namespaces = useQuery({
-    queryKey: ["namespaces"],
-    queryFn: async () => unwrap(await api.GET("/api/v1/namespaces")),
-  });
+  const namespaces = useQuery(listNamespacesOptions());
 
   return (
     <div className="flex flex-col gap-4">
@@ -110,12 +111,7 @@ function CreateNamespaceDialog({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const create = useMutation({
-    mutationFn: async () =>
-      unwrap(
-        await api.POST("/api/v1/namespaces", {
-          body: { name: name.trim(), description: description.trim() || undefined },
-        }),
-      ),
+    ...createNamespaceMutation(),
     onSuccess: (ns: Namespace) => {
       invalidateNamespace(qc, ns.name);
       onClose();
@@ -126,7 +122,7 @@ function CreateNamespaceDialog({ onClose }: { onClose: () => void }) {
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    create.mutate();
+    create.mutate({ body: { name: name.trim(), description: description.trim() || undefined } });
   };
 
   return (
@@ -160,8 +156,7 @@ function CreateNamespaceDialog({ onClose }: { onClose: () => void }) {
 function DeleteNamespaceDialog({ name, onClose }: { name: string; onClose: () => void }) {
   const qc = useQueryClient();
   const del = useMutation({
-    mutationFn: async () =>
-      unwrap(await api.DELETE("/api/v1/namespaces/{namespace}", { params: { path: { namespace: name } } })),
+    ...deleteNamespaceMutation(),
     onSuccess: () => {
       invalidateNamespace(qc, name);
       onClose();
@@ -175,7 +170,7 @@ function DeleteNamespaceDialog({ name, onClose }: { name: string; onClose: () =>
       destructive
       pending={del.isPending}
       error={del.isError ? errorMessage(del.error) : undefined}
-      onConfirm={() => del.mutate()}
+      onConfirm={() => del.mutate({ path: { namespace: name } })}
       onClose={onClose}
     >
       Delete the namespace <span className="font-medium">{name}</span> with all its files and versions? You cannot

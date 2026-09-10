@@ -2,8 +2,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, CircleOff, Play } from "lucide-react";
 import { useState } from "react";
-import { api, unwrap } from "@/api/client";
-import type { components } from "@/api/schema";
+import {
+  diffFlowRevisionsOptions,
+  getFlowOptions,
+  getFlowQueryKey,
+  listExecutionsOptions,
+  listFlowRevisionsOptions,
+  listFlowsQueryKey,
+  updateFlowMutation,
+} from "@/api/@tanstack/react-query.gen";
+import type { FlowDetail, Issue, RevisionSummary } from "@/api/types.gen";
 import { DataState } from "@/components/data-state";
 import { DiffView } from "@/components/diff-view";
 import { CodeEditor } from "@/components/editor/code-editor";
@@ -23,9 +31,6 @@ import { triggerSummary } from "@/lib/flows";
 import { can } from "@/lib/roles";
 import { cn, formatTime } from "@/lib/utils";
 
-type FlowDetail = components["schemas"]["FlowDetail"];
-type Issue = components["schemas"]["Issue"];
-type RevisionSummary = components["schemas"]["RevisionSummary"];
 type Tab = "overview" | "executions" | "triggers" | "source" | "revisions";
 type FlowSearch = { tab?: Exclude<Tab, "overview"> };
 
@@ -50,11 +55,7 @@ function FlowPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const me = useCurrentUser();
-  const flow = useQuery({
-    queryKey: ["flows", "detail", namespace, flowId],
-    queryFn: async () =>
-      unwrap(await api.GET("/api/v1/flows/{namespace}/{flowId}", { params: { path: { namespace, flowId } } })),
-  });
+  const flow = useQuery(getFlowOptions({ path: { namespace, flowId } }));
   const tab: Tab = search.tab ?? "overview";
   const [runOpen, setRunOpen] = useState(false);
 
@@ -130,9 +131,7 @@ function FlowPage() {
 
 function FlowExecutions({ namespace, flowId }: { namespace: string; flowId: string }) {
   const executions = useQuery({
-    queryKey: ["executions", "flow", namespace, flowId],
-    queryFn: async () =>
-      unwrap(await api.GET("/api/v1/executions", { params: { query: { flow: `${namespace}/${flowId}`, limit: 50 } } })),
+    ...listExecutionsOptions({ query: { flow: `${namespace}/${flowId}`, limit: 50 } }),
     refetchInterval: 2000,
   });
   return (
@@ -145,16 +144,10 @@ function FlowExecutions({ namespace, flowId }: { namespace: string; flowId: stri
 function EnableToggle({ flow }: { flow: FlowDetail }) {
   const qc = useQueryClient();
   const update = useMutation({
-    mutationFn: async (disabled: boolean) =>
-      unwrap(
-        await api.PATCH("/api/v1/flows/{namespace}/{flowId}", {
-          params: { path: { namespace: flow.namespace, flowId: flow.flow_id } },
-          body: { disabled },
-        }),
-      ),
+    ...updateFlowMutation(),
     onSuccess: (d) => {
-      qc.setQueryData(["flows", "detail", flow.namespace, flow.flow_id], d);
-      void qc.invalidateQueries({ queryKey: ["flows", "list"] });
+      qc.setQueryData(getFlowQueryKey({ path: { namespace: flow.namespace, flowId: flow.flow_id } }), d);
+      void qc.invalidateQueries({ queryKey: listFlowsQueryKey() });
     },
   });
   const enabled = !flow.disabled;
@@ -165,7 +158,9 @@ function EnableToggle({ flow }: { flow: FlowDetail }) {
         role="switch"
         aria-checked={enabled}
         disabled={update.isPending}
-        onClick={() => update.mutate(enabled)}
+        onClick={() =>
+          update.mutate({ path: { namespace: flow.namespace, flowId: flow.flow_id }, body: { disabled: enabled } })
+        }
         className="inline-flex h-9 items-center gap-2 rounded-[6px] border border-input bg-panel px-3 text-sm font-medium hover:bg-muted disabled:opacity-50"
       >
         <span
@@ -293,15 +288,7 @@ function revisionLabel(r: RevisionSummary): string {
 }
 
 function Revisions({ namespace, flowId }: { namespace: string; flowId: string }) {
-  const revisions = useQuery({
-    queryKey: ["flows", "revisions", namespace, flowId],
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/v1/flows/{namespace}/{flowId}/revisions", {
-          params: { path: { namespace, flowId }, query: { limit: 100 } },
-        }),
-      ),
-  });
+  const revisions = useQuery(listFlowRevisionsOptions({ path: { namespace, flowId }, query: { limit: 100 } }));
   return (
     <DataState query={revisions} empty={(d) => d.items.length === 0} emptyText="This flow has no revisions.">
       {(d) => (
@@ -352,14 +339,8 @@ function RevisionDiff({
   const [to, setTo] = useState<string | undefined>(revisions[0]?.id);
   const enabled = from !== undefined && to !== undefined && from !== to;
   const diff = useQuery({
-    queryKey: ["flows", "diff", namespace, flowId, from, to],
+    ...diffFlowRevisionsOptions({ path: { namespace, flowId }, query: { from: from ?? "", to: to ?? "" } }),
     enabled,
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/v1/flows/{namespace}/{flowId}/diff", {
-          params: { path: { namespace, flowId }, query: { from: from ?? "", to: to ?? "" } },
-        }),
-      ),
   });
 
   return (

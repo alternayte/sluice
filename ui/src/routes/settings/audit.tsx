@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { api, unwrap } from "@/api/client";
+import { listAuditEventsInfiniteOptions } from "@/api/@tanstack/react-query.gen";
 import { AdminOnly } from "@/components/admin-only";
 import { DataState } from "@/components/data-state";
 import { LoadMore } from "@/components/load-more";
@@ -44,24 +44,17 @@ function AuditPage() {
   const navigate = useNavigate({ from: "/settings/audit" });
 
   const events = useInfiniteQuery({
-    queryKey: ["audit", search],
-    initialPageParam: undefined as string | undefined,
-    queryFn: async ({ pageParam }) =>
-      unwrap(
-        await api.GET("/api/v1/audit", {
-          params: {
-            query: {
-              actor: search.actor,
-              action: search.action,
-              target: search.target,
-              from: toIso(search.from),
-              to: toIso(search.to),
-              cursor: pageParam,
-            },
-          },
-        }),
-      ),
-    getNextPageParam: (last) => last.next_cursor || undefined,
+    ...listAuditEventsInfiniteOptions({
+      query: {
+        actor: search.actor,
+        action: search.action,
+        target: search.target,
+        from: toIso(search.from),
+        to: toIso(search.to),
+      },
+    }),
+    initialPageParam: {},
+    getNextPageParam: (last) => (last.next_cursor ? { query: { cursor: last.next_cursor } } : undefined),
     select: (d) => d.pages.flatMap((p) => p.items),
   });
 

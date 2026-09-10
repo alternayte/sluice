@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { api, unwrap } from "@/api/client";
+import { listInstancesOptions } from "@/api/@tanstack/react-query.gen";
 import { DataState } from "@/components/data-state";
 
 export const Route = createFileRoute("/")({
@@ -8,10 +8,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
-  const instances = useQuery({
-    queryKey: ["instances"],
-    queryFn: async () => unwrap(await api.GET("/api/v1/instances")),
-  });
+  const instances = useQuery(listInstancesOptions());
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold">Dashboard</h1>

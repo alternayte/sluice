@@ -1,15 +1,13 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AlertTriangle, Download, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { api, unwrap } from "@/api/client";
-import type { components } from "@/api/schema";
+import { getExecutionLogs } from "@/api/sdk.gen";
+import type { LogEntry } from "@/api/types.gen";
 import { Field } from "@/components/ui/field";
 import { Input, Select } from "@/components/ui/input";
 import { errorMessage } from "@/lib/errors";
 import { filterLogs } from "@/lib/executions";
 import { cn } from "@/lib/utils";
-
-type LogEntry = components["schemas"]["LogEntry"];
 
 const lineKey = (l: LogEntry) => `${l.task_run_id}:${l.n}`;
 
@@ -41,11 +39,11 @@ function useLogLines(executionId: string) {
       let cursor: string | undefined;
       let done: boolean | undefined;
       for (;;) {
-        const page = unwrap(
-          await api.GET("/api/v1/executions/{executionId}/logs", {
-            params: { path: { executionId }, query: { limit: 5000, cursor } },
-          }),
-        );
+        const { data: page } = await getExecutionLogs({
+          path: { executionId },
+          query: { limit: 5000, cursor },
+          throwOnError: true,
+        });
         if (stopped) return;
         add(page.lines);
         done = page.done;

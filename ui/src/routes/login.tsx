@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { api, ApiError, unwrap } from "@/api/client";
+import { loginMutation } from "@/api/@tanstack/react-query.gen";
+import { ApiError } from "@/api-client";
 import { Button } from "@/components/ui/button";
 import { Field, FormError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -36,7 +37,7 @@ function LoginPage() {
   }, [me.data, navigate]);
 
   const login = useMutation({
-    mutationFn: async () => unwrap(await api.POST("/api/v1/auth/login", { body: { email, password } })),
+    ...loginMutation(),
     onSuccess: (data) => {
       qc.clear();
       qc.setQueryData(meQueryKey, data);
@@ -46,7 +47,7 @@ function LoginPage() {
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    login.mutate();
+    login.mutate({ body: { email, password } });
   };
 
   let error = "";

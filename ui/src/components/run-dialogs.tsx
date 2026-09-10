@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { api, unwrap } from "@/api/client";
+import { runFileMutation, triggerFlowMutation } from "@/api/@tanstack/react-query.gen";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, FormError } from "@/components/ui/field";
@@ -100,13 +100,7 @@ export function RunFlowDialog({
   const [labelsError, setLabelsError] = useState<string>();
 
   const trigger = useMutation({
-    mutationFn: async (body: { inputs: Record<string, unknown>; labels: Record<string, string> }) =>
-      unwrap(
-        await api.POST("/api/v1/flows/{namespace}/{flowId}/executions", {
-          params: { path: { namespace, flowId } },
-          body,
-        }),
-      ),
+    ...triggerFlowMutation(),
     onSuccess: (e) => void navigate({ to: "/executions/$executionId", params: { executionId: e.id } }),
     onError: (err) => {
       const { byInput } = inputFieldErrors(fieldErrors(err));
@@ -124,7 +118,7 @@ export function RunFlowDialog({
     setErrors(coerced.errors);
     setLabelsError(labels.error);
     if (Object.keys(coerced.errors).length || labels.error) return;
-    trigger.mutate({ inputs: coerced.inputs, labels: labels.labels });
+    trigger.mutate({ path: { namespace, flowId }, body: { inputs: coerced.inputs, labels: labels.labels } });
   };
 
   const serverOther = trigger.isError ? inputFieldErrors(fieldErrors(trigger.error)).other : [];
@@ -167,13 +161,7 @@ export function RunFileDialog({ namespace, path, onClose }: { namespace: string;
   const navigate = useNavigate();
   const [args, setArgs] = useState("");
   const run = useMutation({
-    mutationFn: async () =>
-      unwrap(
-        await api.POST("/api/v1/namespaces/{namespace}/run", {
-          params: { path: { namespace } },
-          body: { path, args: parseArgs(args) },
-        }),
-      ),
+    ...runFileMutation(),
     onSuccess: (e) => void navigate({ to: "/executions/$executionId", params: { executionId: e.id } }),
   });
   const fields = run.isError ? fieldErrors(run.error) : {};
@@ -184,7 +172,7 @@ export function RunFileDialog({ namespace, path, onClose }: { namespace: string;
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          run.mutate();
+          run.mutate({ path: { namespace }, body: { path, args: parseArgs(args) } });
         }}
         className="flex flex-col gap-4"
       >

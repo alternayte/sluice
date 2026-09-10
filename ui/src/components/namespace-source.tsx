@@ -1,9 +1,10 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { Folder, FolderPen, GitBranch, Lock } from "lucide-react";
-import type { components } from "@/api/schema";
+import { getNamespaceQueryKey, listNamespacesQueryKey } from "@/api/@tanstack/react-query.gen";
+import type { Namespace } from "@/api/types.gen";
 import { Badge } from "@/components/ui/badge";
 
-export type Namespace = components["schemas"]["Namespace"];
+export type { Namespace };
 
 /** SourceBadges shows the source type of a namespace and its read-only state. */
 export function SourceBadges({ ns }: { ns: Namespace }) {
@@ -35,7 +36,12 @@ export function SourceBadges({ ns }: { ns: Namespace }) {
 
 /** invalidateNamespace refreshes all queries that a change of the namespace affects. */
 export function invalidateNamespace(qc: QueryClient, namespace: string) {
-  void qc.invalidateQueries({ queryKey: ["namespace", namespace] });
-  void qc.invalidateQueries({ queryKey: ["namespaces"] });
-  void qc.invalidateQueries({ queryKey: ["flows"] });
+  void qc.invalidateQueries({ queryKey: getNamespaceQueryKey({ path: { namespace } }) });
+  void qc.invalidateQueries({ queryKey: listNamespacesQueryKey() });
+  void qc.invalidateQueries({
+    predicate: (q) => {
+      const id = (q.queryKey[0] as { _id?: string } | undefined)?._id;
+      return id === "listFlows" || id === "getFlow";
+    },
+  });
 }

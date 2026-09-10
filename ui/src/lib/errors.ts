@@ -1,4 +1,4 @@
-import { ApiError } from "@/api/client";
+import { ApiError } from "@/api-client";
 
 /** errorMessage returns a message for the user from an API or other error. */
 export function errorMessage(err: unknown): string {

@@ -2,8 +2,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { FilePlus, GitBranch, Pencil, Play, RotateCcw, Save, Trash2, Upload } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
-import { ApiError, api, unwrap } from "@/api/client";
-import type { components } from "@/api/schema";
+import {
+  diffVersionsOptions,
+  getNamespaceOptions,
+  listFilesOptions,
+  listVersionsOptions,
+  revertVersionMutation,
+  saveChangesMutation,
+} from "@/api/@tanstack/react-query.gen";
+import { validateFile } from "@/api/sdk.gen";
+import type { FileDiff, SaveChangesRequest } from "@/api/types.gen";
+import { ApiError, rawFetch } from "@/api-client";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DataState } from "@/components/data-state";
 import { DiffView } from "@/components/diff-view";
@@ -25,8 +34,6 @@ import { runnableFile } from "@/lib/executions";
 import { can } from "@/lib/roles";
 import { cn, formatBytes, formatTime } from "@/lib/utils";
 
-type SaveChangesRequest = components["schemas"]["SaveChangesRequest"];
-type FileDiff = components["schemas"]["FileDiff"];
 type Tab = "files" | "versions";
 type NamespaceSearch = { tab?: "versions"; file?: string };
 
@@ -47,11 +54,20 @@ const tabs: { value: Tab; label: string }[] = [
 
 function useSaveChanges(namespace: string) {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (body: SaveChangesRequest) =>
-      unwrap(await api.POST("/api/v1/namespaces/{namespace}/changes", { params: { path: { namespace } }, body })),
-    onSuccess: () => invalidateNamespace(qc, namespace),
-  });
+  const mutation = useMutation(saveChangesMutation());
+  return {
+    ...mutation,
+    mutate: (body: SaveChangesRequest, options?: { onSuccess?: () => void }) =>
+      mutation.mutate(
+        { path: { namespace }, body },
+        {
+          onSuccess: () => {
+            invalidateNamespace(qc, namespace);
+            options?.onSuccess?.();
+          },
+        },
+      ),
+  };
 }
 
 function NamespacePage() {
@@ -59,11 +75,7 @@ function NamespacePage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const me = useCurrentUser();
-  const info = useQuery({
-    queryKey: ["namespace", namespace, "info"],
-    queryFn: async () =>
-      unwrap(await api.GET("/api/v1/namespaces/{namespace}", { params: { path: { namespace } } })),
-  });
+  const info = useQuery(getNamespaceOptions({ path: { namespace } }));
   const tab: Tab = search.tab ?? "files";
 
   return (
@@ -124,21 +136,18 @@ function FilesTab({
 }) {
   const qc = useQueryClient();
   const [newOpen, setNewOpen] = useState(false);
-  const files = useQuery({
-    queryKey: ["namespace", namespace, "files"],
-    queryFn: async () =>
-      unwrap(await api.GET("/api/v1/namespaces/{namespace}/files", { params: { path: { namespace } } })),
-  });
+  const files = useQuery(listFilesOptions({ path: { namespace } }));
   const upload = useMutation({
-    mutationFn: async (file: File) =>
-      unwrap(
-        await api.PUT("/api/v1/namespaces/{namespace}/file", {
-          params: { path: { namespace }, query: { path: file.name, message: `Upload ${file.name}` } },
-          body: file as unknown as string,
-          bodySerializer: (b: unknown) => b,
-          headers: { "Content-Type": "application/octet-stream" },
-        }),
-      ),
+    mutationFn: async (file: File) => {
+      const res = await rawFetch(
+        `/api/v1/namespaces/${encodeURIComponent(namespace)}/file?${new URLSearchParams({
+          path: file.name,
+          message: `Upload ${file.name}`,
+        }).toString()}`,
+        { method: "PUT", body: file, headers: { "Content-Type": "application/octet-stream" } },
+      );
+      await res.text();
+    },
     onSuccess: (_, file) => {
       invalidateNamespace(qc, namespace);
       onSelect(file.name);
@@ -266,13 +275,12 @@ function FileEditor({
   const contentKey = ["namespace", namespace, "file", path];
   const content = useQuery({
     queryKey: contentKey,
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/v1/namespaces/{namespace}/file", {
-          params: { path: { namespace }, query: { path } },
-          parseAs: "text",
-        }),
-      ) as string,
+    queryFn: async () => {
+      const res = await rawFetch(
+        `/api/v1/namespaces/${encodeURIComponent(namespace)}/file?${new URLSearchParams({ path }).toString()}`,
+      );
+      return res.text();
+    },
   });
   const [draft, setDraft] = useState<string | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -283,13 +291,14 @@ function FileEditor({
   const validated = isValidatedPath(path);
 
   const validate = useCallback(
-    async (text: string) =>
-      unwrap(
-        await api.POST("/api/v1/namespaces/{namespace}/validate", {
-          params: { path: { namespace } },
-          body: { path, content: text },
-        }),
-      ).errors,
+    async (text: string) => {
+      const { data } = await validateFile({
+        path: { namespace },
+        body: { path, content: text },
+        throwOnError: true,
+      });
+      return data.errors;
+    },
     [namespace, path],
   );
 
@@ -535,15 +544,7 @@ function PathDialog({
 
 function VersionsTab({ namespace, canEdit, head }: { namespace: string; canEdit: boolean; head?: number }) {
   const [revert, setRevert] = useState<number | null>(null);
-  const versions = useQuery({
-    queryKey: ["namespace", namespace, "versions"],
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/v1/namespaces/{namespace}/versions", {
-          params: { path: { namespace }, query: { limit: 100 } },
-        }),
-      ),
-  });
+  const versions = useQuery(listVersionsOptions({ path: { namespace }, query: { limit: 100 } }));
 
   return (
     <DataState query={versions} empty={(d) => d.items.length === 0} emptyText="This namespace has no versions.">
@@ -605,13 +606,7 @@ function VersionsTab({ namespace, canEdit, head }: { namespace: string; canEdit:
 function RevertDialog({ namespace, version, onClose }: { namespace: string; version: number; onClose: () => void }) {
   const qc = useQueryClient();
   const revert = useMutation({
-    mutationFn: async () =>
-      unwrap(
-        await api.POST("/api/v1/namespaces/{namespace}/revert", {
-          params: { path: { namespace } },
-          body: { version },
-        }),
-      ),
+    ...revertVersionMutation(),
     onSuccess: () => {
       invalidateNamespace(qc, namespace);
       onClose();
@@ -624,7 +619,7 @@ function RevertDialog({ namespace, version, onClose }: { namespace: string; vers
       confirmLabel="Revert"
       pending={revert.isPending}
       error={revert.isError ? errorMessage(revert.error) : undefined}
-      onConfirm={() => revert.mutate()}
+      onConfirm={() => revert.mutate({ path: { namespace }, body: { version } })}
       onClose={onClose}
     >
       Create a new version with the content of version {version}?
@@ -643,14 +638,8 @@ function VersionDiff({ namespace, versions }: { namespace: string; versions: num
   const [to, setTo] = useState<number | undefined>(versions[0]);
   const enabled = from !== undefined && to !== undefined && from !== to;
   const diff = useQuery({
-    queryKey: ["namespace", namespace, "diff", from, to],
+    ...diffVersionsOptions({ path: { namespace }, query: { from: from ?? 1, to: to ?? 1 } }),
     enabled,
-    queryFn: async () =>
-      unwrap(
-        await api.GET("/api/v1/namespaces/{namespace}/diff", {
-          params: { path: { namespace }, query: { from: from ?? 1, to: to ?? 1 } },
-        }),
-      ),
   });
 
   return (

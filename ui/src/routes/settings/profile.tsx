@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, type FormEvent, type ReactNode } from "react";
-import { api, unwrap } from "@/api/client";
+import { revokeOtherSessionsMutation, updateMeMutation } from "@/api/@tanstack/react-query.gen";
 import { ChangePasswordForm } from "@/components/change-password-form";
 import { themes } from "@/components/app-shell";
 import { useTheme, type Theme } from "@/components/theme-provider";
@@ -53,7 +53,7 @@ function NameForm() {
   const [name, setName] = useState(me.name);
   const [saved, setSaved] = useState(false);
   const mutation = useMutation({
-    mutationFn: async () => unwrap(await api.PATCH("/api/v1/auth/me", { body: { name } })),
+    ...updateMeMutation(),
     onSuccess: (data) => {
       qc.setQueryData(meQueryKey, data);
       setSaved(true);
@@ -62,7 +62,7 @@ function NameForm() {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     setSaved(false);
-    mutation.mutate();
+    mutation.mutate({ body: { name } });
   };
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
@@ -81,9 +81,7 @@ function NameForm() {
 }
 
 function RevokeOthers() {
-  const mutation = useMutation({
-    mutationFn: async () => unwrap(await api.POST("/api/v1/auth/sessions/revoke-others")),
-  });
+  const mutation = useMutation(revokeOtherSessionsMutation());
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">Sign out all other browsers and devices. This session stays signed in.</p>
@@ -94,7 +92,7 @@ function RevokeOthers() {
         </p>
       )}
       <div>
-        <Button variant="secondary" disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+        <Button variant="secondary" disabled={mutation.isPending} onClick={() => mutation.mutate({})}>
           Sign out other sessions
         </Button>
       </div>

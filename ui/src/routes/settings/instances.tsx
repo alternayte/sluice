@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { CircleCheck, CircleOff } from "lucide-react";
-import { api, unwrap } from "@/api/client";
+import { listInstancesOptions } from "@/api/@tanstack/react-query.gen";
 import { AdminOnly } from "@/components/admin-only";
 import { DataState } from "@/components/data-state";
 import { Badge } from "@/components/ui/badge";
@@ -18,11 +18,7 @@ export const Route = createFileRoute("/settings/instances")({
 });
 
 function InstancesPage() {
-  const instances = useQuery({
-    queryKey: ["instances"],
-    queryFn: async () => unwrap(await api.GET("/api/v1/instances")),
-    refetchInterval: 10_000,
-  });
+  const instances = useQuery({ ...listInstancesOptions(), refetchInterval: 10_000 });
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title="Instances" description="Server instances in this cluster. The list refreshes every 10 seconds." />

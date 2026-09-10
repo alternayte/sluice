@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { api, unwrap } from "@/api/client";
+import { listFlowsInfiniteOptions, listNamespacesOptions } from "@/api/@tanstack/react-query.gen";
 import { DataState } from "@/components/data-state";
 import { LoadMore } from "@/components/load-more";
 import { DisabledBadge, ExecutionStateBadge, ValidBadge } from "@/components/state-badges";
@@ -21,20 +21,11 @@ export const Route = createFileRoute("/flows/")({
 function FlowsPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
-  const namespaces = useQuery({
-    queryKey: ["namespaces"],
-    queryFn: async () => unwrap(await api.GET("/api/v1/namespaces")),
-  });
+  const namespaces = useQuery(listNamespacesOptions());
   const flows = useInfiniteQuery({
-    queryKey: ["flows", "list", search.namespace ?? ""],
-    initialPageParam: undefined as string | undefined,
-    queryFn: async ({ pageParam }) =>
-      unwrap(
-        await api.GET("/api/v1/flows", {
-          params: { query: { namespace: search.namespace, cursor: pageParam } },
-        }),
-      ),
-    getNextPageParam: (last) => last.next_cursor || undefined,
+    ...listFlowsInfiniteOptions({ query: { namespace: search.namespace } }),
+    initialPageParam: {},
+    getNextPageParam: (last) => (last.next_cursor ? { query: { cursor: last.next_cursor } } : undefined),
     select: (d) => d.pages.flatMap((p) => p.items),
   });
 

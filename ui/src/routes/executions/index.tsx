@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { api, unwrap } from "@/api/client";
+import { listExecutionsInfiniteOptions } from "@/api/@tanstack/react-query.gen";
 import { DataState } from "@/components/data-state";
 import { LabelBadges } from "@/components/execution-bits";
 import { LoadMore } from "@/components/load-more";
@@ -34,11 +34,9 @@ function ExecutionsPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const query = listQuery(search);
   const list = useInfiniteQuery({
-    queryKey: ["executions", "list", query],
-    initialPageParam: undefined as string | undefined,
-    queryFn: async ({ pageParam }) =>
-      unwrap(await api.GET("/api/v1/executions", { params: { query: { ...query, cursor: pageParam, limit: 50 } } })),
-    getNextPageParam: (last) => last.next_cursor || undefined,
+    ...listExecutionsInfiniteOptions({ query: { ...query, limit: 50 } }),
+    initialPageParam: {},
+    getNextPageParam: (last) => (last.next_cursor ? { query: { cursor: last.next_cursor } } : undefined),
     refetchInterval: 2000,
   });
 

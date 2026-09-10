@@ -2,7 +2,7 @@ import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Outlet, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
-import { ApiError, onUnauthorized } from "@/api/client";
+import { ApiError, onUnauthorized } from "@/api-client";
 import { AppShell } from "@/components/app-shell";
 import { ChangePasswordForm } from "@/components/change-password-form";
 import { Button } from "@/components/ui/button";

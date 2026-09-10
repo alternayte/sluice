@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { LogOut, Menu, Monitor, Moon, Sun, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { api } from "@/api/client";
+import { logout } from "@/api/sdk.gen";
 import { useTheme, type Theme } from "@/components/theme-provider";
 import { useCurrentUser } from "@/lib/auth";
 import { can, type Role } from "@/lib/roles";
@@ -97,7 +97,7 @@ function UserBox() {
   const signOut = async () => {
     setBusy(true);
     try {
-      await api.POST("/api/v1/auth/logout");
+      await logout();
     } finally {
       qc.clear();
       setBusy(false);

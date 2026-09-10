@@ -2,8 +2,13 @@ import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-q
 import { createFileRoute } from "@tanstack/react-router";
 import { Ban, CheckCircle2, KeyRound, Plus } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { api, unwrap } from "@/api/client";
-import type { components } from "@/api/schema";
+import {
+  createUserMutation,
+  listUsersInfiniteOptions,
+  resetUserPasswordMutation,
+  updateUserMutation,
+} from "@/api/@tanstack/react-query.gen";
+import type { User } from "@/api/types.gen";
 import { AdminOnly } from "@/components/admin-only";
 import { DataState } from "@/components/data-state";
 import { LoadMore } from "@/components/load-more";
@@ -19,8 +24,7 @@ import { errorMessage, fieldErrors } from "@/lib/errors";
 import { roleLabels, roles, type Role } from "@/lib/roles";
 import { formatTime } from "@/lib/utils";
 
-type User = components["schemas"]["User"];
-type UpdateUser = components["schemas"]["UpdateUserRequest"];
+const usersQueryKey = [{ _id: "listUsers" }];
 
 export const Route = createFileRoute("/settings/users")({
   component: () => (
@@ -37,17 +41,15 @@ function UsersPage() {
   const [resetting, setResetting] = useState<User | null>(null);
 
   const users = useInfiniteQuery({
-    queryKey: ["users"],
-    initialPageParam: undefined as string | undefined,
-    queryFn: async ({ pageParam }) => unwrap(await api.GET("/api/v1/users", { params: { query: { cursor: pageParam } } })),
-    getNextPageParam: (last) => last.next_cursor || undefined,
+    ...listUsersInfiniteOptions(),
+    initialPageParam: {},
+    getNextPageParam: (last) => (last.next_cursor ? { query: { cursor: last.next_cursor } } : undefined),
     select: (d) => d.pages.flatMap((p) => p.items),
   });
 
   const update = useMutation({
-    mutationFn: async ({ id, body }: { id: string; body: UpdateUser }) =>
-      unwrap(await api.PATCH("/api/v1/users/{userId}", { params: { path: { userId: id } }, body })),
-    onSettled: () => void qc.invalidateQueries({ queryKey: ["users"] }),
+    ...updateUserMutation(),
+    onSettled: () => void qc.invalidateQueries({ queryKey: usersQueryKey }),
   });
 
   return (
@@ -93,7 +95,7 @@ function UsersPage() {
                         className="h-7 w-32 text-xs"
                         value={u.role}
                         disabled={update.isPending}
-                        onChange={(e) => update.mutate({ id: u.id, body: { role: e.target.value as Role } })}
+                        onChange={(e) => update.mutate({ path: { userId: u.id }, body: { role: e.target.value as Role } })}
                       >
                         {roles.map((r) => (
                           <option key={r} value={r}>
@@ -121,7 +123,7 @@ function UsersPage() {
                           variant="ghost"
                           size="sm"
                           disabled={update.isPending}
-                          onClick={() => update.mutate({ id: u.id, body: { disabled: !u.disabled } })}
+                          onClick={() => update.mutate({ path: { userId: u.id }, body: { disabled: !u.disabled } })}
                         >
                           {u.disabled ? "Enable" : "Disable"}
                         </Button>
@@ -155,17 +157,16 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
   const [role, setRole] = useState<Role>("viewer");
   const [password, setPassword] = useState("");
   const mutation = useMutation({
-    mutationFn: async () =>
-      unwrap(await api.POST("/api/v1/users", { body: { email, name: name || undefined, role, password } })),
+    ...createUserMutation(),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["users"] });
+      void qc.invalidateQueries({ queryKey: usersQueryKey });
       onDone();
     },
   });
   const fields = fieldErrors(mutation.error);
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    mutation.mutate();
+    mutation.mutate({ body: { email, name: name || undefined, role, password } });
   };
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
@@ -209,21 +210,15 @@ function ResetPasswordForm({ user, onDone }: { user: User; onDone: () => void })
   const qc = useQueryClient();
   const [password, setPassword] = useState("");
   const mutation = useMutation({
-    mutationFn: async () =>
-      unwrap(
-        await api.POST("/api/v1/users/{userId}/reset-password", {
-          params: { path: { userId: user.id } },
-          body: { password },
-        }),
-      ),
+    ...resetUserPasswordMutation(),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["users"] });
+      void qc.invalidateQueries({ queryKey: usersQueryKey });
       onDone();
     },
   });
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    mutation.mutate();
+    mutation.mutate({ path: { userId: user.id }, body: { password } });
   };
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">

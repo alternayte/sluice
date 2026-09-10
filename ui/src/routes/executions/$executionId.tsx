@@ -2,8 +2,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AlertTriangle, Ban, Download, RefreshCw, RotateCcw } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { api, unwrap } from "@/api/client";
-import type { components } from "@/api/schema";
+import {
+  cancelExecutionMutation,
+  getExecutionOptions,
+  getExecutionQueryKey,
+  listExecutionArtifactsOptions,
+  listExecutionMetricsOptions,
+  rerunExecutionMutation,
+  restartExecutionMutation,
+} from "@/api/@tanstack/react-query.gen";
+import type { ExecutionDetail } from "@/api/types.gen";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DataState } from "@/components/data-state";
 import { LabelBadges } from "@/components/execution-bits";
@@ -21,7 +29,6 @@ import { stateLabel } from "@/lib/flows";
 import { can } from "@/lib/roles";
 import { formatBytes, formatDuration, formatTime } from "@/lib/utils";
 
-type ExecutionDetail = components["schemas"]["ExecutionDetail"];
 type Tab = "logs" | "outputs" | "metrics" | "artifacts";
 type DetailSearch = { tab?: Exclude<Tab, "logs"> };
 
@@ -38,7 +45,7 @@ export const Route = createFileRoute("/executions/$executionId")({
   component: ExecutionPage,
 });
 
-const detailKey = (id: string) => ["executions", "detail", id] as const;
+const detailKey = (id: string) => getExecutionQueryKey({ path: { executionId: id } });
 
 /** useNow returns the current time and updates it every second while active. */
 function useNow(active: boolean): number {
@@ -57,9 +64,7 @@ function ExecutionPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const qc = useQueryClient();
   const detail = useQuery({
-    queryKey: detailKey(executionId),
-    queryFn: async () =>
-      unwrap(await api.GET("/api/v1/executions/{executionId}", { params: { path: { executionId } } })),
+    ...getExecutionOptions({ path: { executionId } }),
     refetchInterval: (q) => (q.state.data && isTerminal(q.state.data.state) ? false : 2000),
   });
   const live = detail.data ? !isTerminal(detail.data.state) : false;
@@ -219,23 +224,17 @@ function Actions({ execution: e }: { execution: ExecutionDetail }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [confirm, setConfirm] = useState(false);
-  const path = { params: { path: { executionId: e.id } } };
+  const path = { path: { executionId: e.id } };
   const cancel = useMutation({
-    mutationFn: async () => unwrap(await api.POST("/api/v1/executions/{executionId}/cancel", path)),
+    ...cancelExecutionMutation(),
     onSuccess: (d) => {
       qc.setQueryData(detailKey(e.id), d);
       setConfirm(false);
     },
   });
   const goTo = (d: ExecutionDetail) => void navigate({ to: "/executions/$executionId", params: { executionId: d.id } });
-  const rerun = useMutation({
-    mutationFn: async () => unwrap(await api.POST("/api/v1/executions/{executionId}/rerun", path)),
-    onSuccess: goTo,
-  });
-  const restart = useMutation({
-    mutationFn: async () => unwrap(await api.POST("/api/v1/executions/{executionId}/restart", path)),
-    onSuccess: goTo,
-  });
+  const rerun = useMutation({ ...rerunExecutionMutation(), onSuccess: goTo });
+  const restart = useMutation({ ...restartExecutionMutation(), onSuccess: goTo });
   const err = rerun.error ?? restart.error;
 
   return (
@@ -247,12 +246,12 @@ function Actions({ execution: e }: { execution: ExecutionDetail }) {
             Cancel
           </Button>
         )}
-        <Button variant="secondary" disabled={rerun.isPending} onClick={() => rerun.mutate()}>
+        <Button variant="secondary" disabled={rerun.isPending} onClick={() => rerun.mutate(path)}>
           <RefreshCw className="h-4 w-4" aria-hidden />
           Rerun
         </Button>
         {canRestart(e.state) && (
-          <Button variant="secondary" disabled={restart.isPending} onClick={() => restart.mutate()}>
+          <Button variant="secondary" disabled={restart.isPending} onClick={() => restart.mutate(path)}>
             <RotateCcw className="h-4 w-4" aria-hidden />
             Restart from failed
           </Button>
@@ -266,7 +265,7 @@ function Actions({ execution: e }: { execution: ExecutionDetail }) {
         destructive
         pending={cancel.isPending}
         error={cancel.isError ? errorMessage(cancel.error) : undefined}
-        onConfirm={() => cancel.mutate()}
+        onConfirm={() => cancel.mutate(path)}
         onClose={() => setConfirm(false)}
       >
         Cancel this execution? Running tasks are stopped.
@@ -308,11 +307,7 @@ function Outputs({ execution: e }: { execution: ExecutionDetail }) {
 }
 
 function Metrics({ executionId }: { executionId: string }) {
-  const metrics = useQuery({
-    queryKey: ["executions", "metrics", executionId],
-    queryFn: async () =>
-      unwrap(await api.GET("/api/v1/executions/{executionId}/metrics", { params: { path: { executionId } } })),
-  });
+  const metrics = useQuery(listExecutionMetricsOptions({ path: { executionId } }));
   return (
     <DataState query={metrics} empty={(d) => d.items.length === 0} emptyText="No metrics.">
       {(d) => (
@@ -346,11 +341,7 @@ function Metrics({ executionId }: { executionId: string }) {
 }
 
 function Artifacts({ executionId }: { executionId: string }) {
-  const artifacts = useQuery({
-    queryKey: ["executions", "artifacts", executionId],
-    queryFn: async () =>
-      unwrap(await api.GET("/api/v1/executions/{executionId}/artifacts", { params: { path: { executionId } } })),
-  });
+  const artifacts = useQuery(listExecutionArtifactsOptions({ path: { executionId } }));
   return (
     <DataState query={artifacts} empty={(d) => d.items.length === 0} emptyText="No artifacts.">
       {(d) => (

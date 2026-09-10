@@ -2,8 +2,8 @@ import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-q
 import { createFileRoute } from "@tanstack/react-router";
 import { Ban, Check, CheckCircle2, Clock, Copy, Plus } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { api, unwrap } from "@/api/client";
-import type { components } from "@/api/schema";
+import { createTokenMutation, listTokensInfiniteOptions, revokeTokenMutation } from "@/api/@tanstack/react-query.gen";
+import type { CreatedToken, Token } from "@/api/types.gen";
 import { DataState } from "@/components/data-state";
 import { LoadMore } from "@/components/load-more";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +18,7 @@ import { errorMessage, fieldErrors } from "@/lib/errors";
 import { can, roleLabels, rolesUpTo, type Role } from "@/lib/roles";
 import { formatTime } from "@/lib/utils";
 
-type Token = components["schemas"]["Token"];
-type CreatedToken = components["schemas"]["CreatedToken"];
+const tokensQueryKey = [{ _id: "listTokens" }];
 
 export const Route = createFileRoute("/settings/tokens")({
   component: TokensPage,
@@ -42,11 +41,9 @@ function TokensPage() {
   const showAll = isAdmin && all;
 
   const tokens = useInfiniteQuery({
-    queryKey: ["tokens", { all: showAll }],
-    initialPageParam: undefined as string | undefined,
-    queryFn: async ({ pageParam }) =>
-      unwrap(await api.GET("/api/v1/tokens", { params: { query: { all: showAll || undefined, cursor: pageParam } } })),
-    getNextPageParam: (last) => last.next_cursor || undefined,
+    ...listTokensInfiniteOptions({ query: { all: showAll || undefined } }),
+    initialPageParam: {},
+    getNextPageParam: (last) => (last.next_cursor ? { query: { cursor: last.next_cursor } } : undefined),
     select: (d) => d.pages.flatMap((p) => p.items),
   });
 
@@ -133,15 +130,10 @@ function CreateTokenForm({ role, onDone }: { role: Role; onDone: () => void }) {
   const [copied, setCopied] = useState(false);
 
   const mutation = useMutation({
-    mutationFn: async () =>
-      unwrap(
-        await api.POST("/api/v1/tokens", {
-          body: { name, role: tokenRole, expires_in_days: days === "" ? undefined : Number(days) },
-        }),
-      ),
+    ...createTokenMutation(),
     onSuccess: (data) => {
       setCreated(data);
-      void qc.invalidateQueries({ queryKey: ["tokens"] });
+      void qc.invalidateQueries({ queryKey: tokensQueryKey });
     },
   });
 
@@ -180,7 +172,7 @@ function CreateTokenForm({ role, onDone }: { role: Role; onDone: () => void }) {
   const fields = fieldErrors(mutation.error);
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    mutation.mutate();
+    mutation.mutate({ body: { name, role: tokenRole, expires_in_days: days === "" ? undefined : Number(days) } });
   };
 
   return (
@@ -216,10 +208,9 @@ function CreateTokenForm({ role, onDone }: { role: Role; onDone: () => void }) {
 function RevokeConfirm({ token, onDone }: { token: Token; onDone: () => void }) {
   const qc = useQueryClient();
   const mutation = useMutation({
-    mutationFn: async () =>
-      unwrap(await api.DELETE("/api/v1/tokens/{tokenId}", { params: { path: { tokenId: token.id } } })),
+    ...revokeTokenMutation(),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["tokens"] });
+      void qc.invalidateQueries({ queryKey: tokensQueryKey });
       onDone();
     },
   });
@@ -233,7 +224,11 @@ function RevokeConfirm({ token, onDone }: { token: Token; onDone: () => void }) 
         <Button variant="secondary" onClick={onDone}>
           Cancel
         </Button>
-        <Button variant="destructive" disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+        <Button
+          variant="destructive"
+          disabled={mutation.isPending}
+          onClick={() => mutation.mutate({ path: { tokenId: token.id } })}
+        >
           Revoke
         </Button>
       </div>

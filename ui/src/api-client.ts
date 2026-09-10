@@ -28,15 +28,24 @@ client.interceptors.response.use((response) => {
   return response;
 });
 
-client.interceptors.error.use((error, response) => {
+/**
+ * toApiError converts a failed response body into an ApiError. It returns the original
+ * error unchanged when there is no response, for example a network error from fetch itself.
+ * TanStack Query retries a plain error but not an ApiError with a status below 500, so a
+ * network error must stay a plain error to get the same retries as before.
+ */
+export function toApiError(error: unknown, response: Response | undefined): unknown {
+  if (!response) return error;
   const env = (error ?? {}) as Partial<ErrorEnvelope>;
   return new ApiError(
-    response?.status ?? 0,
+    response.status,
     env.error?.code ?? "http_error",
-    env.error?.message ?? response?.statusText ?? "request failed",
+    env.error?.message ?? response.statusText ?? "request failed",
     env.error?.details,
   );
-});
+}
+
+client.interceptors.error.use(toApiError);
 
 /**
  * rawFetch runs a fetch request outside the generated client, for hand-written streamed

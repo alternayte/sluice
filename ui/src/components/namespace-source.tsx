@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { Folder, FolderPen, GitBranch, Lock } from "lucide-react";
-import { getNamespaceQueryKey, listNamespacesQueryKey } from "@/api/@tanstack/react-query.gen";
+import { listNamespacesQueryKey } from "@/api/@tanstack/react-query.gen";
 import type { Namespace } from "@/api/types.gen";
 import { Badge } from "@/components/ui/badge";
 
@@ -34,14 +34,23 @@ export function SourceBadges({ ns }: { ns: Namespace }) {
   );
 }
 
+/** namespaceScopedIds are the generated queries that a change of one namespace affects. */
+const namespaceScopedIds = new Set(["getNamespace", "listFiles", "listVersions", "diffVersions"]);
+
+/** flowIds are the generated queries that a change of any namespace flow affects. */
+const flowIds = new Set(["listFlows", "getFlow", "listFlowRevisions", "diffFlowRevisions"]);
+
 /** invalidateNamespace refreshes all queries that a change of the namespace affects. */
 export function invalidateNamespace(qc: QueryClient, namespace: string) {
-  void qc.invalidateQueries({ queryKey: getNamespaceQueryKey({ path: { namespace } }) });
-  void qc.invalidateQueries({ queryKey: listNamespacesQueryKey() });
   void qc.invalidateQueries({
     predicate: (q) => {
-      const id = (q.queryKey[0] as { _id?: string } | undefined)?._id;
-      return id === "listFlows" || id === "getFlow";
+      const key = q.queryKey[0] as { _id?: string; path?: { namespace?: string } } | undefined;
+      if (!key?._id) return false;
+      if (namespaceScopedIds.has(key._id)) return key.path?.namespace === namespace;
+      return flowIds.has(key._id);
     },
   });
+  void qc.invalidateQueries({ queryKey: listNamespacesQueryKey() });
+  // The file content query is hand-written (rawFetch), not generated; it keys on ["namespace", namespace, "file", path].
+  void qc.invalidateQueries({ queryKey: ["namespace", namespace] });
 }

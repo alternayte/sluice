@@ -2,7 +2,7 @@
 
 status: IN_PROGRESS
 sdd_sha256: da422836d9c5d45d47c51c922e16ca0acfac0a3288d59d76c87f25d4f5272fbc
-current_slice: S0
+current_slice: S1
 review_round: 0
 review_complete: false
 blocking_findings_open: 0
@@ -44,35 +44,35 @@ blocking_findings_open: 0
 | SCN-CORE-008 | IN_PROGRESS | S0 | |
 | SCN-DOC-001 | IN_PROGRESS | S0 | |
 | SCN-UI-001 | IN_PROGRESS | S0 | |
-| REQ-AUTH-001 | OPEN | S1 | |
-| REQ-AUTH-002 | OPEN | S1 | |
-| REQ-AUTH-003 | OPEN | S1 | |
-| REQ-AUTH-004 | OPEN | S1 | |
-| REQ-AUTH-005 | OPEN | S1 | |
-| REQ-AUTH-006 | OPEN | S1 | |
-| REQ-AUTH-007 | OPEN | S1 | |
-| REQ-AUTH-008 | OPEN | S1 | |
-| REQ-AUTH-009 | OPEN | S1 | |
-| REQ-UI-002 | OPEN | S1 | |
-| SI-02 | OPEN | S1 | |
-| SI-03 | OPEN | S1 | |
-| SI-06 | OPEN | S1 | |
-| SI-11 | OPEN | S1 | |
-| SI-12 | OPEN | S1 | |
-| SCN-AUTH-001 | OPEN | S1 | |
-| SCN-AUTH-002 | OPEN | S1 | |
-| SCN-AUTH-003 | OPEN | S1 | |
-| SCN-AUTH-004 | OPEN | S1 | |
-| SCN-AUTH-005 | OPEN | S1 | |
-| SCN-AUTH-006 | OPEN | S1 | |
-| SCN-AUTH-007 | OPEN | S1 | |
-| SCN-AUTH-008 | OPEN | S1 | |
-| SCN-AUTH-009 | OPEN | S1 | |
-| SCN-AUTH-010 | OPEN | S1 | |
-| SCN-AUTH-011 | OPEN | S1 | |
-| SCN-AUTH-012 | OPEN | S1 | |
-| SCN-AUTH-013 | OPEN | S1 | |
-| SCN-UI-005 | OPEN | S1 | |
+| REQ-AUTH-001 | IN_PROGRESS | S1 |  |
+| REQ-AUTH-002 | IN_PROGRESS | S1 |  |
+| REQ-AUTH-003 | IN_PROGRESS | S1 |  |
+| REQ-AUTH-004 | IN_PROGRESS | S1 |  |
+| REQ-AUTH-005 | IN_PROGRESS | S1 |  |
+| REQ-AUTH-006 | IN_PROGRESS | S1 |  |
+| REQ-AUTH-007 | IN_PROGRESS | S1 |  |
+| REQ-AUTH-008 | IN_PROGRESS | S1 |  |
+| REQ-AUTH-009 | IN_PROGRESS | S1 |  |
+| REQ-UI-002 | IN_PROGRESS | S1 |  |
+| SI-02 | IN_PROGRESS | S1 |  |
+| SI-03 | IN_PROGRESS | S1 |  |
+| SI-06 | IN_PROGRESS | S1 |  |
+| SI-11 | IN_PROGRESS | S1 |  |
+| SI-12 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-001 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-002 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-003 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-004 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-005 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-006 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-007 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-008 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-009 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-010 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-011 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-012 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-013 | IN_PROGRESS | S1 |  |
+| SCN-UI-005 | IN_PROGRESS | S1 |  |
 | REQ-STO-001 | OPEN | S2 | |
 | REQ-STO-002 | OPEN | S2 | |
 | REQ-STO-003 | OPEN | S2 | |

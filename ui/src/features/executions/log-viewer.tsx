@@ -36,18 +36,20 @@ function useLogLines(executionId: string) {
     setError(undefined);
 
     const run = async () => {
+      const limit = 5000;
       let cursor: string | undefined;
       let done: boolean | undefined;
       for (;;) {
         const { data: page } = await getExecutionLogs({
           path: { executionId },
-          query: { limit: 5000, cursor },
+          query: { limit, cursor },
           throwOnError: true,
         });
         if (stopped) return;
         add(page.lines);
         done = page.done;
-        if (!page.next_cursor) break;
+        // The server sends a cursor on each page. A page that is not full is the end of the history.
+        if (!page.next_cursor || page.lines.length < limit) break;
         cursor = page.next_cursor;
       }
       if (done) {

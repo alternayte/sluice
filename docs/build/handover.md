@@ -42,18 +42,32 @@ This file records where the build stopped. `decisions.md` is the authoritative r
   `http.Server.Shutdown` waiting. Test: `go test -tags e2e -run SCN_CORE_007 ./tests/e2e/`.
 - Not written yet: SCN-EXE-010 (claims across two instances, [I]),
   SCN-EXE-014 (retention with a fake clock, [I]), SCN-EXE-012 (templates; needs the
-  S6 variables API for vars precedence), SCN-EXE-008, SCN-EXE-009, SCN-UI-*
-  and SCN-RUN-008 (Playwright), SCN-RUN-005 (masking; needs S6 secrets),
+  S6 variables API for vars precedence), SCN-RUN-005 (masking; needs S6 secrets),
   SCN-RUN-006 (Toxiproxy), SCN-RUN-007 (needs S8 images), SCN-EXR-001 (needs
   docker and kind detection), SCN-NFR-002 (perf), SCN-CORE-004, SCN-CORE-008,
-  SCN-NS-002, SCN-NS-003, SCN-NS-007, SCN-FLOW-003, SCN-FLOW-004, SCN-FLOW-005,
-  SCN-FLOW-008 (Playwright or later slices). `just trace` also lists scenarios
+  SCN-FLOW-003, SCN-FLOW-005 (later slices). Open Playwright scenarios:
+  SCN-UI-001 (dashboard KPIs and charts come in S10), SCN-UI-004 (the flow
+  state strip, duration chart and metric chart come in S10), SCN-UI-006
+  (git sources need S7, secret providers need S6, the AI provider needs S11),
+  SCN-UI-007 (axe runs in S10, and the secrets page comes in S6), SCN-UI-009
+  (the dashboard of S10 is one of the three pages), SCN-UI-010 (the inherited
+  secret key needs the S6 secrets page). `just trace` also lists scenarios
   for slices after S4 that are not in scope yet: SCN-AI-*,
   SCN-AUTH-010, SCN-DEP-*, SCN-EX-001, SCN-EX-002, SCN-EXR-003 to
   SCN-EXR-007, SCN-FLOW-006, SCN-GIT-*, SCN-NFR-001, SCN-NFR-003,
   SCN-NS-004, SCN-NS-005, SCN-SEC-*, SCN-TRG-002 to SCN-TRG-007. None of
   these were open before slice R, so none is a regression.
-- Playwright specs for S3 and S4 pages are not written. Labels: namespace page
+- Playwright specs for S3 and S4 pages are in `tests/ui/specs/`: `namespaces.spec.ts`
+  (SCN-NS-002, SCN-NS-003, SCN-NS-007), `flows.spec.ts` (SCN-FLOW-004,
+  SCN-FLOW-008), `executions.spec.ts` (SCN-EXE-008, SCN-EXE-009, SCN-UI-002,
+  SCN-UI-003, SCN-UI-008), `logs.spec.ts` (SCN-RUN-008) and `roles.spec.ts`
+  (SCN-UI-005). `tests/ui/helpers/app.ts` holds the shared setup: `signInAs`,
+  `seedNamespace`, `saveFilesAPI`, `triggerFlowAPI`, `runFileAPI`,
+  `waitExecutionState`, `cancelExecutionAPI`, `executionHeading`, `ganttRow` and
+  `dbQuery`. The UI "New file" action saves a version at once, so SCN-NS-002
+  checks the version of the first typed save (v2), not one version with both files.
+  The executions list polls each 2 s. SCN-UI-008 passed in each run, but a slow
+  request can take the list above the 2 s limit of REQ-UI-012. Labels: namespace page
   buttons "New file" (dialog "New file", submit "Create", field "Path"), "Save"
   (dialog "Save file", field "Commit message", submit "Save"), "Rename", "Delete",
   tabs "Files" and "Versions", "Revert to this version" (confirm "Revert"); flow page

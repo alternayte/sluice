@@ -29,7 +29,7 @@ func registerRoutes(api huma.API, r chi.Router, s services) {
 	auth.Routes(api, s.Auth)
 	audit.Routes(api, s.Audit)
 	instance.Routes(api, s.Instances, s.Clock)
-	_ = r
+	namespace.Routes(api, r, s.Namespaces)
 }
 
 func (s *Server) services() services {

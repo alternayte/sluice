@@ -160,9 +160,9 @@ func runnerBody(op huma.Operation) huma.Operation {
 
 // RunnerRoutes registers the runner protocol under /api/runner/v1 (Appendix C). The run
 // token middleware authenticates each request before these handlers. The engine limits an
-// artifact to maxArtifactBytes (e.Cfg.MaxArtifactBytes has the same value).
+// artifact to e.Cfg.MaxArtifactBytes.
 // Registration does not use e: `sluice openapi` passes nil.
-func RunnerRoutes(api huma.API, r chi.Router, e *Engine, maxArtifactBytes int64) {
+func RunnerRoutes(api huma.API, r chi.Router, e *Engine) {
 	base := runnerproto.BasePath + "/task-runs/{taskRunId}"
 
 	huma.Register(api, httpx.Op("runnerGetSpec", http.MethodGet, base+"/spec", httpx.RunToken),
@@ -263,8 +263,6 @@ func RunnerRoutes(api huma.API, r chi.Router, e *Engine, maxArtifactBytes int64)
 			}
 			return nil, e.Complete(ctx, tr, runnerproto.Complete{ExitCode: in.Body.ExitCode, Error: in.Body.Error, Reason: in.Body.Reason})
 		})
-
-	_ = maxArtifactBytes
 }
 
 func toEvents(in []RunnerEvent) []runnerproto.Event {

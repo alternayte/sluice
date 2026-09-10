@@ -4,6 +4,10 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
+// The Go server that the dev server proxies to. The justfile loads .env, so
+// VITE_API_TARGET from .env reaches this process.
+const apiTarget = process.env.VITE_API_TARGET ?? "http://127.0.0.1:8080";
+
 export default defineConfig({
   plugins: [
     tanstackRouter({ target: "react", autoCodeSplitting: true }),
@@ -21,9 +25,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/api": "http://127.0.0.1:8080",
-      "/hooks": "http://127.0.0.1:8080",
-      "/mcp": "http://127.0.0.1:8080",
+      "/api": apiTarget,
+      "/hooks": apiTarget,
+      "/mcp": apiTarget,
     },
   },
   test: {

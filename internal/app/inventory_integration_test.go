@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -104,13 +105,23 @@ func TestSCN_AUTH_006_RouteInventory(t *testing.T) {
 		tokens[role] = secret
 	}
 
-	call := func(op invOp, token string) int {
-		path := paramRe.ReplaceAllString(op.Path, uuid.NewString())
+	// A user with a temporary password can use only Self operations (SI-03).
+	tmpUser, err := s.Auth.CreateUser(ctx, "inv-temp@example.com", "", kernel.Admin, "inventory-pass-1", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpToken, _, err := s.Auth.CreateToken(ctx, &kernel.Principal{UserID: tmpUser.ID, Email: tmpUser.Email, Role: kernel.Admin}, "inv", kernel.Admin, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	callRaw := func(method, path, token string) (int, string) {
+		path = paramRe.ReplaceAllString(path, uuid.NewString())
 		var body io.Reader
-		if op.Method == http.MethodPost || op.Method == http.MethodPut || op.Method == http.MethodPatch {
+		if method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch {
 			body = bytes.NewReader([]byte("{}"))
 		}
-		req, _ := http.NewRequest(op.Method, srv.URL+path, body)
+		req, _ := http.NewRequest(method, srv.URL+path, body)
 		if body != nil {
 			req.Header.Set("Content-Type", "application/json")
 		}
@@ -121,44 +132,71 @@ func TestSCN_AUTH_006_RouteInventory(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, _ = io.Copy(io.Discard, resp.Body)
+		b, _ := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
-		return resp.StatusCode
+		return resp.StatusCode, string(b)
 	}
 
+	// Every GET operation is also called with HEAD. HEAD must get the same allow or deny
+	// result as GET, as with the net/http ServeMux of the old server.
 	for _, op := range ops {
-		acc := op.Access
-		if op.ID == "logout" {
-			continue // logout with a token only records an event
+		methods := []string{op.Method}
+		if op.Method == http.MethodGet {
+			methods = append(methods, http.MethodHead)
 		}
-		anon := call(op, "")
-		switch {
-		case acc == httpx.RunToken:
-			if anon != http.StatusUnauthorized {
-				t.Errorf("%s: no run token returned %d, want 401", op.ID, anon)
+		for _, method := range methods {
+			checkOp(t, op, method, tokens, func(token string) int {
+				code, _ := callRaw(method, op.Path, token)
+				return code
+			})
+		}
+	}
+
+	// SI-03: a user who must change the password gets 403 password_change_required on an
+	// operation that is not Self, and can use a Self operation.
+	code, body := callRaw(http.MethodGet, "/api/v1/namespaces", tmpToken)
+	if code != http.StatusForbidden || !strings.Contains(body, `"password_change_required"`) {
+		t.Errorf("listNamespaces with a temporary password: %d %s, want 403 password_change_required", code, body)
+	}
+	if code, body := callRaw(http.MethodGet, "/api/v1/auth/me", tmpToken); code < 200 || code > 299 {
+		t.Errorf("getMe with a temporary password: %d %s, want 2xx", code, body)
+	}
+}
+
+// checkOp checks the result of one operation with one method against its access.
+func checkOp(t *testing.T, op invOp, method string, tokens map[kernel.Role]string, call func(token string) int) {
+	t.Helper()
+	acc := op.Access
+	if op.ID == "logout" {
+		return // logout with a token only records an event
+	}
+	anon := call("")
+	switch {
+	case acc == httpx.RunToken:
+		if anon != http.StatusUnauthorized {
+			t.Errorf("%s %s: no run token returned %d, want 401", method, op.ID, anon)
+		}
+		for _, role := range kernel.AllRoles {
+			if got := call(tokens[role]); got != http.StatusUnauthorized {
+				t.Errorf("%s %s with a %s user token: %d, want 401", method, op.ID, role, got)
 			}
-			for _, role := range kernel.AllRoles {
-				if got := call(op, tokens[role]); got != http.StatusUnauthorized {
-					t.Errorf("%s with a %s user token: %d, want 401", op.ID, role, got)
+		}
+	case acc.Public:
+		if anon == http.StatusUnauthorized || anon == http.StatusForbidden {
+			t.Errorf("%s %s: public route returned %d without auth", method, op.ID, anon)
+		}
+	default:
+		if anon != http.StatusUnauthorized {
+			t.Errorf("%s %s: no auth returned %d, want 401", method, op.ID, anon)
+		}
+		for _, role := range kernel.AllRoles {
+			got := call(tokens[role])
+			if role >= acc.Min {
+				if got == http.StatusForbidden || got == http.StatusUnauthorized {
+					t.Errorf("%s %s as %s: %d, want allowed", method, op.ID, role, got)
 				}
-			}
-		case acc.Public:
-			if anon == http.StatusUnauthorized || anon == http.StatusForbidden {
-				t.Errorf("%s: public route returned %d without auth", op.ID, anon)
-			}
-		default:
-			if anon != http.StatusUnauthorized {
-				t.Errorf("%s: no auth returned %d, want 401", op.ID, anon)
-			}
-			for _, role := range kernel.AllRoles {
-				got := call(op, tokens[role])
-				if role >= acc.Min {
-					if got == http.StatusForbidden || got == http.StatusUnauthorized {
-						t.Errorf("%s as %s: %d, want allowed", op.ID, role, got)
-					}
-				} else if got != http.StatusForbidden {
-					t.Errorf("%s as %s: %d, want 403", op.ID, role, got)
-				}
+			} else if got != http.StatusForbidden {
+				t.Errorf("%s %s as %s: %d, want 403", method, op.ID, role, got)
 			}
 		}
 	}

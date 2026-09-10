@@ -30,7 +30,7 @@ func newTestMux(t *testing.T) *chi.Mux {
 	mux := chi.NewRouter()
 	api := httpx.NewAPI(mux)
 	Routes(api, mux, nil)
-	RunnerRoutes(api, mux, nil, 0)
+	RunnerRoutes(api, mux, nil)
 	return mux
 }
 

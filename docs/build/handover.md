@@ -48,7 +48,7 @@ This file records where the build stopped. `decisions.md` is the authoritative r
   docker and kind detection), SCN-NFR-002 (perf), SCN-CORE-004, SCN-CORE-008,
   SCN-NS-002, SCN-NS-003, SCN-NS-007, SCN-FLOW-003, SCN-FLOW-004, SCN-FLOW-005,
   SCN-FLOW-008 (Playwright or later slices). `just trace` also lists scenarios
-  for slices after S4 that are not in scope yet: SCN-AI-*, SCN-API-001,
+  for slices after S4 that are not in scope yet: SCN-AI-*,
   SCN-AUTH-010, SCN-DEP-*, SCN-EX-001, SCN-EX-002, SCN-EXR-003 to
   SCN-EXR-007, SCN-FLOW-006, SCN-GIT-*, SCN-NFR-001, SCN-NFR-003,
   SCN-NS-004, SCN-NS-005, SCN-SEC-*, SCN-TRG-002 to SCN-TRG-007. None of

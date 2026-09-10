@@ -9,11 +9,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -170,7 +170,7 @@ func enabledExecutors(cfg *Config) []string {
 // Handler builds the root HTTP handler.
 func (s *Server) Handler() (http.Handler, error) {
 	r := chi.NewMux()
-	r.Use(httpx.SecurityHeaders, httpx.WithRequestID, s.withLogger, s.metrics, middleware.GetHead, s.Auth.Middleware,
+	r.Use(httpx.SecurityHeaders, httpx.WithRequestID, s.withLogger, s.metrics, getHead, s.Auth.Middleware,
 		execution.RunnerContentType, execution.RunTokenMiddleware(s.Engine))
 	r.Get("/healthz", health.Healthz)
 	r.Get("/readyz", s.Health.Readyz)
@@ -184,6 +184,31 @@ func (s *Server) Handler() (http.Handler, error) {
 	r.Handle("/api/*", httpx.NotFoundJSON())
 	r.Handle("/*", spaHandler())
 	return r, nil
+}
+
+// getHead routes a HEAD request to the GET handler of its path, as the net/http ServeMux of
+// the old server did. chi middleware.GetHead is not sufficient: the /api/* catch-all takes
+// every method, so a HEAD match always exists. Here a HEAD match on a catch-all pattern
+// does not count when a more specific GET route matches. The net/http server sends no body
+// for HEAD.
+func getHead(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			rctx := chi.RouteContext(r.Context())
+			path := r.URL.RawPath
+			if path == "" {
+				path = r.URL.Path
+			}
+			head := rctx.Routes.Find(chi.NewRouteContext(), http.MethodHead, path)
+			if head == "" || strings.HasSuffix(head, "*") {
+				if get := rctx.Routes.Find(chi.NewRouteContext(), http.MethodGet, path); get != "" && get != head {
+					rctx.RouteMethod = http.MethodGet
+					rctx.RoutePath = path
+				}
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) withLogger(next http.Handler) http.Handler { return withLogger(s.Log, next) }

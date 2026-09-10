@@ -114,4 +114,44 @@ func TestServerHeadAndBareAPI(t *testing.T) {
 	if res.StatusCode != http.StatusNotFound || !strings.HasPrefix(res.Header.Get("Content-Type"), "application/json") {
 		t.Fatalf("unknown route: %d %s", res.StatusCode, res.Header.Get("Content-Type"))
 	}
+
+	// HEAD on an API GET route gets the status of GET and no body. The first path is a
+	// huma route, the second path is an httpx.Raw route. The /api/* catch-all must not
+	// take these requests.
+	for _, path := range []string{"/api/v1/auth/me", "/api/v1/namespaces/team/file?path=a.py"} {
+		getRes, _ := get(t, p.URL+path)
+		req, err := http.NewRequest(http.MethodHead, p.URL+path, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if getRes.StatusCode != http.StatusUnauthorized || resp.StatusCode != getRes.StatusCode {
+			t.Fatalf("HEAD %s: %d, GET: %d, want 401 for both", path, resp.StatusCode, getRes.StatusCode)
+		}
+		if len(b) != 0 {
+			t.Fatalf("HEAD %s: non-empty body %q", path, b)
+		}
+		if resp.Header.Get("X-Request-Id") == "" || resp.Header.Get("X-Content-Type-Options") == "" {
+			t.Fatalf("HEAD %s: no request ID or security headers: %v", path, resp.Header)
+		}
+	}
+
+	// HEAD on an unknown API path still gets the JSON 404 status.
+	req, err := http.NewRequest(http.MethodHead, p.URL+"/api/v1/nothing/here", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound || !strings.HasPrefix(resp.Header.Get("Content-Type"), "application/json") {
+		t.Fatalf("HEAD unknown route: %d %s", resp.StatusCode, resp.Header.Get("Content-Type"))
+	}
 }

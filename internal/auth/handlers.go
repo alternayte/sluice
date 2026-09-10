@@ -160,11 +160,11 @@ func (h Handlers) RevokeOtherSessions(ctx context.Context, _ apigen.RevokeOtherS
 
 // ListUsers lists users.
 func (h Handlers) ListUsers(ctx context.Context, req apigen.ListUsersRequestObject) (apigen.ListUsersResponseObject, error) {
-	after, afterID, err := page.DecodePtr((*string)(req.Params.Cursor))
+	after, afterID, err := page.DecodePtr(req.Params.Cursor)
 	if err != nil {
 		return nil, err
 	}
-	limit := page.LimitPtr((*int)(req.Params.Limit))
+	limit := page.LimitPtr(req.Params.Limit)
 	rows, err := h.Svc.q(nil).ListUsers(ctx, dbq.ListUsersParams{AfterCreated: after, AfterID: afterID, Lim: int32(limit + 1)})
 	if err != nil {
 		return nil, err
@@ -273,7 +273,7 @@ func (h Handlers) RevokeToken(ctx context.Context, req apigen.RevokeTokenRequest
 
 // ListAuditEvents lists audit events with filters.
 func (h Handlers) ListAuditEvents(ctx context.Context, req apigen.ListAuditEventsRequestObject) (apigen.ListAuditEventsResponseObject, error) {
-	f := audit.Filter{From: req.Params.From, To: req.Params.To, Limit: page.LimitPtr((*int)(req.Params.Limit))}
+	f := audit.Filter{From: req.Params.From, To: req.Params.To, Limit: page.LimitPtr(req.Params.Limit)}
 	if req.Params.Actor != nil {
 		f.Actor = *req.Params.Actor
 	}
@@ -284,7 +284,7 @@ func (h Handlers) ListAuditEvents(ctx context.Context, req apigen.ListAuditEvent
 		f.Target = *req.Params.Target
 	}
 	if req.Params.Cursor != nil {
-		f.Cursor = string(*req.Params.Cursor)
+		f.Cursor = *req.Params.Cursor
 	}
 	rows, next, err := h.Svc.Audit.List(ctx, f)
 	if err != nil {

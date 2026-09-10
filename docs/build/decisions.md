@@ -20,6 +20,7 @@
 | DI-14 | 2026-09-10 | Appendix B | `GET /api/v1/instances` needs admin, because instances are a settings page. Token effective role is the lower of the token role and the current owner role. | Appendix B lists settings as admin. A demoted owner must not keep a higher token. |
 | DI-15 | 2026-09-10 | REQ-AUTH-008 | Login failures are counted in `login_attempts` over a 15-minute window. `Retry-After` is the time until the oldest failure in the window leaves it. Rejected (429) attempts are not recorded. | Works across instances through Postgres. |
 | DI-16 | 2026-09-10 | REQ-UI-010, SI-12 | The UI uses native `<dialog>` and `<select>` elements instead of Radix Dialog. | Radix Dialog injects `<style>` elements, which `default-src 'self'` blocks. |
+| DI-17 | 2026-09-10 | REQ-STO-006 | Storage GC runs from the maintenance leader at most once in 24 hours (last run in `settings`). It deletes bundles unused for 7 days, file objects without a snapshot reference (row locked with `FOR UPDATE SKIP LOCKED`), stored files without a row, and logs and artifacts whose execution row is gone. Objects younger than 1 hour are kept. | Saves take `FOR SHARE` on the file object row, so GC cannot delete content that a concurrent save references. The grace period protects uploads in progress. |
 
 ## Human answers
 

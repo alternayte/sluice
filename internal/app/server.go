@@ -26,7 +26,19 @@ import (
 	"github.com/alternayte/sluice/internal/platform/lease"
 	"github.com/alternayte/sluice/internal/platform/logging"
 	"github.com/alternayte/sluice/internal/platform/promx"
+	"github.com/alternayte/sluice/internal/storage"
 )
+
+func storageConfig(cfg *Config) storage.Config {
+	return storage.Config{
+		Type:   cfg.StorageType,
+		FSRoot: cfg.FSRoot,
+		S3: storage.S3Config{Bucket: cfg.S3Bucket, Region: cfg.S3Region, Endpoint: cfg.S3Endpoint, ForcePathStyle: cfg.S3ForcePathStyle,
+			AccessKeyID: cfg.S3AccessKeyID, SecretAccessKey: cfg.S3SecretAccessKey, Prefix: cfg.S3Prefix},
+		Azblob: storage.AzblobConfig{AccountURL: cfg.AzblobAccountURL, ConnectionString: cfg.AzblobConnectionString,
+			Container: cfg.AzblobContainer, Prefix: cfg.AzblobPrefix},
+	}
+}
 
 // Server is one running sluice server instance.
 type Server struct {
@@ -41,6 +53,8 @@ type Server struct {
 	Registry *instance.Registry
 	Audit    *audit.Writer
 	Auth     *auth.Service
+	Store    storage.Store
+	GC       *storage.GC
 
 	httpServer *http.Server
 	listener   net.Listener
@@ -89,6 +103,14 @@ func NewServer(ctx context.Context, cfg *Config, log *slog.Logger) (*Server, err
 		return pool.QueryRow(ctx, "SELECT 1").Scan(&one)
 	})
 	s.Health.Add("migrations", func(ctx context.Context) error { return db.MigrationsCurrent(ctx, pool) })
+	s.Store, err = storage.Open(ctx, storageConfig(cfg), pool)
+	if err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("open storage: %w", err)
+	}
+	healthKey := "health/" + id.String()
+	s.Health.Add("storage", func(ctx context.Context) error { return storage.RoundTrip(ctx, s.Store, healthKey) })
+	s.GC = &storage.GC{Pool: pool, Store: s.Store, Clock: clk, Log: log}
 	created, err := s.Auth.Bootstrap(ctx, cfg.BootstrapAdminEmail, cfg.BootstrapAdminPassword)
 	if err != nil {
 		pool.Close()
@@ -266,6 +288,7 @@ func (s *Server) runMaintenance(ctx context.Context) {
 		{"instances", func(ctx context.Context) error { _, err := s.Registry.DeleteStale(ctx); return err }},
 		{"sessions", s.Auth.Cleanup},
 		{"audit", func(ctx context.Context) error { _, err := s.Audit.DeleteExpired(ctx); return err }},
+		{"storage_gc", func(ctx context.Context) error { _, err := s.GC.RunIfDue(ctx); return err }},
 	}
 	for _, st := range steps {
 		if err := st.fn(ctx); err != nil && ctx.Err() == nil {

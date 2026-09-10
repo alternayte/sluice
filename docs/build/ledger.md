@@ -2,7 +2,7 @@
 
 status: IN_PROGRESS
 sdd_sha256: da422836d9c5d45d47c51c922e16ca0acfac0a3288d59d76c87f25d4f5272fbc
-current_slice: S1
+current_slice: S2
 review_round: 0
 review_complete: false
 blocking_findings_open: 0
@@ -20,7 +20,7 @@ blocking_findings_open: 0
 | REQ-CORE-001 | IN_PROGRESS | S0 | |
 | REQ-CORE-002 | IN_PROGRESS | S0 | |
 | REQ-CORE-003 | PASS | S0 | SCN-CORE-002 |
-| REQ-CORE-004 | IN_PROGRESS | S0 | |
+| REQ-CORE-004 | PASS | S0 | SCN-CORE-003 |
 | REQ-CORE-005 | IN_PROGRESS | S0 | |
 | REQ-CORE-006 | IN_PROGRESS | S0 | |
 | REQ-CORE-007 | PASS | S0 | SCN-CORE-006 |
@@ -36,7 +36,7 @@ blocking_findings_open: 0
 | SCN-API-004 | IN_PROGRESS | S0 | |
 | SCN-CORE-001 | IN_PROGRESS | S0 | |
 | SCN-CORE-002 | PASS | S0 | internal/platform/db/db_integration_test.go::TestSCN_CORE_002_ConcurrentMigrations |
-| SCN-CORE-003 | IN_PROGRESS | S0 | |
+| SCN-CORE-003 | PASS | S0 | tests/e2e/storage_test.go::TestSCN_CORE_003_HealthReadyMetrics |
 | SCN-CORE-004 | IN_PROGRESS | S0 | |
 | SCN-CORE-005 | PASS | S0 | internal/platform/lease/lease_integration_test.go::TestSCN_CORE_005_LeaseHandover |
 | SCN-CORE-006 | PASS | S0 | tests/e2e/instances_test.go::TestSCN_CORE_006_InstancesRegistry |
@@ -73,17 +73,17 @@ blocking_findings_open: 0
 | SCN-AUTH-012 | PASS | S1 | internal/auth/auth_integration_test.go::TestSCN_AUTH_012_SecretsStoredAsHashes |
 | SCN-AUTH-013 | PASS | S1 | tests/e2e/auth_test.go::TestSCN_AUTH_013_SecurityHeaders |
 | SCN-UI-005 | IN_PROGRESS | S1 |  |
-| REQ-STO-001 | OPEN | S2 | |
-| REQ-STO-002 | OPEN | S2 | |
-| REQ-STO-003 | OPEN | S2 | |
-| REQ-STO-004 | OPEN | S2 | |
-| REQ-STO-005 | OPEN | S2 | |
-| REQ-STO-006 | OPEN | S2 | |
-| SCN-STO-001 | OPEN | S2 | |
-| SCN-STO-002 | OPEN | S2 | |
-| SCN-STO-003 | OPEN | S2 | |
-| SCN-STO-004 | OPEN | S2 | |
-| SCN-STO-005 | OPEN | S2 | |
+| REQ-STO-001 | PASS | S2 | SCN-STO-001 |
+| REQ-STO-002 | PASS | S2 | SCN-STO-002 |
+| REQ-STO-003 | PASS | S2 | SCN-STO-003 |
+| REQ-STO-004 | PASS | S2 | SCN-STO-001 |
+| REQ-STO-005 | IN_PROGRESS | S2 |  |
+| REQ-STO-006 | PASS | S2 | SCN-STO-005 |
+| SCN-STO-001 | PASS | S2 | internal/storage/conformance_integration_test.go::TestSCN_STO_001_Conformance |
+| SCN-STO-002 | PASS | S2 | internal/storage/conformance_integration_test.go::TestSCN_STO_002_S3EndpointPathStylePrefix |
+| SCN-STO-003 | PASS | S2 | internal/storage/azblob_gc_integration_test.go::TestSCN_STO_003_AzblobConnectionStringAndTokenCredential |
+| SCN-STO-004 | IN_PROGRESS | S2 |  |
+| SCN-STO-005 | PASS | S2 | internal/storage/azblob_gc_integration_test.go::TestSCN_STO_005_GarbageCollection |
 | REQ-DOC-002 | OPEN | S3 | |
 | REQ-FLOW-001 | OPEN | S3 | |
 | REQ-FLOW-002 | OPEN | S3 | |

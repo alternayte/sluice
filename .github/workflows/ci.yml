@@ -89,11 +89,11 @@ jobs:
       - name: Compare the Go e2e suite with the baseline.
         run: scripts/e2e-compare.sh
 
-      - name: Check the Playwright suite types.
-        run: cd tests/ui && bunx tsc --noEmit
-
       - name: Install the Playwright dependencies.
         run: cd tests/ui && bun install --frozen-lockfile
+
+      - name: Check the Playwright suite types.
+        run: cd tests/ui && bunx tsc --noEmit
 
       - name: Install the Chromium browser.
         run: cd tests/ui && bunx playwright install --with-deps chromium

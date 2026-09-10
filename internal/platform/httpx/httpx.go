@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/google/uuid"
 
@@ -24,6 +25,33 @@ type Error struct {
 }
 
 func (e *Error) Error() string { return fmt.Sprintf("%d %s: %s", e.Status, e.Code, e.Message) }
+
+// MarshalJSON writes the envelope {"error":{"code","message","details"}} (REQ-API-002).
+func (e *Error) MarshalJSON() ([]byte, error) {
+	type body struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+		Details any    `json:"details,omitempty"`
+	}
+	return json.Marshal(struct {
+		Error body `json:"error"`
+	}{body{Code: e.Code, Message: e.Message, Details: e.Details}})
+}
+
+// GetStatus returns the HTTP status. huma uses it.
+func (e *Error) GetStatus() int { return e.Status }
+
+// GetHeaders returns Retry-After when it is set. huma uses it.
+func (e *Error) GetHeaders() http.Header {
+	h := http.Header{}
+	if e.RetryAfter > 0 {
+		h.Set("Retry-After", strconv.Itoa(e.RetryAfter))
+	}
+	return h
+}
+
+// ContentType keeps application/json for errors. huma uses it.
+func (e *Error) ContentType(string) string { return "application/json" }
 
 // Errorf creates an API error.
 func Errorf(status int, code, format string, args ...any) *Error {
@@ -55,10 +83,6 @@ func Validation(fields ...FieldError) *Error {
 	return &Error{Status: http.StatusUnprocessableEntity, Code: "validation_failed", Message: "validation failed", Details: fields}
 }
 
-type envelope struct {
-	Error *Error `json:"error"`
-}
-
 // WriteJSON writes v as JSON with the status.
 func WriteJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
@@ -71,13 +95,15 @@ func WriteError(w http.ResponseWriter, r *http.Request, err error) {
 	var e *Error
 	if !errors.As(err, &e) {
 		logging.From(r.Context()).Error("request failed", "err", err)
-		e = &Error{Status: http.StatusInternalServerError, Code: "internal", Message: "internal error"}
+		e = errInternal
 	}
 	if e.RetryAfter > 0 {
-		w.Header().Set("Retry-After", fmt.Sprint(e.RetryAfter))
+		w.Header().Set("Retry-After", strconv.Itoa(e.RetryAfter))
 	}
-	WriteJSON(w, e.Status, envelope{Error: e})
+	WriteJSON(w, e.Status, e)
 }
+
+var errInternal = &Error{Status: http.StatusInternalServerError, Code: "internal", Message: "internal error"}
 
 type requestIDKey struct{}
 

@@ -40,7 +40,7 @@ const (
 var (
 	ErrInvalidCredentials  = httpx.Errorf(http.StatusUnauthorized, "invalid_credentials", "email or password is wrong")
 	ErrLastAdmin           = httpx.Errorf(http.StatusConflict, "last_admin", "at least one enabled admin must remain")
-	ErrPasswordChange      = httpx.Errorf(http.StatusForbidden, "password_change_required", "change your password first")
+	ErrPasswordChange      = httpx.ErrPasswordChange
 	ErrEmailTaken          = httpx.Errorf(http.StatusConflict, "email_taken", "a user with this email exists")
 	ErrTokenRoleTooHigh    = httpx.Errorf(http.StatusForbidden, "forbidden", "the token role must not exceed your role")
 	ErrWrongCurrentPasword = httpx.Validation(httpx.FieldError{Field: "current_password", Message: "the current password is wrong"})

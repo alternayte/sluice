@@ -2,7 +2,7 @@
 
 status: IN_PROGRESS
 sdd_sha256: da422836d9c5d45d47c51c922e16ca0acfac0a3288d59d76c87f25d4f5272fbc
-current_slice: S2
+current_slice: S3
 review_round: 0
 review_complete: false
 blocking_findings_open: 0
@@ -84,44 +84,44 @@ blocking_findings_open: 0
 | SCN-STO-003 | PASS | S2 | internal/storage/azblob_gc_integration_test.go::TestSCN_STO_003_AzblobConnectionStringAndTokenCredential |
 | SCN-STO-004 | IN_PROGRESS | S2 |  |
 | SCN-STO-005 | PASS | S2 | internal/storage/azblob_gc_integration_test.go::TestSCN_STO_005_GarbageCollection |
-| REQ-DOC-002 | OPEN | S3 | |
-| REQ-FLOW-001 | OPEN | S3 | |
-| REQ-FLOW-002 | OPEN | S3 | |
-| REQ-FLOW-003 | OPEN | S3 | |
-| REQ-FLOW-004 | OPEN | S3 | |
-| REQ-FLOW-005 | OPEN | S3 | |
-| REQ-FLOW-006 | OPEN | S3 | |
-| REQ-FLOW-007 | OPEN | S3 | |
-| REQ-FLOW-008 | OPEN | S3 | |
-| REQ-NS-001 | OPEN | S3 | |
-| REQ-NS-002 | OPEN | S3 | |
-| REQ-NS-003 | OPEN | S3 | |
-| REQ-NS-004 | OPEN | S3 | |
-| REQ-NS-005 | OPEN | S3 | |
-| REQ-NS-006 | OPEN | S3 | |
-| REQ-NS-007 | OPEN | S3 | |
-| REQ-NS-008 | OPEN | S3 | |
-| REQ-NS-009 | OPEN | S3 | |
-| REQ-UI-007 | OPEN | S3 | |
-| SI-08 | OPEN | S3 | |
-| SCN-FLOW-001 | OPEN | S3 | |
-| SCN-FLOW-002 | OPEN | S3 | |
-| SCN-FLOW-003 | OPEN | S3 | |
-| SCN-FLOW-004 | OPEN | S3 | |
-| SCN-FLOW-005 | OPEN | S3 | |
-| SCN-FLOW-006 | OPEN | S3 | |
-| SCN-FLOW-007 | OPEN | S3 | |
-| SCN-FLOW-008 | OPEN | S3 | |
-| SCN-NS-001 | OPEN | S3 | |
-| SCN-NS-002 | OPEN | S3 | |
-| SCN-NS-003 | OPEN | S3 | |
-| SCN-NS-004 | OPEN | S3 | |
-| SCN-NS-005 | OPEN | S3 | |
-| SCN-NS-006 | OPEN | S3 | |
-| SCN-NS-007 | OPEN | S3 | |
-| SCN-NS-008 | OPEN | S3 | |
-| SCN-NS-009 | OPEN | S3 | |
-| SCN-UI-010 | OPEN | S3 | |
+| REQ-DOC-002 | IN_PROGRESS | S3 |  |
+| REQ-FLOW-001 | IN_PROGRESS | S3 |  |
+| REQ-FLOW-002 | IN_PROGRESS | S3 |  |
+| REQ-FLOW-003 | IN_PROGRESS | S3 |  |
+| REQ-FLOW-004 | IN_PROGRESS | S3 |  |
+| REQ-FLOW-005 | IN_PROGRESS | S3 |  |
+| REQ-FLOW-006 | IN_PROGRESS | S3 |  |
+| REQ-FLOW-007 | IN_PROGRESS | S3 |  |
+| REQ-FLOW-008 | IN_PROGRESS | S3 |  |
+| REQ-NS-001 | IN_PROGRESS | S3 |  |
+| REQ-NS-002 | IN_PROGRESS | S3 |  |
+| REQ-NS-003 | IN_PROGRESS | S3 |  |
+| REQ-NS-004 | IN_PROGRESS | S3 |  |
+| REQ-NS-005 | IN_PROGRESS | S3 |  |
+| REQ-NS-006 | IN_PROGRESS | S3 |  |
+| REQ-NS-007 | IN_PROGRESS | S3 |  |
+| REQ-NS-008 | IN_PROGRESS | S3 |  |
+| REQ-NS-009 | IN_PROGRESS | S3 |  |
+| REQ-UI-007 | IN_PROGRESS | S3 |  |
+| SI-08 | IN_PROGRESS | S3 |  |
+| SCN-FLOW-001 | IN_PROGRESS | S3 |  |
+| SCN-FLOW-002 | IN_PROGRESS | S3 |  |
+| SCN-FLOW-003 | IN_PROGRESS | S3 |  |
+| SCN-FLOW-004 | IN_PROGRESS | S3 |  |
+| SCN-FLOW-005 | IN_PROGRESS | S3 |  |
+| SCN-FLOW-006 | IN_PROGRESS | S3 |  |
+| SCN-FLOW-007 | IN_PROGRESS | S3 |  |
+| SCN-FLOW-008 | IN_PROGRESS | S3 |  |
+| SCN-NS-001 | IN_PROGRESS | S3 |  |
+| SCN-NS-002 | IN_PROGRESS | S3 |  |
+| SCN-NS-003 | IN_PROGRESS | S3 |  |
+| SCN-NS-004 | IN_PROGRESS | S3 |  |
+| SCN-NS-005 | IN_PROGRESS | S3 |  |
+| SCN-NS-006 | IN_PROGRESS | S3 |  |
+| SCN-NS-007 | IN_PROGRESS | S3 |  |
+| SCN-NS-008 | IN_PROGRESS | S3 |  |
+| SCN-NS-009 | IN_PROGRESS | S3 |  |
+| SCN-UI-010 | IN_PROGRESS | S3 |  |
 | REQ-EXE-001 | OPEN | S4 | |
 | REQ-EXE-002 | OPEN | S4 | |
 | REQ-EXE-003 | OPEN | S4 | |

@@ -536,8 +536,8 @@ func (s *Service) Versions(ctx context.Context, name string, limit int) ([]Snaps
 	return out, nil
 }
 
-// FileDiff is the difference of one file between two versions.
-type FileDiff struct {
+// VersionFileDiff is the difference of one file between two versions.
+type VersionFileDiff struct {
 	Path   string
 	Status string // added, removed, modified
 	Binary bool
@@ -545,7 +545,7 @@ type FileDiff struct {
 }
 
 // Diff compares two versions (REQ-NS-003).
-func (s *Service) Diff(ctx context.Context, name string, from, to int) ([]FileDiff, error) {
+func (s *Service) Diff(ctx context.Context, name string, from, to int) ([]VersionFileDiff, error) {
 	ns, err := s.Get(ctx, name)
 	if err != nil {
 		return nil, err
@@ -570,14 +570,14 @@ func (s *Service) Diff(ctx context.Context, name string, from, to int) ([]FileDi
 		sorted = append(sorted, p)
 	}
 	sort.Strings(sorted)
-	var out []FileDiff
+	var out []VersionFileDiff
 	for _, p := range sorted {
 		ea, inA := a[p]
 		eb, inB := b[p]
 		if inA && inB && ea.Hash == eb.Hash {
 			continue
 		}
-		fd := FileDiff{Path: p, Status: "modified"}
+		fd := VersionFileDiff{Path: p, Status: "modified"}
 		switch {
 		case !inA:
 			fd.Status = "added"

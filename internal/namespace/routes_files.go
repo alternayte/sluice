@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -53,8 +54,8 @@ type SnapshotList struct {
 	Items []Snapshot `json:"items"`
 }
 
-// FileDiffItem is the diff of one file. The service type FileDiff already uses the schema name.
-type FileDiffItem struct {
+// FileDiff is the diff of one file.
+type FileDiff struct {
 	Path   string `json:"path"`
 	Status string `json:"status" enum:"added,removed,modified"`
 	Binary bool   `json:"binary"`
@@ -63,9 +64,9 @@ type FileDiffItem struct {
 
 // VersionDiff is the diff of two versions.
 type VersionDiff struct {
-	From  int            `json:"from"`
-	To    int            `json:"to"`
-	Files []FileDiffItem `json:"files"`
+	From  int        `json:"from"`
+	To    int        `json:"to"`
+	Files []FileDiff `json:"files"`
 }
 
 // Issue is one validation problem in a file.
@@ -93,6 +94,12 @@ type FileChange struct {
 	Content       *string `json:"content,omitempty" doc:"put only. UTF-8 text content."`
 	ContentBase64 *string `json:"content_base64,omitempty" doc:"put only. Binary content as base64. Used instead of content."`
 	Executable    *bool   `json:"executable,omitempty"`
+}
+
+// RevertRequest is the body of revertVersion.
+type RevertRequest struct {
+	Version int    `json:"version" minimum:"1"`
+	Message string `json:"message,omitempty" maxLength:"500"`
 }
 
 type snapshotOut struct{ Body Snapshot }
@@ -203,9 +210,9 @@ func registerFiles(api huma.API, r chi.Router, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out := &struct{ Body VersionDiff }{Body: VersionDiff{From: in.From, To: in.To, Files: []FileDiffItem{}}}
+			out := &struct{ Body VersionDiff }{Body: VersionDiff{From: in.From, To: in.To, Files: []FileDiff{}}}
 			for _, d := range diffs {
-				out.Body.Files = append(out.Body.Files, FileDiffItem(d))
+				out.Body.Files = append(out.Body.Files, FileDiff(d))
 			}
 			return out, nil
 		})
@@ -213,10 +220,7 @@ func registerFiles(api huma.API, r chi.Router, s *Service) {
 	huma.Register(api, unlimitedBody(withStatus(httpx.Op("revertVersion", http.MethodPost, "/api/v1/namespaces/{namespace}/revert", editor), http.StatusCreated)),
 		func(ctx context.Context, in *struct {
 			Namespace string `path:"namespace" maxLength:"128" pattern:"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$"`
-			Body      struct {
-				Version int    `json:"version" minimum:"1"`
-				Message string `json:"message,omitempty" maxLength:"500"`
-			}
+			Body      RevertRequest
 		}) (*snapshotOut, error) {
 			snap, err := s.Revert(ctx, in.Namespace, in.Body.Version, in.Body.Message)
 			if err != nil {
@@ -259,9 +263,9 @@ type fileParams struct {
 	Executable *bool
 }
 
-func parseFileParams(req *http.Request) (fileParams, error) {
+func parseFileParams(req *http.Request, extra ...httpx.FieldError) (fileParams, error) {
 	var p fileParams
-	var fields []httpx.FieldError
+	fields := extra
 	q := req.URL.Query()
 	p.Namespace = chi.URLParam(req, "namespace")
 	if len(p.Namespace) > 128 || !nameRE.MatchString(p.Namespace) {
@@ -338,7 +342,7 @@ func registerFileTransfer(api huma.API, r chi.Router, s *Service, viewer, editor
 		"application/octet-stream": {Schema: &huma.Schema{Type: huma.TypeString, Format: "binary"}}}}
 	uploadFile.Responses = httpx.RawResponse(http.StatusCreated, "application/json", "New version.")
 	httpx.Raw(api, r, uploadFile, func(w http.ResponseWriter, req *http.Request) {
-		p, err := parseFileParams(req)
+		p, err := parseFileParams(req, uploadBodyErrors(req)...)
 		if err != nil {
 			httpx.WriteError(w, req, err)
 			return
@@ -364,6 +368,22 @@ func registerFileTransfer(api huma.API, r chi.Router, s *Service, viewer, editor
 		}
 		httpx.WriteJSON(w, http.StatusCreated, toSnapshotOp(snap))
 	})
+}
+
+// uploadBodyErrors checks the uploadFile body as the old validator did (internal/api/server.go).
+// The old validator skipped only a non-empty body with a Content-Type that is not JSON. In each
+// other case it checked the required application/octet-stream body: an empty body, no
+// Content-Type and a JSON Content-Type each gave 422 validation_failed with the field "body".
+// The messages are the kin-openapi messages.
+func uploadBodyErrors(req *http.Request) []httpx.FieldError {
+	ct := req.Header.Get("Content-Type")
+	switch {
+	case req.Body == nil || req.ContentLength == 0:
+		return []httpx.FieldError{{Field: "body", Message: "value is required but missing"}}
+	case ct == "" || strings.HasPrefix(ct, "application/json"):
+		return []httpx.FieldError{{Field: "body", Message: fmt.Sprintf("header Content-Type has unexpected value %q", ct)}}
+	}
+	return nil
 }
 
 func ptr(v int) *int { return &v }

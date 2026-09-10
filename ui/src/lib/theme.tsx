@@ -1,6 +1,13 @@
+import { Monitor, Moon, Sun } from "lucide-react";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 export type Theme = "dark" | "light" | "system";
+
+export const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", label: "System", icon: Monitor },
+];
 
 type ThemeState = { theme: Theme; setTheme: (theme: Theme) => void };
 

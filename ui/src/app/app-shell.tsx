@@ -1,9 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, Menu, Monitor, Moon, Sun, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { logout } from "@/api/sdk.gen";
-import { useTheme, type Theme } from "@/components/theme-provider";
+import { useTheme, themes } from "@/lib/theme";
 import { useCurrentUser } from "@/lib/auth";
 import { can, type Role } from "@/lib/roles";
 import { cn } from "@/lib/utils";
@@ -23,12 +23,6 @@ export const settingsItems: NavItem[] = [
   { to: "/settings/users", label: "Users", min: "admin" },
   { to: "/settings/instances", label: "Instances", min: "admin" },
   { to: "/settings/audit", label: "Audit log", min: "admin" },
-];
-
-export const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "System", icon: Monitor },
 ];
 
 export function ThemeSwitch() {

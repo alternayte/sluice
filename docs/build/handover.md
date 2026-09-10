@@ -1,17 +1,13 @@
 # Build handover
 
-This file records where the build stopped. The ledger (`ledger.md`) and the
-decisions (`decisions.md`) are the authoritative records. This file only helps the
-next session start fast.
+This file records where the build stopped. `decisions.md` is the authoritative record of decisions.
 
 ## State at the last commit
 
-- Slices S0 to S3 have their code committed. Items of these slices that need a
-  later slice stay IN_PROGRESS (for example SCN-CORE-001 needs `secrets rekey`,
-  SCN-CORE-004 needs a PgBouncer integration test with an execution).
-- Slice S4 (engine, dispatcher, process and inline executors, runner, runner API,
-  logs, executions API and UI) is committed. Its passed scenarios are PASS in the
-  ledger.
+- Slices S0 to S4 are committed. Slice R (architecture refactor) is in progress on branch `refactor/architecture`.
+- Plan: `docs/superpowers/plans/2026-09-10-architecture-refactor.md`. The checkboxes show the progress.
+- Design: `docs/superpowers/specs/2026-09-10-architecture-refactor-design.md`.
+- Refactor proof: `scripts/e2e-compare.sh` against `docs/build/e2e-baseline.txt`.
 
 ## Open work in S4
 
@@ -53,4 +49,4 @@ next session start fast.
 After S4: S5 (schedules, webhooks, flow triggers, two-instance cooperation), S6
 (secrets, variables, masking), S7 (git), S8 (docker, images, compose), S9
 (kubernetes, Helm, kind), S10 (dashboard, charts, accessibility, perf), S11 (AI),
-S12 (example ELT project). Then `just verify`, SDD §13 review and §14.
+S12 (example ELT project). Then SDD §13 definition of done.

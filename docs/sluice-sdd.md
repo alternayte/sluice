@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Product | Sluice (working name; rename is a find/replace of `sluice`/`SLUICE_`) |
-| Version | SDD 1.0 |
+| Version | SDD 1.1 |
 | Status | Approved for build |
 | Build scope | Complete v1. No partial build. |
 | Path in repo | `docs/sluice-sdd.md` |
@@ -14,7 +14,7 @@
 1. This SDD is the authoritative specification. The implementer MUST NOT edit it.
 2. IDs: `REQ-<AREA>-nnn` requirement, `SCN-<AREA>-nnn` acceptance scenario, `SI-nn` security invariant, `NFR-nnn` non-functional requirement, `D-nn` design decision.
 3. Each scenario lists the IDs it verifies in parentheses. `just trace` reads these lists.
-4. Scenario test layers: `[I]` Go integration, `[E]` end-to-end against the built binary, `[U]` Playwright UI, `[K]` kind cluster, `[P]` performance.
+4. Scenario test layers: `[E]` end-to-end against the built binary through HTTP and the CLI, `[U]` Playwright against the built binary, `[I]` Go test against the public API of one package or against real infrastructure, `[K]` kind cluster, `[P]` performance. A test calls a public boundary and checks an outcome. Tests do not mock Sluice code. If a refactor keeps the behaviour and a test breaks, the test is at the wrong boundary.
 5. A test verifies a scenario only when the test name contains the scenario ID (`SCN-EXE-003` or `SCN_EXE_003`).
 6. Items not in this document are out of v1 scope.
 
@@ -80,18 +80,23 @@ OIDC, SSO, SCIM. Custom roles and namespace-scoped RBAC. Multi-tenancy. AWS Secr
 | D-06 | Each namespace has one owner: git or managed. Git namespaces are read-only in the UI. Edits push a new branch. | No two-way sync drift. | Bidirectional sync. |
 | D-07 | Secrets are references resolved at dispatch. Builtin values are AES-256-GCM encrypted. External providers are read-only references. | All secret features in the base product. No secret in Postgres plaintext or cluster objects. | Base64 env secrets. |
 | D-08 | Four task types plus a JSON Lines emit protocol. | Generic. dlt and SQLMesh use the same protocol as any script. | Plugin system. |
-| D-09 | OpenAPI 3.0.3 is the API source. Go server with `oapi-codegen` (strict, `net/http`). TS client with `openapi-typescript` and `openapi-fetch`. | One contract, generated both sides. | Hand-written clients. |
-| D-10 | `pgx` v5, `sqlc`, `goose` with embedded migrations. | Typed SQL, no ORM. | ORM. |
+| D-09 | The API is code-first. Each feature registers huma v2 operations on a chi v5 router. `sluice openapi` prints the OpenAPI 3.1 document. `api/openapi.yaml` is generated and committed. The TS client uses `@hey-api/openapi-ts` with the TanStack Query plugin. | One declaration per route: types, path and role. Contract generated on both sides. | Hand-written spec with oapi-codegen. Hand-written clients. |
+| D-10 | `pgx` v5 and `sqlc` with one generated package per feature. Migrations use the goose file format and a small embedded runner with a transaction-scoped advisory lock. | Typed SQL, no ORM. goose lockers are session-scoped or table-based, and a session lock is not safe through a transaction-mode pooler. | ORM. The goose library runner. |
 | D-11 | Storage uses `gocloud.dev/blob` for s3, azblob and fs, plus a Sluice postgres driver. Default driver is postgres. | One interface. Single container needs no extra infrastructure. | Per-provider SDK code. |
 | D-12 | Azure Container Apps is a deployment target only. No ACA executor. | Requirement is that one container runs Sluice. | ACA Jobs executor. |
 | D-13 | AI uses two adapters (Anthropic Messages, OpenAI-compatible Chat Completions) and one tool registry shared by MCP and the assistant. MCP uses the official Go SDK. | Provider-agnostic. One permission model for tools. | Per-feature prompts with no tools. |
 | D-14 | Schedule firing is exactly-once through a unique key `(trigger_id, scheduled_for)`. | Leader changes cannot duplicate runs. | Leader-only memory state. |
 | D-15 | One Sluice deployment is one environment. | Less model complexity. | Environment dimension on values. |
-| D-16 | Authentication is in-app (sessions, tokens). | v1 needs user accounts only. | External IdP dependency. |
+| D-16 | Authentication is in-app (sessions, tokens). | v1 needs user accounts only. A later version can adopt auth-all when it has roles, API keys and admin plugins. | External IdP dependency. |
 | D-17 | Execution view uses a Gantt timeline. No graph library. | Lean bundle. | React Flow. |
 | D-18 | Tests use deterministic local substitutes: testcontainers (Postgres, PgBouncer, MinIO, Azurite, Vault, lowkey-vault), Docker, kind, local git server, scripted LLM HTTP servers. | Verification without cloud access. | Cloud accounts in CI. |
 | D-19 | Dagu (GPL-3.0) may be studied for patterns. Its code MUST NOT be copied. | Licence freedom. | — |
 | D-20 | Execution retries, not Kubernetes Job retries (`backoffLimit: 0`). | One retry model on all executors. | Job backoff. |
+| D-21 | Configuration uses `caarlos0/env` v11 on one `Config` struct. The justfile loads `.env` for local work. The binary reads only the process environment. | No config code to maintain. C-04 stays true. | Custom reflection loader. viper. |
+| D-22 | Packages are vertical slices. A feature holds `routes.go`, `service.go`, `store.go` and `queries.sql`. A feature does not import another feature. Shared packages: `kernel`, `platform`, `flow`, `storage`, `audit`, `snapshot`, `runnerproto`. `execution` also imports `executor`. Only `internal/app` imports all packages. depguard enforces the rules. | Colocated features with no import loops. | Layered packages. |
+| D-23 | Every operation declares its access with `httpx.Op`. The server does not start when an operation has no access. | Default deny in one place (SI-03). | A separate permission table. |
+| D-24 | Playwright locators use `getByRole` first, then `getByLabel`, then `getByText` for messages. `data-testid` is only for elements with no accessible name. | Playwright guidance. Role locators also check accessibility. | Test ids everywhere. |
+| D-25 | Local development: `just setup`, `just up`, `just dev`. `deploy/compose/dev.yml` holds Postgres. `air` reloads the server. Vite proxies `/api` to Go. | One command per step. | Manual steps. |
 
 ---
 
@@ -128,37 +133,42 @@ OIDC, SSO, SCIM. Custom roles and namespace-scoped RBAC. Multi-tenancy. AWS Secr
 6. The runner posts `complete`. In one transaction the engine sets the task state, queues ready tasks or finalizes the execution, and queues flow triggers. The run token is revoked. Logs are archived.
 7. Inline tasks (`http`, `subflow`) run as goroutines in the claiming instance and use the same state transitions.
 
-### 4.4 Repository layout (package by feature)
+### 4.4 Repository layout (vertical slices)
 
 ```
-cmd/sluice/                 main
-internal/app/               wiring, config, lifecycle
-internal/platform/          db, lease, clock, httpx, logging, masking
-internal/auth/              users, sessions, tokens, rbac
-internal/audit/
-internal/storage/           interface + postgres, fs, s3, azblob
-internal/namespace/         files, snapshots, bundles, namespace.yaml
-internal/gitsync/
-internal/flow/              model, parse, validate, schema, template
-internal/execution/         engine, state machine, dispatcher, retention
-internal/trigger/           manual, schedule, webhook, flow
-internal/runner/            `sluice exec` client
-internal/runnerapi/         server side of runner protocol
-internal/executor/          inline, process, docker, kubernetes, detect
-internal/secret/            registry, providers, keyring
-internal/variable/
-internal/metrics/           emitted metrics, aggregates for charts
-internal/ai/                providers, tools, assistant, triage, mcp
-api/openapi.yaml
-db/migrations/  db/queries/
-schemas/flow.schema.json
-ui/                         Vite app
-deploy/docker/  deploy/helm/sluice/  deploy/compose/
-examples/elt/
-tests/e2e/  tests/ui/  tests/k8s/  tests/perf/  tests/review/  tests/fixtures/
+cmd/sluice/            main
+internal/app/          config, wiring, server, CLI commands, `sluice openapi`
+internal/kernel/       Role, Principal, context helpers (imports nothing internal)
+internal/platform/     db, httpx (huma setup, errors, access), token, clock, logging,
+                       masking, lease, page, health, promx
+internal/flow/         shared domain: flow model, parse, validate, template, schema
+internal/snapshot/     shared domain: snapshot manifest and bundle format
+internal/runnerproto/  shared: runner wire types, env names, limits
+internal/storage/      shared: blob store interface and drivers
+internal/audit/        shared writer, audit route
+internal/auth/         routes.go service.go store.go queries.sql authdb/
+internal/instance/     instance registry, instances route
+internal/namespace/    namespaces, files, snapshots, flows
+internal/execution/    engine, dispatcher, state, execution routes, runner routes
+internal/executor/     inline, process, docker, kubernetes adapters of execution
+internal/runner/       `sluice exec` client
+internal/trigger/  internal/secret/  internal/variable/  internal/gitsync/
+internal/metrics/  internal/ai/        later slices, same shape
+api/openapi.yaml       generated by `sluice openapi`
+db/migrations/         one ordered schema
+schemas/  ui/  deploy/  examples/elt/
+tests/e2e/  tests/ui/  tests/k8s/  tests/perf/  tests/fixtures/
 docs/sluice-sdd.md  docs/build/  docs/reference/
-justfile
+justfile  .env.example
 ```
+
+Dependency rules:
+
+1. `kernel` imports no internal package.
+2. `platform` imports only `kernel` and `platform`.
+3. A feature imports `kernel`, `platform` and the shared packages. `execution` also imports `executor`.
+4. A feature does not import another feature. When it needs one, it declares a small interface in its own package, and `internal/app` connects the two.
+5. Only `internal/app` imports all packages.
 
 ---
 
@@ -645,7 +655,7 @@ Every executor-run task receives: `SLUICE_EXECUTION_ID`, `SLUICE_TASK_ID`, `SLUI
 
 | ID | Requirement |
 |---|---|
-| REQ-API-001 | `api/openapi.yaml` MUST define all `/api/v1` and `/api/runner/v1` operations. Generated Go and TS code MUST match the spec (`just gen-check`). |
+| REQ-API-001 | `sluice openapi` MUST print the OpenAPI document of all `/api/v1` and `/api/runner/v1` operations. `api/openapi.yaml` holds its output. Generated Go and TS code MUST match (`just gen-check`). |
 | REQ-API-002 | Errors MUST use `{"error":{"code","message","details"}}`. Validation errors use 422 `validation_failed`. Unknown API routes return JSON 404. |
 | REQ-API-003 | List endpoints MUST use cursor pagination, `limit` ≤ 200. |
 | REQ-API-004 | SSE endpoints for execution events and logs MUST support `Last-Event-ID` resume. |
@@ -796,29 +806,28 @@ State color is never the only signal: each state has an icon and a text label.
 
 ### 10.1 Tools
 
-Go (version in `go.mod`), Bun, uv, Docker, kind, kubectl, Helm, just, golangci-lint, sqlc, gotestsum. `just setup` checks all tools and prints missing ones. PyPI and container registries must be reachable for image builds and examples.
+Go (version in `go.mod`), Bun, uv, Docker, kind, kubectl, Helm, just, golangci-lint. Go tools sqlc, air and gotestsum are pinned with the `tool` directive in `go.mod`. `just setup` checks all tools and prints missing ones. PyPI and container registries must be reachable for image builds and examples.
 
 ### 10.2 `justfile` recipes
 
 | Recipe | Content |
 |---|---|
-| `setup` | Tool check. |
-| `gen` | sqlc, oapi-codegen, openapi-typescript, flow schema, validate-result schema, reference docs. |
+| `setup` | Tool check. Copy `.env.example` to `.env` if absent. Install Bun packages. |
+| `up`, `down` | Start or stop Postgres from `deploy/compose/dev.yml`. |
+| `dev` | `air` for the Go server and the Vite dev server together. |
+| `migrate` | Apply migrations. |
+| `db-reset` | Drop and create the dev database, then migrate. |
+| `gen` | sqlc, `sluice openapi`, hey-api, flow schema, validate-result schema, reference docs. |
 | `gen-check` | `gen`, then `git diff --exit-code`. |
-| `lint` | golangci-lint, `bun run lint`, `tsc --noEmit`, `helm lint`, `forbid`. |
+| `lint` | golangci-lint with depguard, `bun run lint`, `tsc --noEmit`, `helm lint`, `forbid`. |
 | `forbid` | Fails on `TODO`, `FIXME`, `XXX`, `HACK`, `not implemented`, `unimplemented` in `.go`, `.ts`, `.tsx`, `.py`, `.sh`, `.yaml` files outside generated code and `docs/` (word list in `scripts/forbid-words.txt`, the only excluded file); fails on `t.Skip`, `test.skip`, `test.only`, `describe.skip` in any test file. No bypass marker exists. |
-| `test` | Go unit tests with `-race`, Vitest. |
-| `test-int` | Go integration tests with testcontainers. Includes `tests/review/`. |
-| `build` | UI build, size check, Go build with embedded UI, both images. |
-| `e2e` | API end-to-end and Playwright against the built binary and images. |
+| `test` | Go tests with `-race` and the `integration` tag (testcontainers), Vitest. |
+| `build` | UI build, size check, Go build with embedded UI, images. |
+| `e2e` | API end-to-end and Playwright against the built binary. |
 | `e2e-k8s` | kind cluster, image load, Helm install, `[K]` scenarios, cluster delete. |
 | `perf` | `[P]` scenarios. |
 | `trace` | §10.3. |
-| `ledger-check` | §12.1 rules. |
-| `check` | `gen-check lint test` (fast loop). |
-| `verify` | `gen-check lint test test-int build e2e e2e-k8s perf trace ledger-check`. Writes `build/reports/verify.json` with HEAD SHA, tree state, each gate result and all JUnit results. |
-| `evidence` | §12.3. |
-| `evidence-check` | §12.3. |
+| `check` | `gen-check lint test`. |
 
 All test gates write JUnit XML to `build/reports/junit/`.
 
@@ -827,9 +836,9 @@ All test gates write JUnit XML to `build/reports/junit/`.
 `just trace` fails unless all are true:
 
 1. Every `REQ-*`, `NFR-*` and `SI-*` ID in this SDD appears in the ID list of at least one scenario.
-2. Every scenario ID has at least one test in the JUnit reports whose name contains the ID.
-3. Every such test passed in the current verify run. No test for a scenario was skipped.
-4. No test name references an ID that does not exist in this SDD (tests under `tests/review/` use finding IDs).
+2. Every scenario ID has at least one test in the JUnit reports in `build/reports/junit/` whose name contains the ID.
+3. Every such test passed in those reports. No test for a scenario was skipped.
+4. No test name references an ID that does not exist in this SDD.
 
 `just trace` writes `build/reports/trace.json`.
 
@@ -857,15 +866,16 @@ Work proceeds in slice order. Each slice is vertical: schema, API, engine, UI an
 
 | Slice | Content | Primary IDs |
 |---|---|---|
-| S0 | Repository, `justfile`, config, DB and migrations, PgBouncer path, leases, instance registry, health, metrics, OpenAPI pipeline, UI shell and theme, `forbid`, `trace`, `ledger-check` | CORE, API, DOC-001, UI-001, UI-010 |
+| S0 | Repository, `justfile`, config, DB and migrations, PgBouncer path, leases, instance registry, health, metrics, OpenAPI pipeline, UI shell and theme, `forbid`, `trace` | CORE, API, DOC-001, UI-001, UI-010 |
 | S1 | Users, sessions, tokens, RBAC, rate limit, audit, security headers, settings pages for these | AUTH, SI-02, SI-03, SI-06, SI-11, SI-12, UI-002 |
 | S2 | Storage drivers and GC | STO |
 | S3 | Namespaces, files, snapshots, bundles, flow parsing, validation, schema, revisions, `sluice validate`, editor, flows list and detail (no charts) | NS, FLOW, DOC-002, UI-007, SI-08 |
 | S4 | Engine, dispatcher, inline and process executors, runner protocol, logs, outputs, metrics, artifacts, manual trigger, executions list and detail | EXE, RUN, EXR-001–003, EXR-008, TRG-001, UI-004, UI-005, UI-012, SI-04, NFR-002 |
+| R | Refactor to vertical slices, chi and huma, generated spec, caarlos0/env, `.env.example`, justfile, dev compose, `sluice` image Dockerfile, hey-api client, UI feature folders, reduced build process. No new IDs. All S0 to S4 scenarios that passed before keep passing. | — |
 | S5 | Schedules, webhooks, flow triggers, concurrency, two-instance cooperation | TRG, DEP-004, SI-05 |
 | S6 | Secret providers, secrets, variables, master keys, masking | SEC, UI-008, SI-01, SI-09, SI-10 |
 | S7 | Git sources, sync, webhooks, push branch | GIT |
-| S8 | Docker executor, images, compose, single-container mode | EXR-004, EXR-007, EXR-009, DEP-001, DEP-003, DEP-005 |
+| S8 | Docker executor, sluice-uv image, production compose, single-container mode | EXR-004, EXR-007, EXR-009, DEP-001, DEP-003, DEP-005 |
 | S9 | Kubernetes executor, reconciler, Helm chart, kind tests | EXR-005, EXR-006, DEP-002, SEC-012 |
 | S10 | Dashboard, charts, flow charts, settings completion, accessibility, mobile width, UI size, list performance | UI-003, UI-006, UI-009, UI-011, UI-013, NFR-001, NFR-003 |
 | S11 | AI providers, tool registry, MCP, assistant, authoring, triage | AI, SI-07 |
@@ -873,7 +883,7 @@ Work proceeds in slice order. Each slice is vertical: schema, API, engine, UI an
 
 Slice assignment: IDs named in the table belong to that slice. An area name (for example `CORE`) covers the remaining IDs of that area. A scenario belongs to the slice of its first listed ID. A scenario that needs a later slice stays OPEN until that slice exists.
 
-After S12: `just verify`, then §13, then §14.
+After S12: §13.
 
 ---
 
@@ -881,89 +891,26 @@ After S12: `just verify`, then §13, then §14.
 
 `docs/build/` is owned by the implementer. The SDD is not.
 
-### 12.1 Ledger — `docs/build/ledger.md`
+### 12.1 Decisions — `docs/build/decisions.md`
 
-```markdown
-# Sluice v1 build ledger
+Two tables. Implementation decisions: `ID (DI-n) | date | area or IDs | decision | reason`. Human answers: `H-<n> | answers B-<n> | date | answer`. The human writes answers. The implementer reads them. A blocked item gets an entry `B-<n>` with date, item IDs, question and options with the effect of each.
 
-status: IN_PROGRESS
-sdd_sha256: <sha256 of docs/sluice-sdd.md>
-current_slice: S0
-review_round: 0
-review_complete: false
-blocking_findings_open: 0
+### 12.2 Handover — `docs/build/handover.md`
 
-## Blocked
-
-## Items
-
-| ID | Status | Slice | Evidence |
-|---|---|---|---|
-| REQ-CORE-001 | OPEN | S0 | |
-| SCN-CORE-001 | OPEN | S0 | |
-```
-
-- `status`: `IN_PROGRESS`, `REVIEW`, `BLOCKED`, `DONE`.
-- Item status: `OPEN`, `IN_PROGRESS`, `PASS`, `BLOCKED`.
-- Scenario evidence: test file and test name. Requirement evidence: the scenario IDs.
-- Blocked entry: `B-<n>`, date, item IDs, question, options with effect of each.
-
-`just ledger-check` fails unless:
-
-1. All header fields exist with valid values.
-2. Every REQ, NFR, SI and SCN ID of the SDD appears exactly once. No other IDs appear.
-3. A PASS scenario names a test that exists in the repository and contains the ID.
-4. A PASS requirement, NFR or SI has all its mapped scenarios PASS.
-5. `status: DONE` implies all items PASS, `review_complete: true`, `blocking_findings_open: 0` and no open blocked entries.
-6. `sdd_sha256` equals the current SDD hash.
-
-### 12.2 Decisions — `docs/build/decisions.md`
-
-Two tables. Implementation decisions: `ID (DI-n) | date | area or IDs | decision | reason`. Human answers: `H-<n> | answers B-<n> | date | answer`. The human writes answers. The implementer reads them.
-
-### 12.3 Evidence — `build/evidence/v1/`
-
-`just evidence` fails when the tree is dirty or `build/reports/verify.json` is not for HEAD or has a failed gate. It writes:
-
-- `evidence.json`: schema version, HEAD SHA, SDD hash, generated time, tool versions, gate results with durations, scenario totals and failures, trace matrix, review rounds and open blocking findings (from the ledger), NFR measurements.
-- Copies of `verify.json`, `trace.json`, JUnit reports and perf report.
-
-`just evidence-check` fails unless: `evidence.json` HEAD equals current HEAD, the tree is clean, all gates passed, all scenarios passed, the ledger at HEAD has `status: DONE`.
+Where the build stopped, open work per slice, and how to run the checks. The implementer updates it at the end of each session.
 
 `build/` is in `.gitignore`.
 
 ---
 
-## 13. Bounded review protocol
+## 13. Definition of done
 
-1. **Start.** When `just verify` passes for the first time: set ledger `status: REVIEW`, `review_round: 1`, commit.
-2. **Reviewer.** A new agent context. It reads this SDD, the ledger, `decisions.md` and the repository at the recorded SHA. It writes only to `tests/review/round-<n>/` and `docs/build/review/round-<n>.md`. Use a different model family when the tool supports it.
-3. **Focus.** Round 1 in order: §8 invariants; state, concurrency and lease logic (EXE, TRG, EXR, CORE-006); up to 10 requirements the reviewer judges weakly tested. Round 2: the round 1 fixes and files they touched.
-4. **Finding format.** In `round-<n>.md`: `F-<n>-<k>`, reviewed SHA, IDs, claim, test path, blocking claim yes/no.
-5. **Blocking criteria.** A finding is blocking only when all are true:
-   - it names at least one REQ, NFR or SI ID;
-   - the behavior it expects is stated in this SDD;
-   - it has a test in `tests/review/round-<n>/` whose name contains the finding ID;
-   - the implementer runs the test on the reviewed SHA and it fails for the stated reason.
-   Otherwise the finding is a note. Notes are not implemented in v1. A test that fails for another reason is recorded as `rejected: invalid test` with the output.
-6. **Fix.** The implementer fixes blocking findings, keeps the review tests, updates `blocking_findings_open`, and runs `just verify`.
-7. **Round 2** runs only when round 1 had at least one blocking finding.
-8. **Limit.** No round 3. Blocking findings of round 2 are fixed and verified with no new review.
-9. **Complete.** All rounds run, `blocking_findings_open: 0`, `just verify` passes: set `review_complete: true` and commit.
-10. A blocking finding that cannot be fixed within this SDD is a human interruption.
+v1 is DONE when all are true at one commit with a clean tree:
 
----
-
-## 14. Definition of done
-
-v1 is DONE when all are true at one commit:
-
-1. `docs/build/ledger.md` has `status: DONE`, every item PASS, `review_complete: true`, `blocking_findings_open: 0`, no open blocked entries.
-2. `just verify` exits 0 on that commit with a clean tree.
-3. `just evidence` has written `build/evidence/v1/evidence.json` for that commit.
-4. `just evidence-check` exits 0.
-
-Order: set `status: DONE` and commit, run `just verify`, run `just evidence`, run `just evidence-check`. If a gate fails, set `status: IN_PROGRESS`, fix, repeat.
+1. `just check` exits 0.
+2. `just build`, `just e2e`, `just e2e-k8s` and `just perf` exit 0.
+3. `just trace` exits 0 on the JUnit reports of those runs.
+4. `docs/build/handover.md` lists no open work and `docs/build/decisions.md` has no open blocked entry.
 
 ---
 

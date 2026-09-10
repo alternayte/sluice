@@ -118,6 +118,30 @@ func TestSCN_AUTH_008_LoginRateLimit(t *testing.T) {
 	}
 }
 
+// TestLoginRateLimitSharedAcrossInstances checks that the per-IP login rate limit
+// counts failures from two instances that share one database (REQ-AUTH-008).
+func TestLoginRateLimitSharedAcrossInstances(t *testing.T) {
+	dbURL := newDatabase(t)
+	a := startServer(t, map[string]string{"SLUICE_DATABASE_URL": dbURL})
+	b := startServer(t, map[string]string{"SLUICE_DATABASE_URL": dbURL})
+	ca, cb := newCookieClient(a.URL), newCookieClient(b.URL)
+	for i := 0; i < 50; i++ {
+		c := ca
+		if i%2 == 1 {
+			c = cb
+		}
+		email := "user" + string(rune('a'+i%26)) + "@example.com"
+		r := c.raw(t, http.MethodPost, "/api/v1/auth/login", map[string]string{"email": email, "password": "x"}, nil)
+		if r.Status != http.StatusUnauthorized {
+			t.Fatalf("attempt %d: %d", i, r.Status)
+		}
+	}
+	r := cb.raw(t, http.MethodPost, "/api/v1/auth/login", map[string]string{"email": "fresh@example.com", "password": "x"}, nil)
+	if r.Status != http.StatusTooManyRequests {
+		t.Fatalf("51st failure from one IP across instances: %d %s", r.Status, r.Body)
+	}
+}
+
 func TestSCN_AUTH_009_DisableTakesEffectOnAllInstances(t *testing.T) {
 	dbURL := newDatabase(t)
 	a := startServer(t, map[string]string{"SLUICE_DATABASE_URL": dbURL})

@@ -77,25 +77,3 @@ func TestSCN_AUTH_012_SecretsStoredAsHashes(t *testing.T) {
 		t.Fatalf("%d rows contain a plaintext secret", n)
 	}
 }
-
-func TestLoginRateLimitIsSharedAcrossInstances(t *testing.T) {
-	pool, _ := pgtest.Shared(t).NewPool(t)
-	ctx := audit.WithActor(context.Background(), audit.Actor{Type: audit.ActorSystem})
-	clk := clock.Real{}
-	mk := func() *auth.Service {
-		return &auth.Service{Pool: pool, Clock: clk, Audit: &audit.Writer{Pool: pool, Clock: clk},
-			Log: logging.New(io.Discard, "error", "text"), SessionTTL: time.Hour}
-	}
-	a, b := mk(), mk()
-	for i := 0; i < 50; i++ {
-		svc := a
-		if i%2 == 1 {
-			svc = b
-		}
-		_, _ = svc.Login(ctx, "user"+string(rune('a'+i%26))+"@example.com", "x", "10.0.0.9", "t")
-	}
-	_, err := b.Login(ctx, "fresh@example.com", "x", "10.0.0.9", "t")
-	if err == nil || !strings.Contains(err.Error(), "429") {
-		t.Fatalf("51st failure from one IP across instances: %v", err)
-	}
-}

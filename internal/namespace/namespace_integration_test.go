@@ -62,4 +62,3 @@ func TestSCN_STO_004_DeduplicatedFileObjects(t *testing.T) {
 		t.Fatalf("file_objects %d, storage objects %d, references %d", rows, objects, refs)
 	}
 }
-

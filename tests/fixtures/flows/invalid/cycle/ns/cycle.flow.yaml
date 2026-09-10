@@ -1,0 +1,10 @@
+id: cycle
+tasks:
+  - id: a
+    type: command
+    command: ["true"]
+    depends_on: [b]
+  - id: b
+    type: command
+    command: ["true"]
+    depends_on: [a]

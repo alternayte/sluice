@@ -1,0 +1,6 @@
+id: unknown-dep
+tasks:
+  - id: a
+    type: command
+    command: ["true"]
+    depends_on: [missing]

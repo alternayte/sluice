@@ -1,0 +1,4 @@
+id: bad-type
+tasks:
+  - id: a
+    type: sql

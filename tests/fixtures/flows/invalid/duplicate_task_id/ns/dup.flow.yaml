@@ -1,0 +1,8 @@
+id: dup-task
+tasks:
+  - id: a
+    type: command
+    command: ["true"]
+  - id: a
+    type: command
+    command: ["true"]

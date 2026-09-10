@@ -1,0 +1,9 @@
+id: bad-default
+inputs:
+  - id: count
+    type: int
+    default: "ten"
+tasks:
+  - id: a
+    type: command
+    command: ["true"]

@@ -1,0 +1,6 @@
+id: http-exec
+tasks:
+  - id: call
+    type: http
+    url: https://example.com
+    executor: { type: process }

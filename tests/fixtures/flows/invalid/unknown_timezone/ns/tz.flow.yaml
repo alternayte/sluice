@@ -1,0 +1,10 @@
+id: bad-tz
+triggers:
+  - id: nightly
+    type: schedule
+    cron: "0 2 * * *"
+    timezone: Mars/Olympus_Mons
+tasks:
+  - id: a
+    type: command
+    command: ["true"]

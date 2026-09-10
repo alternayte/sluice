@@ -1,0 +1,5 @@
+id: same
+tasks:
+  - id: b
+    type: command
+    command: ["true"]

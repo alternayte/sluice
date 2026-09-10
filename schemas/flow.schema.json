@@ -1,0 +1,564 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sluice.dev/schemas/flow.json",
+  "$ref": "#/$defs/Flow",
+  "$defs": {
+    "Concurrency": {
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum running executions."
+        },
+        "behavior": {
+          "type": "string",
+          "enum": [
+            "queue",
+            "skip"
+          ],
+          "description": "queue holds new executions in QUEUED. skip sets them to SKIPPED. Default queue."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "limit"
+      ]
+    },
+    "Duration": {
+      "type": "string",
+      "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+      "description": "Duration such as 30s, 10m or 2h."
+    },
+    "Executor": {
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "process",
+            "docker",
+            "kubernetes"
+          ],
+          "description": "Executor type. Resolution order: task, flow, namespace.yaml, instance default."
+        },
+        "pool": {
+          "type": "string",
+          "maxLength": 63,
+          "pattern": "^[a-z0-9-]+$",
+          "description": "Pool of the instances that run the task. Default default."
+        },
+        "image": {
+          "type": "string",
+          "description": "docker and kubernetes: container image. Required for these types."
+        },
+        "inject_runner": {
+          "type": "boolean",
+          "description": "docker and kubernetes: copy the runner into the container. Default true. False needs sluice on the image PATH."
+        },
+        "pull": {
+          "type": "string",
+          "enum": [
+            "always",
+            "if_not_present",
+            "never"
+          ],
+          "description": "docker: image pull policy. Default if_not_present."
+        },
+        "network": {
+          "type": "string",
+          "description": "docker: network name."
+        },
+        "resources": {
+          "$ref": "#/$defs/Resources",
+          "description": "docker and kubernetes: requests and limits. Docker uses limits."
+        },
+        "kubernetes": {
+          "$ref": "#/$defs/Kubernetes",
+          "description": "kubernetes: pod settings."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Flow": {
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 63,
+          "pattern": "^[a-z0-9][a-z0-9-]*$",
+          "description": "Flow ID. Lower case letters, digits and hyphens. At most 63 characters. Unique in the namespace."
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Free text description."
+        },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Labels that every execution of the flow carries. At most 20 entries."
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/Input"
+          },
+          "type": "array",
+          "description": "Inputs of the flow. They are validated at trigger time."
+        },
+        "variables": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Static values for vars. They have the highest precedence."
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Environment templates for all tasks. Task env overrides by key."
+        },
+        "triggers": {
+          "items": {
+            "$ref": "#/$defs/Trigger"
+          },
+          "type": "array",
+          "description": "Schedule, webhook and flow triggers. Manual triggering needs no declaration."
+        },
+        "concurrency": {
+          "$ref": "#/$defs/Concurrency",
+          "description": "Limit of concurrent executions. Absent means unlimited."
+        },
+        "max_parallel": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum tasks that run at the same time. 0 means unlimited.",
+          "default": 0
+        },
+        "timeout": {
+          "$ref": "#/$defs/Duration",
+          "description": "Execution wall time. Default is no limit."
+        },
+        "retry": {
+          "$ref": "#/$defs/Retry",
+          "description": "Default retry policy of the tasks."
+        },
+        "executor": {
+          "$ref": "#/$defs/Executor",
+          "description": "Default executor of the tasks."
+        },
+        "tasks": {
+          "items": {
+            "$ref": "#/$defs/Task"
+          },
+          "type": "array",
+          "maxItems": 200,
+          "minItems": 1,
+          "description": "Tasks of the flow. From 1 to 200."
+        },
+        "outputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Output templates. They are resolved when the execution succeeds."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "id",
+        "tasks"
+      ]
+    },
+    "Input": {
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 63,
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Input ID."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "string",
+            "int",
+            "number",
+            "boolean",
+            "select",
+            "json"
+          ],
+          "description": "Input type."
+        },
+        "required": {
+          "type": "boolean",
+          "description": "A trigger must give a value when there is no default."
+        },
+        "default": {
+          "description": "Default value. It must match the type."
+        },
+        "values": {
+          "items": true,
+          "type": "array",
+          "description": "Allowed values of a select input."
+        },
+        "description": {
+          "type": "string",
+          "description": "Help text for the run form."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "id",
+        "type"
+      ]
+    },
+    "Kubernetes": {
+      "properties": {
+        "service_account": {
+          "type": "string",
+          "description": "Service account of the pod."
+        },
+        "node_selector": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Node selector of the pod."
+        },
+        "tolerations": {
+          "items": {
+            "$ref": "#/$defs/Toleration"
+          },
+          "type": "array",
+          "description": "Tolerations of the pod."
+        },
+        "image_pull_secrets": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "Names of image pull secrets."
+        },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Extra pod labels."
+        },
+        "annotations": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Extra pod annotations."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "ResourceList": {
+      "properties": {
+        "cpu": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?m?$",
+          "description": "CPU quantity, for example 500m or 2."
+        },
+        "memory": {
+          "type": "string",
+          "pattern": "^[0-9]+(Ki|Mi|Gi|Ti|K|M|G|T)?$",
+          "description": "Memory quantity, for example 512Mi."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Resources": {
+      "properties": {
+        "requests": {
+          "$ref": "#/$defs/ResourceList",
+          "description": "Resource requests."
+        },
+        "limits": {
+          "$ref": "#/$defs/ResourceList",
+          "description": "Resource limits."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Retry": {
+      "properties": {
+        "max_attempts": {
+          "type": "integer",
+          "maximum": 20,
+          "minimum": 1,
+          "description": "Attempts including the first. From 1 to 20. Default 1.",
+          "default": 1
+        },
+        "backoff": {
+          "type": "string",
+          "enum": [
+            "fixed",
+            "exponential"
+          ],
+          "description": "Delay growth between attempts. Default fixed."
+        },
+        "initial": {
+          "$ref": "#/$defs/Duration",
+          "description": "First delay. Default 10s."
+        },
+        "max": {
+          "$ref": "#/$defs/Duration",
+          "description": "Maximum delay. Default 10m."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Task": {
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 63,
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Task ID. Unique in the flow."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "script",
+            "command",
+            "http",
+            "subflow"
+          ],
+          "description": "Task type."
+        },
+        "depends_on": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "IDs of tasks that must end first."
+        },
+        "run_if": {
+          "type": "string",
+          "enum": [
+            "success",
+            "failure",
+            "always"
+          ],
+          "description": "success: all dependencies succeeded. failure: at least one dependency failed or timed out. always: all dependencies ended. Default success."
+        },
+        "timeout": {
+          "$ref": "#/$defs/Duration",
+          "description": "Task timeout. Default 24h."
+        },
+        "retry": {
+          "$ref": "#/$defs/Retry",
+          "description": "Retry policy. Overrides the flow retry."
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Environment templates. Override flow env by key."
+        },
+        "executor": {
+          "$ref": "#/$defs/Executor",
+          "description": "Executor. Not allowed on http and subflow tasks."
+        },
+        "file": {
+          "type": "string",
+          "description": "script: file path relative to the namespace root. Required for script."
+        },
+        "runtime": {
+          "type": "string",
+          "enum": [
+            "python",
+            "bash",
+            "bun",
+            "node"
+          ],
+          "description": "script: runtime. Default from the extension (.py, .sh, .ts, .js)."
+        },
+        "args": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "script: argument templates."
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "command: argv templates. No shell. Required for command."
+        },
+        "workdir": {
+          "type": "string",
+          "description": "command: working directory relative to the namespace root. Default root."
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "HEAD"
+          ],
+          "description": "http: request method. Default GET."
+        },
+        "url": {
+          "type": "string",
+          "description": "http: URL template. Required for http."
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "http: header templates."
+        },
+        "body": {
+          "type": "string",
+          "description": "http: body template."
+        },
+        "expect_status": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array",
+          "description": "http: accepted status codes. Default 200 to 299."
+        },
+        "flow": {
+          "type": "string",
+          "description": "subflow: child flow as \u003cnamespace\u003e/\u003cflow_id\u003e. Required for subflow."
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "subflow: input templates of the child flow."
+        },
+        "wait": {
+          "type": "boolean",
+          "description": "subflow: wait for the child to end. Default true."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "id",
+        "type"
+      ]
+    },
+    "Toleration": {
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Taint key."
+        },
+        "operator": {
+          "type": "string",
+          "enum": [
+            "Exists",
+            "Equal"
+          ],
+          "description": "Exists or Equal."
+        },
+        "value": {
+          "type": "string",
+          "description": "Taint value."
+        },
+        "effect": {
+          "type": "string",
+          "enum": [
+            "NoSchedule",
+            "PreferNoSchedule",
+            "NoExecute"
+          ],
+          "description": "Taint effect."
+        },
+        "toleration_seconds": {
+          "type": "integer",
+          "description": "Seconds to tolerate a NoExecute taint."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Trigger": {
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 63,
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "description": "Trigger ID. Unique in the flow."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "schedule",
+            "webhook",
+            "flow"
+          ],
+          "description": "Trigger type."
+        },
+        "cron": {
+          "type": "string",
+          "description": "schedule: five cron fields, or @hourly, @daily, @weekly or @monthly."
+        },
+        "timezone": {
+          "type": "string",
+          "description": "schedule: IANA time zone. Default UTC."
+        },
+        "catch_up": {
+          "type": "string",
+          "enum": [
+            "none",
+            "last"
+          ],
+          "description": "schedule: last fires only the latest missed time, none fires no missed time. Default last."
+        },
+        "flow": {
+          "type": "string",
+          "description": "flow: upstream flow as \u003cnamespace\u003e/\u003cflow_id\u003e."
+        },
+        "states": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "flow: upstream end states that fire the trigger (SUCCESS, FAILED, TIMED_OUT, CANCELLED)."
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Input templates. Webhooks use trigger.body and trigger.headers. Flow triggers use trigger.outputs."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "id",
+        "type"
+      ]
+    }
+  },
+  "title": "Sluice flow",
+  "description": "A flow file (*.flow.yaml) of a Sluice namespace."
+}

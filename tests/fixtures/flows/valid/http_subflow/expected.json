@@ -1,0 +1,67 @@
+{
+  "parent.flow.yaml": {
+    "id": "parent",
+    "inputs": [
+      {
+        "id": "mode",
+        "type": "select",
+        "default": "fast",
+        "values": [
+          "fast",
+          "slow"
+        ]
+      },
+      {
+        "id": "config",
+        "type": "json",
+        "required": true
+      },
+      {
+        "id": "count",
+        "type": "int",
+        "default": 3
+      }
+    ],
+    "triggers": [
+      {
+        "id": "after-child",
+        "type": "flow",
+        "flow": "team.child/child",
+        "states": [
+          "FAILED",
+          "TIMED_OUT"
+        ],
+        "inputs": {
+          "mode": "${{ trigger.outputs.mode }}"
+        }
+      }
+    ],
+    "tasks": [
+      {
+        "id": "call",
+        "type": "http",
+        "url": "https://api.example.com/run?mode=${{ inputs.mode }}",
+        "expect_status": [
+          200,
+          202
+        ]
+      },
+      {
+        "id": "child",
+        "type": "subflow",
+        "depends_on": [
+          "call"
+        ],
+        "flow": "team.child/child",
+        "inputs": {
+          "n": "${{ inputs.count }}",
+          "status": "${{ tasks.call.outputs.status }}"
+        },
+        "wait": true
+      }
+    ],
+    "outputs": {
+      "child_rows": "${{ tasks.child.outputs.rows }}"
+    }
+  }
+}

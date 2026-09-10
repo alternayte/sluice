@@ -34,6 +34,7 @@ func commands() []command {
 		{"migrate", "Apply database migrations and exit.", runMigrate},
 		{"user create", "Create a user in the database.", runUserCreate},
 		{"user reset-password", "Set a new password for a user.", runUserResetPassword},
+		{"validate", "Validate a namespace directory offline.", runValidate},
 		{"version", "Print version, commit and build date.", runVersion},
 	}
 }

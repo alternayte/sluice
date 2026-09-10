@@ -1,0 +1,9 @@
+id: bad-cron
+triggers:
+  - id: nightly
+    type: schedule
+    cron: "61 * * * *"
+tasks:
+  - id: a
+    type: command
+    command: ["true"]

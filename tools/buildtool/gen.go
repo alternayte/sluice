@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/alternayte/sluice/internal/app"
+	"github.com/alternayte/sluice/internal/flow"
 )
 
 // cmdGen writes generated files that come from Go definitions.
@@ -16,16 +17,26 @@ func cmdGen() error {
 	if err := writeFile("docs/reference/env.md", env); err != nil {
 		return err
 	}
-	for _, g := range extraGenerators {
-		if err := g(); err != nil {
-			return err
-		}
+	schema, err := flow.FlowSchema()
+	if err != nil {
+		return err
 	}
-	return nil
+	if err := writeFile("schemas/flow.schema.json", string(schema)); err != nil {
+		return err
+	}
+	vr, err := flow.ValidateResultSchema()
+	if err != nil {
+		return err
+	}
+	if err := writeFile("schemas/validate-result.schema.json", string(vr)); err != nil {
+		return err
+	}
+	doc, err := flow.ReferenceDoc()
+	if err != nil {
+		return err
+	}
+	return writeFile("docs/reference/flow.md", doc)
 }
-
-// extraGenerators are added by later features (flow schema, validate-result schema, flow.md).
-var extraGenerators []func() error
 
 func writeFile(path, content string) error {
 	if err := os.MkdirAll(dirOf(path), 0o755); err != nil {

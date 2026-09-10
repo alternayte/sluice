@@ -1,0 +1,5 @@
+id: missing-file
+tasks:
+  - id: extract
+    type: script
+    file: pipelines/missing.py

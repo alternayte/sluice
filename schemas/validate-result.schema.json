@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sluice.dev/schemas/validate-result.json",
+  "$ref": "#/$defs/ValidateResult",
+  "$defs": {
+    "FileResult": {
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "File path relative to the namespace root."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "flow",
+            "namespace"
+          ],
+          "description": "flow for flow files, namespace for namespace.yaml."
+        },
+        "flow_id": {
+          "type": "string",
+          "description": "Flow ID when the file declares one."
+        },
+        "valid": {
+          "type": "boolean",
+          "description": "True when the file has no errors."
+        },
+        "errors": {
+          "items": {
+            "$ref": "#/$defs/Issue"
+          },
+          "type": "array",
+          "description": "Errors of the file."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "path",
+        "kind",
+        "valid",
+        "errors"
+      ]
+    },
+    "Issue": {
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Error code."
+        },
+        "path": {
+          "type": "string",
+          "description": "YAML path, for example tasks[1].depends_on[0]. Empty for the document root."
+        },
+        "line": {
+          "type": "integer",
+          "description": "1-based line. 0 when unknown."
+        },
+        "column": {
+          "type": "integer",
+          "description": "1-based column. 0 when unknown."
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable message."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "code",
+        "path",
+        "line",
+        "column",
+        "message"
+      ]
+    },
+    "ValidateResult": {
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "True when every file is valid."
+        },
+        "files": {
+          "items": {
+            "$ref": "#/$defs/FileResult"
+          },
+          "type": "array",
+          "description": "Validated files in path order."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "valid",
+        "files"
+      ]
+    }
+  },
+  "title": "Sluice validate result"
+}

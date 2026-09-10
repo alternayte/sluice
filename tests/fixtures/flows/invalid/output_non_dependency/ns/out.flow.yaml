@@ -1,0 +1,8 @@
+id: output-ref
+tasks:
+  - id: a
+    type: command
+    command: ["true"]
+  - id: b
+    type: command
+    command: ["echo", "${{ tasks.a.outputs.rows }}"]

@@ -1,0 +1,15 @@
+{
+  "hello.flow.yaml": {
+    "id": "hello",
+    "tasks": [
+      {
+        "id": "say",
+        "type": "command",
+        "command": [
+          "echo",
+          "hello"
+        ]
+      }
+    ]
+  }
+}

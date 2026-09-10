@@ -1,0 +1,37 @@
+id: pg-to-bq
+description: Load orders into BigQuery and transform.
+labels: { team: data }
+inputs:
+  - { id: full_refresh, type: boolean, default: false }
+variables: { DATASET: raw }
+env:
+  PG_URL: ${{ secret('PG_URL') }}
+  DATASET: ${{ vars.DATASET }}
+triggers:
+  - { id: nightly, type: schedule, cron: "0 2 * * *", timezone: Europe/Zurich, catch_up: last }
+  - { id: hook, type: webhook }
+concurrency: { limit: 1, behavior: queue }
+max_parallel: 4
+timeout: 2h
+retry: { max_attempts: 3, backoff: exponential, initial: 30s, max: 10m }
+executor: { type: kubernetes, pool: cluster-a, image: ghcr.io/acme/elt:1.4.0 }
+tasks:
+  - id: extract
+    type: script
+    file: pipelines/orders.py
+    args: ["--full-refresh=${{ inputs.full_refresh }}"]
+  - id: transform
+    type: command
+    depends_on: [extract]
+    command: ["uv", "run", "sqlmesh", "run"]
+    workdir: sqlmesh
+  - id: notify
+    type: http
+    depends_on: [transform]
+    run_if: always
+    method: POST
+    url: https://hooks.example.com/x
+    headers: { Authorization: "Bearer ${{ secret('HOOK_TOKEN') }}" }
+    body: '{"rows": "${{ tasks.extract.outputs.rows }}"}'
+outputs:
+  rows: ${{ tasks.extract.outputs.rows }}

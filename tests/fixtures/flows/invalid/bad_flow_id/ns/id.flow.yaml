@@ -1,0 +1,5 @@
+id: Bad_ID
+tasks:
+  - id: a
+    type: command
+    command: ["true"]

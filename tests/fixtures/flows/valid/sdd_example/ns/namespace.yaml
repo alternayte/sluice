@@ -1,0 +1,6 @@
+description: ELT pipelines
+defaults:
+  executor: { type: kubernetes, pool: cluster-a, image: ghcr.io/acme/elt:1.4.0 }
+  env: { TZ: Europe/Zurich }
+  retry: { max_attempts: 2 }
+  timeout: 1h

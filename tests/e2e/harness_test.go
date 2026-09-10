@@ -152,6 +152,9 @@ func startServer(t testing.TB, env map[string]string) *Proc {
 		"SLUICE_LOG_LEVEL":      "debug",
 		"SLUICE_EXECUTORS":      "process",
 		"SLUICE_SHUTDOWN_GRACE": "10s",
+
+		"SLUICE_BOOTSTRAP_ADMIN_EMAIL":    adminEmail,
+		"SLUICE_BOOTSTRAP_ADMIN_PASSWORD": adminPassword,
 	}
 	for k, v := range env {
 		full[k] = v

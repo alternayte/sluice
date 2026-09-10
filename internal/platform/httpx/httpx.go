@@ -19,6 +19,8 @@ type Error struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 	Details any    `json:"details,omitempty"`
+	// RetryAfter sets the Retry-After header in seconds when > 0.
+	RetryAfter int `json:"-"`
 }
 
 func (e *Error) Error() string { return fmt.Sprintf("%d %s: %s", e.Status, e.Code, e.Message) }
@@ -70,6 +72,9 @@ func WriteError(w http.ResponseWriter, r *http.Request, err error) {
 	if !errors.As(err, &e) {
 		logging.From(r.Context()).Error("request failed", "err", err)
 		e = &Error{Status: http.StatusInternalServerError, Code: "internal", Message: "internal error"}
+	}
+	if e.RetryAfter > 0 {
+		w.Header().Set("Retry-After", fmt.Sprint(e.RetryAfter))
 	}
 	WriteJSON(w, e.Status, envelope{Error: e})
 }

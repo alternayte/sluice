@@ -9,3 +9,4 @@ coverage.out
 tests/ui/test-results/
 tests/ui/playwright-report/
 *.tsbuildinfo
+tests/ui/.server-state.json

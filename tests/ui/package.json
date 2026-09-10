@@ -1,0 +1,13 @@
+{
+  "name": "sluice-ui-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^22.20.2",
+    "typescript": "~5.9.3"
+  }
+}

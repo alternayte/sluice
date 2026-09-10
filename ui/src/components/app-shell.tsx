@@ -1,14 +1,26 @@
-import { Link } from "@tanstack/react-router";
-import { Menu, Monitor, Moon, Sun, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { LogOut, Menu, Monitor, Moon, Sun, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { api } from "@/api/client";
 import { useTheme, type Theme } from "@/components/theme-provider";
+import { useCurrentUser } from "@/lib/auth";
+import { can, type Role } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
-type NavItem = { to: string; label: string };
+type NavItem = { to: string; label: string; min: Role };
 
-export const navItems: NavItem[] = [{ to: "/", label: "Dashboard" }];
+export const navItems: NavItem[] = [{ to: "/", label: "Dashboard", min: "viewer" }];
 
-const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
+export const settingsItems: NavItem[] = [
+  { to: "/settings/profile", label: "Profile", min: "viewer" },
+  { to: "/settings/tokens", label: "API tokens", min: "viewer" },
+  { to: "/settings/users", label: "Users", min: "admin" },
+  { to: "/settings/instances", label: "Instances", min: "admin" },
+  { to: "/settings/audit", label: "Audit log", min: "admin" },
+];
+
+export const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
   { value: "light", label: "Light", icon: Sun },
   { value: "dark", label: "Dark", icon: Moon },
   { value: "system", label: "System", icon: Monitor },
@@ -17,7 +29,7 @@ const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
 export function ThemeSwitch() {
   const { theme, setTheme } = useTheme();
   return (
-    <div role="radiogroup" aria-label="Theme" className="flex gap-1 rounded-[6px] border p-0.5">
+    <div role="radiogroup" aria-label="Theme" className="flex w-fit gap-1 rounded-[6px] border p-0.5">
       {themes.map((t) => (
         <button
           key={t.value}
@@ -39,22 +51,73 @@ export function ThemeSwitch() {
   );
 }
 
+function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => void }) {
+  const me = useCurrentUser();
+  return (
+    <>
+      {items
+        .filter((item) => can(me.role, item.min))
+        .map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            onClick={onNavigate}
+            activeOptions={{ exact: item.to === "/" }}
+            className="rounded-[6px] px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+            activeProps={{ className: "bg-accent-soft !text-accent font-medium" }}
+          >
+            {item.label}
+          </Link>
+        ))}
+    </>
+  );
+}
+
 function Nav({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav aria-label="Main" className="flex flex-col gap-0.5">
-      {navItems.map((item) => (
-        <Link
-          key={item.to}
-          to={item.to}
-          onClick={onNavigate}
-          activeOptions={{ exact: item.to === "/" }}
-          className="rounded-[6px] px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-          activeProps={{ className: "bg-accent-soft !text-accent font-medium" }}
-        >
-          {item.label}
-        </Link>
-      ))}
+      <NavLinks items={navItems} onNavigate={onNavigate} />
+      <div className="mt-4 px-3 pb-1 text-xs font-medium text-muted-foreground">Settings</div>
+      <NavLinks items={settingsItems} onNavigate={onNavigate} />
     </nav>
+  );
+}
+
+function UserBox() {
+  const me = useCurrentUser();
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+
+  const signOut = async () => {
+    setBusy(true);
+    try {
+      await api.POST("/api/v1/auth/logout");
+    } finally {
+      qc.clear();
+      setBusy(false);
+      void navigate({ to: "/login" });
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2 px-1">
+      <div className="truncate text-sm" title={me.email}>
+        {me.email}
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <ThemeSwitch />
+        <button
+          type="button"
+          onClick={() => void signOut()}
+          disabled={busy}
+          className="inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+        >
+          <LogOut className="h-4 w-4" aria-hidden />
+          Sign out
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -65,8 +128,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside className="hidden w-56 shrink-0 flex-col gap-4 border-r bg-panel p-3 md:flex">
         <div className="px-3 py-1 text-base font-semibold">Sluice</div>
         <Nav />
-        <div className="mt-auto px-1">
-          <ThemeSwitch />
+        <div className="mt-auto">
+          <UserBox />
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
@@ -82,11 +145,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="font-semibold">Sluice</span>
         </header>
         {open && (
-          <div className="border-b bg-panel p-3 md:hidden">
+          <div className="flex flex-col gap-3 border-b bg-panel p-3 md:hidden">
             <Nav onNavigate={() => setOpen(false)} />
-            <div className="mt-3">
-              <ThemeSwitch />
-            </div>
+            <UserBox />
           </div>
         )}
         <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>

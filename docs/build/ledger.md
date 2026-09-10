@@ -14,7 +14,7 @@ blocking_findings_open: 0
 | ID | Status | Slice | Evidence |
 |---|---|---|---|
 | REQ-API-001 | PASS | S0 | SCN-API-001 |
-| REQ-API-002 | IN_PROGRESS | S0 | |
+| REQ-API-002 | PASS | S0 | SCN-API-002 |
 | REQ-API-003 | IN_PROGRESS | S0 | |
 | REQ-API-004 | IN_PROGRESS | S0 | |
 | REQ-CORE-001 | IN_PROGRESS | S0 | |
@@ -23,7 +23,7 @@ blocking_findings_open: 0
 | REQ-CORE-004 | IN_PROGRESS | S0 | |
 | REQ-CORE-005 | IN_PROGRESS | S0 | |
 | REQ-CORE-006 | IN_PROGRESS | S0 | |
-| REQ-CORE-007 | IN_PROGRESS | S0 | |
+| REQ-CORE-007 | PASS | S0 | SCN-CORE-006 |
 | REQ-CORE-008 | IN_PROGRESS | S0 | |
 | REQ-CORE-009 | IN_PROGRESS | S0 | |
 | REQ-CORE-010 | IN_PROGRESS | S0 | |
@@ -31,7 +31,7 @@ blocking_findings_open: 0
 | REQ-UI-001 | IN_PROGRESS | S0 | |
 | REQ-UI-010 | IN_PROGRESS | S0 | |
 | SCN-API-001 | PASS | S0 | internal/api/gen_integration_test.go::TestSCN_API_001_RegenerateNoDiff |
-| SCN-API-002 | IN_PROGRESS | S0 | |
+| SCN-API-002 | PASS | S0 | tests/e2e/auth_test.go::TestSCN_API_002_ErrorEnvelope |
 | SCN-API-003 | IN_PROGRESS | S0 | |
 | SCN-API-004 | IN_PROGRESS | S0 | |
 | SCN-CORE-001 | IN_PROGRESS | S0 | |
@@ -39,39 +39,39 @@ blocking_findings_open: 0
 | SCN-CORE-003 | IN_PROGRESS | S0 | |
 | SCN-CORE-004 | IN_PROGRESS | S0 | |
 | SCN-CORE-005 | PASS | S0 | internal/platform/lease/lease_integration_test.go::TestSCN_CORE_005_LeaseHandover |
-| SCN-CORE-006 | IN_PROGRESS | S0 | |
+| SCN-CORE-006 | PASS | S0 | tests/e2e/instances_test.go::TestSCN_CORE_006_InstancesRegistry |
 | SCN-CORE-007 | IN_PROGRESS | S0 | |
 | SCN-CORE-008 | IN_PROGRESS | S0 | |
 | SCN-DOC-001 | IN_PROGRESS | S0 | |
 | SCN-UI-001 | IN_PROGRESS | S0 | |
-| REQ-AUTH-001 | IN_PROGRESS | S1 |  |
-| REQ-AUTH-002 | IN_PROGRESS | S1 |  |
-| REQ-AUTH-003 | IN_PROGRESS | S1 |  |
-| REQ-AUTH-004 | IN_PROGRESS | S1 |  |
+| REQ-AUTH-001 | PASS | S1 | SCN-AUTH-001 |
+| REQ-AUTH-002 | PASS | S1 | SCN-AUTH-002 |
+| REQ-AUTH-003 | PASS | S1 | SCN-AUTH-003; SCN-AUTH-004 |
+| REQ-AUTH-004 | PASS | S1 | SCN-AUTH-007 |
 | REQ-AUTH-005 | IN_PROGRESS | S1 |  |
 | REQ-AUTH-006 | IN_PROGRESS | S1 |  |
 | REQ-AUTH-007 | IN_PROGRESS | S1 |  |
-| REQ-AUTH-008 | IN_PROGRESS | S1 |  |
-| REQ-AUTH-009 | IN_PROGRESS | S1 |  |
+| REQ-AUTH-008 | PASS | S1 | SCN-AUTH-008 |
+| REQ-AUTH-009 | PASS | S1 | SCN-AUTH-009 |
 | REQ-UI-002 | IN_PROGRESS | S1 |  |
-| SI-02 | IN_PROGRESS | S1 |  |
-| SI-03 | IN_PROGRESS | S1 |  |
-| SI-06 | IN_PROGRESS | S1 |  |
-| SI-11 | IN_PROGRESS | S1 |  |
-| SI-12 | IN_PROGRESS | S1 |  |
-| SCN-AUTH-001 | IN_PROGRESS | S1 |  |
-| SCN-AUTH-002 | IN_PROGRESS | S1 |  |
-| SCN-AUTH-003 | IN_PROGRESS | S1 |  |
-| SCN-AUTH-004 | IN_PROGRESS | S1 |  |
+| SI-02 | PASS | S1 | SCN-AUTH-012 |
+| SI-03 | PASS | S1 | SCN-AUTH-006 |
+| SI-06 | PASS | S1 | SCN-AUTH-011 |
+| SI-11 | PASS | S1 | SCN-AUTH-008 |
+| SI-12 | PASS | S1 | SCN-AUTH-013 |
+| SCN-AUTH-001 | PASS | S1 | tests/ui/specs/auth.spec.ts::SCN-AUTH-001 login errors, reload, logout and old cookie |
+| SCN-AUTH-002 | PASS | S1 | tests/e2e/auth_test.go::TestSCN_AUTH_002_BootstrapAdminAndCLI |
+| SCN-AUTH-003 | PASS | S1 | tests/ui/specs/auth.spec.ts::SCN-AUTH-003 admin creates an editor who must set a new password |
+| SCN-AUTH-004 | PASS | S1 | tests/e2e/auth_test.go::TestSCN_AUTH_004_LastAdminGuard |
 | SCN-AUTH-005 | IN_PROGRESS | S1 |  |
-| SCN-AUTH-006 | IN_PROGRESS | S1 |  |
-| SCN-AUTH-007 | IN_PROGRESS | S1 |  |
-| SCN-AUTH-008 | IN_PROGRESS | S1 |  |
-| SCN-AUTH-009 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-006 | PASS | S1 | internal/app/routes_integration_test.go::TestSCN_AUTH_006_RouteInventory |
+| SCN-AUTH-007 | PASS | S1 | tests/e2e/auth_test.go::TestSCN_AUTH_007_ChangePassword |
+| SCN-AUTH-008 | PASS | S1 | tests/e2e/auth_test.go::TestSCN_AUTH_008_LoginRateLimit |
+| SCN-AUTH-009 | PASS | S1 | tests/e2e/auth_test.go::TestSCN_AUTH_009_DisableTakesEffectOnAllInstances |
 | SCN-AUTH-010 | IN_PROGRESS | S1 |  |
-| SCN-AUTH-011 | IN_PROGRESS | S1 |  |
-| SCN-AUTH-012 | IN_PROGRESS | S1 |  |
-| SCN-AUTH-013 | IN_PROGRESS | S1 |  |
+| SCN-AUTH-011 | PASS | S1 | tests/e2e/auth_test.go::TestSCN_AUTH_011_SameOriginForCookies |
+| SCN-AUTH-012 | PASS | S1 | internal/auth/auth_integration_test.go::TestSCN_AUTH_012_SecretsStoredAsHashes |
+| SCN-AUTH-013 | PASS | S1 | tests/e2e/auth_test.go::TestSCN_AUTH_013_SecurityHeaders |
 | SCN-UI-005 | IN_PROGRESS | S1 |  |
 | REQ-STO-001 | OPEN | S2 | |
 | REQ-STO-002 | OPEN | S2 | |

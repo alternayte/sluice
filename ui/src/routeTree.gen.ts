@@ -10,33 +10,115 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as SettingsAuditRouteImport } from './routes/settings/audit'
+import { Route as SettingsInstancesRouteImport } from './routes/settings/instances'
+import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
+import { Route as SettingsTokensRouteImport } from './routes/settings/tokens'
+import { Route as SettingsUsersRouteImport } from './routes/settings/users'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsAuditRoute = SettingsAuditRouteImport.update({
+  id: '/settings/audit',
+  path: '/settings/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsInstancesRoute = SettingsInstancesRouteImport.update({
+  id: '/settings/instances',
+  path: '/settings/instances',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsProfileRoute = SettingsProfileRouteImport.update({
+  id: '/settings/profile',
+  path: '/settings/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsTokensRoute = SettingsTokensRouteImport.update({
+  id: '/settings/tokens',
+  path: '/settings/tokens',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsUsersRoute = SettingsUsersRouteImport.update({
+  id: '/settings/users',
+  path: '/settings/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/settings/audit': typeof SettingsAuditRoute
+  '/settings/instances': typeof SettingsInstancesRoute
+  '/settings/profile': typeof SettingsProfileRoute
+  '/settings/tokens': typeof SettingsTokensRoute
+  '/settings/users': typeof SettingsUsersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/settings/audit': typeof SettingsAuditRoute
+  '/settings/instances': typeof SettingsInstancesRoute
+  '/settings/profile': typeof SettingsProfileRoute
+  '/settings/tokens': typeof SettingsTokensRoute
+  '/settings/users': typeof SettingsUsersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/settings/audit': typeof SettingsAuditRoute
+  '/settings/instances': typeof SettingsInstancesRoute
+  '/settings/profile': typeof SettingsProfileRoute
+  '/settings/tokens': typeof SettingsTokensRoute
+  '/settings/users': typeof SettingsUsersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/settings/audit'
+    | '/settings/instances'
+    | '/settings/profile'
+    | '/settings/tokens'
+    | '/settings/users'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/settings/audit'
+    | '/settings/instances'
+    | '/settings/profile'
+    | '/settings/tokens'
+    | '/settings/users'
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/settings/audit'
+    | '/settings/instances'
+    | '/settings/profile'
+    | '/settings/tokens'
+    | '/settings/users'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
+  SettingsAuditRoute: typeof SettingsAuditRoute
+  SettingsInstancesRoute: typeof SettingsInstancesRoute
+  SettingsProfileRoute: typeof SettingsProfileRoute
+  SettingsTokensRoute: typeof SettingsTokensRoute
+  SettingsUsersRoute: typeof SettingsUsersRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +130,59 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/audit': {
+      id: '/settings/audit'
+      path: '/settings/audit'
+      fullPath: '/settings/audit'
+      preLoaderRoute: typeof SettingsAuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/instances': {
+      id: '/settings/instances'
+      path: '/settings/instances'
+      fullPath: '/settings/instances'
+      preLoaderRoute: typeof SettingsInstancesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/profile': {
+      id: '/settings/profile'
+      path: '/settings/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof SettingsProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/tokens': {
+      id: '/settings/tokens'
+      path: '/settings/tokens'
+      fullPath: '/settings/tokens'
+      preLoaderRoute: typeof SettingsTokensRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/users': {
+      id: '/settings/users'
+      path: '/settings/users'
+      fullPath: '/settings/users'
+      preLoaderRoute: typeof SettingsUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
+  SettingsAuditRoute: SettingsAuditRoute,
+  SettingsInstancesRoute: SettingsInstancesRoute,
+  SettingsProfileRoute: SettingsProfileRoute,
+  SettingsTokensRoute: SettingsTokensRoute,
+  SettingsUsersRoute: SettingsUsersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

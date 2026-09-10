@@ -21,6 +21,202 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/auth/login": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Sign in with email and password. Sets the sluice_session cookie. */
+    post: operations["login"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/logout": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Sign out and delete the current session. */
+    post: operations["logout"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/me": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Return the current user. */
+    get: operations["getMe"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Update the own profile. */
+    patch: operations["updateMe"];
+    trace?: never;
+  };
+  "/api/v1/auth/password": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Change the own password. Other sessions are signed out. */
+    post: operations["changePassword"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/sessions/revoke-others": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Sign out all other sessions of the current user. */
+    post: operations["revokeOtherSessions"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/users": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List users. */
+    get: operations["listUsers"];
+    put?: never;
+    /** Create a user with a temporary password. */
+    post: operations["createUser"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/users/{userId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        userId: components["parameters"]["UserId"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Change the name or role of a user, or disable or enable the user. */
+    patch: operations["updateUser"];
+    trace?: never;
+  };
+  "/api/v1/users/{userId}/reset-password": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        userId: components["parameters"]["UserId"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Set a temporary password. The user must change it at next login. */
+    post: operations["resetUserPassword"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/tokens": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List own API tokens. Admins can list all tokens with all=true. */
+    get: operations["listTokens"];
+    put?: never;
+    /** Create an API token. The secret is shown once. */
+    post: operations["createToken"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/tokens/{tokenId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tokenId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Revoke an API token. Owners and admins can revoke. */
+    delete: operations["revokeToken"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/audit": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List audit events, newest first. */
+    get: operations["listAuditEvents"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -33,6 +229,11 @@ export interface components {
       message: string;
       details?: unknown;
     };
+    CountResult: {
+      count: number;
+    };
+    /** @enum {string} */
+    Role: "viewer" | "operator" | "editor" | "admin";
     Instance: {
       /** Format: uuid */
       id: string;
@@ -49,6 +250,113 @@ export interface components {
     InstanceList: {
       items: components["schemas"]["Instance"][];
     };
+    LoginRequest: {
+      email: string;
+      password: string;
+    };
+    Me: {
+      /** Format: uuid */
+      id: string;
+      email: string;
+      name: string;
+      role: components["schemas"]["Role"];
+      must_change_password: boolean;
+      /** @enum {string} */
+      auth_type: "session" | "token";
+    };
+    UpdateMeRequest: {
+      name: string;
+    };
+    ChangePasswordRequest: {
+      current_password: string;
+      new_password: string;
+    };
+    User: {
+      /** Format: uuid */
+      id: string;
+      email: string;
+      name: string;
+      role: components["schemas"]["Role"];
+      must_change_password: boolean;
+      disabled: boolean;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      last_login_at?: string | null;
+    };
+    UserList: {
+      items: components["schemas"]["User"][];
+      next_cursor?: string;
+    };
+    CreateUserRequest: {
+      /** Format: email */
+      email: string;
+      name?: string;
+      role: components["schemas"]["Role"];
+      /** @description Temporary password. The user must change it at first login. */
+      password: string;
+    };
+    UpdateUserRequest: {
+      name?: string;
+      role?: components["schemas"]["Role"];
+      disabled?: boolean;
+    };
+    ResetPasswordRequest: {
+      password: string;
+    };
+    Token: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      user_id: string;
+      user_email: string;
+      name: string;
+      prefix: string;
+      role: components["schemas"]["Role"];
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      expires_at?: string | null;
+      /** Format: date-time */
+      last_used_at?: string | null;
+      /** Format: date-time */
+      revoked_at?: string | null;
+    };
+    TokenList: {
+      items: components["schemas"]["Token"][];
+      next_cursor?: string;
+    };
+    CreateTokenRequest: {
+      name: string;
+      role: components["schemas"]["Role"];
+      expires_in_days?: number;
+    };
+    CreatedToken: {
+      token: components["schemas"]["Token"];
+      /** @description The token value. It is shown only once. */
+      secret: string;
+    };
+    AuditEvent: {
+      /** Format: uuid */
+      id: string;
+      /** Format: date-time */
+      ts: string;
+      /** @enum {string} */
+      actor_type: "user" | "token" | "system" | "ai";
+      actor_id: string;
+      actor_label: string;
+      action: string;
+      target_type: string;
+      target_id: string;
+      details: {
+        [key: string]: unknown;
+      };
+      ip: string;
+    };
+    AuditList: {
+      items: components["schemas"]["AuditEvent"][];
+      next_cursor?: string;
+    };
   };
   responses: {
     /** @description Error envelope. */
@@ -61,7 +369,12 @@ export interface components {
       };
     };
   };
-  parameters: never;
+  parameters: {
+    /** @description Opaque cursor from next_cursor of the previous page. */
+    Cursor: string;
+    Limit: number;
+    UserId: string;
+  };
   requestBodies: never;
   headers: never;
   pathItems: never;
@@ -84,6 +397,346 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["InstanceList"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  login: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LoginRequest"];
+      };
+    };
+    responses: {
+      /** @description Signed in. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Me"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  logout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Signed out. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  getMe: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Current user. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Me"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  updateMe: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateMeRequest"];
+      };
+    };
+    responses: {
+      /** @description Updated. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Me"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  changePassword: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChangePasswordRequest"];
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  revokeOtherSessions: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Other sessions deleted. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CountResult"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  listUsers: {
+    parameters: {
+      query?: {
+        /** @description Opaque cursor from next_cursor of the previous page. */
+        cursor?: components["parameters"]["Cursor"];
+        limit?: components["parameters"]["Limit"];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Users. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UserList"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  createUser: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateUserRequest"];
+      };
+    };
+    responses: {
+      /** @description Created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["User"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  updateUser: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        userId: components["parameters"]["UserId"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateUserRequest"];
+      };
+    };
+    responses: {
+      /** @description Updated. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["User"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  resetUserPassword: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        userId: components["parameters"]["UserId"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ResetPasswordRequest"];
+      };
+    };
+    responses: {
+      /** @description Reset. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  listTokens: {
+    parameters: {
+      query?: {
+        all?: boolean;
+        /** @description Opaque cursor from next_cursor of the previous page. */
+        cursor?: components["parameters"]["Cursor"];
+        limit?: components["parameters"]["Limit"];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Tokens. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TokenList"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  createToken: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateTokenRequest"];
+      };
+    };
+    responses: {
+      /** @description Created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CreatedToken"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  revokeToken: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tokenId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Revoked. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  listAuditEvents: {
+    parameters: {
+      query?: {
+        /** @description Actor ID or email. */
+        actor?: string;
+        action?: string;
+        /** @description Target type, or type:id. */
+        target?: string;
+        from?: string;
+        to?: string;
+        /** @description Opaque cursor from next_cursor of the previous page. */
+        cursor?: components["parameters"]["Cursor"];
+        limit?: components["parameters"]["Limit"];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Audit events. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AuditList"];
         };
       };
       default: components["responses"]["Error"];

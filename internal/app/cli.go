@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/alternayte/sluice/internal/platform/db"
@@ -31,6 +32,8 @@ func commands() []command {
 	return []command{
 		{"server", "Run the HTTP server, scheduler and executors.", runServer},
 		{"migrate", "Apply database migrations and exit.", runMigrate},
+		{"user create", "Create a user in the database.", runUserCreate},
+		{"user reset-password", "Set a new password for a user.", runUserResetPassword},
 		{"version", "Print version, commit and build date.", runVersion},
 	}
 }
@@ -50,11 +53,13 @@ func MainIO(args []string, stdout, stderr io.Writer) int {
 		return exitOK
 	}
 	for _, c := range commands() {
-		if c.name == args[0] {
-			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-			defer stop()
-			return c.run(ctx, args[1:], stdout, stderr)
+		words := strings.Fields(c.name)
+		if len(args) < len(words) || strings.Join(args[:len(words)], " ") != c.name {
+			continue
 		}
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		return c.run(ctx, args[len(words):], stdout, stderr)
 	}
 	fmt.Fprintf(stderr, "unknown command %q\n\n", args[0])
 	usage(stderr)

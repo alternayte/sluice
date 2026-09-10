@@ -17,12 +17,18 @@ import (
 	"github.com/alternayte/sluice/internal/platform/httpx"
 )
 
+// AuthorizeFunc checks the permission of an operation. It returns nil when allowed.
+type AuthorizeFunc func(ctx context.Context, operationID string) error
+
 // Mount registers all /api routes on mux. Unknown /api routes return JSON 404 (REQ-API-002).
-func Mount(mux *http.ServeMux, ssi apigen.StrictServerInterface, mws []apigen.StrictMiddlewareFunc, httpMws ...apigen.MiddlewareFunc) error {
+// authorize runs before request validation, so a caller without permission never sees
+// validation details.
+func Mount(mux ServeMux, ssi apigen.StrictServerInterface, authorize AuthorizeFunc, mws []apigen.StrictMiddlewareFunc, httpMws ...apigen.MiddlewareFunc) error {
 	validator, err := NewValidator()
 	if err != nil {
 		return err
 	}
+	validator.authorize = authorize
 	strict := apigen.NewStrictHandlerWithOptions(ssi, mws, apigen.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			httpx.WriteError(w, r, httpx.Errorf(http.StatusBadRequest, "bad_request", "%s", err.Error()))
@@ -42,9 +48,29 @@ func Mount(mux *http.ServeMux, ssi apigen.StrictServerInterface, mws []apigen.St
 	return nil
 }
 
+// ServeMux is the router that Mount registers on.
+type ServeMux interface {
+	apigen.ServeMux
+	Handle(pattern string, h http.Handler)
+}
+
 // Validator checks requests against the OpenAPI document.
 type Validator struct {
-	router routers.Router
+	router    routers.Router
+	authorize AuthorizeFunc
+}
+
+// OperationID returns the operation of a request, or "" when no operation matches.
+func (v *Validator) OperationID(r *http.Request) string {
+	route, _, err := v.router.FindRoute(r)
+	if err != nil || route.Operation == nil {
+		return ""
+	}
+	return route.Operation.OperationID
+}
+
+func init() {
+	openapi3.DefineStringFormatValidator("email", openapi3.NewRegexpFormatValidator(openapi3.FormatOfStringForEmail))
 }
 
 // NewValidator loads the embedded OpenAPI document.
@@ -69,6 +95,12 @@ func (v *Validator) Middleware(next http.Handler) http.Handler {
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return
+		}
+		if v.authorize != nil {
+			if err := v.authorize(r.Context(), route.Operation.OperationID); err != nil {
+				httpx.WriteError(w, r, err)
+				return
+			}
 		}
 		ct := r.Header.Get("Content-Type")
 		if r.Body != nil && r.ContentLength != 0 && !strings.HasPrefix(ct, "application/json") && ct != "" {

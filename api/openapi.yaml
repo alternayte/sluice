@@ -7,6 +7,10 @@ servers:
   - url: /
 tags:
   - name: system
+  - name: auth
+  - name: users
+  - name: tokens
+  - name: audit
 paths:
   /api/v1/instances:
     get:
@@ -22,6 +26,279 @@ paths:
                 $ref: "#/components/schemas/InstanceList"
         default:
           $ref: "#/components/responses/Error"
+
+  /api/v1/auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Sign in with email and password. Sets the sluice_session cookie.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Signed in.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Sign out and delete the current session.
+      responses:
+        "204":
+          description: Signed out.
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Return the current user.
+      responses:
+        "200":
+          description: Current user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+        default:
+          $ref: "#/components/responses/Error"
+    patch:
+      operationId: updateMe
+      tags: [auth]
+      summary: Update the own profile.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMeRequest"
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/auth/password:
+    post:
+      operationId: changePassword
+      tags: [auth]
+      summary: Change the own password. Other sessions are signed out.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "204":
+          description: Changed.
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/auth/sessions/revoke-others:
+    post:
+      operationId: revokeOtherSessions
+      tags: [auth]
+      summary: Sign out all other sessions of the current user.
+      responses:
+        "200":
+          description: Other sessions deleted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CountResult"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /api/v1/users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List users.
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Users.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserList"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a user with a temporary password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/users/{userId}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Change the name or role of a user, or disable or enable the user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/users/{userId}/reset-password:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    post:
+      operationId: resetUserPassword
+      tags: [users]
+      summary: Set a temporary password. The user must change it at next login.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "204":
+          description: Reset.
+        default:
+          $ref: "#/components/responses/Error"
+
+  /api/v1/tokens:
+    get:
+      operationId: listTokens
+      tags: [tokens]
+      summary: List own API tokens. Admins can list all tokens with all=true.
+      parameters:
+        - name: all
+          in: query
+          schema:
+            type: boolean
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Tokens.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenList"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createToken
+      tags: [tokens]
+      summary: Create an API token. The secret is shown once.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTokenRequest"
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatedToken"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/tokens/{tokenId}:
+    parameters:
+      - name: tokenId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      operationId: revokeToken
+      tags: [tokens]
+      summary: Revoke an API token. Owners and admins can revoke.
+      responses:
+        "204":
+          description: Revoked.
+        default:
+          $ref: "#/components/responses/Error"
+
+  /api/v1/audit:
+    get:
+      operationId: listAuditEvents
+      tags: [audit]
+      summary: List audit events, newest first.
+      parameters:
+        - name: actor
+          in: query
+          description: Actor ID or email.
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: target
+          in: query
+          description: Target type, or type:id.
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Audit events.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditList"
+        default:
+          $ref: "#/components/responses/Error"
+
 components:
   securitySchemes:
     session:
@@ -31,6 +308,28 @@ components:
     token:
       type: http
       scheme: bearer
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      description: Opaque cursor from next_cursor of the previous page.
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   responses:
     Error:
       description: Error envelope.
@@ -54,6 +353,15 @@ components:
         message:
           type: string
         details: {}
+    CountResult:
+      type: object
+      required: [count]
+      properties:
+        count:
+          type: integer
+    Role:
+      type: string
+      enum: [viewer, operator, editor, admin]
     Instance:
       type: object
       required: [id, hostname, version, pools, executors, started_at, heartbeat_at, online]
@@ -89,6 +397,229 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Instance"
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          minLength: 3
+          maxLength: 320
+        password:
+          type: string
+          minLength: 1
+          maxLength: 1024
+    Me:
+      type: object
+      required: [id, email, name, role, must_change_password, auth_type]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+        must_change_password:
+          type: boolean
+        auth_type:
+          type: string
+          enum: [session, token]
+    UpdateMeRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+    ChangePasswordRequest:
+      type: object
+      required: [current_password, new_password]
+      properties:
+        current_password:
+          type: string
+          maxLength: 1024
+        new_password:
+          type: string
+          minLength: 10
+          maxLength: 1024
+    User:
+      type: object
+      required: [id, email, name, role, must_change_password, disabled, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+        must_change_password:
+          type: boolean
+        disabled:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+    UserList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        next_cursor:
+          type: string
+    CreateUserRequest:
+      type: object
+      required: [email, role, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        name:
+          type: string
+          maxLength: 200
+        role:
+          $ref: "#/components/schemas/Role"
+        password:
+          type: string
+          minLength: 10
+          maxLength: 1024
+          description: Temporary password. The user must change it at first login.
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        role:
+          $ref: "#/components/schemas/Role"
+        disabled:
+          type: boolean
+    ResetPasswordRequest:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+          minLength: 10
+          maxLength: 1024
+    Token:
+      type: object
+      required: [id, user_id, user_email, name, prefix, role, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        user_email:
+          type: string
+        name:
+          type: string
+        prefix:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+    TokenList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Token"
+        next_cursor:
+          type: string
+    CreateTokenRequest:
+      type: object
+      required: [name, role]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        role:
+          $ref: "#/components/schemas/Role"
+        expires_in_days:
+          type: integer
+          minimum: 1
+          maximum: 365
+    CreatedToken:
+      type: object
+      required: [token, secret]
+      properties:
+        token:
+          $ref: "#/components/schemas/Token"
+        secret:
+          type: string
+          description: The token value. It is shown only once.
+    AuditEvent:
+      type: object
+      required: [id, ts, actor_type, actor_id, actor_label, action, target_type, target_id, details, ip]
+      properties:
+        id:
+          type: string
+          format: uuid
+        ts:
+          type: string
+          format: date-time
+        actor_type:
+          type: string
+          enum: [user, token, system, ai]
+        actor_id:
+          type: string
+        actor_label:
+          type: string
+        action:
+          type: string
+        target_type:
+          type: string
+        target_id:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        ip:
+          type: string
+    AuditList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditEvent"
+        next_cursor:
+          type: string
 security:
   - session: []
   - token: []

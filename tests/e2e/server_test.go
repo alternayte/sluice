@@ -10,7 +10,13 @@ import (
 	"testing"
 )
 
-func get(t *testing.T, url string) (*http.Response, string) {
+// httpResult is a fully read response.
+type httpResult struct {
+	StatusCode int
+	Header     http.Header
+}
+
+func get(t *testing.T, url string) (httpResult, string) {
 	t.Helper()
 	resp, err := http.Get(url)
 	if err != nil {
@@ -18,7 +24,7 @@ func get(t *testing.T, url string) (*http.Response, string) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 	b, _ := io.ReadAll(resp.Body)
-	return resp, string(b)
+	return httpResult{StatusCode: resp.StatusCode, Header: resp.Header}, string(b)
 }
 
 // TestServerBasics checks health endpoints, request IDs, JSON 404 for unknown API

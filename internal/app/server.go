@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"sync"
 	"time"
@@ -15,6 +16,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/alternayte/sluice/internal/api"
+	"github.com/alternayte/sluice/internal/audit"
+	"github.com/alternayte/sluice/internal/auth"
 	"github.com/alternayte/sluice/internal/platform/clock"
 	"github.com/alternayte/sluice/internal/platform/db"
 	"github.com/alternayte/sluice/internal/platform/health"
@@ -36,6 +39,8 @@ type Server struct {
 	Health   *health.Checker
 	Metrics  *promx.Metrics
 	Registry *instance.Registry
+	Audit    *audit.Writer
+	Auth     *auth.Service
 
 	httpServer *http.Server
 	listener   net.Listener
@@ -74,7 +79,9 @@ func NewServer(ctx context.Context, cfg *Config, log *slog.Logger) (*Server, err
 		},
 		Health:   &health.Checker{},
 		Registry: &instance.Registry{Pool: pool, Clock: clk, Log: log},
+		Audit:    &audit.Writer{Pool: pool, Clock: clk},
 	}
+	s.Auth = newAuthService(cfg, pool, clk, s.Audit, log)
 	s.Leases = &lease.Store{Pool: pool, Clock: clk, Holder: id.String()}
 	s.Metrics = promx.New(pool, log)
 	s.Health.Add("database", func(ctx context.Context) error {
@@ -82,7 +89,24 @@ func NewServer(ctx context.Context, cfg *Config, log *slog.Logger) (*Server, err
 		return pool.QueryRow(ctx, "SELECT 1").Scan(&one)
 	})
 	s.Health.Add("migrations", func(ctx context.Context) error { return db.MigrationsCurrent(ctx, pool) })
+	created, err := s.Auth.Bootstrap(ctx, cfg.BootstrapAdminEmail, cfg.BootstrapAdminPassword)
+	if err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("bootstrap admin: %w", err)
+	}
+	if created {
+		log.Info("bootstrap admin created", "email", cfg.BootstrapAdminEmail)
+	}
 	return s, nil
+}
+
+func newAuthService(cfg *Config, pool *pgxpool.Pool, clk clock.Clock, aw *audit.Writer, log *slog.Logger) *auth.Service {
+	origin := ""
+	if u, err := url.Parse(cfg.PublicURL); err == nil && u.Host != "" {
+		origin = u.Scheme + "://" + u.Host
+	}
+	return &auth.Service{Pool: pool, Clock: clk, Audit: aw, Log: log, SessionTTL: cfg.SessionTTL,
+		SecureCookie: cfg.SecureCookies(), PublicOrigin: origin}
 }
 
 func enabledExecutors(cfg *Config) []string {
@@ -99,25 +123,57 @@ func enabledExecutors(cfg *Config) []string {
 	return out
 }
 
-// Handler builds the root HTTP handler.
-func (s *Server) Handler() (http.Handler, error) {
-	mux := http.NewServeMux()
+// RecordingMux records the patterns registered on it for the route inventory (SI-03).
+type RecordingMux struct {
+	*http.ServeMux
+	Patterns []string
+}
+
+// Handle registers and records a handler.
+func (m *RecordingMux) Handle(pattern string, h http.Handler) {
+	m.Patterns = append(m.Patterns, pattern)
+	m.ServeMux.Handle(pattern, h)
+}
+
+// HandleFunc registers and records a handler function.
+func (m *RecordingMux) HandleFunc(pattern string, h func(http.ResponseWriter, *http.Request)) {
+	m.Patterns = append(m.Patterns, pattern)
+	m.ServeMux.HandleFunc(pattern, h)
+}
+
+// Routes builds the router and returns it with the recorded patterns.
+func (s *Server) Routes() (*RecordingMux, error) {
+	mux := &RecordingMux{ServeMux: http.NewServeMux()}
 	mux.HandleFunc("GET /healthz", health.Healthz)
 	mux.HandleFunc("GET /readyz", s.Health.Readyz)
 	mux.Handle("GET /metrics", s.Metrics.Handler())
-	apiServer := &api.Server{System: api.System{Instances: s.Registry, Clock: s.Clock}}
-	if err := api.Mount(mux, apiServer, nil); err != nil {
+	apiServer := &api.Server{
+		System:   api.System{Instances: s.Registry, Clock: s.Clock},
+		Handlers: auth.Handlers{Svc: s.Auth},
+	}
+	if err := api.Mount(mux, apiServer, auth.Authorize, nil); err != nil {
 		return nil, err
 	}
 	mux.Handle("/", spaHandler())
+	return mux, nil
+}
+
+// Handler builds the root HTTP handler.
+func (s *Server) Handler() (http.Handler, error) {
+	mux, err := s.Routes()
+	if err != nil {
+		return nil, err
+	}
 	route := func(r *http.Request) string {
 		if r.Pattern == "" {
 			return "unmatched"
 		}
 		return r.Pattern
 	}
-	h := httpx.WithRequestID(s.Metrics.Middleware(route, mux))
-	return withLogger(s.Log, h), nil
+	h := s.Auth.Middleware(s.Metrics.Middleware(route, mux))
+	h = withLogger(s.Log, h)
+	h = httpx.WithRequestID(h)
+	return httpx.SecurityHeaders(h), nil
 }
 
 func withLogger(log *slog.Logger, next http.Handler) http.Handler {
@@ -188,20 +244,32 @@ func (s *Server) Addr() string {
 	return s.listener.Addr().String()
 }
 
-// maintenance runs daily cleanup while this instance holds the maintenance lease.
+// maintenance runs cleanup while this instance holds the maintenance lease.
 func (s *Server) maintenance(ctx context.Context) {
 	t := time.NewTicker(time.Hour)
 	defer t.Stop()
 	for {
-		if n, err := s.Registry.DeleteStale(ctx); err != nil && ctx.Err() == nil {
-			s.Log.Warn("delete stale instances", "err", err)
-		} else if n > 0 {
-			s.Log.Info("deleted stale instances", "count", n)
-		}
+		s.runMaintenance(ctx)
 		select {
 		case <-ctx.Done():
 			return
 		case <-t.C:
+		}
+	}
+}
+
+func (s *Server) runMaintenance(ctx context.Context) {
+	steps := []struct {
+		name string
+		fn   func(context.Context) error
+	}{
+		{"instances", func(ctx context.Context) error { _, err := s.Registry.DeleteStale(ctx); return err }},
+		{"sessions", s.Auth.Cleanup},
+		{"audit", func(ctx context.Context) error { _, err := s.Audit.DeleteExpired(ctx); return err }},
+	}
+	for _, st := range steps {
+		if err := st.fn(ctx); err != nil && ctx.Err() == nil {
+			s.Log.Warn("maintenance step failed", "step", st.name, "err", err)
 		}
 	}
 }

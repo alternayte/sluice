@@ -169,7 +169,7 @@ func errorFor(status int, msg string, errs []error) huma.StatusError {
 		for _, err := range errs {
 			var d *huma.ErrorDetail
 			if errors.As(err, &d) {
-				fields = append(fields, FieldError{Field: fieldName(d.Location, d.Message), Message: d.Message})
+				fields = append(fields, bodyFieldError(d.Location, d.Message))
 				continue
 			}
 			fields = append(fields, FieldError{Message: err.Error()})
@@ -179,21 +179,33 @@ func errorFor(status int, msg string, errs []error) huma.StatusError {
 	return &Error{Status: status, Code: codeFor(status), Message: msg}
 }
 
-// fieldName turns a huma location such as body.email, query.limit or path.userId into the field
-// name. A missing required top-level property reaches this function with the bare location
-// "body" and the property name only in the message ("expected required property x to be
-// present"): this function reads the name from the message so the field still names the
-// property, as the old kin-openapi validator did.
-func fieldName(loc, msg string) string {
+// bodyFieldError turns a huma location such as body.email, query.limit or path.userId, together
+// with its message, into a FieldError.
+//
+// A missing required top-level property reaches this function with the bare location "body" and
+// the property name only in the message ("expected required property x to be present"): this
+// function reads the name from the message so the field still names the property, as the old
+// kin-openapi validator did.
+//
+// A malformed JSON body also reaches this function with the bare location "body", since huma
+// parses the raw body before it runs schema validation and reports the parse failure the same
+// way. Its message is the raw encoding/json parser text, for example "invalid character 'b'
+// looking for beginning of object key string", and must not reach the caller (D-23, no internal
+// detail in the response): this function replaces it with "invalid JSON" for every body-location
+// message that is not one of the known schema-validation messages (REQ-API-002).
+func bodyFieldError(loc, msg string) FieldError {
 	if _, rest, ok := strings.Cut(loc, "."); ok {
-		return rest
+		return FieldError{Field: rest, Message: msg}
 	}
 	if loc == "body" {
 		if name, ok := requiredPropertyName(msg); ok {
-			return name
+			return FieldError{Field: name, Message: msg}
+		}
+		if !isSchemaBodyMessage(msg) {
+			return FieldError{Field: "body", Message: "invalid JSON"}
 		}
 	}
-	return loc
+	return FieldError{Field: loc, Message: msg}
 }
 
 // requiredPropertyName extracts x from "expected required property x to be present".
@@ -204,6 +216,27 @@ func requiredPropertyName(msg string) (string, bool) {
 		return "", false
 	}
 	return msg[len(prefix) : len(msg)-len(suffix)], true
+}
+
+// schemaBodyMessagePrefixes lists every huma schema-validation message that can carry the bare
+// "body" location, other than the required-property message (handled separately). Any other
+// message at that location comes from the JSON parser, not the schema validator.
+var schemaBodyMessagePrefixes = []string{
+	"unexpected property",
+	"expected object",
+	"expected property ", // dependent required property
+	"expected schema $ref to resolve",
+}
+
+// isSchemaBodyMessage reports whether msg is one of huma's schema-validation messages for a
+// top-level object, rather than a JSON parser message.
+func isSchemaBodyMessage(msg string) bool {
+	for _, p := range schemaBodyMessagePrefixes {
+		if strings.HasPrefix(msg, p) {
+			return true
+		}
+	}
+	return false
 }
 
 func codeFor(status int) string {

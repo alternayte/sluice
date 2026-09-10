@@ -14,6 +14,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"github.com/alternayte/sluice/internal/kernel"
 	"github.com/alternayte/sluice/internal/platform/httpx"
@@ -50,6 +51,14 @@ func testHandler(t *testing.T) http.Handler {
 		})
 	huma.Register(api, httpx.Op("boom", http.MethodGet, "/api/v1/boom", httpx.Public),
 		func(context.Context, *struct{}) (*okOut, error) { return nil, errors.New("secret database detail") })
+	huma.Register(api, httpx.Op("getThing", http.MethodGet, "/api/v1/things/{thingId}", httpx.MinRole(kernel.Admin)),
+		func(ctx context.Context, in *struct {
+			ThingID uuid.UUID `path:"thingId"`
+		}) (*okOut, error) {
+			out := &okOut{}
+			out.Body.OK = true
+			return out, nil
+		})
 	httpx.Raw(api, r, httpx.Op("stream", http.MethodGet, "/api/v1/stream/{id}", httpx.MinRole(kernel.Viewer)),
 		func(w http.ResponseWriter, req *http.Request) {
 			_, _ = io.WriteString(w, "raw:"+chi.URLParam(req, "id"))
@@ -69,7 +78,8 @@ type result struct {
 		Error struct {
 			Code    string `json:"code"`
 			Details []struct {
-				Field string `json:"field"`
+				Field   string `json:"field"`
+				Message string `json:"message"`
 			} `json:"details"`
 		} `json:"error"`
 	}
@@ -104,13 +114,25 @@ func TestAPIContract(t *testing.T) {
 			t.Fatalf("%d %s", r.status, r.body)
 		}
 	})
-	t.Run("malformed JSON maps to a body field error", func(t *testing.T) {
+	t.Run("malformed JSON maps to a body field error with a fixed message", func(t *testing.T) {
 		r := do(t, h, http.MethodPost, "/api/v1/things", "{bad json", kernel.Admin)
+		var got string
+		for _, d := range r.env.Error.Details {
+			if d.Field == "body" {
+				got = d.Message
+			}
+		}
+		if r.status != http.StatusUnprocessableEntity || r.env.Error.Code != "validation_failed" || got != "invalid JSON" {
+			t.Fatalf("%d %s", r.status, r.body)
+		}
+	})
+	t.Run("invalid UUID path parameter names the parameter", func(t *testing.T) {
+		r := do(t, h, http.MethodGet, "/api/v1/things/not-a-uuid", "", kernel.Admin)
 		fields := map[string]bool{}
 		for _, d := range r.env.Error.Details {
 			fields[d.Field] = true
 		}
-		if r.status != http.StatusUnprocessableEntity || r.env.Error.Code != "validation_failed" || !fields["body"] {
+		if r.status != http.StatusUnprocessableEntity || r.env.Error.Code != "validation_failed" || !fields["thingId"] {
 			t.Fatalf("%d %s", r.status, r.body)
 		}
 	})

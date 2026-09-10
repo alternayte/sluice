@@ -4,7 +4,8 @@ import type { Me } from "@/api/types.gen";
 
 export type { Me };
 
-export const meQueryKey = getMeQueryKey();
+/** meQueryKey builds the query key at call time. Build it after api-client sets the base URL. */
+export const meQueryKey = () => getMeQueryKey();
 
 /** useMe loads the current user. A 401 error means "not signed in". */
 export function useMe() {

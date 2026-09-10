@@ -49,7 +49,7 @@ function NameForm() {
   const mutation = useMutation({
     ...updateMeMutation(),
     onSuccess: (data) => {
-      qc.setQueryData(meQueryKey, data);
+      qc.setQueryData(meQueryKey(), data);
       setSaved(true);
     },
   });

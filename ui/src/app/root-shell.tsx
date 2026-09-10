@@ -79,7 +79,7 @@ export function RootShell() {
           </div>
           <ChangePasswordForm
             submitLabel="Set password"
-            onSuccess={() => void qc.invalidateQueries({ queryKey: meQueryKey })}
+            onSuccess={() => void qc.invalidateQueries({ queryKey: meQueryKey() })}
           />
           <Button
             variant="ghost"

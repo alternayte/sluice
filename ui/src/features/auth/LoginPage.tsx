@@ -31,7 +31,7 @@ export function LoginPage({ redirect }: { redirect?: string }) {
     ...loginMutation(),
     onSuccess: (data) => {
       qc.clear();
-      qc.setQueryData(meQueryKey, data);
+      qc.setQueryData(meQueryKey(), data);
       router.history.replace(safeRedirect(redirect));
     },
   });

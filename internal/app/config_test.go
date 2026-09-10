@@ -8,12 +8,10 @@ import (
 	"time"
 )
 
-func envOf(m map[string]string) func(string) string {
-	return func(k string) string { return m[k] }
-}
+func envOf(m map[string]string) map[string]string { return m }
 
 func TestConfigDefaults(t *testing.T) {
-	cfg, err := LoadConfig(LoadOptions{Server: true, Version: "1.2.3", Getenv: envOf(map[string]string{
+	cfg, err := LoadConfig(LoadOptions{Server: true, Version: "1.2.3", Env: envOf(map[string]string{
 		"SLUICE_DATABASE_URL": "postgres://x/y",
 		"SLUICE_PUBLIC_URL":   "https://sluice.example.com",
 		"SLUICE_LISTEN_ADDR":  ":9090",
@@ -33,7 +31,7 @@ func TestConfigDefaults(t *testing.T) {
 }
 
 func TestConfigListsAllErrors(t *testing.T) {
-	_, err := LoadConfig(LoadOptions{Server: true, Getenv: envOf(map[string]string{
+	_, err := LoadConfig(LoadOptions{Server: true, Env: envOf(map[string]string{
 		"SLUICE_WORKER_SLOTS": "-1",
 		"SLUICE_STORAGE_TYPE": "s4",
 		"SLUICE_MASTER_KEYS":  "k1:short",
@@ -46,6 +44,23 @@ func TestConfigListsAllErrors(t *testing.T) {
 	for _, want := range []string{"SLUICE_DATABASE_URL", "SLUICE_PUBLIC_URL", "SLUICE_WORKER_SLOTS", "SLUICE_STORAGE_TYPE", "SLUICE_MASTER_KEYS"} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("error does not name %s:\n%s", want, msg)
+		}
+	}
+}
+
+func TestConfigNamesParseErrors(t *testing.T) {
+	_, err := LoadConfig(LoadOptions{Env: envOf(map[string]string{
+		"SLUICE_DATABASE_URL": "postgres://x/y",
+		"SLUICE_SESSION_TTL":  "soon",
+		"SLUICE_WORKER_SLOTS": "many",
+	})})
+	var ce *ConfigError
+	if !errors.As(err, &ce) {
+		t.Fatalf("want ConfigError, got %v", err)
+	}
+	for _, want := range []string{"SLUICE_SESSION_TTL", "SLUICE_WORKER_SLOTS"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error does not name %s:\n%s", want, err)
 		}
 	}
 }

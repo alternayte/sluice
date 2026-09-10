@@ -25,11 +25,9 @@ import (
 func testServer(t *testing.T) *Server {
 	t.Helper()
 	dbURL := pgtest.Shared(t).NewDatabase(t)
-	cfg, err := LoadConfig(LoadOptions{Server: true, Getenv: func(k string) string {
-		return map[string]string{
-			"SLUICE_DATABASE_URL": dbURL,
-			"SLUICE_PUBLIC_URL":   "http://127.0.0.1:8080",
-		}[k]
+	cfg, err := LoadConfig(LoadOptions{Server: true, Env: map[string]string{
+		"SLUICE_DATABASE_URL": dbURL,
+		"SLUICE_PUBLIC_URL":   "http://127.0.0.1:8080",
 	}})
 	if err != nil {
 		t.Fatal(err)

@@ -4,6 +4,8 @@ import { ApiError } from "@/api/client";
 export function errorMessage(err: unknown): string {
   if (err instanceof ApiError) {
     if (err.code === "last_admin") return "At least one enabled admin must remain.";
+    if (err.code === "executions_running") return "Executions of this namespace are running.";
+    if (err.code === "version_conflict") return "The namespace changed. Reload to see the latest version.";
     if (err.status === 429) return "Too many attempts. Wait and try again.";
     return err.message || "Request failed.";
   }

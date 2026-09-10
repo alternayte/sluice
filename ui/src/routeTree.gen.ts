@@ -11,11 +11,15 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as FlowsIndexRouteImport } from './routes/flows/index'
+import { Route as NamespacesIndexRouteImport } from './routes/namespaces/index'
+import { Route as NamespacesNamespaceRouteImport } from './routes/namespaces/$namespace'
 import { Route as SettingsAuditRouteImport } from './routes/settings/audit'
 import { Route as SettingsInstancesRouteImport } from './routes/settings/instances'
 import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
 import { Route as SettingsTokensRouteImport } from './routes/settings/tokens'
 import { Route as SettingsUsersRouteImport } from './routes/settings/users'
+import { Route as FlowsNamespaceFlowIdRouteImport } from './routes/flows/$namespace/$flowId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -25,6 +29,21 @@ const IndexRoute = IndexRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FlowsIndexRoute = FlowsIndexRouteImport.update({
+  id: '/flows/',
+  path: '/flows/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NamespacesIndexRoute = NamespacesIndexRouteImport.update({
+  id: '/namespaces/',
+  path: '/namespaces/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NamespacesNamespaceRoute = NamespacesNamespaceRouteImport.update({
+  id: '/namespaces/$namespace',
+  path: '/namespaces/$namespace',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsAuditRoute = SettingsAuditRouteImport.update({
@@ -52,73 +71,106 @@ const SettingsUsersRoute = SettingsUsersRouteImport.update({
   path: '/settings/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FlowsNamespaceFlowIdRoute = FlowsNamespaceFlowIdRouteImport.update({
+  id: '/flows/$namespace/$flowId',
+  path: '/flows/$namespace/$flowId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/namespaces/$namespace': typeof NamespacesNamespaceRoute
   '/settings/audit': typeof SettingsAuditRoute
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/tokens': typeof SettingsTokensRoute
   '/settings/users': typeof SettingsUsersRoute
+  '/flows/': typeof FlowsIndexRoute
+  '/namespaces/': typeof NamespacesIndexRoute
+  '/flows/$namespace/$flowId': typeof FlowsNamespaceFlowIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/namespaces/$namespace': typeof NamespacesNamespaceRoute
   '/settings/audit': typeof SettingsAuditRoute
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/tokens': typeof SettingsTokensRoute
   '/settings/users': typeof SettingsUsersRoute
+  '/flows': typeof FlowsIndexRoute
+  '/namespaces': typeof NamespacesIndexRoute
+  '/flows/$namespace/$flowId': typeof FlowsNamespaceFlowIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/namespaces/$namespace': typeof NamespacesNamespaceRoute
   '/settings/audit': typeof SettingsAuditRoute
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/tokens': typeof SettingsTokensRoute
   '/settings/users': typeof SettingsUsersRoute
+  '/flows/': typeof FlowsIndexRoute
+  '/namespaces/': typeof NamespacesIndexRoute
+  '/flows/$namespace/$flowId': typeof FlowsNamespaceFlowIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/login'
+    | '/namespaces/$namespace'
     | '/settings/audit'
     | '/settings/instances'
     | '/settings/profile'
     | '/settings/tokens'
     | '/settings/users'
+    | '/flows/'
+    | '/namespaces/'
+    | '/flows/$namespace/$flowId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
+    | '/namespaces/$namespace'
     | '/settings/audit'
     | '/settings/instances'
     | '/settings/profile'
     | '/settings/tokens'
     | '/settings/users'
+    | '/flows'
+    | '/namespaces'
+    | '/flows/$namespace/$flowId'
   id:
     | '__root__'
     | '/'
     | '/login'
+    | '/namespaces/$namespace'
     | '/settings/audit'
     | '/settings/instances'
     | '/settings/profile'
     | '/settings/tokens'
     | '/settings/users'
+    | '/flows/'
+    | '/namespaces/'
+    | '/flows/$namespace/$flowId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  NamespacesNamespaceRoute: typeof NamespacesNamespaceRoute
   SettingsAuditRoute: typeof SettingsAuditRoute
   SettingsInstancesRoute: typeof SettingsInstancesRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
   SettingsTokensRoute: typeof SettingsTokensRoute
   SettingsUsersRoute: typeof SettingsUsersRoute
+  FlowsIndexRoute: typeof FlowsIndexRoute
+  NamespacesIndexRoute: typeof NamespacesIndexRoute
+  FlowsNamespaceFlowIdRoute: typeof FlowsNamespaceFlowIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -135,6 +187,27 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/flows/': {
+      id: '/flows/'
+      path: '/flows'
+      fullPath: '/flows/'
+      preLoaderRoute: typeof FlowsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/namespaces/': {
+      id: '/namespaces/'
+      path: '/namespaces'
+      fullPath: '/namespaces/'
+      preLoaderRoute: typeof NamespacesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/namespaces/$namespace': {
+      id: '/namespaces/$namespace'
+      path: '/namespaces/$namespace'
+      fullPath: '/namespaces/$namespace'
+      preLoaderRoute: typeof NamespacesNamespaceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/audit': {
@@ -172,17 +245,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/flows/$namespace/$flowId': {
+      id: '/flows/$namespace/$flowId'
+      path: '/flows/$namespace/$flowId'
+      fullPath: '/flows/$namespace/$flowId'
+      preLoaderRoute: typeof FlowsNamespaceFlowIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  NamespacesNamespaceRoute: NamespacesNamespaceRoute,
   SettingsAuditRoute: SettingsAuditRoute,
   SettingsInstancesRoute: SettingsInstancesRoute,
   SettingsProfileRoute: SettingsProfileRoute,
   SettingsTokensRoute: SettingsTokensRoute,
   SettingsUsersRoute: SettingsUsersRoute,
+  FlowsIndexRoute: FlowsIndexRoute,
+  NamespacesIndexRoute: NamespacesIndexRoute,
+  FlowsNamespaceFlowIdRoute: FlowsNamespaceFlowIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

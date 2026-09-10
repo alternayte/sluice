@@ -10,7 +10,11 @@ import { cn } from "@/lib/utils";
 
 type NavItem = { to: string; label: string; min: Role };
 
-export const navItems: NavItem[] = [{ to: "/", label: "Dashboard", min: "viewer" }];
+export const navItems: NavItem[] = [
+  { to: "/", label: "Dashboard", min: "viewer" },
+  { to: "/flows", label: "Flows", min: "viewer" },
+  { to: "/namespaces", label: "Namespaces", min: "viewer" },
+];
 
 export const settingsItems: NavItem[] = [
   { to: "/settings/profile", label: "Profile", min: "viewer" },

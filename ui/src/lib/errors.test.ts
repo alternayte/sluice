@@ -8,6 +8,14 @@ describe("errorMessage", () => {
     expect(errorMessage(new ApiError(429, "rate_limited", "x"))).toContain("Too many attempts");
   });
 
+  it("maps namespace conflicts", () => {
+    expect(errorMessage(new ApiError(409, "executions_running", "x"))).toBe("Executions of this namespace are running.");
+    expect(errorMessage(new ApiError(409, "version_conflict", "x"))).toBe(
+      "The namespace changed. Reload to see the latest version.",
+    );
+    expect(errorMessage(new ApiError(413, "too_large", "File is larger than 10 MiB"))).toBe("File is larger than 10 MiB");
+  });
+
   it("returns the API message", () => {
     expect(errorMessage(new ApiError(400, "bad", "Bad input"))).toBe("Bad input");
   });

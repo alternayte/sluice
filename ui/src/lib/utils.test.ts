@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { cn, formatDuration } from "./utils";
+import { cn, formatBytes, formatDuration } from "./utils";
+
+describe("formatBytes", () => {
+  it("formats bytes with binary units", () => {
+    expect(formatBytes(0)).toBe("0 B");
+    expect(formatBytes(1023)).toBe("1023 B");
+    expect(formatBytes(1536)).toBe("1.5 KiB");
+    expect(formatBytes(20 * 1024 * 1024)).toBe("20 MiB");
+  });
+});
 
 describe("formatDuration", () => {
   it("formats milliseconds, seconds, minutes and hours", () => {

@@ -29,9 +29,9 @@ Make the code lean and easy to change before slices S5 to S12 start. The refacto
 | R-02 | `sluice openapi` prints the spec with no server and no database. `just gen` writes it to `api/openapi.yaml`, which stays committed. | The UI codegen needs a spec file with no server process. `gen-check` still finds drift. | Fetch `/openapi.yaml` from a server that runs. |
 | R-03 | Errors use the SDD envelope through a custom `huma.NewError`. | Keeps REQ-API-002 and the e2e assertions. | RFC 9457 default of huma. |
 | R-04 | TS client: `@hey-api/openapi-ts` with the `@tanstack/react-query` plugin. | Generates query options, mutation options, query keys and infinite queries. Removes hand-written hooks. | openapi-typescript with openapi-fetch (all hooks by hand). orval (larger, more opinionated output). |
-| R-05 | Config: `caarlos0/env` v11. Two structs: `ServerConfig` and `RunnerConfig`. | No dependencies. `required`, defaults and `file` for mounted secrets. `GetFieldParams` feeds the env doc generator. | Custom loader, viper, koanf, envconfig. |
+| R-05 | Config: `caarlos0/env` v11. One `Config` struct for `server`, `migrate` and `user`. The runner keeps its three run variables. | No dependencies. `required` and defaults. `GetFieldParams` feeds the env doc generator. | Custom loader, viper, koanf, envconfig. |
 | R-06 | `.env` loads through `set dotenv-load` in the justfile. The binary reads only the process environment. | C-04 stays true. No config file in production. | godotenv in the binary. |
-| R-07 | Migrations: the goose library with embedded files. | The SDD already names goose. Removes the custom migrator. | Custom migrator. |
+| R-07 | Migrations: keep the small embedded migrator (DI-2). Files keep the goose format. | goose lockers are session-scoped or table-based. REQ-CORE-003 needs a transaction-scoped advisory lock. A session lock is not safe through a transaction-mode pooler. | The goose library runner. |
 | R-08 | Vertical slices with the dependency rules in §4.2, enforced by depguard. | Colocated features. Import loops cannot occur. | Layered packages. Shared `dbq` and `apigen`. |
 | R-09 | Auth stays in `internal/auth` for v1. auth-all is the future path after it gains roles, API keys and admin plugins. A separate auth-all design doc covers that work. | auth-all covers about 3 of 9 auth requirements today. Adoption now adds a second user table and a second migration system. | Adopt auth-all now, in full or in part. |
 | R-10 | Playwright stays for UI tests. agent-browser is only for manual exploration. | agent-browser has no assertions, workers, retries, reporters, traces or sharding. | agent-browser in CI. |
@@ -54,6 +54,9 @@ internal/platform/     db (pgx pool, goose), httpx (huma setup, errors, Op helpe
                        clock, logx, masking, lease, page
 internal/flow/         pure domain: parse, validate, template, schema
 internal/storage/      blob drivers
+internal/snapshot/     shared domain: snapshot manifest and bundle format
+internal/runnerproto/  shared: runner wire types, env names, limits
+internal/instance/     instance registry and the instances route
 internal/auth/         routes.go service.go store.go queries.sql authdb/
 internal/audit/        same shape
 internal/namespace/    same shape
@@ -69,7 +72,7 @@ Later slices (`trigger`, `secret`, `variable`, `gitsync`, `metrics`, `ai`) use t
 
 1. `kernel` imports no internal package.
 2. `platform` imports only `kernel`.
-3. A feature imports `kernel`, `platform`, `flow` and `storage`.
+3. A feature imports `kernel`, `platform` and the shared packages `flow`, `storage`, `audit`, `snapshot` and `runnerproto`. `execution` also imports `executor`, its adapter set.
 4. A feature does not import another feature. When it needs one, it declares a small interface in its own package. `app` connects the two.
 5. Only `app` imports all packages.
 6. depguard rules in `.golangci.yml` enforce rules 1 to 5.
@@ -88,9 +91,9 @@ Later slices (`trigger`, `secret`, `variable`, `gitsync`, `metrics`, `ai`) use t
 - One huma middleware reads the role from the operation metadata. If an operation has no role, the server does not start. This is default deny.
 - The server mounts the SPA, `/healthz`, `/readyz` and `/metrics` directly on chi.
 
-### 4.5 Streaming risk
+### 4.5 Streamed routes
 
-The runner protocol streams an artifact upload with `PUT` and a bundle download. SSE endpoints need `Last-Event-ID` resume. Do a spike on huma streaming and SSE before the execution feature moves. If the spike fails, these routes are plain chi handlers, and their spec entries are written by hand in a registration helper.
+Eight operations stream a body: `getFile`, `uploadFile`, `streamExecutionLogs`, `downloadExecutionLogs`, `streamExecutionEvents`, `downloadArtifact`, `runnerGetBundle` and `runnerPutArtifact`. They use `httpx.Raw`. It adds the operation to the huma spec and serves a plain `http.HandlerFunc` on chi behind the same access check. No huma streaming spike is necessary.
 
 ## 5. Config and developer setup
 
@@ -98,13 +101,13 @@ The runner protocol streams an artifact upload with `PUT` and a bundle download.
 
 - Fields declare `env`, `envDefault`, `required` or `notEmpty`, and a `desc` tag.
 - A generator of about 30 lines reads `GetFieldParams` and the `desc` tags. It writes `docs/reference/env.md`.
-- `SLUICE_DATABASE_URL` and `SLUICE_MASTER_KEYS` also accept the `file` option for mounted secrets.
+- No `file` option. In caarlos0/env, `file` changes the meaning of the variable to a file path. Kubernetes injects secrets as env vars through `secretKeyRef`.
 
 ### 5.2 Files
 
 - `.env.example` is committed with working local values: the compose Postgres URL, a dev master key, bootstrap admin `admin@local.test`, `SLUICE_PUBLIC_URL=http://localhost:8080`.
 - `.env` is in `.gitignore`.
-- `deploy/compose/dev.yml` holds Postgres and MinIO for development.
+- `deploy/compose/dev.yml` holds Postgres for development. MinIO is not in it: the default storage driver is postgres, and storage tests use testcontainers.
 - `deploy/compose/compose.yml` holds Postgres and Sluice for Coolify and local trials.
 - `deploy/docker/Dockerfile` builds the `sluice` image.
 
@@ -113,7 +116,7 @@ The runner protocol streams an artifact upload with `PUT` and a bundle download.
 | Recipe | Content |
 |---|---|
 | `setup` | Tool check. Copy `.env.example` to `.env` if absent. Install Bun packages. |
-| `up`, `down` | Start or stop `deploy/compose/dev.yml`. |
+| `up`, `down` | Start or stop Postgres from `deploy/compose/dev.yml`. |
 | `dev` | `air` for the Go server and the Vite dev server together. Vite sends `/api` to Go. |
 | `db-reset` | Drop and create the dev database, then migrate. |
 | `migrate` | Apply migrations. |
@@ -212,8 +215,8 @@ At one clean commit, `just check`, `just e2e` and `just trace` pass.
 1. Update the SDD (§9). Record R-14 in `decisions.md`. Update `handover.md`.
 2. Record a baseline `just e2e` run on the current code.
 3. Config and developer setup: caarlos0/env, `.env.example`, justfile, dev compose, Dockerfile, `air`.
-4. goose library replaces the custom migrator.
-5. `kernel`, `platform` cleanup, depguard, chi with huma. Mount the old generated handler on chi as a fallback. Move features one at a time: auth, audit, namespace and flows, execution with the runner protocol, system. Do the streaming spike (§4.5) before execution. Then delete `apigen`, kin-openapi and `RecordingMux`. Switch `just gen` to `sluice openapi`.
+4. Create `kernel`, `platform/token`, `snapshot`, `runnerproto` and the `instance` feature. Remove feature-to-feature imports. Add depguard.
+5. chi with huma. Mount the old generated handler on chi as a fallback. Move features one at a time: auth, audit and instances, namespace and flows, execution with the runner protocol. Then delete `apigen`, kin-openapi and `RecordingMux`. Switch `just gen` to `sluice openapi`.
 6. sqlc output per feature. Delete `dbq`.
 7. Test cleanup (§7.2) and the new SCN-AUTH-006 test.
 8. Frontend: hey-api, feature folders, thin routes, ESLint boundaries.
@@ -225,7 +228,7 @@ At one clean commit, `just check`, `just e2e` and `just trace` pass.
 | Section | Change |
 |---|---|
 | §0 | Test layers as in §7.1 of this doc. |
-| §3 | D-09: chi with huma, code-first, generated and committed spec, `@hey-api/openapi-ts`. D-10: goose library. Add decisions for caarlos0/env, slice dependency rules, test boundary, locator rule. D-16: note auth-all as the future path. |
+| §3 | D-09: chi with huma, code-first, generated and committed spec, `@hey-api/openapi-ts`. D-10: sqlc per feature, embedded migrator kept. Add decisions for caarlos0/env, slice dependency rules, test boundary, locator rule. D-16: note auth-all as the future path. |
 | §4.4 | Layout and dependency rules from §4 of this doc. |
 | REQ-API-001 | The spec is generated from code, committed, and checked by `gen-check`. |
 | §10.1, §10.2 | Add `air`. Recipe table from §5.3 of this doc. |
@@ -234,7 +237,6 @@ At one clean commit, `just check`, `just e2e` and `just trace` pass.
 | §12 | Keep `decisions.md` and `handover.md` only. |
 | §13 | Delete. |
 | §14 | Definition of done from §7.5 of this doc. |
-| Appendix A | Note on the `file` option for mounted secrets. |
 
 ## 10. Out of scope
 

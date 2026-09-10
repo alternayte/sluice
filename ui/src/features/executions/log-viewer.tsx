@@ -7,6 +7,7 @@ import { Field } from "@/components/ui/field";
 import { Input, Select } from "@/components/ui/input";
 import { errorMessage } from "@/lib/errors";
 import { filterLogs } from "@/lib/executions";
+import { loadLogs } from "@/lib/logs";
 import { cn } from "@/lib/utils";
 
 const lineKey = (l: LogEntry) => `${l.task_run_id}:${l.n}`;
@@ -35,27 +36,7 @@ function useLogLines(executionId: string) {
     setStatus("loading");
     setError(undefined);
 
-    const run = async () => {
-      const limit = 5000;
-      let cursor: string | undefined;
-      let done: boolean | undefined;
-      for (;;) {
-        const { data: page } = await getExecutionLogs({
-          path: { executionId },
-          query: { limit, cursor },
-          throwOnError: true,
-        });
-        if (stopped) return;
-        add(page.lines);
-        done = page.done;
-        // The server sends a cursor on each page. A page that is not full is the end of the history.
-        if (!page.next_cursor || page.lines.length < limit) break;
-        cursor = page.next_cursor;
-      }
-      if (done) {
-        setStatus("done");
-        return;
-      }
+    const openStream = () => {
       setStatus("live");
       es = new EventSource(`/api/v1/executions/${encodeURIComponent(executionId)}/logs/stream`);
       es.addEventListener("line", (ev) => {
@@ -69,6 +50,18 @@ function useLogLines(executionId: string) {
         es?.close();
         setStatus("done");
       });
+    };
+
+    const run = async () => {
+      const result = await loadLogs({
+        limit: 5000,
+        fetchPage: async (cursor) =>
+          (await getExecutionLogs({ path: { executionId }, query: { limit: 5000, cursor }, throwOnError: true })).data,
+        onLines: add,
+        openStream,
+        stopped: () => stopped,
+      });
+      if (result === "done") setStatus("done");
     };
     run().catch((e: unknown) => {
       if (stopped) return;

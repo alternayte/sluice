@@ -40,7 +40,10 @@ async function typeAndSave(page: Page, path: string, content: string, message: s
   await expect(page.getByRole("row").filter({ hasText: path })).toContainText(`${bytes} B`);
 }
 
-test("SCN-NS-002 an editor creates a script and a flow and saves them with a message", async ({ browser }) => {
+// SCN-NS-002 stays open. The UI saves each new file at once with the message "Create <path>".
+// The scenario needs new files staged in the editor and saved together with one message (UI gap,
+// REQ-UI-007). This test checks the behaviour of today and has no scenario ID in its name.
+test("new file and save create versions with the author and the message", async ({ browser }) => {
   const api = await adminAPI();
   const ns = await seedNamespace(api, "ns002", {});
   const { context, page, email } = await signInAs(browser, api, "editor");

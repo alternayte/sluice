@@ -46,6 +46,8 @@ This file records where the build stopped. `decisions.md` is the authoritative r
   SCN-RUN-006 (Toxiproxy), SCN-RUN-007 (needs S8 images), SCN-EXR-001 (needs
   docker and kind detection), SCN-NFR-002 (perf), SCN-CORE-004, SCN-CORE-008,
   SCN-FLOW-003, SCN-FLOW-005 (later slices). Open Playwright scenarios:
+  SCN-NS-002 (the UI saves each new file at once; SCN-NS-002 needs new files
+  staged in the editor and saved together with a message; UI gap, REQ-UI-007),
   SCN-UI-001 (dashboard KPIs and charts come in S10), SCN-UI-004 (the flow
   state strip, duration chart and metric chart come in S10), SCN-UI-006
   (git sources need S7, secret providers need S6, the AI provider needs S11),
@@ -58,16 +60,14 @@ This file records where the build stopped. `decisions.md` is the authoritative r
   SCN-NS-004, SCN-NS-005, SCN-SEC-*, SCN-TRG-002 to SCN-TRG-007. None of
   these were open before slice R, so none is a regression.
 - Playwright specs for S3 and S4 pages are in `tests/ui/specs/`: `namespaces.spec.ts`
-  (SCN-NS-002, SCN-NS-003, SCN-NS-007), `flows.spec.ts` (SCN-FLOW-004,
+  (SCN-NS-003, SCN-NS-007, and a check of the new file action with no scenario ID), `flows.spec.ts` (SCN-FLOW-004,
   SCN-FLOW-008), `executions.spec.ts` (SCN-EXE-008, SCN-EXE-009, SCN-UI-002,
   SCN-UI-003, SCN-UI-008), `logs.spec.ts` (SCN-RUN-008) and `roles.spec.ts`
   (SCN-UI-005). `tests/ui/helpers/app.ts` holds the shared setup: `signInAs`,
   `seedNamespace`, `saveFilesAPI`, `triggerFlowAPI`, `runFileAPI`,
   `waitExecutionState`, `cancelExecutionAPI`, `executionHeading`, `ganttRow` and
-  `dbQuery`. The UI "New file" action saves a version at once, so SCN-NS-002
-  checks the version of the first typed save (v2), not one version with both files.
-  The executions list polls each 2 s. SCN-UI-008 passed in each run, but a slow
-  request can take the list above the 2 s limit of REQ-UI-012. Labels: namespace page
+  `dbQuery`. The executions list and the flow executions tab poll each 1 s, so a
+  state change shows within the 2 s of REQ-UI-012. Labels: namespace page
   buttons "New file" (dialog "New file", submit "Create", field "Path"), "Save"
   (dialog "Save file", field "Commit message", submit "Save"), "Rename", "Delete",
   tabs "Files" and "Versions", "Revert to this version" (confirm "Revert"); flow page

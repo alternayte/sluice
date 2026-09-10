@@ -36,7 +36,8 @@ export function ExecutionsPage({
     ...listExecutionsInfiniteOptions({ query: { ...query, limit: 50 } }),
     initialPageParam: {},
     getNextPageParam: (last) => (last.next_cursor ? { query: { cursor: last.next_cursor } } : undefined),
-    refetchInterval: 2000,
+    // REQ-UI-012 allows 2 s for a state change. A 1 s poll keeps the list inside that limit.
+    refetchInterval: 1000,
   });
 
   return (

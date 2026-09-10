@@ -131,7 +131,8 @@ export function FlowPage({
 function FlowExecutions({ namespace, flowId }: { namespace: string; flowId: string }) {
   const executions = useQuery({
     ...listExecutionsOptions({ query: { flow: `${namespace}/${flowId}`, limit: 50 } }),
-    refetchInterval: 2000,
+    // REQ-UI-012 allows 2 s for a state change. A 1 s poll keeps the list inside that limit.
+    refetchInterval: 1000,
   });
   return (
     <DataState query={executions} empty={(d) => d.items.length === 0} emptyText="This flow has no executions.">

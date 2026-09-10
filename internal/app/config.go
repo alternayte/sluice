@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v11"
+
+	"github.com/alternayte/sluice/internal/storage"
 )
 
 // ByteSize is a size in bytes. It parses values like 10MiB, 512KiB or 1024.
@@ -264,6 +266,12 @@ func (c *Config) validate(server bool) []string {
 		}
 		if (c.S3AccessKeyID == "") != (c.S3SecretAccessKey == "") {
 			p = append(p, "SLUICE_S3_ACCESS_KEY_ID and SLUICE_S3_SECRET_ACCESS_KEY: set both or neither")
+		}
+		// One s3 upload writes at most S3MaxParts parts of S3PartSize bytes.
+		for name, v := range map[string]ByteSize{"SLUICE_MAX_ARTIFACT_BYTES": c.MaxArtifactBytes, "SLUICE_MAX_BUNDLE_BYTES": c.MaxBundleBytes} {
+			if v > storage.S3MaxObjectBytes {
+				p = append(p, fmt.Sprintf("%s: must be at most %d bytes when SLUICE_STORAGE_TYPE is s3, got %d", name, int64(storage.S3MaxObjectBytes), int64(v)))
+			}
 		}
 	case "azblob":
 		if c.AzblobContainer == "" {

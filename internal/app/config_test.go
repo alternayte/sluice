@@ -3,9 +3,12 @@ package app
 import (
 	"errors"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/alternayte/sluice/internal/storage"
 )
 
 func envOf(m map[string]string) map[string]string { return m }
@@ -45,6 +48,40 @@ func TestConfigListsAllErrors(t *testing.T) {
 		if !strings.Contains(msg, want) {
 			t.Errorf("error does not name %s:\n%s", want, msg)
 		}
+	}
+}
+
+func TestConfigS3SizeLimitCeiling(t *testing.T) {
+	ceiling := strconv.FormatInt(storage.S3MaxObjectBytes, 10)
+	above := strconv.FormatInt(storage.S3MaxObjectBytes+1, 10)
+	env := func(artifact, bundle string) map[string]string {
+		return map[string]string{
+			"SLUICE_DATABASE_URL":       "postgres://x/y",
+			"SLUICE_STORAGE_TYPE":       "s3",
+			"SLUICE_S3_BUCKET":          "b",
+			"SLUICE_MAX_ARTIFACT_BYTES": artifact,
+			"SLUICE_MAX_BUNDLE_BYTES":   bundle,
+		}
+	}
+	if _, err := LoadConfig(LoadOptions{Env: envOf(env(ceiling, ceiling))}); err != nil {
+		t.Fatalf("limits at the ceiling: %v", err)
+	}
+	_, err := LoadConfig(LoadOptions{Env: envOf(env(above, above))})
+	var ce *ConfigError
+	if !errors.As(err, &ce) {
+		t.Fatalf("want ConfigError, got %v", err)
+	}
+	for _, want := range []string{"SLUICE_MAX_ARTIFACT_BYTES", "SLUICE_MAX_BUNDLE_BYTES"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error does not name %s:\n%s", want, err)
+		}
+	}
+	// Other drivers have no such ceiling.
+	fs := env(above, above)
+	fs["SLUICE_STORAGE_TYPE"] = "fs"
+	fs["SLUICE_FS_ROOT"] = t.TempDir()
+	if _, err := LoadConfig(LoadOptions{Env: envOf(fs)}); err != nil {
+		t.Fatalf("fs with a large limit: %v", err)
 	}
 }
 

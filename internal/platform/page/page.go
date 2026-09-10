@@ -70,6 +70,24 @@ func badCursor() error {
 	return httpx.Validation(httpx.FieldError{Field: "cursor", Message: ErrBadCursor.Error()})
 }
 
+// EncodeStrings returns an opaque cursor for a key of strings.
+func EncodeStrings(parts ...string) string {
+	return base64.RawURLEncoding.EncodeToString([]byte(strings.Join(parts, "\x00")))
+}
+
+// DecodeStrings parses a cursor from EncodeStrings with n parts.
+func DecodeStrings(c string, n int) ([]string, error) {
+	b, err := base64.RawURLEncoding.DecodeString(c)
+	if err != nil {
+		return nil, badCursor()
+	}
+	parts := strings.Split(string(b), "\x00")
+	if len(parts) != n {
+		return nil, badCursor()
+	}
+	return parts, nil
+}
+
 // DecodePtr decodes an optional cursor. It returns nil values for no cursor.
 func DecodePtr(c *string) (*time.Time, *uuid.UUID, error) {
 	if c == nil || *c == "" {

@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -48,6 +49,48 @@ func (e AuditEventActorType) Valid() bool {
 	}
 }
 
+// Defines values for FileChangeOp.
+const (
+	Delete FileChangeOp = "delete"
+	Put    FileChangeOp = "put"
+	Rename FileChangeOp = "rename"
+)
+
+// Valid indicates whether the value is a known member of the FileChangeOp enum.
+func (e FileChangeOp) Valid() bool {
+	switch e {
+	case Delete:
+		return true
+	case Put:
+		return true
+	case Rename:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FileDiffStatus.
+const (
+	Added    FileDiffStatus = "added"
+	Modified FileDiffStatus = "modified"
+	Removed  FileDiffStatus = "removed"
+)
+
+// Valid indicates whether the value is a known member of the FileDiffStatus enum.
+func (e FileDiffStatus) Valid() bool {
+	switch e {
+	case Added:
+		return true
+	case Modified:
+		return true
+	case Removed:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MeAuthType.
 const (
 	MeAuthTypeSession MeAuthType = "session"
@@ -60,6 +103,27 @@ func (e MeAuthType) Valid() bool {
 	case MeAuthTypeSession:
 		return true
 	case MeAuthTypeToken:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NamespaceSourceType.
+const (
+	Git      NamespaceSourceType = "git"
+	Implicit NamespaceSourceType = "implicit"
+	Managed  NamespaceSourceType = "managed"
+)
+
+// Valid indicates whether the value is a known member of the NamespaceSourceType enum.
+func (e NamespaceSourceType) Valid() bool {
+	switch e {
+	case Git:
+		return true
+	case Implicit:
+		return true
+	case Managed:
 		return true
 	default:
 		return false
@@ -84,6 +148,48 @@ func (e Role) Valid() bool {
 	case Operator:
 		return true
 	case Viewer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TriggerInfoType.
+const (
+	TriggerInfoTypeFlow     TriggerInfoType = "flow"
+	TriggerInfoTypeSchedule TriggerInfoType = "schedule"
+	TriggerInfoTypeWebhook  TriggerInfoType = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the TriggerInfoType enum.
+func (e TriggerInfoType) Valid() bool {
+	switch e {
+	case TriggerInfoTypeFlow:
+		return true
+	case TriggerInfoTypeSchedule:
+		return true
+	case TriggerInfoTypeWebhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ValidateFileResultKind.
+const (
+	ValidateFileResultKindFlow      ValidateFileResultKind = "flow"
+	ValidateFileResultKindNamespace ValidateFileResultKind = "namespace"
+	ValidateFileResultKindOther     ValidateFileResultKind = "other"
+)
+
+// Valid indicates whether the value is a known member of the ValidateFileResultKind enum.
+func (e ValidateFileResultKind) Valid() bool {
+	switch e {
+	case ValidateFileResultKindFlow:
+		return true
+	case ValidateFileResultKindNamespace:
+		return true
+	case ValidateFileResultKindOther:
 		return true
 	default:
 		return false
@@ -124,6 +230,12 @@ type CountResult struct {
 	Count int `json:"count"`
 }
 
+// CreateNamespaceRequest defines model for CreateNamespaceRequest.
+type CreateNamespaceRequest struct {
+	Description *string `json:"description,omitempty"`
+	Name        string  `json:"name"`
+}
+
 // CreateTokenRequest defines model for CreateTokenRequest.
 type CreateTokenRequest struct {
 	ExpiresInDays *int   `json:"expires_in_days,omitempty"`
@@ -160,6 +272,96 @@ type ErrorEnvelope struct {
 	Error ErrorBody `json:"error"`
 }
 
+// ExecutionRef defines model for ExecutionRef.
+type ExecutionRef struct {
+	CreatedAt time.Time          `json:"created_at"`
+	Id        openapi_types.UUID `json:"id"`
+	State     string             `json:"state"`
+}
+
+// FileChange defines model for FileChange.
+type FileChange struct {
+	// Content put only. UTF-8 text content.
+	Content *string `json:"content,omitempty"`
+
+	// ContentBase64 put only. Binary content as base64. Used instead of content.
+	ContentBase64 *string `json:"content_base64,omitempty"`
+	Executable    *bool   `json:"executable,omitempty"`
+
+	// NewPath rename only.
+	NewPath *string      `json:"new_path,omitempty"`
+	Op      FileChangeOp `json:"op"`
+	Path    string       `json:"path"`
+}
+
+// FileChangeOp defines model for FileChange.Op.
+type FileChangeOp string
+
+// FileDiff defines model for FileDiff.
+type FileDiff struct {
+	Binary bool `json:"binary"`
+
+	// Diff Unified diff for text files.
+	Diff   string         `json:"diff"`
+	Path   string         `json:"path"`
+	Status FileDiffStatus `json:"status"`
+}
+
+// FileDiffStatus defines model for FileDiff.Status.
+type FileDiffStatus string
+
+// FileEntry defines model for FileEntry.
+type FileEntry struct {
+	Executable bool   `json:"executable"`
+	Hash       string `json:"hash"`
+	Path       string `json:"path"`
+	Size       int64  `json:"size"`
+}
+
+// FileList defines model for FileList.
+type FileList struct {
+	GitSha     *string             `json:"git_sha,omitempty"`
+	Items      []FileEntry         `json:"items"`
+	SnapshotId *openapi_types.UUID `json:"snapshot_id,omitempty"`
+	Version    *int                `json:"version,omitempty"`
+}
+
+// FlowDetail defines model for FlowDetail.
+type FlowDetail struct {
+	Description   string             `json:"description"`
+	Disabled      bool               `json:"disabled"`
+	ErrorCount    int                `json:"error_count"`
+	FlowId        string             `json:"flow_id"`
+	Id            openapi_types.UUID `json:"id"`
+	Labels        *map[string]string `json:"labels,omitempty"`
+	LastExecution *ExecutionRef      `json:"last_execution,omitempty"`
+	Namespace     string             `json:"namespace"`
+	Path          string             `json:"path"`
+	Revision      *Revision          `json:"revision,omitempty"`
+	Triggers      []TriggerInfo      `json:"triggers"`
+	Valid         bool               `json:"valid"`
+}
+
+// FlowList defines model for FlowList.
+type FlowList struct {
+	Items      []FlowSummary `json:"items"`
+	NextCursor *string       `json:"next_cursor,omitempty"`
+}
+
+// FlowSummary defines model for FlowSummary.
+type FlowSummary struct {
+	Description   string             `json:"description"`
+	Disabled      bool               `json:"disabled"`
+	ErrorCount    int                `json:"error_count"`
+	FlowId        string             `json:"flow_id"`
+	Id            openapi_types.UUID `json:"id"`
+	Labels        *map[string]string `json:"labels,omitempty"`
+	LastExecution *ExecutionRef      `json:"last_execution,omitempty"`
+	Namespace     string             `json:"namespace"`
+	Path          string             `json:"path"`
+	Valid         bool               `json:"valid"`
+}
+
 // Instance defines model for Instance.
 type Instance struct {
 	Executors   []string           `json:"executors"`
@@ -175,6 +377,15 @@ type Instance struct {
 // InstanceList defines model for InstanceList.
 type InstanceList struct {
 	Items []Instance `json:"items"`
+}
+
+// Issue defines model for Issue.
+type Issue struct {
+	Code    string `json:"code"`
+	Column  int    `json:"column"`
+	Line    int    `json:"line"`
+	Message string `json:"message"`
+	Path    string `json:"path"`
 }
 
 // LoginRequest defines model for LoginRequest.
@@ -196,13 +407,102 @@ type Me struct {
 // MeAuthType defines model for Me.AuthType.
 type MeAuthType string
 
+// Namespace defines model for Namespace.
+type Namespace struct {
+	Description string              `json:"description"`
+	GitSourceId *openapi_types.UUID `json:"git_source_id,omitempty"`
+	HeadGitSha  *string             `json:"head_git_sha,omitempty"`
+	HeadVersion *int                `json:"head_version,omitempty"`
+
+	// Implicit True for a parent that exists only because of its children.
+	Implicit   bool                `json:"implicit"`
+	Name       string              `json:"name"`
+	Parent     *string             `json:"parent,omitempty"`
+	ReadOnly   *bool               `json:"read_only,omitempty"`
+	SourceType NamespaceSourceType `json:"source_type"`
+}
+
+// NamespaceSourceType defines model for Namespace.SourceType.
+type NamespaceSourceType string
+
+// NamespaceList defines model for NamespaceList.
+type NamespaceList struct {
+	Items []Namespace `json:"items"`
+}
+
 // ResetPasswordRequest defines model for ResetPasswordRequest.
 type ResetPasswordRequest struct {
 	Password string `json:"password"`
 }
 
+// RevertRequest defines model for RevertRequest.
+type RevertRequest struct {
+	Message *string `json:"message,omitempty"`
+	Version int     `json:"version"`
+}
+
+// Revision defines model for Revision.
+type Revision struct {
+	CreatedAt       time.Time               `json:"created_at"`
+	Definition      *map[string]interface{} `json:"definition,omitempty"`
+	Errors          []Issue                 `json:"errors"`
+	GitSha          *string                 `json:"git_sha,omitempty"`
+	Id              openapi_types.UUID      `json:"id"`
+	Message         *string                 `json:"message,omitempty"`
+	Path            string                  `json:"path"`
+	SnapshotVersion *int                    `json:"snapshot_version,omitempty"`
+	Source          string                  `json:"source"`
+	Valid           bool                    `json:"valid"`
+}
+
+// RevisionList defines model for RevisionList.
+type RevisionList struct {
+	Items []RevisionSummary `json:"items"`
+}
+
+// RevisionSummary defines model for RevisionSummary.
+type RevisionSummary struct {
+	CreatedAt       time.Time          `json:"created_at"`
+	ErrorCount      int                `json:"error_count"`
+	GitSha          *string            `json:"git_sha,omitempty"`
+	Id              openapi_types.UUID `json:"id"`
+	Message         *string            `json:"message,omitempty"`
+	SnapshotVersion *int               `json:"snapshot_version,omitempty"`
+	Valid           bool               `json:"valid"`
+}
+
 // Role defines model for Role.
 type Role string
+
+// SaveChangesRequest defines model for SaveChangesRequest.
+type SaveChangesRequest struct {
+	// BaseVersion Fails with 409 version_conflict when the head version differs.
+	BaseVersion *int         `json:"base_version,omitempty"`
+	Changes     []FileChange `json:"changes"`
+	Message     string       `json:"message"`
+}
+
+// Snapshot defines model for Snapshot.
+type Snapshot struct {
+	Author       string             `json:"author"`
+	CreatedAt    time.Time          `json:"created_at"`
+	FileCount    int                `json:"file_count"`
+	GitSha       *string            `json:"git_sha,omitempty"`
+	Id           openapi_types.UUID `json:"id"`
+	ManifestHash string             `json:"manifest_hash"`
+	Message      string             `json:"message"`
+	Version      *int               `json:"version,omitempty"`
+}
+
+// SnapshotList defines model for SnapshotList.
+type SnapshotList struct {
+	Items []Snapshot `json:"items"`
+}
+
+// TextDiff defines model for TextDiff.
+type TextDiff struct {
+	Diff string `json:"diff"`
+}
 
 // Token defines model for Token.
 type Token struct {
@@ -222,6 +522,25 @@ type Token struct {
 type TokenList struct {
 	Items      []Token `json:"items"`
 	NextCursor *string `json:"next_cursor,omitempty"`
+}
+
+// TriggerInfo defines model for TriggerInfo.
+type TriggerInfo struct {
+	Active        bool                   `json:"active"`
+	Config        map[string]interface{} `json:"config"`
+	HasWebhookKey bool                   `json:"has_webhook_key"`
+	Key           string                 `json:"key"`
+	LastFiredAt   *time.Time             `json:"last_fired_at,omitempty"`
+	NextFireAt    *time.Time             `json:"next_fire_at,omitempty"`
+	Type          TriggerInfoType        `json:"type"`
+}
+
+// TriggerInfoType defines model for TriggerInfo.Type.
+type TriggerInfoType string
+
+// UpdateFlowRequest defines model for UpdateFlowRequest.
+type UpdateFlowRequest struct {
+	Disabled bool `json:"disabled"`
 }
 
 // UpdateMeRequest defines model for UpdateMeRequest.
@@ -254,14 +573,50 @@ type UserList struct {
 	NextCursor *string `json:"next_cursor,omitempty"`
 }
 
+// ValidateFileRequest defines model for ValidateFileRequest.
+type ValidateFileRequest struct {
+	Content string `json:"content"`
+	Path    string `json:"path"`
+}
+
+// ValidateFileResult defines model for ValidateFileResult.
+type ValidateFileResult struct {
+	Errors []Issue                `json:"errors"`
+	FlowId *string                `json:"flow_id,omitempty"`
+	Kind   ValidateFileResultKind `json:"kind"`
+	Valid  bool                   `json:"valid"`
+}
+
+// ValidateFileResultKind defines model for ValidateFileResult.Kind.
+type ValidateFileResultKind string
+
+// VersionDiff defines model for VersionDiff.
+type VersionDiff struct {
+	Files []FileDiff `json:"files"`
+	From  int        `json:"from"`
+	To    int        `json:"to"`
+}
+
 // Cursor defines model for Cursor.
 type Cursor = string
+
+// FilePathQuery defines model for FilePathQuery.
+type FilePathQuery = string
+
+// FlowIdPath defines model for FlowIdPath.
+type FlowIdPath = string
 
 // Limit defines model for Limit.
 type Limit = int
 
+// NamespacePath defines model for NamespacePath.
+type NamespacePath = string
+
 // UserId defines model for UserId.
 type UserId = openapi_types.UUID
+
+// VersionQuery defines model for VersionQuery.
+type VersionQuery = int
 
 // Error defines model for Error.
 type Error = ErrorEnvelope
@@ -280,6 +635,62 @@ type ListAuditEventsParams struct {
 	// Cursor Opaque cursor from next_cursor of the previous page.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListFlowsParams defines parameters for ListFlows.
+type ListFlowsParams struct {
+	// Namespace Namespace and its children.
+	Namespace *string `form:"namespace,omitempty" json:"namespace,omitempty"`
+
+	// Cursor Opaque cursor from next_cursor of the previous page.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// DiffFlowRevisionsParams defines parameters for DiffFlowRevisions.
+type DiffFlowRevisionsParams struct {
+	From openapi_types.UUID `form:"from" json:"from"`
+	To   openapi_types.UUID `form:"to" json:"to"`
+}
+
+// ListFlowRevisionsParams defines parameters for ListFlowRevisions.
+type ListFlowRevisionsParams struct {
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// DiffVersionsParams defines parameters for DiffVersions.
+type DiffVersionsParams struct {
+	From int `form:"from" json:"from"`
+	To   int `form:"to" json:"to"`
+}
+
+// GetFileParams defines parameters for GetFile.
+type GetFileParams struct {
+	// Version Version number. Default is the head version.
+	Version *VersionQuery `form:"version,omitempty" json:"version,omitempty"`
+
+	// Path File path relative to the namespace root.
+	Path FilePathQuery `form:"path" json:"path"`
+}
+
+// UploadFileParams defines parameters for UploadFile.
+type UploadFileParams struct {
+	Message    *string `form:"message,omitempty" json:"message,omitempty"`
+	Executable *bool   `form:"executable,omitempty" json:"executable,omitempty"`
+
+	// Path File path relative to the namespace root.
+	Path FilePathQuery `form:"path" json:"path"`
+}
+
+// ListFilesParams defines parameters for ListFiles.
+type ListFilesParams struct {
+	// Version Version number. Default is the head version.
+	Version *VersionQuery `form:"version,omitempty" json:"version,omitempty"`
+}
+
+// ListVersionsParams defines parameters for ListVersions.
+type ListVersionsParams struct {
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // ListTokensParams defines parameters for ListTokens.
@@ -306,6 +717,21 @@ type UpdateMeJSONRequestBody = UpdateMeRequest
 
 // ChangePasswordJSONRequestBody defines body for ChangePassword for application/json ContentType.
 type ChangePasswordJSONRequestBody = ChangePasswordRequest
+
+// UpdateFlowJSONRequestBody defines body for UpdateFlow for application/json ContentType.
+type UpdateFlowJSONRequestBody = UpdateFlowRequest
+
+// CreateNamespaceJSONRequestBody defines body for CreateNamespace for application/json ContentType.
+type CreateNamespaceJSONRequestBody = CreateNamespaceRequest
+
+// SaveChangesJSONRequestBody defines body for SaveChanges for application/json ContentType.
+type SaveChangesJSONRequestBody = SaveChangesRequest
+
+// RevertVersionJSONRequestBody defines body for RevertVersion for application/json ContentType.
+type RevertVersionJSONRequestBody = RevertRequest
+
+// ValidateFileJSONRequestBody defines body for ValidateFile for application/json ContentType.
+type ValidateFileJSONRequestBody = ValidateFileRequest
 
 // CreateTokenJSONRequestBody defines body for CreateToken for application/json ContentType.
 type CreateTokenJSONRequestBody = CreateTokenRequest
@@ -342,9 +768,66 @@ type ServerInterface interface {
 	// RevokeOtherSessions Sign out all other sessions of the current user.
 	// (POST /api/v1/auth/sessions/revoke-others)
 	RevokeOtherSessions(w http.ResponseWriter, r *http.Request)
+	// ListFlows List flows.
+	// (GET /api/v1/flows)
+	ListFlows(w http.ResponseWriter, r *http.Request, params ListFlowsParams)
+	// GetFlow Get a flow with its current revision and triggers.
+	// (GET /api/v1/flows/{namespace}/{flowId})
+	GetFlow(w http.ResponseWriter, r *http.Request, namespace NamespacePath, flowId FlowIdPath)
+	// UpdateFlow Enable or disable a flow.
+	// (PATCH /api/v1/flows/{namespace}/{flowId})
+	UpdateFlow(w http.ResponseWriter, r *http.Request, namespace NamespacePath, flowId FlowIdPath)
+	// DiffFlowRevisions Unified diff between two revisions of a flow.
+	// (GET /api/v1/flows/{namespace}/{flowId}/diff)
+	DiffFlowRevisions(w http.ResponseWriter, r *http.Request, namespace NamespacePath, flowId FlowIdPath, params DiffFlowRevisionsParams)
+	// ListFlowRevisions List revisions of a flow, newest first.
+	// (GET /api/v1/flows/{namespace}/{flowId}/revisions)
+	ListFlowRevisions(w http.ResponseWriter, r *http.Request, namespace NamespacePath, flowId FlowIdPath, params ListFlowRevisionsParams)
+	// GetFlowRevision Get one revision with its source.
+	// (GET /api/v1/flows/{namespace}/{flowId}/revisions/{revisionId})
+	GetFlowRevision(w http.ResponseWriter, r *http.Request, namespace NamespacePath, flowId FlowIdPath, revisionId openapi_types.UUID)
 	// ListInstances List server instances with pools and executors.
 	// (GET /api/v1/instances)
 	ListInstances(w http.ResponseWriter, r *http.Request)
+	// ListNamespaces List namespaces with implicit parents.
+	// (GET /api/v1/namespaces)
+	ListNamespaces(w http.ResponseWriter, r *http.Request)
+	// CreateNamespace Create a managed namespace.
+	// (POST /api/v1/namespaces)
+	CreateNamespace(w http.ResponseWriter, r *http.Request)
+	// DeleteNamespace Delete a managed namespace. Fails with 409 while executions run.
+	// (DELETE /api/v1/namespaces/{namespace})
+	DeleteNamespace(w http.ResponseWriter, r *http.Request, namespace NamespacePath)
+	// GetNamespace Get a namespace.
+	// (GET /api/v1/namespaces/{namespace})
+	GetNamespace(w http.ResponseWriter, r *http.Request, namespace NamespacePath)
+	// SaveChanges Create, update, rename and delete files in one new version.
+	// (POST /api/v1/namespaces/{namespace}/changes)
+	SaveChanges(w http.ResponseWriter, r *http.Request, namespace NamespacePath)
+	// DiffVersions Diff two versions.
+	// (GET /api/v1/namespaces/{namespace}/diff)
+	DiffVersions(w http.ResponseWriter, r *http.Request, namespace NamespacePath, params DiffVersionsParams)
+	// GetFile Download one file of the head snapshot or of a version.
+	// (GET /api/v1/namespaces/{namespace}/file)
+	GetFile(w http.ResponseWriter, r *http.Request, namespace NamespacePath, params GetFileParams)
+	// UploadFile Upload one file. This creates a new version.
+	// (PUT /api/v1/namespaces/{namespace}/file)
+	UploadFile(w http.ResponseWriter, r *http.Request, namespace NamespacePath, params UploadFileParams)
+	// ListFiles List the files of the head snapshot or of a version.
+	// (GET /api/v1/namespaces/{namespace}/files)
+	ListFiles(w http.ResponseWriter, r *http.Request, namespace NamespacePath, params ListFilesParams)
+	// RevertVersion Create a new version with the content of an old version.
+	// (POST /api/v1/namespaces/{namespace}/revert)
+	RevertVersion(w http.ResponseWriter, r *http.Request, namespace NamespacePath)
+	// ValidateFile Validate proposed file content against the head snapshot. Nothing is saved.
+	// (POST /api/v1/namespaces/{namespace}/validate)
+	ValidateFile(w http.ResponseWriter, r *http.Request, namespace NamespacePath)
+	// ListVersions List versions (snapshots), newest first.
+	// (GET /api/v1/namespaces/{namespace}/versions)
+	ListVersions(w http.ResponseWriter, r *http.Request, namespace NamespacePath, params ListVersionsParams)
+	// GetFlowSchema JSON Schema of flow files.
+	// (GET /api/v1/schemas/flow.json)
+	GetFlowSchema(w http.ResponseWriter, r *http.Request)
 	// ListTokens List own API tokens. Admins can list all tokens with all=true.
 	// (GET /api/v1/tokens)
 	ListTokens(w http.ResponseWriter, r *http.Request, params ListTokensParams)
@@ -572,11 +1055,733 @@ func (siw *ServerInterfaceWrapper) RevokeOtherSessions(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// ListFlows operation middleware
+func (siw *ServerInterfaceWrapper) ListFlows(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFlowsParams
+
+	// ------------- Optional query parameter "namespace" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "namespace", r.URL.Query(), &params.Namespace, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "namespace"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFlows(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetFlow operation middleware
+func (siw *ServerInterfaceWrapper) GetFlow(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "flowId" -------------
+	var flowId FlowIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "flowId", r.PathValue("flowId"), &flowId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "flowId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFlow(w, r, namespace, flowId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateFlow operation middleware
+func (siw *ServerInterfaceWrapper) UpdateFlow(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "flowId" -------------
+	var flowId FlowIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "flowId", r.PathValue("flowId"), &flowId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "flowId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateFlow(w, r, namespace, flowId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DiffFlowRevisions operation middleware
+func (siw *ServerInterfaceWrapper) DiffFlowRevisions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "flowId" -------------
+	var flowId FlowIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "flowId", r.PathValue("flowId"), &flowId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "flowId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DiffFlowRevisionsParams
+
+	// ------------- Required query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DiffFlowRevisions(w, r, namespace, flowId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListFlowRevisions operation middleware
+func (siw *ServerInterfaceWrapper) ListFlowRevisions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "flowId" -------------
+	var flowId FlowIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "flowId", r.PathValue("flowId"), &flowId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "flowId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFlowRevisionsParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFlowRevisions(w, r, namespace, flowId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetFlowRevision operation middleware
+func (siw *ServerInterfaceWrapper) GetFlowRevision(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "flowId" -------------
+	var flowId FlowIdPath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "flowId", r.PathValue("flowId"), &flowId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "flowId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "revisionId" -------------
+	var revisionId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "revisionId", r.PathValue("revisionId"), &revisionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "revisionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFlowRevision(w, r, namespace, flowId, revisionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListInstances operation middleware
 func (siw *ServerInterfaceWrapper) ListInstances(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListInstances(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListNamespaces operation middleware
+func (siw *ServerInterfaceWrapper) ListNamespaces(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListNamespaces(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateNamespace operation middleware
+func (siw *ServerInterfaceWrapper) CreateNamespace(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateNamespace(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteNamespace operation middleware
+func (siw *ServerInterfaceWrapper) DeleteNamespace(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteNamespace(w, r, namespace)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetNamespace operation middleware
+func (siw *ServerInterfaceWrapper) GetNamespace(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetNamespace(w, r, namespace)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SaveChanges operation middleware
+func (siw *ServerInterfaceWrapper) SaveChanges(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SaveChanges(w, r, namespace)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DiffVersions operation middleware
+func (siw *ServerInterfaceWrapper) DiffVersions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DiffVersionsParams
+
+	// ------------- Required query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DiffVersions(w, r, namespace, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetFile operation middleware
+func (siw *ServerInterfaceWrapper) GetFile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetFileParams
+
+	// ------------- Optional query parameter "version" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "version", r.URL.Query(), &params.Version, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "version"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "version", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "path" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "path", r.URL.Query(), &params.Path, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "path"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "path", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFile(w, r, namespace, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UploadFile operation middleware
+func (siw *ServerInterfaceWrapper) UploadFile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params UploadFileParams
+
+	// ------------- Optional query parameter "message" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "message", r.URL.Query(), &params.Message, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "message"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "message", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "executable" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "executable", r.URL.Query(), &params.Executable, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "executable"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "executable", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "path" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "path", r.URL.Query(), &params.Path, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "path"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "path", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UploadFile(w, r, namespace, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListFiles operation middleware
+func (siw *ServerInterfaceWrapper) ListFiles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFilesParams
+
+	// ------------- Optional query parameter "version" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "version", r.URL.Query(), &params.Version, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "version"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "version", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFiles(w, r, namespace, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevertVersion operation middleware
+func (siw *ServerInterfaceWrapper) RevertVersion(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevertVersion(w, r, namespace)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ValidateFile operation middleware
+func (siw *ServerInterfaceWrapper) ValidateFile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ValidateFile(w, r, namespace)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListVersions operation middleware
+func (siw *ServerInterfaceWrapper) ListVersions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "namespace" -------------
+	var namespace NamespacePath
+
+	err = runtime.BindStyledParameterWithOptions("simple", "namespace", r.PathValue("namespace"), &namespace, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListVersionsParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListVersions(w, r, namespace, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetFlowSchema operation middleware
+func (siw *ServerInterfaceWrapper) GetFlowSchema(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFlowSchema(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -932,6 +2137,25 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/tokens", wrapper.CreateToken)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/tokens/{tokenId}", wrapper.RevokeToken)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/audit", wrapper.ListAuditEvents)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/namespaces", wrapper.ListNamespaces)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/namespaces", wrapper.CreateNamespace)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/namespaces/{namespace}", wrapper.DeleteNamespace)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/namespaces/{namespace}", wrapper.GetNamespace)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/namespaces/{namespace}/files", wrapper.ListFiles)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/namespaces/{namespace}/file", wrapper.GetFile)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/namespaces/{namespace}/file", wrapper.UploadFile)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/namespaces/{namespace}/changes", wrapper.SaveChanges)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/namespaces/{namespace}/versions", wrapper.ListVersions)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/namespaces/{namespace}/diff", wrapper.DiffVersions)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/namespaces/{namespace}/revert", wrapper.RevertVersion)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/namespaces/{namespace}/validate", wrapper.ValidateFile)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/flows", wrapper.ListFlows)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/flows/{namespace}/{flowId}", wrapper.GetFlow)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/flows/{namespace}/{flowId}", wrapper.UpdateFlow)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/flows/{namespace}/{flowId}/revisions", wrapper.ListFlowRevisions)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/flows/{namespace}/{flowId}/revisions/{revisionId}", wrapper.GetFlowRevision)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/flows/{namespace}/{flowId}/diff", wrapper.DiffFlowRevisions)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/schemas/flow.json", wrapper.GetFlowSchema)
 
 	return m
 }
@@ -1196,6 +2420,249 @@ func (response RevokeOtherSessionsdefaultJSONResponse) VisitRevokeOtherSessionsR
 	return err
 }
 
+type ListFlowsRequestObject struct {
+	Params ListFlowsParams
+}
+
+type ListFlowsResponseObject interface {
+	VisitListFlowsResponse(w http.ResponseWriter) error
+}
+
+type ListFlows200JSONResponse FlowList
+
+func (response ListFlows200JSONResponse) VisitListFlowsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFlowsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListFlowsdefaultJSONResponse) VisitListFlowsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFlowRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+	FlowId    FlowIdPath    `json:"flowId"`
+}
+
+type GetFlowResponseObject interface {
+	VisitGetFlowResponse(w http.ResponseWriter) error
+}
+
+type GetFlow200JSONResponse FlowDetail
+
+func (response GetFlow200JSONResponse) VisitGetFlowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFlowdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetFlowdefaultJSONResponse) VisitGetFlowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateFlowRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+	FlowId    FlowIdPath    `json:"flowId"`
+	Body      *UpdateFlowJSONRequestBody
+}
+
+type UpdateFlowResponseObject interface {
+	VisitUpdateFlowResponse(w http.ResponseWriter) error
+}
+
+type UpdateFlow200JSONResponse FlowDetail
+
+func (response UpdateFlow200JSONResponse) VisitUpdateFlowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateFlowdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response UpdateFlowdefaultJSONResponse) VisitUpdateFlowResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DiffFlowRevisionsRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+	FlowId    FlowIdPath    `json:"flowId"`
+	Params    DiffFlowRevisionsParams
+}
+
+type DiffFlowRevisionsResponseObject interface {
+	VisitDiffFlowRevisionsResponse(w http.ResponseWriter) error
+}
+
+type DiffFlowRevisions200JSONResponse TextDiff
+
+func (response DiffFlowRevisions200JSONResponse) VisitDiffFlowRevisionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DiffFlowRevisionsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DiffFlowRevisionsdefaultJSONResponse) VisitDiffFlowRevisionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFlowRevisionsRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+	FlowId    FlowIdPath    `json:"flowId"`
+	Params    ListFlowRevisionsParams
+}
+
+type ListFlowRevisionsResponseObject interface {
+	VisitListFlowRevisionsResponse(w http.ResponseWriter) error
+}
+
+type ListFlowRevisions200JSONResponse RevisionList
+
+func (response ListFlowRevisions200JSONResponse) VisitListFlowRevisionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFlowRevisionsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListFlowRevisionsdefaultJSONResponse) VisitListFlowRevisionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFlowRevisionRequestObject struct {
+	Namespace  NamespacePath      `json:"namespace"`
+	FlowId     FlowIdPath         `json:"flowId"`
+	RevisionId openapi_types.UUID `json:"revisionId"`
+}
+
+type GetFlowRevisionResponseObject interface {
+	VisitGetFlowRevisionResponse(w http.ResponseWriter) error
+}
+
+type GetFlowRevision200JSONResponse Revision
+
+func (response GetFlowRevision200JSONResponse) VisitGetFlowRevisionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFlowRevisiondefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetFlowRevisiondefaultJSONResponse) VisitGetFlowRevisionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListInstancesRequestObject struct {
 }
 
@@ -1223,6 +2690,520 @@ type ListInstancesdefaultJSONResponse struct {
 }
 
 func (response ListInstancesdefaultJSONResponse) VisitListInstancesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNamespacesRequestObject struct {
+}
+
+type ListNamespacesResponseObject interface {
+	VisitListNamespacesResponse(w http.ResponseWriter) error
+}
+
+type ListNamespaces200JSONResponse NamespaceList
+
+func (response ListNamespaces200JSONResponse) VisitListNamespacesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNamespacesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListNamespacesdefaultJSONResponse) VisitListNamespacesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateNamespaceRequestObject struct {
+	Body *CreateNamespaceJSONRequestBody
+}
+
+type CreateNamespaceResponseObject interface {
+	VisitCreateNamespaceResponse(w http.ResponseWriter) error
+}
+
+type CreateNamespace201JSONResponse Namespace
+
+func (response CreateNamespace201JSONResponse) VisitCreateNamespaceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateNamespacedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CreateNamespacedefaultJSONResponse) VisitCreateNamespaceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteNamespaceRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+}
+
+type DeleteNamespaceResponseObject interface {
+	VisitDeleteNamespaceResponse(w http.ResponseWriter) error
+}
+
+type DeleteNamespace204Response struct {
+}
+
+func (response DeleteNamespace204Response) VisitDeleteNamespaceResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteNamespacedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DeleteNamespacedefaultJSONResponse) VisitDeleteNamespaceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetNamespaceRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+}
+
+type GetNamespaceResponseObject interface {
+	VisitGetNamespaceResponse(w http.ResponseWriter) error
+}
+
+type GetNamespace200JSONResponse Namespace
+
+func (response GetNamespace200JSONResponse) VisitGetNamespaceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetNamespacedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetNamespacedefaultJSONResponse) VisitGetNamespaceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SaveChangesRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+	Body      *SaveChangesJSONRequestBody
+}
+
+type SaveChangesResponseObject interface {
+	VisitSaveChangesResponse(w http.ResponseWriter) error
+}
+
+type SaveChanges201JSONResponse Snapshot
+
+func (response SaveChanges201JSONResponse) VisitSaveChangesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SaveChangesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response SaveChangesdefaultJSONResponse) VisitSaveChangesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DiffVersionsRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+	Params    DiffVersionsParams
+}
+
+type DiffVersionsResponseObject interface {
+	VisitDiffVersionsResponse(w http.ResponseWriter) error
+}
+
+type DiffVersions200JSONResponse VersionDiff
+
+func (response DiffVersions200JSONResponse) VisitDiffVersionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DiffVersionsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DiffVersionsdefaultJSONResponse) VisitDiffVersionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFileRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+	Params    GetFileParams
+}
+
+type GetFileResponseObject interface {
+	VisitGetFileResponse(w http.ResponseWriter) error
+}
+
+type GetFile200ApplicationoctetStreamResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response GetFile200ApplicationoctetStreamResponse) VisitGetFileResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetFiledefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetFiledefaultJSONResponse) VisitGetFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadFileRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+	Params    UploadFileParams
+	Body      io.Reader
+}
+
+type UploadFileResponseObject interface {
+	VisitUploadFileResponse(w http.ResponseWriter) error
+}
+
+type UploadFile201JSONResponse Snapshot
+
+func (response UploadFile201JSONResponse) VisitUploadFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadFiledefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response UploadFiledefaultJSONResponse) VisitUploadFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFilesRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+	Params    ListFilesParams
+}
+
+type ListFilesResponseObject interface {
+	VisitListFilesResponse(w http.ResponseWriter) error
+}
+
+type ListFiles200JSONResponse FileList
+
+func (response ListFiles200JSONResponse) VisitListFilesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListFilesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListFilesdefaultJSONResponse) VisitListFilesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevertVersionRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+	Body      *RevertVersionJSONRequestBody
+}
+
+type RevertVersionResponseObject interface {
+	VisitRevertVersionResponse(w http.ResponseWriter) error
+}
+
+type RevertVersion201JSONResponse Snapshot
+
+func (response RevertVersion201JSONResponse) VisitRevertVersionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevertVersiondefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RevertVersiondefaultJSONResponse) VisitRevertVersionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ValidateFileRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+	Body      *ValidateFileJSONRequestBody
+}
+
+type ValidateFileResponseObject interface {
+	VisitValidateFileResponse(w http.ResponseWriter) error
+}
+
+type ValidateFile200JSONResponse ValidateFileResult
+
+func (response ValidateFile200JSONResponse) VisitValidateFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ValidateFiledefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ValidateFiledefaultJSONResponse) VisitValidateFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListVersionsRequestObject struct {
+	Namespace NamespacePath `json:"namespace"`
+	Params    ListVersionsParams
+}
+
+type ListVersionsResponseObject interface {
+	VisitListVersionsResponse(w http.ResponseWriter) error
+}
+
+type ListVersions200JSONResponse SnapshotList
+
+func (response ListVersions200JSONResponse) VisitListVersionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListVersionsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListVersionsdefaultJSONResponse) VisitListVersionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFlowSchemaRequestObject struct {
+}
+
+type GetFlowSchemaResponseObject interface {
+	VisitGetFlowSchemaResponse(w http.ResponseWriter) error
+}
+
+type GetFlowSchema200JSONResponse map[string]interface{}
+
+func (response GetFlowSchema200JSONResponse) VisitGetFlowSchemaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFlowSchemadefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetFlowSchemadefaultJSONResponse) VisitGetFlowSchemaResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -1520,9 +3501,66 @@ type StrictServerInterface interface {
 	// RevokeOtherSessions Sign out all other sessions of the current user.
 	// (POST /api/v1/auth/sessions/revoke-others)
 	RevokeOtherSessions(ctx context.Context, request RevokeOtherSessionsRequestObject) (RevokeOtherSessionsResponseObject, error)
+	// ListFlows List flows.
+	// (GET /api/v1/flows)
+	ListFlows(ctx context.Context, request ListFlowsRequestObject) (ListFlowsResponseObject, error)
+	// GetFlow Get a flow with its current revision and triggers.
+	// (GET /api/v1/flows/{namespace}/{flowId})
+	GetFlow(ctx context.Context, request GetFlowRequestObject) (GetFlowResponseObject, error)
+	// UpdateFlow Enable or disable a flow.
+	// (PATCH /api/v1/flows/{namespace}/{flowId})
+	UpdateFlow(ctx context.Context, request UpdateFlowRequestObject) (UpdateFlowResponseObject, error)
+	// DiffFlowRevisions Unified diff between two revisions of a flow.
+	// (GET /api/v1/flows/{namespace}/{flowId}/diff)
+	DiffFlowRevisions(ctx context.Context, request DiffFlowRevisionsRequestObject) (DiffFlowRevisionsResponseObject, error)
+	// ListFlowRevisions List revisions of a flow, newest first.
+	// (GET /api/v1/flows/{namespace}/{flowId}/revisions)
+	ListFlowRevisions(ctx context.Context, request ListFlowRevisionsRequestObject) (ListFlowRevisionsResponseObject, error)
+	// GetFlowRevision Get one revision with its source.
+	// (GET /api/v1/flows/{namespace}/{flowId}/revisions/{revisionId})
+	GetFlowRevision(ctx context.Context, request GetFlowRevisionRequestObject) (GetFlowRevisionResponseObject, error)
 	// ListInstances List server instances with pools and executors.
 	// (GET /api/v1/instances)
 	ListInstances(ctx context.Context, request ListInstancesRequestObject) (ListInstancesResponseObject, error)
+	// ListNamespaces List namespaces with implicit parents.
+	// (GET /api/v1/namespaces)
+	ListNamespaces(ctx context.Context, request ListNamespacesRequestObject) (ListNamespacesResponseObject, error)
+	// CreateNamespace Create a managed namespace.
+	// (POST /api/v1/namespaces)
+	CreateNamespace(ctx context.Context, request CreateNamespaceRequestObject) (CreateNamespaceResponseObject, error)
+	// DeleteNamespace Delete a managed namespace. Fails with 409 while executions run.
+	// (DELETE /api/v1/namespaces/{namespace})
+	DeleteNamespace(ctx context.Context, request DeleteNamespaceRequestObject) (DeleteNamespaceResponseObject, error)
+	// GetNamespace Get a namespace.
+	// (GET /api/v1/namespaces/{namespace})
+	GetNamespace(ctx context.Context, request GetNamespaceRequestObject) (GetNamespaceResponseObject, error)
+	// SaveChanges Create, update, rename and delete files in one new version.
+	// (POST /api/v1/namespaces/{namespace}/changes)
+	SaveChanges(ctx context.Context, request SaveChangesRequestObject) (SaveChangesResponseObject, error)
+	// DiffVersions Diff two versions.
+	// (GET /api/v1/namespaces/{namespace}/diff)
+	DiffVersions(ctx context.Context, request DiffVersionsRequestObject) (DiffVersionsResponseObject, error)
+	// GetFile Download one file of the head snapshot or of a version.
+	// (GET /api/v1/namespaces/{namespace}/file)
+	GetFile(ctx context.Context, request GetFileRequestObject) (GetFileResponseObject, error)
+	// UploadFile Upload one file. This creates a new version.
+	// (PUT /api/v1/namespaces/{namespace}/file)
+	UploadFile(ctx context.Context, request UploadFileRequestObject) (UploadFileResponseObject, error)
+	// ListFiles List the files of the head snapshot or of a version.
+	// (GET /api/v1/namespaces/{namespace}/files)
+	ListFiles(ctx context.Context, request ListFilesRequestObject) (ListFilesResponseObject, error)
+	// RevertVersion Create a new version with the content of an old version.
+	// (POST /api/v1/namespaces/{namespace}/revert)
+	RevertVersion(ctx context.Context, request RevertVersionRequestObject) (RevertVersionResponseObject, error)
+	// ValidateFile Validate proposed file content against the head snapshot. Nothing is saved.
+	// (POST /api/v1/namespaces/{namespace}/validate)
+	ValidateFile(ctx context.Context, request ValidateFileRequestObject) (ValidateFileResponseObject, error)
+	// ListVersions List versions (snapshots), newest first.
+	// (GET /api/v1/namespaces/{namespace}/versions)
+	ListVersions(ctx context.Context, request ListVersionsRequestObject) (ListVersionsResponseObject, error)
+	// GetFlowSchema JSON Schema of flow files.
+	// (GET /api/v1/schemas/flow.json)
+	GetFlowSchema(ctx context.Context, request GetFlowSchemaRequestObject) (GetFlowSchemaResponseObject, error)
 	// ListTokens List own API tokens. Admins can list all tokens with all=true.
 	// (GET /api/v1/tokens)
 	ListTokens(ctx context.Context, request ListTokensRequestObject) (ListTokensResponseObject, error)
@@ -1776,6 +3814,177 @@ func (sh *strictHandler) RevokeOtherSessions(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+// ListFlows operation middleware
+func (sh *strictHandler) ListFlows(w http.ResponseWriter, r *http.Request, params ListFlowsParams) {
+	var request ListFlowsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListFlows(ctx, request.(ListFlowsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListFlows")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListFlowsResponseObject); ok {
+		if err := validResponse.VisitListFlowsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetFlow operation middleware
+func (sh *strictHandler) GetFlow(w http.ResponseWriter, r *http.Request, namespace NamespacePath, flowId FlowIdPath) {
+	var request GetFlowRequestObject
+
+	request.Namespace = namespace
+	request.FlowId = flowId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetFlow(ctx, request.(GetFlowRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetFlow")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetFlowResponseObject); ok {
+		if err := validResponse.VisitGetFlowResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateFlow operation middleware
+func (sh *strictHandler) UpdateFlow(w http.ResponseWriter, r *http.Request, namespace NamespacePath, flowId FlowIdPath) {
+	var request UpdateFlowRequestObject
+
+	request.Namespace = namespace
+	request.FlowId = flowId
+
+	var body UpdateFlowJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateFlow(ctx, request.(UpdateFlowRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateFlow")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateFlowResponseObject); ok {
+		if err := validResponse.VisitUpdateFlowResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DiffFlowRevisions operation middleware
+func (sh *strictHandler) DiffFlowRevisions(w http.ResponseWriter, r *http.Request, namespace NamespacePath, flowId FlowIdPath, params DiffFlowRevisionsParams) {
+	var request DiffFlowRevisionsRequestObject
+
+	request.Namespace = namespace
+	request.FlowId = flowId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DiffFlowRevisions(ctx, request.(DiffFlowRevisionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DiffFlowRevisions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DiffFlowRevisionsResponseObject); ok {
+		if err := validResponse.VisitDiffFlowRevisionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListFlowRevisions operation middleware
+func (sh *strictHandler) ListFlowRevisions(w http.ResponseWriter, r *http.Request, namespace NamespacePath, flowId FlowIdPath, params ListFlowRevisionsParams) {
+	var request ListFlowRevisionsRequestObject
+
+	request.Namespace = namespace
+	request.FlowId = flowId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListFlowRevisions(ctx, request.(ListFlowRevisionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListFlowRevisions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListFlowRevisionsResponseObject); ok {
+		if err := validResponse.VisitListFlowRevisionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetFlowRevision operation middleware
+func (sh *strictHandler) GetFlowRevision(w http.ResponseWriter, r *http.Request, namespace NamespacePath, flowId FlowIdPath, revisionId openapi_types.UUID) {
+	var request GetFlowRevisionRequestObject
+
+	request.Namespace = namespace
+	request.FlowId = flowId
+	request.RevisionId = revisionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetFlowRevision(ctx, request.(GetFlowRevisionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetFlowRevision")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetFlowRevisionResponseObject); ok {
+		if err := validResponse.VisitGetFlowRevisionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListInstances operation middleware
 func (sh *strictHandler) ListInstances(w http.ResponseWriter, r *http.Request) {
 	var request ListInstancesRequestObject
@@ -1793,6 +4002,373 @@ func (sh *strictHandler) ListInstances(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListInstancesResponseObject); ok {
 		if err := validResponse.VisitListInstancesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListNamespaces operation middleware
+func (sh *strictHandler) ListNamespaces(w http.ResponseWriter, r *http.Request) {
+	var request ListNamespacesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListNamespaces(ctx, request.(ListNamespacesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListNamespaces")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListNamespacesResponseObject); ok {
+		if err := validResponse.VisitListNamespacesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateNamespace operation middleware
+func (sh *strictHandler) CreateNamespace(w http.ResponseWriter, r *http.Request) {
+	var request CreateNamespaceRequestObject
+
+	var body CreateNamespaceJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateNamespace(ctx, request.(CreateNamespaceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateNamespace")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateNamespaceResponseObject); ok {
+		if err := validResponse.VisitCreateNamespaceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteNamespace operation middleware
+func (sh *strictHandler) DeleteNamespace(w http.ResponseWriter, r *http.Request, namespace NamespacePath) {
+	var request DeleteNamespaceRequestObject
+
+	request.Namespace = namespace
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteNamespace(ctx, request.(DeleteNamespaceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteNamespace")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteNamespaceResponseObject); ok {
+		if err := validResponse.VisitDeleteNamespaceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetNamespace operation middleware
+func (sh *strictHandler) GetNamespace(w http.ResponseWriter, r *http.Request, namespace NamespacePath) {
+	var request GetNamespaceRequestObject
+
+	request.Namespace = namespace
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetNamespace(ctx, request.(GetNamespaceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetNamespace")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetNamespaceResponseObject); ok {
+		if err := validResponse.VisitGetNamespaceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SaveChanges operation middleware
+func (sh *strictHandler) SaveChanges(w http.ResponseWriter, r *http.Request, namespace NamespacePath) {
+	var request SaveChangesRequestObject
+
+	request.Namespace = namespace
+
+	var body SaveChangesJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SaveChanges(ctx, request.(SaveChangesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SaveChanges")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SaveChangesResponseObject); ok {
+		if err := validResponse.VisitSaveChangesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DiffVersions operation middleware
+func (sh *strictHandler) DiffVersions(w http.ResponseWriter, r *http.Request, namespace NamespacePath, params DiffVersionsParams) {
+	var request DiffVersionsRequestObject
+
+	request.Namespace = namespace
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DiffVersions(ctx, request.(DiffVersionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DiffVersions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DiffVersionsResponseObject); ok {
+		if err := validResponse.VisitDiffVersionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetFile operation middleware
+func (sh *strictHandler) GetFile(w http.ResponseWriter, r *http.Request, namespace NamespacePath, params GetFileParams) {
+	var request GetFileRequestObject
+
+	request.Namespace = namespace
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetFile(ctx, request.(GetFileRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetFile")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetFileResponseObject); ok {
+		if err := validResponse.VisitGetFileResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UploadFile operation middleware
+func (sh *strictHandler) UploadFile(w http.ResponseWriter, r *http.Request, namespace NamespacePath, params UploadFileParams) {
+	var request UploadFileRequestObject
+
+	request.Namespace = namespace
+	request.Params = params
+
+	request.Body = r.Body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UploadFile(ctx, request.(UploadFileRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UploadFile")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UploadFileResponseObject); ok {
+		if err := validResponse.VisitUploadFileResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListFiles operation middleware
+func (sh *strictHandler) ListFiles(w http.ResponseWriter, r *http.Request, namespace NamespacePath, params ListFilesParams) {
+	var request ListFilesRequestObject
+
+	request.Namespace = namespace
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListFiles(ctx, request.(ListFilesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListFiles")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListFilesResponseObject); ok {
+		if err := validResponse.VisitListFilesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RevertVersion operation middleware
+func (sh *strictHandler) RevertVersion(w http.ResponseWriter, r *http.Request, namespace NamespacePath) {
+	var request RevertVersionRequestObject
+
+	request.Namespace = namespace
+
+	var body RevertVersionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevertVersion(ctx, request.(RevertVersionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevertVersion")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RevertVersionResponseObject); ok {
+		if err := validResponse.VisitRevertVersionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ValidateFile operation middleware
+func (sh *strictHandler) ValidateFile(w http.ResponseWriter, r *http.Request, namespace NamespacePath) {
+	var request ValidateFileRequestObject
+
+	request.Namespace = namespace
+
+	var body ValidateFileJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ValidateFile(ctx, request.(ValidateFileRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ValidateFile")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ValidateFileResponseObject); ok {
+		if err := validResponse.VisitValidateFileResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListVersions operation middleware
+func (sh *strictHandler) ListVersions(w http.ResponseWriter, r *http.Request, namespace NamespacePath, params ListVersionsParams) {
+	var request ListVersionsRequestObject
+
+	request.Namespace = namespace
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListVersions(ctx, request.(ListVersionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListVersions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListVersionsResponseObject); ok {
+		if err := validResponse.VisitListVersionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetFlowSchema operation middleware
+func (sh *strictHandler) GetFlowSchema(w http.ResponseWriter, r *http.Request) {
+	var request GetFlowSchemaRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetFlowSchema(ctx, request.(GetFlowSchemaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetFlowSchema")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetFlowSchemaResponseObject); ok {
+		if err := validResponse.VisitGetFlowSchemaResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -2011,44 +4587,80 @@ func (sh *strictHandler) ResetUserPassword(w http.ResponseWriter, r *http.Reques
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

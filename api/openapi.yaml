@@ -11,6 +11,9 @@ tags:
   - name: users
   - name: tokens
   - name: audit
+  - name: namespaces
+  - name: files
+  - name: flows
 paths:
   /api/v1/instances:
     get:
@@ -299,6 +302,393 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+  /api/v1/namespaces:
+    get:
+      operationId: listNamespaces
+      tags: [namespaces]
+      summary: List namespaces with implicit parents.
+      responses:
+        "200":
+          description: Namespaces in name order.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NamespaceList"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createNamespace
+      tags: [namespaces]
+      summary: Create a managed namespace.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNamespaceRequest"
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Namespace"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/namespaces/{namespace}:
+    parameters:
+      - $ref: "#/components/parameters/NamespacePath"
+    get:
+      operationId: getNamespace
+      tags: [namespaces]
+      summary: Get a namespace.
+      responses:
+        "200":
+          description: Namespace.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Namespace"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteNamespace
+      tags: [namespaces]
+      summary: Delete a managed namespace. Fails with 409 while executions run.
+      responses:
+        "204":
+          description: Deleted.
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/namespaces/{namespace}/files:
+    parameters:
+      - $ref: "#/components/parameters/NamespacePath"
+    get:
+      operationId: listFiles
+      tags: [files]
+      summary: List the files of the head snapshot or of a version.
+      parameters:
+        - $ref: "#/components/parameters/VersionQuery"
+      responses:
+        "200":
+          description: Files.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileList"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/namespaces/{namespace}/file:
+    parameters:
+      - $ref: "#/components/parameters/NamespacePath"
+      - $ref: "#/components/parameters/FilePathQuery"
+    get:
+      operationId: getFile
+      tags: [files]
+      summary: Download one file of the head snapshot or of a version.
+      parameters:
+        - $ref: "#/components/parameters/VersionQuery"
+      responses:
+        "200":
+          description: File content.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: uploadFile
+      tags: [files]
+      summary: Upload one file. This creates a new version.
+      parameters:
+        - name: message
+          in: query
+          schema:
+            type: string
+            maxLength: 500
+        - name: executable
+          in: query
+          schema:
+            type: boolean
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "201":
+          description: New version.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Snapshot"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/namespaces/{namespace}/changes:
+    parameters:
+      - $ref: "#/components/parameters/NamespacePath"
+    post:
+      operationId: saveChanges
+      tags: [files]
+      summary: Create, update, rename and delete files in one new version.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveChangesRequest"
+      responses:
+        "201":
+          description: New version.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Snapshot"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/namespaces/{namespace}/versions:
+    parameters:
+      - $ref: "#/components/parameters/NamespacePath"
+    get:
+      operationId: listVersions
+      tags: [files]
+      summary: List versions (snapshots), newest first.
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Versions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SnapshotList"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/namespaces/{namespace}/diff:
+    parameters:
+      - $ref: "#/components/parameters/NamespacePath"
+    get:
+      operationId: diffVersions
+      tags: [files]
+      summary: Diff two versions.
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Diff.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionDiff"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/namespaces/{namespace}/revert:
+    parameters:
+      - $ref: "#/components/parameters/NamespacePath"
+    post:
+      operationId: revertVersion
+      tags: [files]
+      summary: Create a new version with the content of an old version.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevertRequest"
+      responses:
+        "201":
+          description: New version.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Snapshot"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/namespaces/{namespace}/validate:
+    parameters:
+      - $ref: "#/components/parameters/NamespacePath"
+    post:
+      operationId: validateFile
+      tags: [files]
+      summary: Validate proposed file content against the head snapshot. Nothing is saved.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateFileRequest"
+      responses:
+        "200":
+          description: Validation result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidateFileResult"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /api/v1/flows:
+    get:
+      operationId: listFlows
+      tags: [flows]
+      summary: List flows.
+      parameters:
+        - name: namespace
+          in: query
+          description: Namespace and its children.
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Flows.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlowList"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/flows/{namespace}/{flowId}:
+    parameters:
+      - $ref: "#/components/parameters/NamespacePath"
+      - $ref: "#/components/parameters/FlowIdPath"
+    get:
+      operationId: getFlow
+      tags: [flows]
+      summary: Get a flow with its current revision and triggers.
+      responses:
+        "200":
+          description: Flow.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlowDetail"
+        default:
+          $ref: "#/components/responses/Error"
+    patch:
+      operationId: updateFlow
+      tags: [flows]
+      summary: Enable or disable a flow.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFlowRequest"
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlowDetail"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/flows/{namespace}/{flowId}/revisions:
+    parameters:
+      - $ref: "#/components/parameters/NamespacePath"
+      - $ref: "#/components/parameters/FlowIdPath"
+    get:
+      operationId: listFlowRevisions
+      tags: [flows]
+      summary: List revisions of a flow, newest first.
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Revisions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevisionList"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/flows/{namespace}/{flowId}/revisions/{revisionId}:
+    parameters:
+      - $ref: "#/components/parameters/NamespacePath"
+      - $ref: "#/components/parameters/FlowIdPath"
+      - name: revisionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getFlowRevision
+      tags: [flows]
+      summary: Get one revision with its source.
+      responses:
+        "200":
+          description: Revision.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Revision"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/flows/{namespace}/{flowId}/diff:
+    parameters:
+      - $ref: "#/components/parameters/NamespacePath"
+      - $ref: "#/components/parameters/FlowIdPath"
+    get:
+      operationId: diffFlowRevisions
+      tags: [flows]
+      summary: Unified diff between two revisions of a flow.
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Diff.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TextDiff"
+        default:
+          $ref: "#/components/responses/Error"
+  /api/v1/schemas/flow.json:
+    get:
+      operationId: getFlowSchema
+      tags: [flows]
+      summary: JSON Schema of flow files.
+      security: []
+      responses:
+        "200":
+          description: JSON Schema.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        default:
+          $ref: "#/components/responses/Error"
+
 components:
   securitySchemes:
     session:
@@ -330,6 +720,38 @@ components:
       schema:
         type: string
         format: uuid
+    NamespacePath:
+      name: namespace
+      in: path
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+        pattern: "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$"
+    FlowIdPath:
+      name: flowId
+      in: path
+      required: true
+      schema:
+        type: string
+        maxLength: 63
+        pattern: "^[a-z0-9][a-z0-9-]*$"
+    FilePathQuery:
+      name: path
+      in: query
+      required: true
+      description: File path relative to the namespace root.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 512
+    VersionQuery:
+      name: version
+      in: query
+      description: Version number. Default is the head version.
+      schema:
+        type: integer
+        minimum: 1
   responses:
     Error:
       description: Error envelope.
@@ -619,6 +1041,383 @@ components:
           items:
             $ref: "#/components/schemas/AuditEvent"
         next_cursor:
+          type: string
+
+    Namespace:
+      type: object
+      required: [name, source_type, description, implicit]
+      properties:
+        name:
+          type: string
+        source_type:
+          type: string
+          enum: [managed, git, implicit]
+        description:
+          type: string
+        implicit:
+          type: boolean
+          description: True for a parent that exists only because of its children.
+        parent:
+          type: string
+        head_version:
+          type: integer
+          nullable: true
+        head_git_sha:
+          type: string
+        git_source_id:
+          type: string
+          format: uuid
+          nullable: true
+        read_only:
+          type: boolean
+    NamespaceList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Namespace"
+    CreateNamespaceRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 128
+        description:
+          type: string
+          maxLength: 2000
+    FileEntry:
+      type: object
+      required: [path, size, hash, executable]
+      properties:
+        path:
+          type: string
+        size:
+          type: integer
+          format: int64
+        hash:
+          type: string
+        executable:
+          type: boolean
+    FileList:
+      type: object
+      required: [items]
+      properties:
+        version:
+          type: integer
+          nullable: true
+        snapshot_id:
+          type: string
+          format: uuid
+          nullable: true
+        git_sha:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileEntry"
+    FileChange:
+      type: object
+      required: [op, path]
+      properties:
+        op:
+          type: string
+          enum: [put, delete, rename]
+        path:
+          type: string
+          maxLength: 512
+        new_path:
+          type: string
+          maxLength: 512
+          description: rename only.
+        content:
+          type: string
+          description: put only. UTF-8 text content.
+        content_base64:
+          type: string
+          description: put only. Binary content as base64. Used instead of content.
+        executable:
+          type: boolean
+    SaveChangesRequest:
+      type: object
+      required: [message, changes]
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 500
+        base_version:
+          type: integer
+          description: Fails with 409 version_conflict when the head version differs.
+        changes:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            $ref: "#/components/schemas/FileChange"
+    Snapshot:
+      type: object
+      required: [id, message, author, created_at, manifest_hash, file_count]
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          nullable: true
+        git_sha:
+          type: string
+        message:
+          type: string
+        author:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        manifest_hash:
+          type: string
+        file_count:
+          type: integer
+    SnapshotList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Snapshot"
+    FileDiff:
+      type: object
+      required: [path, status, binary, diff]
+      properties:
+        path:
+          type: string
+        status:
+          type: string
+          enum: [added, removed, modified]
+        binary:
+          type: boolean
+        diff:
+          type: string
+          description: Unified diff for text files.
+    VersionDiff:
+      type: object
+      required: [from, to, files]
+      properties:
+        from:
+          type: integer
+        to:
+          type: integer
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileDiff"
+    RevertRequest:
+      type: object
+      required: [version]
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        message:
+          type: string
+          maxLength: 500
+    Issue:
+      type: object
+      required: [code, path, line, column, message]
+      properties:
+        code:
+          type: string
+        path:
+          type: string
+        line:
+          type: integer
+        column:
+          type: integer
+        message:
+          type: string
+    ValidateFileRequest:
+      type: object
+      required: [path, content]
+      properties:
+        path:
+          type: string
+          maxLength: 512
+        content:
+          type: string
+    ValidateFileResult:
+      type: object
+      required: [valid, kind, errors]
+      properties:
+        valid:
+          type: boolean
+        kind:
+          type: string
+          enum: [flow, namespace, other]
+        flow_id:
+          type: string
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Issue"
+    ExecutionRef:
+      type: object
+      required: [id, state, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        state:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    FlowSummary:
+      type: object
+      required: [id, namespace, flow_id, path, valid, disabled, description, error_count]
+      properties:
+        id:
+          type: string
+          format: uuid
+        namespace:
+          type: string
+        flow_id:
+          type: string
+        path:
+          type: string
+        valid:
+          type: boolean
+        disabled:
+          type: boolean
+        description:
+          type: string
+        error_count:
+          type: integer
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        last_execution:
+          $ref: "#/components/schemas/ExecutionRef"
+    FlowList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/FlowSummary"
+        next_cursor:
+          type: string
+    TriggerInfo:
+      type: object
+      required: [key, type, active, config, has_webhook_key]
+      properties:
+        key:
+          type: string
+        type:
+          type: string
+          enum: [schedule, webhook, flow]
+        active:
+          type: boolean
+        config:
+          type: object
+          additionalProperties: true
+        next_fire_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_fired_at:
+          type: string
+          format: date-time
+          nullable: true
+        has_webhook_key:
+          type: boolean
+    Revision:
+      type: object
+      required: [id, created_at, path, source, valid, errors]
+      properties:
+        id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        snapshot_version:
+          type: integer
+          nullable: true
+        git_sha:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        source:
+          type: string
+        valid:
+          type: boolean
+        definition:
+          type: object
+          nullable: true
+          additionalProperties: true
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Issue"
+    RevisionSummary:
+      type: object
+      required: [id, created_at, valid, error_count]
+      properties:
+        id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        snapshot_version:
+          type: integer
+          nullable: true
+        git_sha:
+          type: string
+        message:
+          type: string
+        valid:
+          type: boolean
+        error_count:
+          type: integer
+    RevisionList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RevisionSummary"
+    FlowDetail:
+      allOf:
+        - $ref: "#/components/schemas/FlowSummary"
+        - type: object
+          required: [triggers]
+          properties:
+            revision:
+              $ref: "#/components/schemas/Revision"
+            triggers:
+              type: array
+              items:
+                $ref: "#/components/schemas/TriggerInfo"
+    UpdateFlowRequest:
+      type: object
+      required: [disabled]
+      properties:
+        disabled:
+          type: boolean
+    TextDiff:
+      type: object
+      required: [diff]
+      properties:
+        diff:
           type: string
 security:
   - session: []

@@ -217,6 +217,297 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/namespaces": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List namespaces with implicit parents. */
+    get: operations["listNamespaces"];
+    put?: never;
+    /** Create a managed namespace. */
+    post: operations["createNamespace"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/namespaces/{namespace}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    /** Get a namespace. */
+    get: operations["getNamespace"];
+    put?: never;
+    post?: never;
+    /** Delete a managed namespace. Fails with 409 while executions run. */
+    delete: operations["deleteNamespace"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/namespaces/{namespace}/files": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    /** List the files of the head snapshot or of a version. */
+    get: operations["listFiles"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/namespaces/{namespace}/file": {
+    parameters: {
+      query: {
+        /** @description File path relative to the namespace root. */
+        path: components["parameters"]["FilePathQuery"];
+      };
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    /** Download one file of the head snapshot or of a version. */
+    get: operations["getFile"];
+    /** Upload one file. This creates a new version. */
+    put: operations["uploadFile"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/namespaces/{namespace}/changes": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Create, update, rename and delete files in one new version. */
+    post: operations["saveChanges"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/namespaces/{namespace}/versions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    /** List versions (snapshots), newest first. */
+    get: operations["listVersions"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/namespaces/{namespace}/diff": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    /** Diff two versions. */
+    get: operations["diffVersions"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/namespaces/{namespace}/revert": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Create a new version with the content of an old version. */
+    post: operations["revertVersion"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/namespaces/{namespace}/validate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Validate proposed file content against the head snapshot. Nothing is saved. */
+    post: operations["validateFile"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/flows": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List flows. */
+    get: operations["listFlows"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/flows/{namespace}/{flowId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+        flowId: components["parameters"]["FlowIdPath"];
+      };
+      cookie?: never;
+    };
+    /** Get a flow with its current revision and triggers. */
+    get: operations["getFlow"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Enable or disable a flow. */
+    patch: operations["updateFlow"];
+    trace?: never;
+  };
+  "/api/v1/flows/{namespace}/{flowId}/revisions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+        flowId: components["parameters"]["FlowIdPath"];
+      };
+      cookie?: never;
+    };
+    /** List revisions of a flow, newest first. */
+    get: operations["listFlowRevisions"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/flows/{namespace}/{flowId}/revisions/{revisionId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+        flowId: components["parameters"]["FlowIdPath"];
+        revisionId: string;
+      };
+      cookie?: never;
+    };
+    /** Get one revision with its source. */
+    get: operations["getFlowRevision"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/flows/{namespace}/{flowId}/diff": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+        flowId: components["parameters"]["FlowIdPath"];
+      };
+      cookie?: never;
+    };
+    /** Unified diff between two revisions of a flow. */
+    get: operations["diffFlowRevisions"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/schemas/flow.json": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** JSON Schema of flow files. */
+    get: operations["getFlowSchema"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -357,6 +648,189 @@ export interface components {
       items: components["schemas"]["AuditEvent"][];
       next_cursor?: string;
     };
+    Namespace: {
+      name: string;
+      /** @enum {string} */
+      source_type: "managed" | "git" | "implicit";
+      description: string;
+      /** @description True for a parent that exists only because of its children. */
+      implicit: boolean;
+      parent?: string;
+      head_version?: number | null;
+      head_git_sha?: string;
+      /** Format: uuid */
+      git_source_id?: string | null;
+      read_only?: boolean;
+    };
+    NamespaceList: {
+      items: components["schemas"]["Namespace"][];
+    };
+    CreateNamespaceRequest: {
+      name: string;
+      description?: string;
+    };
+    FileEntry: {
+      path: string;
+      /** Format: int64 */
+      size: number;
+      hash: string;
+      executable: boolean;
+    };
+    FileList: {
+      version?: number | null;
+      /** Format: uuid */
+      snapshot_id?: string | null;
+      git_sha?: string;
+      items: components["schemas"]["FileEntry"][];
+    };
+    FileChange: {
+      /** @enum {string} */
+      op: "put" | "delete" | "rename";
+      path: string;
+      /** @description rename only. */
+      new_path?: string;
+      /** @description put only. UTF-8 text content. */
+      content?: string;
+      /** @description put only. Binary content as base64. Used instead of content. */
+      content_base64?: string;
+      executable?: boolean;
+    };
+    SaveChangesRequest: {
+      message: string;
+      /** @description Fails with 409 version_conflict when the head version differs. */
+      base_version?: number;
+      changes: components["schemas"]["FileChange"][];
+    };
+    Snapshot: {
+      /** Format: uuid */
+      id: string;
+      version?: number | null;
+      git_sha?: string;
+      message: string;
+      author: string;
+      /** Format: date-time */
+      created_at: string;
+      manifest_hash: string;
+      file_count: number;
+    };
+    SnapshotList: {
+      items: components["schemas"]["Snapshot"][];
+    };
+    FileDiff: {
+      path: string;
+      /** @enum {string} */
+      status: "added" | "removed" | "modified";
+      binary: boolean;
+      /** @description Unified diff for text files. */
+      diff: string;
+    };
+    VersionDiff: {
+      from: number;
+      to: number;
+      files: components["schemas"]["FileDiff"][];
+    };
+    RevertRequest: {
+      version: number;
+      message?: string;
+    };
+    Issue: {
+      code: string;
+      path: string;
+      line: number;
+      column: number;
+      message: string;
+    };
+    ValidateFileRequest: {
+      path: string;
+      content: string;
+    };
+    ValidateFileResult: {
+      valid: boolean;
+      /** @enum {string} */
+      kind: "flow" | "namespace" | "other";
+      flow_id?: string;
+      errors: components["schemas"]["Issue"][];
+    };
+    ExecutionRef: {
+      /** Format: uuid */
+      id: string;
+      state: string;
+      /** Format: date-time */
+      created_at: string;
+    };
+    FlowSummary: {
+      /** Format: uuid */
+      id: string;
+      namespace: string;
+      flow_id: string;
+      path: string;
+      valid: boolean;
+      disabled: boolean;
+      description: string;
+      error_count: number;
+      labels?: {
+        [key: string]: string;
+      };
+      last_execution?: components["schemas"]["ExecutionRef"];
+    };
+    FlowList: {
+      items: components["schemas"]["FlowSummary"][];
+      next_cursor?: string;
+    };
+    TriggerInfo: {
+      key: string;
+      /** @enum {string} */
+      type: "schedule" | "webhook" | "flow";
+      active: boolean;
+      config: {
+        [key: string]: unknown;
+      };
+      /** Format: date-time */
+      next_fire_at?: string | null;
+      /** Format: date-time */
+      last_fired_at?: string | null;
+      has_webhook_key: boolean;
+    };
+    Revision: {
+      /** Format: uuid */
+      id: string;
+      /** Format: date-time */
+      created_at: string;
+      snapshot_version?: number | null;
+      git_sha?: string;
+      message?: string;
+      path: string;
+      source: string;
+      valid: boolean;
+      definition?: {
+        [key: string]: unknown;
+      } | null;
+      errors: components["schemas"]["Issue"][];
+    };
+    RevisionSummary: {
+      /** Format: uuid */
+      id: string;
+      /** Format: date-time */
+      created_at: string;
+      snapshot_version?: number | null;
+      git_sha?: string;
+      message?: string;
+      valid: boolean;
+      error_count: number;
+    };
+    RevisionList: {
+      items: components["schemas"]["RevisionSummary"][];
+    };
+    FlowDetail: components["schemas"]["FlowSummary"] & {
+      revision?: components["schemas"]["Revision"];
+      triggers: components["schemas"]["TriggerInfo"][];
+    };
+    UpdateFlowRequest: {
+      disabled: boolean;
+    };
+    TextDiff: {
+      diff: string;
+    };
   };
   responses: {
     /** @description Error envelope. */
@@ -374,6 +848,12 @@ export interface components {
     Cursor: string;
     Limit: number;
     UserId: string;
+    NamespacePath: string;
+    FlowIdPath: string;
+    /** @description File path relative to the namespace root. */
+    FilePathQuery: string;
+    /** @description Version number. Default is the head version. */
+    VersionQuery: number;
   };
   requestBodies: never;
   headers: never;
@@ -737,6 +1217,494 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["AuditList"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  listNamespaces: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Namespaces in name order. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NamespaceList"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  createNamespace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateNamespaceRequest"];
+      };
+    };
+    responses: {
+      /** @description Created. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Namespace"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  getNamespace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Namespace. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Namespace"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  deleteNamespace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Deleted. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  listFiles: {
+    parameters: {
+      query?: {
+        /** @description Version number. Default is the head version. */
+        version?: components["parameters"]["VersionQuery"];
+      };
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Files. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FileList"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  getFile: {
+    parameters: {
+      query: {
+        /** @description File path relative to the namespace root. */
+        path: components["parameters"]["FilePathQuery"];
+        /** @description Version number. Default is the head version. */
+        version?: components["parameters"]["VersionQuery"];
+      };
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description File content. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/octet-stream": string;
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  uploadFile: {
+    parameters: {
+      query: {
+        /** @description File path relative to the namespace root. */
+        path: components["parameters"]["FilePathQuery"];
+        message?: string;
+        executable?: boolean;
+      };
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/octet-stream": string;
+      };
+    };
+    responses: {
+      /** @description New version. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Snapshot"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  saveChanges: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SaveChangesRequest"];
+      };
+    };
+    responses: {
+      /** @description New version. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Snapshot"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  listVersions: {
+    parameters: {
+      query?: {
+        limit?: components["parameters"]["Limit"];
+      };
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Versions. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SnapshotList"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  diffVersions: {
+    parameters: {
+      query: {
+        from: number;
+        to: number;
+      };
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Diff. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["VersionDiff"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  revertVersion: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RevertRequest"];
+      };
+    };
+    responses: {
+      /** @description New version. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Snapshot"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  validateFile: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ValidateFileRequest"];
+      };
+    };
+    responses: {
+      /** @description Validation result. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ValidateFileResult"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  listFlows: {
+    parameters: {
+      query?: {
+        /** @description Namespace and its children. */
+        namespace?: string;
+        /** @description Opaque cursor from next_cursor of the previous page. */
+        cursor?: components["parameters"]["Cursor"];
+        limit?: components["parameters"]["Limit"];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Flows. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FlowList"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  getFlow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+        flowId: components["parameters"]["FlowIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Flow. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FlowDetail"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  updateFlow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+        flowId: components["parameters"]["FlowIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateFlowRequest"];
+      };
+    };
+    responses: {
+      /** @description Updated. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FlowDetail"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  listFlowRevisions: {
+    parameters: {
+      query?: {
+        limit?: components["parameters"]["Limit"];
+      };
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+        flowId: components["parameters"]["FlowIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Revisions. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RevisionList"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  getFlowRevision: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+        flowId: components["parameters"]["FlowIdPath"];
+        revisionId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Revision. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Revision"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  diffFlowRevisions: {
+    parameters: {
+      query: {
+        from: string;
+        to: string;
+      };
+      header?: never;
+      path: {
+        namespace: components["parameters"]["NamespacePath"];
+        flowId: components["parameters"]["FlowIdPath"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Diff. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TextDiff"];
+        };
+      };
+      default: components["responses"]["Error"];
+    };
+  };
+  getFlowSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description JSON Schema. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
       default: components["responses"]["Error"];

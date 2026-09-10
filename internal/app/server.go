@@ -18,6 +18,7 @@ import (
 	"github.com/alternayte/sluice/internal/api"
 	"github.com/alternayte/sluice/internal/audit"
 	"github.com/alternayte/sluice/internal/auth"
+	"github.com/alternayte/sluice/internal/namespace"
 	"github.com/alternayte/sluice/internal/platform/clock"
 	"github.com/alternayte/sluice/internal/platform/db"
 	"github.com/alternayte/sluice/internal/platform/health"
@@ -42,19 +43,20 @@ func storageConfig(cfg *Config) storage.Config {
 
 // Server is one running sluice server instance.
 type Server struct {
-	Cfg      *Config
-	Log      *slog.Logger
-	Pool     *pgxpool.Pool
-	Clock    clock.Clock
-	Instance instance.Info
-	Leases   *lease.Store
-	Health   *health.Checker
-	Metrics  *promx.Metrics
-	Registry *instance.Registry
-	Audit    *audit.Writer
-	Auth     *auth.Service
-	Store    storage.Store
-	GC       *storage.GC
+	Cfg        *Config
+	Log        *slog.Logger
+	Pool       *pgxpool.Pool
+	Clock      clock.Clock
+	Instance   instance.Info
+	Leases     *lease.Store
+	Health     *health.Checker
+	Metrics    *promx.Metrics
+	Registry   *instance.Registry
+	Audit      *audit.Writer
+	Auth       *auth.Service
+	Store      storage.Store
+	GC         *storage.GC
+	Namespaces *namespace.Service
 
 	httpServer *http.Server
 	listener   net.Listener
@@ -111,6 +113,8 @@ func NewServer(ctx context.Context, cfg *Config, log *slog.Logger) (*Server, err
 	healthKey := "health/" + id.String()
 	s.Health.Add("storage", func(ctx context.Context) error { return storage.RoundTrip(ctx, s.Store, healthKey) })
 	s.GC = &storage.GC{Pool: pool, Store: s.Store, Clock: clk, Log: log}
+	s.Namespaces = &namespace.Service{Pool: pool, Store: s.Store, Clock: clk, Audit: s.Audit, Log: log,
+		MaxFileBytes: int64(cfg.MaxFileBytes), MaxBundleBytes: int64(cfg.MaxBundleBytes)}
 	created, err := s.Auth.Bootstrap(ctx, cfg.BootstrapAdminEmail, cfg.BootstrapAdminPassword)
 	if err != nil {
 		pool.Close()
@@ -172,8 +176,9 @@ func (s *Server) Routes() (*RecordingMux, error) {
 	apiServer := &api.Server{
 		System:   api.System{Instances: s.Registry, Clock: s.Clock},
 		Handlers: auth.Handlers{Svc: s.Auth},
+		API:      namespace.API{Svc: s.Namespaces},
 	}
-	if err := api.Mount(mux, apiServer, auth.Authorize, nil); err != nil {
+	if err := api.Mount(mux, apiServer, nil); err != nil {
 		return nil, err
 	}
 	mux.Handle("/", spaHandler())
@@ -192,7 +197,11 @@ func (s *Server) Handler() (http.Handler, error) {
 		}
 		return r.Pattern
 	}
-	h := s.Auth.Middleware(s.Metrics.Middleware(route, mux))
+	authorize, err := api.AuthorizeMiddleware(auth.Authorize)
+	if err != nil {
+		return nil, err
+	}
+	h := s.Auth.Middleware(authorize(s.Metrics.Middleware(route, mux)))
 	h = withLogger(s.Log, h)
 	h = httpx.WithRequestID(h)
 	return httpx.SecurityHeaders(h), nil

@@ -27,7 +27,7 @@ blocking_findings_open: 0
 | REQ-CORE-008 | IN_PROGRESS | S0 | |
 | REQ-CORE-009 | IN_PROGRESS | S0 | |
 | REQ-CORE-010 | IN_PROGRESS | S0 | |
-| REQ-DOC-001 | IN_PROGRESS | S0 | |
+| REQ-DOC-001 | PASS | S0 | SCN-DOC-001 |
 | REQ-UI-001 | IN_PROGRESS | S0 | |
 | REQ-UI-010 | IN_PROGRESS | S0 | |
 | SCN-API-001 | PASS | S0 | internal/api/gen_integration_test.go::TestSCN_API_001_RegenerateNoDiff |
@@ -42,7 +42,7 @@ blocking_findings_open: 0
 | SCN-CORE-006 | PASS | S0 | tests/e2e/instances_test.go::TestSCN_CORE_006_InstancesRegistry |
 | SCN-CORE-007 | IN_PROGRESS | S0 | |
 | SCN-CORE-008 | IN_PROGRESS | S0 | |
-| SCN-DOC-001 | IN_PROGRESS | S0 | |
+| SCN-DOC-001 | PASS | S0 | internal/app/config_test.go::TestSCN_DOC_001_EnvDocGenerated; internal/flow/fixtures_test.go::TestSCN_DOC_001_FlowDocGenerated |
 | SCN-UI-001 | IN_PROGRESS | S0 | |
 | REQ-AUTH-001 | PASS | S1 | SCN-AUTH-001 |
 | REQ-AUTH-002 | PASS | S1 | SCN-AUTH-002 |
@@ -77,23 +77,23 @@ blocking_findings_open: 0
 | REQ-STO-002 | PASS | S2 | SCN-STO-002 |
 | REQ-STO-003 | PASS | S2 | SCN-STO-003 |
 | REQ-STO-004 | PASS | S2 | SCN-STO-001 |
-| REQ-STO-005 | IN_PROGRESS | S2 |  |
+| REQ-STO-005 | PASS | S2 | SCN-STO-004 |
 | REQ-STO-006 | PASS | S2 | SCN-STO-005 |
 | SCN-STO-001 | PASS | S2 | internal/storage/conformance_integration_test.go::TestSCN_STO_001_Conformance |
 | SCN-STO-002 | PASS | S2 | internal/storage/conformance_integration_test.go::TestSCN_STO_002_S3EndpointPathStylePrefix |
 | SCN-STO-003 | PASS | S2 | internal/storage/azblob_gc_integration_test.go::TestSCN_STO_003_AzblobConnectionStringAndTokenCredential |
-| SCN-STO-004 | IN_PROGRESS | S2 |  |
+| SCN-STO-004 | PASS | S2 | internal/namespace/namespace_integration_test.go::TestSCN_STO_004_DeduplicatedFileObjects |
 | SCN-STO-005 | PASS | S2 | internal/storage/azblob_gc_integration_test.go::TestSCN_STO_005_GarbageCollection |
-| REQ-DOC-002 | IN_PROGRESS | S3 |  |
-| REQ-FLOW-001 | IN_PROGRESS | S3 |  |
-| REQ-FLOW-002 | IN_PROGRESS | S3 |  |
-| REQ-FLOW-003 | IN_PROGRESS | S3 |  |
+| REQ-DOC-002 | PASS | S3 | SCN-DOC-001 |
+| REQ-FLOW-001 | PASS | S3 | SCN-FLOW-001; SCN-FLOW-002 |
+| REQ-FLOW-002 | PASS | S3 | SCN-FLOW-001; SCN-FLOW-002; SCN-FLOW-007 |
+| REQ-FLOW-003 | PASS | S3 | SCN-FLOW-002 |
 | REQ-FLOW-004 | IN_PROGRESS | S3 |  |
 | REQ-FLOW-005 | IN_PROGRESS | S3 |  |
 | REQ-FLOW-006 | IN_PROGRESS | S3 |  |
 | REQ-FLOW-007 | IN_PROGRESS | S3 |  |
 | REQ-FLOW-008 | IN_PROGRESS | S3 |  |
-| REQ-NS-001 | IN_PROGRESS | S3 |  |
+| REQ-NS-001 | PASS | S3 | SCN-NS-001 |
 | REQ-NS-002 | IN_PROGRESS | S3 |  |
 | REQ-NS-003 | IN_PROGRESS | S3 |  |
 | REQ-NS-004 | IN_PROGRESS | S3 |  |
@@ -101,18 +101,18 @@ blocking_findings_open: 0
 | REQ-NS-006 | IN_PROGRESS | S3 |  |
 | REQ-NS-007 | IN_PROGRESS | S3 |  |
 | REQ-NS-008 | IN_PROGRESS | S3 |  |
-| REQ-NS-009 | IN_PROGRESS | S3 |  |
+| REQ-NS-009 | PASS | S3 | SCN-NS-009 |
 | REQ-UI-007 | IN_PROGRESS | S3 |  |
 | SI-08 | IN_PROGRESS | S3 |  |
-| SCN-FLOW-001 | IN_PROGRESS | S3 |  |
-| SCN-FLOW-002 | IN_PROGRESS | S3 |  |
+| SCN-FLOW-001 | PASS | S3 | internal/flow/fixtures_test.go::TestSCN_FLOW_001_ValidFixtures |
+| SCN-FLOW-002 | PASS | S3 | internal/flow/fixtures_test.go::TestSCN_FLOW_002_InvalidFixtures |
 | SCN-FLOW-003 | IN_PROGRESS | S3 |  |
 | SCN-FLOW-004 | IN_PROGRESS | S3 |  |
 | SCN-FLOW-005 | IN_PROGRESS | S3 |  |
 | SCN-FLOW-006 | IN_PROGRESS | S3 |  |
-| SCN-FLOW-007 | IN_PROGRESS | S3 |  |
+| SCN-FLOW-007 | PASS | S3 | internal/flow/fixtures_test.go::TestSCN_FLOW_007_SchemaGeneratedAndApplied |
 | SCN-FLOW-008 | IN_PROGRESS | S3 |  |
-| SCN-NS-001 | IN_PROGRESS | S3 |  |
+| SCN-NS-001 | PASS | S3 | tests/e2e/namespace_test.go::TestSCN_NS_001_NamespaceNames |
 | SCN-NS-002 | IN_PROGRESS | S3 |  |
 | SCN-NS-003 | IN_PROGRESS | S3 |  |
 | SCN-NS-004 | IN_PROGRESS | S3 |  |
@@ -120,7 +120,7 @@ blocking_findings_open: 0
 | SCN-NS-006 | IN_PROGRESS | S3 |  |
 | SCN-NS-007 | IN_PROGRESS | S3 |  |
 | SCN-NS-008 | IN_PROGRESS | S3 |  |
-| SCN-NS-009 | IN_PROGRESS | S3 |  |
+| SCN-NS-009 | PASS | S3 | tests/e2e/namespace_test.go::TestSCN_NS_009_FileAndSnapshotLimits |
 | SCN-UI-010 | IN_PROGRESS | S3 |  |
 | REQ-EXE-001 | OPEN | S4 | |
 | REQ-EXE-002 | OPEN | S4 | |

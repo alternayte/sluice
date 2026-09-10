@@ -20,15 +20,39 @@ import (
 // AuthorizeFunc checks the permission of an operation. It returns nil when allowed.
 type AuthorizeFunc func(ctx context.Context, operationID string) error
 
+// AuthorizeMiddleware checks the permission of the matched OpenAPI operation before
+// the generated wrapper parses parameters and before validation, so a caller without
+// permission never sees validation details (SI-03). Requests that match no operation
+// pass through.
+func AuthorizeMiddleware(authorize AuthorizeFunc) (func(http.Handler) http.Handler, error) {
+	v, err := NewValidator()
+	if err != nil {
+		return nil, err
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !strings.HasPrefix(r.URL.Path, "/api/") {
+				next.ServeHTTP(w, r)
+				return
+			}
+			if op := v.OperationID(r); op != "" {
+				if err := authorize(r.Context(), op); err != nil {
+					httpx.WriteError(w, r, err)
+					return
+				}
+			}
+			next.ServeHTTP(w, r)
+		})
+	}, nil
+}
+
 // Mount registers all /api routes on mux. Unknown /api routes return JSON 404 (REQ-API-002).
-// authorize runs before request validation, so a caller without permission never sees
-// validation details.
-func Mount(mux ServeMux, ssi apigen.StrictServerInterface, authorize AuthorizeFunc, mws []apigen.StrictMiddlewareFunc, httpMws ...apigen.MiddlewareFunc) error {
+// Wrap the router with AuthorizeMiddleware.
+func Mount(mux ServeMux, ssi apigen.StrictServerInterface, mws []apigen.StrictMiddlewareFunc, httpMws ...apigen.MiddlewareFunc) error {
 	validator, err := NewValidator()
 	if err != nil {
 		return err
 	}
-	validator.authorize = authorize
 	strict := apigen.NewStrictHandlerWithOptions(ssi, mws, apigen.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			httpx.WriteError(w, r, httpx.Errorf(http.StatusBadRequest, "bad_request", "%s", err.Error()))
@@ -56,8 +80,7 @@ type ServeMux interface {
 
 // Validator checks requests against the OpenAPI document.
 type Validator struct {
-	router    routers.Router
-	authorize AuthorizeFunc
+	router routers.Router
 }
 
 // OperationID returns the operation of a request, or "" when no operation matches.
@@ -95,12 +118,6 @@ func (v *Validator) Middleware(next http.Handler) http.Handler {
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return
-		}
-		if v.authorize != nil {
-			if err := v.authorize(r.Context(), route.Operation.OperationID); err != nil {
-				httpx.WriteError(w, r, err)
-				return
-			}
 		}
 		ct := r.Header.Get("Content-Type")
 		if r.Body != nil && r.ContentLength != 0 && !strings.HasPrefix(ct, "application/json") && ct != "" {

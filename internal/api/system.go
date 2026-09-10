@@ -5,6 +5,7 @@ import (
 
 	"github.com/alternayte/sluice/internal/api/apigen"
 	"github.com/alternayte/sluice/internal/auth"
+	"github.com/alternayte/sluice/internal/namespace"
 	"github.com/alternayte/sluice/internal/platform/clock"
 	"github.com/alternayte/sluice/internal/platform/instance"
 )
@@ -13,6 +14,7 @@ import (
 type Server struct {
 	System
 	auth.Handlers
+	namespace.API
 }
 
 var _ apigen.StrictServerInterface = (*Server)(nil)

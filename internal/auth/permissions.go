@@ -17,6 +17,7 @@ var (
 	public        = Access{Public: true}
 	authenticated = Access{Min: Viewer, Self: true}
 	viewer        = Access{Min: Viewer}
+	editor        = Access{Min: Editor}
 	admin         = Access{Min: Admin}
 )
 
@@ -40,6 +41,30 @@ var Operations = map[string]Access{
 	"resetUserPassword": admin,
 	"listAuditEvents":   admin,
 	"listInstances":     admin,
+
+	// Namespaces and files. Read: viewer. Managed edits and namespace creation: editor.
+	// Namespace delete: admin.
+	"listNamespaces":  viewer,
+	"getNamespace":    viewer,
+	"createNamespace": editor,
+	"deleteNamespace": admin,
+	"listFiles":       viewer,
+	"getFile":         viewer,
+	"uploadFile":      editor,
+	"saveChanges":     editor,
+	"listVersions":    viewer,
+	"diffVersions":    viewer,
+	"revertVersion":   editor,
+	"validateFile":    viewer,
+
+	// Flows. Enable and disable: editor.
+	"listFlows":         viewer,
+	"getFlow":           viewer,
+	"updateFlow":        editor,
+	"listFlowRevisions": viewer,
+	"getFlowRevision":   viewer,
+	"diffFlowRevisions": viewer,
+	"getFlowSchema":     public,
 }
 
 // OperationKey normalizes an operationId. The spec embedded by oapi-codegen has

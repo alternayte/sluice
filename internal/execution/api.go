@@ -2,9 +2,6 @@ package execution
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,88 +21,24 @@ import (
 	"github.com/alternayte/sluice/internal/platform/page"
 )
 
-// ExecAPI serves the execution operations.
+// ExecAPI serves the execution operations on the legacy mux. The huma routes in routes.go
+// replace it; Task 13 deletes this file.
 type ExecAPI struct {
 	E *Engine
 }
 
-func rawMap(b []byte) map[string]any {
-	m := map[string]any{}
-	if len(b) > 0 {
-		_ = json.Unmarshal(b, &m)
-	}
-	return m
-}
-
-func rawMapPtr(b []byte) *map[string]any {
-	if len(b) == 0 || string(b) == "null" {
-		return nil
-	}
-	m := rawMap(b)
-	return &m
-}
-
-func strMap(b []byte) map[string]string {
-	m := map[string]string{}
-	_ = json.Unmarshal(b, &m)
-	return m
-}
-
-func durOf(start, end *time.Time) *int64 {
-	if start == nil || end == nil {
-		return nil
-	}
-	d := end.Sub(*start).Milliseconds()
-	return &d
-}
-
-// Detail returns the API view of an execution.
-func (e *Engine) Detail(ctx context.Context, id uuid.UUID) (apigen.ExecutionDetail, error) {
-	q := dbq.New(e.Pool)
-	ex, err := q.GetExecution(ctx, id)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return apigen.ExecutionDetail{}, ErrNotFound
-	}
+// detailAPI returns Detail as the legacy apigen type. The two types have the same JSON form.
+func (e *Engine) detailAPI(ctx context.Context, id uuid.UUID) (apigen.ExecutionDetail, error) {
+	d, err := e.Detail(ctx, id)
 	if err != nil {
 		return apigen.ExecutionDetail{}, err
 	}
-	runs, err := q.ListExecutionTaskRuns(ctx, id)
-	if err != nil {
+	var out apigen.ExecutionDetail
+	b, _ := json.Marshal(d)
+	if err := json.Unmarshal(b, &out); err != nil {
 		return apigen.ExecutionDetail{}, err
 	}
-	children, err := q.ListChildExecutions(ctx, &id)
-	if err != nil {
-		return apigen.ExecutionDetail{}, err
-	}
-	d := apigen.ExecutionDetail{Id: ex.ID, Namespace: ex.NamespaceName, FlowId: ex.FlowKey, State: apigen.ExecutionState(ex.State),
-		TriggerType: ex.TriggerType, Labels: strMap(ex.Labels), CreatedAt: ex.CreatedAt, StartedAt: ex.StartedAt, EndedAt: ex.EndedAt,
-		DurationMs: ex.DurationMs, Error: ex.Error, Reason: ex.Reason, CreatedBy: ex.CreatedBy, Inputs: rawMap(ex.Inputs),
-		Outputs: rawMapPtr(ex.Outputs), TriggerPayload: rawMap(ex.TriggerPayload), SnapshotId: ex.SnapshotID, FlowRevisionId: ex.FlowRevisionID,
-		ParentExecutionId: ex.ParentExecutionID, RestartOfId: ex.RestartOfID, ChainDepth: int(ex.ChainDepth),
-		SecretKeysUsed: nonNilStrings(ex.SecretKeysUsed), TaskRuns: []apigen.TaskRun{}, Children: []apigen.ExecutionRef{}}
-	if ex.SnapshotVersion != nil {
-		v := int(*ex.SnapshotVersion)
-		d.SnapshotVersion = &v
-	}
-	if ex.SnapshotGitSha != "" {
-		s := ex.SnapshotGitSha
-		d.GitSha = &s
-	}
-	for _, tr := range runs {
-		t := apigen.TaskRun{Id: tr.ID, TaskKey: tr.TaskKey, TaskType: tr.TaskType, Attempt: int(tr.Attempt), State: apigen.TaskRunState(tr.State),
-			Reason: tr.Reason, ExecutorType: tr.ExecutorType, Pool: tr.Pool, QueuedAt: tr.QueuedAt, StartedAt: tr.StartedAt, EndedAt: tr.EndedAt,
-			DurationMs: durOf(tr.StartedAt, tr.EndedAt), Error: tr.Error, Outputs: rawMapPtr(tr.Outputs), ReusedFromId: tr.ReusedFromID,
-			ChildExecutionId: tr.ChildExecutionID}
-		if tr.ExitCode != nil {
-			c := int(*tr.ExitCode)
-			t.ExitCode = &c
-		}
-		d.TaskRuns = append(d.TaskRuns, t)
-	}
-	for _, c := range children {
-		d.Children = append(d.Children, apigen.ExecutionRef{Id: c.ID, State: c.State, CreatedAt: c.CreatedAt})
-	}
-	return d, nil
+	return out, nil
 }
 
 // TriggerFlow starts a flow manually (REQ-TRG-001).
@@ -118,11 +51,11 @@ func (h ExecAPI) TriggerFlow(ctx context.Context, req apigen.TriggerFlowRequestO
 	if req.Body.Labels != nil {
 		labels = *req.Body.Labels
 	}
-	id, err := h.E.Trigger(ctx, TriggerRequest{Namespace: req.Namespace, FlowKey: req.FlowId, Inputs: inputs, Labels: labels, TriggerType: "manual"})
+	id, err := h.E.Trigger(ctx, TriggerParams{Namespace: req.Namespace, FlowKey: req.FlowId, Inputs: inputs, Labels: labels, TriggerType: "manual"})
 	if err != nil {
 		return nil, err
 	}
-	d, err := h.E.Detail(ctx, id)
+	d, err := h.E.detailAPI(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +72,7 @@ func (h ExecAPI) RunFile(ctx context.Context, req apigen.RunFileRequestObject) (
 	if err != nil {
 		return nil, err
 	}
-	d, err := h.E.Detail(ctx, id)
+	d, err := h.E.detailAPI(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +201,7 @@ func (h ExecAPI) ListExecutions(ctx context.Context, req apigen.ListExecutionsRe
 
 // GetExecution returns one execution.
 func (h ExecAPI) GetExecution(ctx context.Context, req apigen.GetExecutionRequestObject) (apigen.GetExecutionResponseObject, error) {
-	d, err := h.E.Detail(ctx, req.ExecutionId)
+	d, err := h.E.detailAPI(ctx, req.ExecutionId)
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +213,7 @@ func (h ExecAPI) CancelExecution(ctx context.Context, req apigen.CancelExecution
 	if err := h.E.Cancel(ctx, req.ExecutionId); err != nil {
 		return nil, err
 	}
-	d, err := h.E.Detail(ctx, req.ExecutionId)
+	d, err := h.E.detailAPI(ctx, req.ExecutionId)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +226,7 @@ func (h ExecAPI) RerunExecution(ctx context.Context, req apigen.RerunExecutionRe
 	if err != nil {
 		return nil, err
 	}
-	d, err := h.E.Detail(ctx, id)
+	d, err := h.E.detailAPI(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -306,59 +239,15 @@ func (h ExecAPI) RestartExecution(ctx context.Context, req apigen.RestartExecuti
 	if err != nil {
 		return nil, err
 	}
-	d, err := h.E.Detail(ctx, id)
+	d, err := h.E.detailAPI(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	return apigen.RestartExecution201JSONResponse(d), nil
 }
 
-// positions is the read position per task run: the last line number sent.
-type positions map[uuid.UUID]int64
-
-func encodePositions(p positions) string {
-	m := map[string]int64{}
-	for k, v := range p {
-		m[k.String()] = v
-	}
-	b, _ := json.Marshal(m)
-	return base64.RawURLEncoding.EncodeToString(b)
-}
-
-func decodePositions(s string) (positions, error) {
-	p := positions{}
-	if s == "" {
-		return p, nil
-	}
-	b, err := base64.RawURLEncoding.DecodeString(s)
-	if err != nil {
-		return nil, httpx.Validation(httpx.FieldError{Field: "cursor", Message: "invalid cursor"})
-	}
-	m := map[string]int64{}
-	if err := json.Unmarshal(b, &m); err != nil {
-		return nil, httpx.Validation(httpx.FieldError{Field: "cursor", Message: "invalid cursor"})
-	}
-	for k, v := range m {
-		id, err := uuid.Parse(k)
-		if err != nil {
-			return nil, httpx.Validation(httpx.FieldError{Field: "cursor", Message: "invalid cursor"})
-		}
-		p[id] = v
-	}
-	return p, nil
-}
-
 func toLogEntry(l LogLine) apigen.LogEntry {
 	return apigen.LogEntry{TaskRunId: l.TaskRunID, TaskKey: l.TaskKey, Attempt: l.Attempt, N: l.N, Ts: l.TS, Stream: apigen.LogEntryStream(l.Stream), Text: l.Text}
-}
-
-func (e *Engine) execEnded(ctx context.Context, id uuid.UUID) (bool, error) {
-	var state string
-	err := e.Pool.QueryRow(ctx, "SELECT state FROM executions WHERE id = $1", id).Scan(&state)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return false, ErrNotFound
-	}
-	return ExecutionTerminal(state), err
 }
 
 // GetExecutionLogs reads log lines from Postgres and the archive (REQ-RUN-008).
@@ -415,59 +304,10 @@ type sseLogs struct {
 	pos  positions
 }
 
-func sseHeaders(w http.ResponseWriter) *http.ResponseController {
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-	rc := http.NewResponseController(w)
-	_ = rc.Flush()
-	return rc
-}
-
 // VisitStreamExecutionLogsResponse streams lines until the execution ends (REQ-RUN-008, REQ-API-004).
 func (s sseLogs) VisitStreamExecutionLogsResponse(w http.ResponseWriter) error {
-	rc := sseHeaders(w)
-	t := time.NewTicker(500 * time.Millisecond)
-	defer t.Stop()
-	idle := 0
-	for {
-		ended, err := s.e.execEnded(s.ctx, s.id)
-		if err != nil {
-			return nil //nolint:nilerr // the stream ends when the execution is gone
-		}
-		lines, err := s.e.ExecutionLines(s.ctx, s.id, s.task, s.pos)
-		if err != nil {
-			return nil //nolint:nilerr // a read error ends the stream; the client reconnects with Last-Event-ID
-		}
-		for _, l := range lines {
-			s.pos[l.TaskRunID] = l.N
-			b, _ := json.Marshal(toLogEntry(l))
-			if _, err := fmt.Fprintf(w, "id: %s\nevent: line\ndata: %s\n\n", encodePositions(s.pos), b); err != nil {
-				return nil //nolint:nilerr // the client closed the stream
-			}
-		}
-		if len(lines) > 0 {
-			_ = rc.Flush()
-			idle = 0
-		} else {
-			idle++
-			if idle%30 == 0 {
-				_, _ = fmt.Fprint(w, ": keep-alive\n\n")
-				_ = rc.Flush()
-			}
-		}
-		if ended && len(lines) == 0 && idle >= 2 {
-			_, _ = fmt.Fprintf(w, "event: end\ndata: {}\n\n")
-			_ = rc.Flush()
-			return nil
-		}
-		select {
-		case <-s.ctx.Done():
-			return nil
-		case <-t.C:
-		}
-	}
+	s.e.streamLogs(s.ctx, w, s.id, s.task, s.pos)
+	return nil
 }
 
 // StreamExecutionLogs streams log lines as server-sent events.
@@ -531,52 +371,10 @@ type sseEvents struct {
 	last string
 }
 
-func detailHash(d apigen.ExecutionDetail) string {
-	h := sha256.New()
-	fmt.Fprintf(h, "%s|%s|", d.State, d.Reason)
-	for _, t := range d.TaskRuns {
-		fmt.Fprintf(h, "%s:%d:%s:%s;", t.TaskKey, t.Attempt, t.State, t.Reason)
-	}
-	return hex.EncodeToString(h.Sum(nil))[:16]
-}
-
 // VisitStreamExecutionEventsResponse sends the execution each time its state changes (REQ-UI-012).
 func (s sseEvents) VisitStreamExecutionEventsResponse(w http.ResponseWriter) error {
-	rc := sseHeaders(w)
-	t := time.NewTicker(500 * time.Millisecond)
-	defer t.Stop()
-	idle := 0
-	for {
-		d, err := s.e.Detail(s.ctx, s.id)
-		if err != nil {
-			return nil //nolint:nilerr // the stream ends when the execution is gone
-		}
-		if h := detailHash(d); h != s.last {
-			s.last = h
-			b, _ := json.Marshal(d)
-			if _, err := fmt.Fprintf(w, "id: %s\nevent: execution\ndata: %s\n\n", h, b); err != nil {
-				return nil //nolint:nilerr // the client closed the stream
-			}
-			_ = rc.Flush()
-			idle = 0
-		} else {
-			idle++
-			if idle%30 == 0 {
-				_, _ = fmt.Fprint(w, ": keep-alive\n\n")
-				_ = rc.Flush()
-			}
-		}
-		if ExecutionTerminal(string(d.State)) && idle >= 2 {
-			_, _ = fmt.Fprintf(w, "event: end\ndata: {}\n\n")
-			_ = rc.Flush()
-			return nil
-		}
-		select {
-		case <-s.ctx.Done():
-			return nil
-		case <-t.C:
-		}
-	}
+	s.e.streamEvents(s.ctx, w, s.id, s.last)
+	return nil
 }
 
 // StreamExecutionEvents streams execution state changes.

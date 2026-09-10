@@ -173,7 +173,7 @@ func enabledExecutors(cfg *Config) []string {
 func (s *Server) Handler() (http.Handler, error) {
 	r := chi.NewMux()
 	r.Use(httpx.SecurityHeaders, httpx.WithRequestID, s.withLogger, s.metrics, middleware.GetHead, s.Auth.Middleware,
-		runnerapi.ContentTypeMiddleware, runnerapi.TokenMiddleware(s.Engine))
+		execution.RunnerContentType, execution.RunTokenMiddleware(s.Engine))
 	r.Get("/healthz", health.Healthz)
 	r.Get("/readyz", s.Health.Readyz)
 	r.Method(http.MethodGet, "/metrics", s.Metrics.Handler())

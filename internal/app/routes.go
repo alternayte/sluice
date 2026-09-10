@@ -1,6 +1,8 @@
 package app
 
 import (
+	"reflect"
+
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
 
@@ -26,10 +28,15 @@ type services struct {
 
 // registerRoutes registers every API operation on api, and the streamed routes on r.
 func registerRoutes(api huma.API, r chi.Router, s services) {
+	// The execution and namespace packages each have an ExecutionRef type with the same JSON
+	// form. Both use the one ExecutionRef schema of api/openapi.yaml.
+	api.OpenAPI().Components.Schemas.RegisterTypeAlias(reflect.TypeFor[execution.ExecutionRef](), reflect.TypeFor[namespace.ExecutionRef]())
 	auth.Routes(api, s.Auth)
 	audit.Routes(api, s.Audit)
 	instance.Routes(api, s.Instances, s.Clock)
 	namespace.Routes(api, r, s.Namespaces)
+	execution.Routes(api, r, s.Engine)
+	execution.RunnerRoutes(api, r, s.Engine, s.MaxArtifactBytes)
 }
 
 func (s *Server) services() services {

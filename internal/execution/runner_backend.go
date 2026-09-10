@@ -13,12 +13,9 @@ import (
 
 	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/httpx"
-	"github.com/alternayte/sluice/internal/runnerapi"
 	"github.com/alternayte/sluice/internal/runnerproto"
 	"github.com/alternayte/sluice/internal/storage"
 )
-
-var _ runnerapi.Backend = (*Engine)(nil)
 
 var artifactNameRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$`)
 

@@ -185,8 +185,8 @@ func (e *Engine) namespaceDefaults(ctx context.Context, snapshotID uuid.UUID) (*
 	return nf.Defaults, nil
 }
 
-// TriggerRequest is a manual or automatic trigger of a flow.
-type TriggerRequest struct {
+// TriggerParams is a manual or automatic trigger of a flow.
+type TriggerParams struct {
 	Namespace      string
 	FlowKey        string
 	Inputs         map[string]any
@@ -213,7 +213,7 @@ func InputErrors(errs []flow.InputError) error {
 }
 
 // Trigger creates an execution of a flow at its current revision.
-func (e *Engine) Trigger(ctx context.Context, r TriggerRequest) (uuid.UUID, error) {
+func (e *Engine) Trigger(ctx context.Context, r TriggerParams) (uuid.UUID, error) {
 	if err := validateLabels(r.Labels); err != nil {
 		return uuid.Nil, err
 	}

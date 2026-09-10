@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -167,30 +168,32 @@ func enabledExecutors(cfg *Config) []string {
 	return out
 }
 
-// RecordingMux records the patterns registered on it for the route inventory (SI-03).
-type RecordingMux struct {
-	*http.ServeMux
-	Patterns []string
+// Handler builds the root HTTP handler.
+func (s *Server) Handler() (http.Handler, error) {
+	r := chi.NewMux()
+	r.Use(httpx.SecurityHeaders, httpx.WithRequestID, s.withLogger, s.metrics, s.Auth.Middleware,
+		runnerapi.ContentTypeMiddleware, runnerapi.TokenMiddleware(s.Engine))
+	r.Get("/healthz", health.Healthz)
+	r.Get("/readyz", s.Health.Readyz)
+	r.Method(http.MethodGet, "/metrics", s.Metrics.Handler())
+	api := httpx.NewAPI(r)
+	registerRoutes(api, r, s.services())
+	if err := httpx.CheckAccess(api); err != nil {
+		return nil, err
+	}
+	legacy, err := s.legacyAPI()
+	if err != nil {
+		return nil, err
+	}
+	r.Handle("/api/*", legacy)
+	r.Handle("/*", spaHandler())
+	return r, nil
 }
 
-// Handle registers and records a handler.
-func (m *RecordingMux) Handle(pattern string, h http.Handler) {
-	m.Patterns = append(m.Patterns, pattern)
-	m.ServeMux.Handle(pattern, h)
-}
-
-// HandleFunc registers and records a handler function.
-func (m *RecordingMux) HandleFunc(pattern string, h func(http.ResponseWriter, *http.Request)) {
-	m.Patterns = append(m.Patterns, pattern)
-	m.ServeMux.HandleFunc(pattern, h)
-}
-
-// Routes builds the router and returns it with the recorded patterns.
-func (s *Server) Routes() (*RecordingMux, error) {
-	mux := &RecordingMux{ServeMux: http.NewServeMux()}
-	mux.HandleFunc("GET /healthz", health.Healthz)
-	mux.HandleFunc("GET /readyz", s.Health.Readyz)
-	mux.Handle("GET /metrics", s.Metrics.Handler())
+// legacyAPI serves the operations of the old generated server until each feature moves to huma.
+// chi matches the huma routes first, because a static path segment wins over the /api/* wildcard.
+func (s *Server) legacyAPI() (http.Handler, error) {
+	mux := http.NewServeMux()
 	apiServer := &api.Server{
 		System:    api.System{Instances: s.Registry, Clock: s.Clock},
 		Handlers:  auth.Handlers{Svc: s.Auth},
@@ -201,31 +204,23 @@ func (s *Server) Routes() (*RecordingMux, error) {
 	if err := api.Mount(mux, apiServer, nil); err != nil {
 		return nil, err
 	}
-	mux.Handle("/", spaHandler())
-	return mux, nil
-}
-
-// Handler builds the root HTTP handler.
-func (s *Server) Handler() (http.Handler, error) {
-	mux, err := s.Routes()
-	if err != nil {
-		return nil, err
-	}
-	route := func(r *http.Request) string {
-		if r.Pattern == "" {
-			return "unmatched"
-		}
-		return r.Pattern
-	}
 	authorize, err := api.AuthorizeMiddleware(auth.Authorize)
 	if err != nil {
 		return nil, err
 	}
-	inner := runnerapi.ContentTypeMiddleware(runnerapi.TokenMiddleware(s.Engine)(s.Metrics.Middleware(route, mux)))
-	h := s.Auth.Middleware(authorize(inner))
-	h = withLogger(s.Log, h)
-	h = httpx.WithRequestID(h)
-	return httpx.SecurityHeaders(h), nil
+	return authorize(mux), nil
+}
+
+func (s *Server) withLogger(next http.Handler) http.Handler { return withLogger(s.Log, next) }
+
+// metrics records the HTTP duration with the chi route pattern as the route label.
+func (s *Server) metrics(next http.Handler) http.Handler {
+	return s.Metrics.Middleware(func(r *http.Request) string {
+		if rc := chi.RouteContext(r.Context()); rc != nil && rc.RoutePattern() != "" {
+			return rc.RoutePattern()
+		}
+		return "unmatched"
+	}, next)
 }
 
 func withLogger(log *slog.Logger, next http.Handler) http.Handler {

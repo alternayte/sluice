@@ -19,11 +19,12 @@ import (
 	"github.com/pmezard/go-difflib/difflib"
 
 	"github.com/alternayte/sluice/internal/audit"
-	"github.com/alternayte/sluice/internal/auth"
 	"github.com/alternayte/sluice/internal/flow"
+	"github.com/alternayte/sluice/internal/kernel"
 	"github.com/alternayte/sluice/internal/platform/clock"
 	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/httpx"
+	"github.com/alternayte/sluice/internal/snapshot"
 	"github.com/alternayte/sluice/internal/storage"
 )
 
@@ -136,21 +137,21 @@ type SnapshotInfo struct {
 }
 
 // Manifest loads the files of a snapshot.
-func (s *Service) Manifest(ctx context.Context, db dbq.DBTX, snapshotID uuid.UUID) (Manifest, error) {
+func (s *Service) Manifest(ctx context.Context, db dbq.DBTX, snapshotID uuid.UUID) (snapshot.Manifest, error) {
 	files, err := dbq.New(db).ListSnapshotFiles(ctx, snapshotID)
 	if err != nil {
 		return nil, err
 	}
-	m := make(Manifest, len(files))
+	m := make(snapshot.Manifest, len(files))
 	for _, f := range files {
-		m[f.Path] = Entry{Path: f.Path, Hash: f.Hash, Size: f.Size, Executable: f.Executable}
+		m[f.Path] = snapshot.Entry{Path: f.Path, Hash: f.Hash, Size: f.Size, Executable: f.Executable}
 	}
 	return m, nil
 }
 
 // Resolve returns the snapshot of a version (nil: head) and its manifest. A namespace
 // without a snapshot has an empty manifest.
-func (s *Service) Resolve(ctx context.Context, ns dbq.GetNamespaceRow, version *int) (*SnapshotInfo, Manifest, error) {
+func (s *Service) Resolve(ctx context.Context, ns dbq.GetNamespaceRow, version *int) (*SnapshotInfo, snapshot.Manifest, error) {
 	q := dbq.New(s.Pool)
 	var info *SnapshotInfo
 	switch {
@@ -172,7 +173,7 @@ func (s *Service) Resolve(ctx context.Context, ns dbq.GetNamespaceRow, version *
 		info = &SnapshotInfo{Snapshot: dbq.Snapshot{ID: sn.ID, NamespaceID: sn.NamespaceID, Version: sn.Version, GitSha: sn.GitSha,
 			ManifestHash: sn.ManifestHash, Message: sn.Message, CreatedBy: sn.CreatedBy, CreatedAt: sn.CreatedAt}, Author: deref(sn.AuthorEmail)}
 	default:
-		return nil, Manifest{}, nil
+		return nil, snapshot.Manifest{}, nil
 	}
 	m, err := s.Manifest(ctx, s.Pool, info.ID)
 	if err != nil {
@@ -195,22 +196,22 @@ func deref(s *string) string {
 }
 
 // ReadFile opens one file of a version.
-func (s *Service) ReadFile(ctx context.Context, name, path string, version *int) (io.ReadCloser, Entry, error) {
+func (s *Service) ReadFile(ctx context.Context, name, path string, version *int) (io.ReadCloser, snapshot.Entry, error) {
 	ns, err := s.Get(ctx, name)
 	if err != nil {
-		return nil, Entry{}, err
+		return nil, snapshot.Entry{}, err
 	}
 	_, m, err := s.Resolve(ctx, ns, version)
 	if err != nil {
-		return nil, Entry{}, err
+		return nil, snapshot.Entry{}, err
 	}
 	e, ok := m[path]
 	if !ok {
-		return nil, Entry{}, ErrFileNotFound
+		return nil, snapshot.Entry{}, ErrFileNotFound
 	}
 	r, err := s.Store.Get(ctx, storage.FileKey(e.Hash))
 	if err != nil {
-		return nil, Entry{}, err
+		return nil, snapshot.Entry{}, err
 	}
 	return r, e, nil
 }
@@ -277,7 +278,7 @@ func (s *Service) Save(ctx context.Context, name string, changes []Change, messa
 			return nil, httpx.Validation(httpx.FieldError{Field: f + ".op", Message: "must be put, delete or rename"})
 		}
 	}
-	mutate := func(head Manifest) (Manifest, error) {
+	mutate := func(head snapshot.Manifest) (snapshot.Manifest, error) {
 		m := head.Clone()
 		for i, c := range changes {
 			f := fmt.Sprintf("changes[%d]", i)
@@ -290,7 +291,7 @@ func (s *Service) Save(ctx context.Context, name string, changes []Change, messa
 				if c.Executable != nil {
 					exec = *c.Executable
 				}
-				m[c.Path] = Entry{Path: c.Path, Hash: ContentHash(c.Content), Size: int64(len(c.Content)), Executable: exec}
+				m[c.Path] = snapshot.Entry{Path: c.Path, Hash: ContentHash(c.Content), Size: int64(len(c.Content)), Executable: exec}
 			case "delete":
 				if _, ok := m[c.Path]; !ok {
 					return nil, httpx.Validation(httpx.FieldError{Field: f + ".path", Message: "file does not exist"})
@@ -346,13 +347,13 @@ func (s *Service) Revert(ctx context.Context, name string, version int, message 
 	if message == "" {
 		message = fmt.Sprintf("Revert to version %d", version)
 	}
-	return s.commit(ctx, ns, nil, func(Manifest) (Manifest, error) { return target.Clone(), nil }, message, nil,
+	return s.commit(ctx, ns, nil, func(snapshot.Manifest) (snapshot.Manifest, error) { return target.Clone(), nil }, message, nil,
 		map[string]any{"revert_to": version})
 }
 
 // commit uploads new content, then creates the snapshot, moves the head and syncs flows
 // in one transaction.
-func (s *Service) commit(ctx context.Context, ns dbq.GetNamespaceRow, uploads map[string][]byte, mutate func(Manifest) (Manifest, error),
+func (s *Service) commit(ctx context.Context, ns dbq.GetNamespaceRow, uploads map[string][]byte, mutate func(snapshot.Manifest) (snapshot.Manifest, error),
 	message string, baseVersion *int, details map[string]any) (*SnapshotInfo, error) {
 	message = strings.TrimSpace(message)
 	if message == "" {
@@ -363,7 +364,7 @@ func (s *Service) commit(ctx context.Context, ns dbq.GetNamespaceRow, uploads ma
 	}
 	var author *uuid.UUID
 	authorEmail := ""
-	if p := auth.FromContext(ctx); p != nil {
+	if p := kernel.FromContext(ctx); p != nil {
 		id := p.UserID
 		author = &id
 		authorEmail = p.Email
@@ -378,7 +379,7 @@ func (s *Service) commit(ctx context.Context, ns dbq.GetNamespaceRow, uploads ma
 		if locked.DeletedAt != nil {
 			return ErrNotFound
 		}
-		head := Manifest{}
+		head := snapshot.Manifest{}
 		var headVersion int
 		if locked.HeadSnapshotID != nil {
 			sn, err := q.GetSnapshot(ctx, *locked.HeadSnapshotID)
@@ -450,7 +451,7 @@ func (s *Service) commit(ctx context.Context, ns dbq.GetNamespaceRow, uploads ma
 }
 
 // insertSnapshot writes the snapshot row, its files and moves the namespace head.
-func (s *Service) insertSnapshot(ctx context.Context, tx pgx.Tx, snap dbq.Snapshot, m Manifest) error {
+func (s *Service) insertSnapshot(ctx context.Context, tx pgx.Tx, snap dbq.Snapshot, m snapshot.Manifest) error {
 	q := dbq.New(tx)
 	if err := q.InsertSnapshot(ctx, dbq.InsertSnapshotParams(snap)); err != nil {
 		return err
@@ -495,7 +496,7 @@ func (s *Service) uploadBlobs(ctx context.Context, uploads map[string][]byte) er
 }
 
 // flowFiles returns all paths of m with content for flow files and namespace.yaml.
-func (s *Service) flowFiles(ctx context.Context, m Manifest, pending map[string][]byte) (map[string][]byte, error) {
+func (s *Service) flowFiles(ctx context.Context, m snapshot.Manifest, pending map[string][]byte) (map[string][]byte, error) {
 	files := make(map[string][]byte, len(m))
 	for p, e := range m {
 		if !needsContent(p) {

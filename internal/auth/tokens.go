@@ -1,12 +1,11 @@
 package auth
 
 import (
-	"crypto/rand"
-	"crypto/sha256"
 	"crypto/subtle"
-	"encoding/base64"
 	"math/big"
 	"strings"
+
+	"github.com/alternayte/sluice/internal/platform/token"
 )
 
 // TokenPrefix starts every API token (REQ-AUTH-005).
@@ -16,15 +15,6 @@ const TokenPrefix = "slu_"
 const tokenBodyLen = 43
 
 const base62Alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-
-// RandomBytes returns n bytes from crypto/rand.
-func RandomBytes(n int) []byte {
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		panic(err)
-	}
-	return b
-}
 
 // Base62 encodes b as a fixed-width base62 string.
 func Base62(b []byte, width int) string {
@@ -45,19 +35,13 @@ func Base62(b []byte, width int) string {
 	return string(out)
 }
 
-// HashSecret returns the SHA-256 of a session ID, token, run token or webhook key (SI-02).
-func HashSecret(s string) []byte {
-	h := sha256.Sum256([]byte(s))
-	return h[:]
-}
-
 // EqualHash compares two hashes in constant time.
 func EqualHash(a, b []byte) bool { return subtle.ConstantTimeCompare(a, b) == 1 }
 
 // NewAPIToken returns a token "slu_" + 43 base62 chars, its display prefix and its hash.
 func NewAPIToken() (secret, prefix string, hash []byte) {
-	secret = TokenPrefix + Base62(RandomBytes(32), tokenBodyLen)
-	return secret, secret[:len(TokenPrefix)+6], HashSecret(secret)
+	secret = TokenPrefix + Base62(token.RandomBytes(32), tokenBodyLen)
+	return secret, secret[:len(TokenPrefix)+6], token.HashSecret(secret)
 }
 
 // LooksLikeAPIToken reports whether s has the API token format.
@@ -71,11 +55,4 @@ func LooksLikeAPIToken(s string) bool {
 		}
 	}
 	return true
-}
-
-// NewSecret returns a random 256-bit URL-safe secret and its hash. It is used for
-// session IDs, run tokens and webhook keys.
-func NewSecret() (secret string, hash []byte) {
-	secret = base64.RawURLEncoding.EncodeToString(RandomBytes(32))
-	return secret, HashSecret(secret)
 }

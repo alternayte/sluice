@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alternayte/sluice/internal/platform/token"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -25,7 +26,7 @@ const MinPasswordLength = 10
 
 // HashPassword returns a PHC-format argon2id hash.
 func HashPassword(password string) (string, error) {
-	salt := RandomBytes(argonSaltLen)
+	salt := token.RandomBytes(argonSaltLen)
 	key := argon2.IDKey([]byte(password), salt, argonTime, argonMemory, argonThreads, argonKeyLen)
 	return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s", argon2.Version, argonMemory, argonTime, argonThreads,
 		base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(key)), nil

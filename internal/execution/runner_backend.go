@@ -14,6 +14,7 @@ import (
 	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/httpx"
 	"github.com/alternayte/sluice/internal/runnerapi"
+	"github.com/alternayte/sluice/internal/runnerproto"
 	"github.com/alternayte/sluice/internal/storage"
 )
 
@@ -30,7 +31,7 @@ func (e *Engine) TaskRunByTokenHash(ctx context.Context, hash []byte) (dbq.TaskR
 }
 
 // Spec returns the runner spec with resolved env and mask values.
-func (e *Engine) Spec(ctx context.Context, tr dbq.TaskRun) (*runnerapi.Spec, error) {
+func (e *Engine) Spec(ctx context.Context, tr dbq.TaskRun) (*runnerproto.Spec, error) {
 	s, err := e.RunnerSpec(ctx, tr)
 	var pe *PlanError
 	if errors.As(err, &pe) {
@@ -62,7 +63,7 @@ func (e *Engine) Bundle(ctx context.Context, tr dbq.TaskRun) (io.ReadCloser, int
 }
 
 // IngestEvents stores outputs and metrics (REQ-RUN-003). Values are masked again (SI-10).
-func (e *Engine) IngestEvents(ctx context.Context, tr dbq.TaskRun, seq int, events []runnerapi.Event) error {
+func (e *Engine) IngestEvents(ctx context.Context, tr dbq.TaskRun, seq int, events []runnerproto.Event) error {
 	m := e.MaskerFor(ctx, tr)
 	q := dbq.New(e.Pool)
 	ex, err := q.GetExecution(ctx, tr.ExecutionID)
@@ -103,7 +104,7 @@ func (e *Engine) IngestEvents(ctx context.Context, tr dbq.TaskRun, seq int, even
 	}
 	if len(outputs) > 0 {
 		b, _ := json.Marshal(outputs)
-		if len(b) > runnerapi.MaxOutputBytes {
+		if len(b) > runnerproto.MaxOutputBytes {
 			return httpx.Errorf(http.StatusRequestEntityTooLarge, "outputs_too_large", "outputs exceed 1 MiB")
 		}
 		return q.MergeTaskOutputs(ctx, dbq.MergeTaskOutputsParams{ID: tr.ID, Outputs: b})
@@ -152,7 +153,7 @@ func (e *Engine) Heartbeat(ctx context.Context, tr dbq.TaskRun) (bool, error) {
 }
 
 // Complete ends the task run from the runner report (§4.3 step 6).
-func (e *Engine) Complete(ctx context.Context, tr dbq.TaskRun, c runnerapi.Complete) error {
+func (e *Engine) Complete(ctx context.Context, tr dbq.TaskRun, c runnerproto.Complete) error {
 	m := e.MaskerFor(ctx, tr)
 	state, reason := TaskSuccess, ""
 	switch {

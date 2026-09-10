@@ -17,11 +17,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/alternayte/sluice/internal/audit"
-	"github.com/alternayte/sluice/internal/auth"
+	"github.com/alternayte/sluice/internal/kernel"
 	"github.com/alternayte/sluice/internal/namespace"
 	"github.com/alternayte/sluice/internal/platform/clock"
 	"github.com/alternayte/sluice/internal/platform/httpx"
 	"github.com/alternayte/sluice/internal/platform/logging"
+	"github.com/alternayte/sluice/internal/snapshot"
 	"github.com/alternayte/sluice/internal/storage"
 	"github.com/alternayte/sluice/internal/testutil/pgtest"
 )
@@ -37,7 +38,7 @@ func newService(t *testing.T) (*namespace.Service, *pgxpool.Pool, context.Contex
 	if _, err := pool.Exec(ctx, `INSERT INTO users (id, email, password_hash, role) VALUES ($1, 'editor@example.com', 'x', 'editor')`, uid); err != nil {
 		t.Fatal(err)
 	}
-	ctx = auth.WithPrincipal(ctx, &auth.Principal{UserID: uid, Email: "editor@example.com", Role: auth.Editor})
+	ctx = kernel.WithPrincipal(ctx, &kernel.Principal{UserID: uid, Email: "editor@example.com", Role: kernel.Editor})
 	return svc, pool, ctx
 }
 
@@ -158,8 +159,8 @@ func TestBundleExtractionRejectsUnsafeEntries(t *testing.T) {
 	}
 	for _, entries := range bad {
 		dir := t.TempDir()
-		err := namespace.ExtractBundle(tarGz(t, entries, "x"), dir, 0)
-		if !errors.Is(err, namespace.ErrUnsafeEntry) {
+		err := snapshot.ExtractBundle(tarGz(t, entries, "x"), dir, 0)
+		if !errors.Is(err, snapshot.ErrUnsafeEntry) {
 			t.Errorf("%s: %v", entries[0].Name, err)
 		}
 		if _, err := os.Stat(filepath.Join(filepath.Dir(dir), "escape.txt")); err == nil {
@@ -167,7 +168,7 @@ func TestBundleExtractionRejectsUnsafeEntries(t *testing.T) {
 		}
 	}
 	dir := t.TempDir()
-	if err := namespace.ExtractBundle(tarGz(t, []tar.Header{{Name: "ok/run.sh", Typeflag: tar.TypeReg, Mode: 0o755}}, "echo ok"), dir, 0); err != nil {
+	if err := snapshot.ExtractBundle(tarGz(t, []tar.Header{{Name: "ok/run.sh", Typeflag: tar.TypeReg, Mode: 0o755}}, "echo ok"), dir, 0); err != nil {
 		t.Fatal(err)
 	}
 	st, err := os.Stat(filepath.Join(dir, "ok", "run.sh"))
@@ -206,7 +207,7 @@ func TestBundleRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	if err := namespace.ExtractBundle(r, dir, 0); err != nil {
+	if err := snapshot.ExtractBundle(r, dir, 0); err != nil {
 		t.Fatal(err)
 	}
 	_ = r.Close()

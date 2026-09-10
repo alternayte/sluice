@@ -14,9 +14,8 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/alternayte/sluice/internal/audit"
-	"github.com/alternayte/sluice/internal/auth"
 	"github.com/alternayte/sluice/internal/flow"
-	"github.com/alternayte/sluice/internal/namespace"
+	"github.com/alternayte/sluice/internal/kernel"
 	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/httpx"
 )
@@ -51,7 +50,7 @@ type CreateParams struct {
 }
 
 func actorLabel(ctx context.Context) string {
-	if p := auth.FromContext(ctx); p != nil {
+	if p := kernel.FromContext(ctx); p != nil {
 		return p.Email
 	}
 	a := audit.ActorFrom(ctx)
@@ -137,7 +136,7 @@ func validateLabels(labels map[string]string) error {
 
 // FlowRef is a loaded flow with its current revision.
 type FlowRef struct {
-	Flow     namespace.FlowRow
+	Flow     dbq.GetFlowRow
 	Revision dbq.FlowRevision
 	Def      *Definition
 }
@@ -256,10 +255,10 @@ func (e *Engine) RunFile(ctx context.Context, ns, filePath string, args []string
 		return uuid.Nil, err
 	}
 	if nsRow.HeadSnapshotID == nil {
-		return uuid.Nil, namespace.ErrFileNotFound
+		return uuid.Nil, ErrFileNotFound
 	}
 	if _, err := dbq.New(e.Pool).GetSnapshotFile(ctx, dbq.GetSnapshotFileParams{SnapshotID: *nsRow.HeadSnapshotID, Path: filePath}); err != nil {
-		return uuid.Nil, namespace.ErrFileNotFound
+		return uuid.Nil, ErrFileNotFound
 	}
 	defaults, err := e.namespaceDefaults(ctx, *nsRow.HeadSnapshotID)
 	if err != nil {

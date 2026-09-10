@@ -18,9 +18,9 @@ import (
 	"time"
 
 	"github.com/alternayte/sluice/internal/flow"
-	"github.com/alternayte/sluice/internal/namespace"
 	"github.com/alternayte/sluice/internal/platform/masking"
-	"github.com/alternayte/sluice/internal/runnerapi"
+	"github.com/alternayte/sluice/internal/runnerproto"
+	"github.com/alternayte/sluice/internal/snapshot"
 )
 
 // Options configure one runner process.
@@ -30,15 +30,15 @@ type Options struct {
 	TaskRunID string
 	// Stderr receives local diagnostics of the runner itself.
 	Stderr io.Writer
-	// HeartbeatEvery overrides runnerapi.HeartbeatInterval (tests).
+	// HeartbeatEvery overrides runnerproto.HeartbeatInterval (tests).
 	HeartbeatEvery time.Duration
 }
 
 // FromEnv reads the options from SLUICE_API_URL, SLUICE_RUN_TOKEN and SLUICE_TASK_RUN_ID.
 func FromEnv() (Options, error) {
-	o := Options{APIURL: os.Getenv(runnerapi.EnvAPIURL), Token: os.Getenv(runnerapi.EnvRunToken), TaskRunID: os.Getenv(runnerapi.EnvTaskRunID), Stderr: os.Stderr}
+	o := Options{APIURL: os.Getenv(runnerproto.EnvAPIURL), Token: os.Getenv(runnerproto.EnvRunToken), TaskRunID: os.Getenv(runnerproto.EnvTaskRunID), Stderr: os.Stderr}
 	var missing []string
-	for k, v := range map[string]string{runnerapi.EnvAPIURL: o.APIURL, runnerapi.EnvRunToken: o.Token, runnerapi.EnvTaskRunID: o.TaskRunID} {
+	for k, v := range map[string]string{runnerproto.EnvAPIURL: o.APIURL, runnerproto.EnvRunToken: o.Token, runnerproto.EnvTaskRunID: o.TaskRunID} {
 		if v == "" {
 			missing = append(missing, k)
 		}
@@ -66,7 +66,7 @@ func Run(ctx context.Context, o Options) int {
 
 type run struct {
 	c       *Client
-	spec    *runnerapi.Spec
+	spec    *runnerproto.Spec
 	o       Options
 	masker  *masking.Masker
 	ship    *LogShipper
@@ -99,7 +99,7 @@ func (r *run) complete(ctx context.Context, code int, errText, reason string) in
 	if err := r.ship.Close(); err != nil {
 		fmt.Fprintln(r.o.Stderr, "sluice exec: logs:", err)
 	}
-	done := runnerapi.Complete{ExitCode: code, Error: r.masker.String(errText), Reason: reason}
+	done := runnerproto.Complete{ExitCode: code, Error: r.masker.String(errText), Reason: reason}
 	if err := r.c.Complete(context.WithoutCancel(ctx), done); err != nil {
 		fmt.Fprintln(r.o.Stderr, "sluice exec: complete:", err)
 	}
@@ -113,7 +113,7 @@ func (r *run) execute(ctx context.Context) int {
 	r.ship = &LogShipper{Send: r.c.Logs, Masker: r.masker}
 	r.ship.Start(context.WithoutCancel(ctx))
 
-	workdir := os.Getenv(runnerapi.EnvWorkdir)
+	workdir := os.Getenv(runnerproto.EnvWorkdir)
 	if workdir == "" {
 		d, err := os.MkdirTemp("", "sluice-run-")
 		if err != nil {
@@ -201,7 +201,7 @@ func (r *run) execute(ctx context.Context) int {
 			_ = syscall.Kill(-pgid, syscall.SIGTERM)
 			close(terminated)
 			go func() {
-				time.Sleep(runnerapi.KillAfter)
+				time.Sleep(runnerproto.KillAfter)
 				if cmd.ProcessState == nil {
 					r.sys("[sluice] %s: sending SIGKILL", why)
 					_ = syscall.Kill(-pgid, syscall.SIGKILL)
@@ -212,7 +212,7 @@ func (r *run) execute(ctx context.Context) int {
 	waitDone := make(chan struct{})
 	hbEvery := r.o.HeartbeatEvery
 	if hbEvery <= 0 {
-		hbEvery = runnerapi.HeartbeatInterval
+		hbEvery = runnerproto.HeartbeatInterval
 	}
 	go func() {
 		t := time.NewTicker(hbEvery)
@@ -294,7 +294,7 @@ func exitCode(cmd *exec.Cmd, err error) int {
 // childEnv builds the task environment (§6.10): the runner environment without its
 // own credentials, the resolved env and the SLUICE_* task variables.
 func (r *run) childEnv(workdir, outputs string) []string {
-	drop := map[string]bool{runnerapi.EnvRunToken: true, runnerapi.EnvAPIURL: true, runnerapi.EnvTaskRunID: true}
+	drop := map[string]bool{runnerproto.EnvRunToken: true, runnerproto.EnvAPIURL: true, runnerproto.EnvTaskRunID: true}
 	env := map[string]string{}
 	var order []string
 	for _, kv := range os.Environ() {
@@ -316,13 +316,13 @@ func (r *run) childEnv(workdir, outputs string) []string {
 	for k, v := range r.spec.Env {
 		set(k, v)
 	}
-	set(runnerapi.EnvExecutionID, r.spec.ExecutionID)
-	set(runnerapi.EnvTaskID, r.spec.TaskID)
-	set(runnerapi.EnvAttempt, strconv.Itoa(r.spec.Attempt))
-	set(runnerapi.EnvNamespace, r.spec.Namespace)
-	set(runnerapi.EnvFlowID, r.spec.FlowID)
-	set(runnerapi.EnvOutputs, outputs)
-	set(runnerapi.EnvWorkdir, workdir)
+	set(runnerproto.EnvExecutionID, r.spec.ExecutionID)
+	set(runnerproto.EnvTaskID, r.spec.TaskID)
+	set(runnerproto.EnvAttempt, strconv.Itoa(r.spec.Attempt))
+	set(runnerproto.EnvNamespace, r.spec.Namespace)
+	set(runnerproto.EnvFlowID, r.spec.FlowID)
+	set(runnerproto.EnvOutputs, outputs)
+	set(runnerproto.EnvWorkdir, workdir)
 	out := make([]string, 0, len(order))
 	for _, k := range order {
 		out = append(out, k+"="+env[k])
@@ -358,7 +358,7 @@ func (r *run) fetchBundle(ctx context.Context, workdir string) error {
 	if _, err := f.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
-	return namespace.ExtractBundle(f, workdir, r.spec.Limits.MaxBundleBytes)
+	return snapshot.ExtractBundle(f, workdir, r.spec.Limits.MaxBundleBytes)
 }
 
 // readLines calls fn for each line. Lines above 16 KiB are cut with a marker.
@@ -369,7 +369,7 @@ func readLines(rd io.Reader, fn func(string)) {
 	for {
 		chunk, isPrefix, err := br.ReadLine()
 		if len(chunk) > 0 || (!isPrefix && err == nil) {
-			if len(buf) <= runnerapi.MaxLineBytes {
+			if len(buf) <= runnerproto.MaxLineBytes {
 				buf = append(buf, chunk...)
 			} else {
 				over = true
@@ -377,8 +377,8 @@ func readLines(rd io.Reader, fn func(string)) {
 		}
 		if !isPrefix && err == nil {
 			line := string(buf)
-			if over || len(buf) > runnerapi.MaxLineBytes {
-				line = truncateLine(line + strings.Repeat(" ", runnerapi.MaxLineBytes))
+			if over || len(buf) > runnerproto.MaxLineBytes {
+				line = truncateLine(line + strings.Repeat(" ", runnerproto.MaxLineBytes))
 			}
 			fn(line)
 			buf = buf[:0]
@@ -422,7 +422,7 @@ func (r *run) sendOutputs(ctx context.Context, path, workdir string) {
 		return
 	}
 	defer func() { _ = f.Close() }()
-	var events []runnerapi.Event
+	var events []runnerproto.Event
 	var arts []artifact
 	outBytes := 0
 	metrics := 0
@@ -453,12 +453,12 @@ func (r *run) sendOutputs(ctx context.Context, path, workdir string) {
 			if !json.Valid(masked) {
 				masked, _ = json.Marshal(string(masked))
 			}
-			if outBytes+len(l.Key)+len(masked) > runnerapi.MaxOutputBytes {
+			if outBytes+len(l.Key)+len(masked) > runnerproto.MaxOutputBytes {
 				warn("outputs exceed 1 MiB, output %q ignored", l.Key)
 				continue
 			}
 			outBytes += len(l.Key) + len(masked)
-			events = append(events, runnerapi.Event{Type: "output", Key: l.Key, Value: masked, TS: time.Now().UTC()})
+			events = append(events, runnerproto.Event{Type: "output", Key: l.Key, Value: masked, TS: time.Now().UTC()})
 		case "metric":
 			if !metricNameRe.MatchString(l.Name) {
 				warn("invalid metric name %q", l.Name)
@@ -469,22 +469,22 @@ func (r *run) sendOutputs(ctx context.Context, path, workdir string) {
 				warn("metric %s needs a numeric value", l.Name)
 				continue
 			}
-			if len(l.Tags) > runnerapi.MaxMetricTags {
-				warn("metric %s has more than %d tags", l.Name, runnerapi.MaxMetricTags)
+			if len(l.Tags) > runnerproto.MaxMetricTags {
+				warn("metric %s has more than %d tags", l.Name, runnerproto.MaxMetricTags)
 				continue
 			}
 			bad := false
 			for _, tv := range l.Tags {
-				if len(tv) > runnerapi.MaxTagValueLen {
+				if len(tv) > runnerproto.MaxTagValueLen {
 					bad = true
 				}
 			}
 			if bad {
-				warn("metric %s has a tag value longer than %d characters", l.Name, runnerapi.MaxTagValueLen)
+				warn("metric %s has a tag value longer than %d characters", l.Name, runnerproto.MaxTagValueLen)
 				continue
 			}
-			if metrics >= runnerapi.MaxMetrics {
-				warn("more than %d metrics", runnerapi.MaxMetrics)
+			if metrics >= runnerproto.MaxMetrics {
+				warn("more than %d metrics", runnerproto.MaxMetrics)
 				continue
 			}
 			metrics++
@@ -493,7 +493,7 @@ func (r *run) sendOutputs(ctx context.Context, path, workdir string) {
 				tags[k] = r.masker.String(tv)
 			}
 			val, _ := json.Marshal(v)
-			events = append(events, runnerapi.Event{Type: "metric", Name: l.Name, Value: val, Unit: l.Unit, Tags: tags, TS: time.Now().UTC()})
+			events = append(events, runnerproto.Event{Type: "metric", Name: l.Name, Value: val, Unit: l.Unit, Tags: tags, TS: time.Now().UTC()})
 		case "artifact":
 			if err := flow.ValidPath(l.Path); err != nil {
 				warn("artifact path: %v", err)
@@ -517,7 +517,7 @@ func (r *run) sendOutputs(ctx context.Context, path, workdir string) {
 	}
 	for seq, start := 1, 0; start < len(events); seq, start = seq+1, start+1000 {
 		end := min(start+1000, len(events))
-		if err := r.c.Events(ctx, runnerapi.EventBatch{Seq: seq, Events: events[start:end]}); err != nil {
+		if err := r.c.Events(ctx, runnerproto.EventBatch{Seq: seq, Events: events[start:end]}); err != nil {
 			r.sys("[sluice] events: %v", err)
 			break
 		}

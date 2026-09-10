@@ -16,9 +16,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/alternayte/sluice/internal/audit"
+	"github.com/alternayte/sluice/internal/kernel"
 	"github.com/alternayte/sluice/internal/platform/clock"
 	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/httpx"
+	"github.com/alternayte/sluice/internal/platform/token"
 )
 
 // CookieName is the session cookie (REQ-AUTH-001).
@@ -103,7 +105,7 @@ func (s *Service) Bootstrap(ctx context.Context, email, password string) (bool, 
 // LoginResult is a successful login.
 type LoginResult struct {
 	SessionID string
-	Principal *Principal
+	Principal *kernel.Principal
 }
 
 // Login checks the rate limit and the password and creates a session.
@@ -150,7 +152,7 @@ func (s *Service) Login(ctx context.Context, email, password, ip, userAgent stri
 		_ = s.Audit.RecordAs(ctx, nil, actor, audit.Event{Action: "auth.login_failed", TargetType: "user", TargetID: idOrEmpty(found, u.ID), Details: map[string]any{"email": email}})
 		return nil, ErrInvalidCredentials
 	}
-	sid, sidHash := NewSecret()
+	sid, sidHash := token.NewSecret()
 	err = pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
 		qt := dbq.New(tx)
 		if err := qt.InsertLoginAttempt(ctx, dbq.InsertLoginAttemptParams{Email: email, Ip: ip, AttemptedAt: now, Success: true}); err != nil {
@@ -169,8 +171,8 @@ func (s *Service) Login(ctx context.Context, email, password, ip, userAgent stri
 	if err != nil {
 		return nil, err
 	}
-	role, _ := ParseRole(u.Role)
-	return &LoginResult{SessionID: sid, Principal: &Principal{UserID: u.ID, Email: u.Email, Name: u.Name, Role: role,
+	role, _ := kernel.ParseRole(u.Role)
+	return &LoginResult{SessionID: sid, Principal: &kernel.Principal{UserID: u.ID, Email: u.Email, Name: u.Name, Role: role,
 		Kind: "session", SessionHash: sidHash, MustChangePassword: u.MustChangePassword}}, nil
 }
 
@@ -189,7 +191,7 @@ func truncate(s string, n int) string {
 }
 
 // Logout deletes the current session.
-func (s *Service) Logout(ctx context.Context, p *Principal) error {
+func (s *Service) Logout(ctx context.Context, p *kernel.Principal) error {
 	if p.Kind == "session" {
 		if err := s.q(nil).DeleteSession(ctx, p.SessionHash); err != nil {
 			return err
@@ -203,14 +205,14 @@ var errAuth = httpx.ErrUnauthorized
 
 // authenticate resolves the principal from a bearer token or the session cookie.
 // It returns a refreshed cookie when the sliding session was extended.
-func (s *Service) authenticate(ctx context.Context, r *http.Request) (*Principal, *http.Cookie, error) {
+func (s *Service) authenticate(ctx context.Context, r *http.Request) (*kernel.Principal, *http.Cookie, error) {
 	now := s.Clock.Now()
 	if h := r.Header.Get("Authorization"); h != "" {
 		scheme, cred, _ := strings.Cut(h, " ")
 		if !strings.EqualFold(scheme, "Bearer") || !LooksLikeAPIToken(strings.TrimSpace(cred)) {
 			return nil, nil, errAuth
 		}
-		row, err := s.q(nil).GetTokenByHash(ctx, HashSecret(strings.TrimSpace(cred)))
+		row, err := s.q(nil).GetTokenByHash(ctx, token.HashSecret(strings.TrimSpace(cred)))
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil, errAuth
 		}
@@ -223,17 +225,17 @@ func (s *Service) authenticate(ctx context.Context, r *http.Request) (*Principal
 		if row.LastUsedAt == nil || now.Sub(*row.LastUsedAt) > tokenTouchEvery {
 			_ = s.q(nil).TouchToken(ctx, dbq.TouchTokenParams{ID: row.ID, LastUsedAt: &now})
 		}
-		tr, _ := ParseRole(row.TokenRole)
-		ur, _ := ParseRole(row.UserRole)
+		tr, _ := kernel.ParseRole(row.TokenRole)
+		ur, _ := kernel.ParseRole(row.UserRole)
 		id := row.ID
-		return &Principal{UserID: row.UserID, Email: row.Email, Name: row.Name, Role: MinRole(tr, ur), Kind: "token",
+		return &kernel.Principal{UserID: row.UserID, Email: row.Email, Name: row.Name, Role: kernel.MinRole(tr, ur), Kind: "token",
 			TokenID: &id, MustChangePassword: row.MustChangePassword}, nil, nil
 	}
 	value := sessionCookieValue(r)
 	if value == "" {
 		return nil, nil, nil
 	}
-	hash := HashSecret(value)
+	hash := token.HashSecret(value)
 	row, err := s.q(nil).GetSession(ctx, hash)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil, errAuth
@@ -250,8 +252,8 @@ func (s *Service) authenticate(ctx context.Context, r *http.Request) (*Principal
 			refresh = s.SessionCookie(value)
 		}
 	}
-	role, _ := ParseRole(row.Role)
-	return &Principal{UserID: row.UserID, Email: row.Email, Name: row.Name, Role: role, Kind: "session",
+	role, _ := kernel.ParseRole(row.Role)
+	return &kernel.Principal{UserID: row.UserID, Email: row.Email, Name: row.Name, Role: role, Kind: "session",
 		SessionHash: hash, MustChangePassword: row.MustChangePassword}, refresh, nil
 }
 
@@ -278,7 +280,7 @@ func (s *Service) ClearCookie() *http.Cookie {
 }
 
 // UpdateMe changes the own name.
-func (s *Service) UpdateMe(ctx context.Context, p *Principal, name string) (dbq.User, error) {
+func (s *Service) UpdateMe(ctx context.Context, p *kernel.Principal, name string) (dbq.User, error) {
 	var out dbq.User
 	err := pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
 		u, err := dbq.New(tx).GetUserForUpdate(ctx, p.UserID)
@@ -295,7 +297,7 @@ func (s *Service) UpdateMe(ctx context.Context, p *Principal, name string) (dbq.
 }
 
 // ChangePassword changes the own password and signs out other sessions (REQ-AUTH-004).
-func (s *Service) ChangePassword(ctx context.Context, p *Principal, current, next string) error {
+func (s *Service) ChangePassword(ctx context.Context, p *kernel.Principal, current, next string) error {
 	u, err := s.q(nil).GetUserByID(ctx, p.UserID)
 	if err != nil {
 		return err
@@ -326,7 +328,7 @@ func (s *Service) ChangePassword(ctx context.Context, p *Principal, current, nex
 	})
 }
 
-func sessionHashOrNone(p *Principal) []byte {
+func sessionHashOrNone(p *kernel.Principal) []byte {
 	if p.Kind == "session" {
 		return p.SessionHash
 	}
@@ -334,7 +336,7 @@ func sessionHashOrNone(p *Principal) []byte {
 }
 
 // RevokeOtherSessions deletes all sessions of the user except the current one.
-func (s *Service) RevokeOtherSessions(ctx context.Context, p *Principal) (int64, error) {
+func (s *Service) RevokeOtherSessions(ctx context.Context, p *kernel.Principal) (int64, error) {
 	n, err := s.q(nil).DeleteOtherSessions(ctx, dbq.DeleteOtherSessionsParams{UserID: p.UserID, IDHash: sessionHashOrNone(p)})
 	if err != nil {
 		return 0, err
@@ -344,8 +346,8 @@ func (s *Service) RevokeOtherSessions(ctx context.Context, p *Principal) (int64,
 
 // CreateUser creates a user with a temporary password (REQ-AUTH-003). A temporary
 // password forces a change at next login.
-func (s *Service) CreateUser(ctx context.Context, email, name string, role Role, password string, temporary bool) (dbq.User, error) {
-	if role == RoleNone {
+func (s *Service) CreateUser(ctx context.Context, email, name string, role kernel.Role, password string, temporary bool) (dbq.User, error) {
+	if role == kernel.RoleNone {
 		return dbq.User{}, httpx.Validation(httpx.FieldError{Field: "role", Message: "unknown role"})
 	}
 	if err := ValidatePassword(password); err != nil {
@@ -381,7 +383,7 @@ func (s *Service) CreateUser(ctx context.Context, email, name string, role Role,
 // UserChange holds optional user changes.
 type UserChange struct {
 	Name     *string
-	Role     *Role
+	Role     *kernel.Role
 	Disabled *bool
 }
 
@@ -408,7 +410,7 @@ func (s *Service) UpdateUser(ctx context.Context, id uuid.UUID, ch UserChange) (
 			details["name"] = name
 		}
 		if ch.Role != nil {
-			if *ch.Role == RoleNone {
+			if *ch.Role == kernel.RoleNone {
 				return httpx.Validation(httpx.FieldError{Field: "role", Message: "unknown role"})
 			}
 			if role != ch.Role.String() {
@@ -481,8 +483,8 @@ func (s *Service) UserByEmail(ctx context.Context, email string) (dbq.User, erro
 }
 
 // CreateToken creates an API token for the principal (REQ-AUTH-005).
-func (s *Service) CreateToken(ctx context.Context, p *Principal, name string, role Role, days *int) (string, dbq.ListTokensRow, error) {
-	if role == RoleNone {
+func (s *Service) CreateToken(ctx context.Context, p *kernel.Principal, name string, role kernel.Role, days *int) (string, dbq.ListTokensRow, error) {
+	if role == kernel.RoleNone {
 		return "", dbq.ListTokensRow{}, httpx.Validation(httpx.FieldError{Field: "role", Message: "unknown role"})
 	}
 	if role > p.Role {
@@ -516,10 +518,10 @@ func (s *Service) CreateToken(ctx context.Context, p *Principal, name string, ro
 }
 
 // ListTokens lists own tokens, or all tokens for admins with all=true.
-func (s *Service) ListTokens(ctx context.Context, p *Principal, all bool, afterCreated *time.Time, afterID *uuid.UUID, limit int) ([]dbq.ListTokensRow, error) {
+func (s *Service) ListTokens(ctx context.Context, p *kernel.Principal, all bool, afterCreated *time.Time, afterID *uuid.UUID, limit int) ([]dbq.ListTokensRow, error) {
 	var owner *uuid.UUID
 	if all {
-		if !p.Can(Admin) {
+		if !p.Can(kernel.Admin) {
 			return nil, httpx.ErrForbidden
 		}
 	} else {
@@ -529,9 +531,9 @@ func (s *Service) ListTokens(ctx context.Context, p *Principal, all bool, afterC
 }
 
 // RevokeToken revokes a token. Owners and admins can revoke.
-func (s *Service) RevokeToken(ctx context.Context, p *Principal, id uuid.UUID) error {
+func (s *Service) RevokeToken(ctx context.Context, p *kernel.Principal, id uuid.UUID) error {
 	t, err := s.q(nil).GetToken(ctx, id)
-	if errors.Is(err, pgx.ErrNoRows) || (err == nil && t.UserID != p.UserID && !p.Can(Admin)) {
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && t.UserID != p.UserID && !p.Can(kernel.Admin)) {
 		return httpx.ErrNotFound
 	}
 	if err != nil {

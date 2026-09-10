@@ -11,8 +11,10 @@ import (
 
 	"github.com/alternayte/sluice/internal/audit"
 	"github.com/alternayte/sluice/internal/auth"
+	"github.com/alternayte/sluice/internal/kernel"
 	"github.com/alternayte/sluice/internal/platform/clock"
 	"github.com/alternayte/sluice/internal/platform/logging"
+	"github.com/alternayte/sluice/internal/platform/token"
 	"github.com/alternayte/sluice/internal/testutil/pgtest"
 )
 
@@ -24,7 +26,7 @@ func TestSCN_AUTH_012_SecretsStoredAsHashes(t *testing.T) {
 	clk := clock.Real{}
 	svc := &auth.Service{Pool: pool, Clock: clk, Audit: &audit.Writer{Pool: pool, Clock: clk},
 		Log: logging.New(io.Discard, "error", "text"), SessionTTL: time.Hour}
-	u, err := svc.CreateUser(ctx, "db@example.com", "", auth.Editor, "db-password-123", false)
+	u, err := svc.CreateUser(ctx, "db@example.com", "", kernel.Editor, "db-password-123", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +34,7 @@ func TestSCN_AUTH_012_SecretsStoredAsHashes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	secret, _, err := svc.CreateToken(ctx, res.Principal, "t", auth.Viewer, nil)
+	secret, _, err := svc.CreateToken(ctx, res.Principal, "t", kernel.Viewer, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,14 +50,14 @@ func TestSCN_AUTH_012_SecretsStoredAsHashes(t *testing.T) {
 	if err := pool.QueryRow(ctx, "SELECT id_hash FROM sessions WHERE user_id = $1", u.ID).Scan(&sidHash); err != nil {
 		t.Fatal(err)
 	}
-	if !auth.EqualHash(sidHash, auth.HashSecret(res.SessionID)) || len(sidHash) != 32 {
+	if !auth.EqualHash(sidHash, token.HashSecret(res.SessionID)) || len(sidHash) != 32 {
 		t.Fatal("session is not stored as its SHA-256")
 	}
 	var tokHash []byte
 	if err := pool.QueryRow(ctx, "SELECT token_hash FROM api_tokens WHERE user_id = $1", u.ID).Scan(&tokHash); err != nil {
 		t.Fatal(err)
 	}
-	if !auth.EqualHash(tokHash, auth.HashSecret(secret)) {
+	if !auth.EqualHash(tokHash, token.HashSecret(secret)) {
 		t.Fatal("token is not stored as its SHA-256")
 	}
 	// No table row contains the plaintext session ID, token or password.

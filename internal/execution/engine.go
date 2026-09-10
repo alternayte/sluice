@@ -17,7 +17,6 @@ import (
 	"github.com/alternayte/sluice/internal/audit"
 	"github.com/alternayte/sluice/internal/executor"
 	"github.com/alternayte/sluice/internal/flow"
-	"github.com/alternayte/sluice/internal/namespace"
 	"github.com/alternayte/sluice/internal/platform/clock"
 	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/storage"
@@ -49,13 +48,16 @@ type Engine struct {
 	Clock      clock.Clock
 	Log        *slog.Logger
 	Audit      *audit.Writer
-	Namespaces *namespace.Service
+	Namespaces Namespaces
 	Store      storage.Store
 	Instance   uuid.UUID
 	Pools      []string
 	Executors  map[string]executor.Executor
 	Cfg        Config
 	Secrets    SecretResolver
+	// OfflineAfter is the heartbeat age after which an instance is offline (REQ-CORE-007).
+	// internal/app sets it from the instance registry.
+	OfflineAfter time.Duration
 	// EndHooks run when an execution ends (flow triggers, triage).
 	EndHooks []EndHook
 

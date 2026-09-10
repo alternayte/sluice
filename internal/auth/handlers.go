@@ -7,6 +7,7 @@ import (
 
 	"github.com/alternayte/sluice/internal/api/apigen"
 	"github.com/alternayte/sluice/internal/audit"
+	"github.com/alternayte/sluice/internal/kernel"
 	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/httpx"
 	"github.com/alternayte/sluice/internal/platform/page"
@@ -35,15 +36,15 @@ func MetaFrom(ctx context.Context) RequestMeta {
 	return m
 }
 
-func mustPrincipal(ctx context.Context) (*Principal, error) {
-	p := FromContext(ctx)
+func mustPrincipal(ctx context.Context) (*kernel.Principal, error) {
+	p := kernel.FromContext(ctx)
 	if p == nil {
 		return nil, httpx.ErrUnauthorized
 	}
 	return p, nil
 }
 
-func toMe(p *Principal) apigen.Me {
+func toMe(p *kernel.Principal) apigen.Me {
 	kind := apigen.MeAuthTypeSession
 	if p.Kind == "token" {
 		kind = apigen.MeAuthTypeToken
@@ -62,8 +63,8 @@ func toToken(t dbq.ListTokensRow) apigen.Token {
 		CreatedAt: t.CreatedAt, ExpiresAt: t.ExpiresAt, LastUsedAt: t.LastUsedAt, RevokedAt: t.RevokedAt}
 }
 
-func parseRole(r apigen.Role) Role {
-	role, _ := ParseRole(string(r))
+func parseRole(r apigen.Role) kernel.Role {
+	role, _ := kernel.ParseRole(string(r))
 	return role
 }
 

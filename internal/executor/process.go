@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/alternayte/sluice/internal/runnerapi"
+	"github.com/alternayte/sluice/internal/runnerproto"
 )
 
 // ProcessExecutor runs `sluice exec` as a child process of the server (REQ-EXR-003).
@@ -132,7 +132,7 @@ func (p *ProcessExecutor) Cancel(_ context.Context, ref string) error {
 	go func() {
 		select {
 		case <-pr.done:
-		case <-time.After(runnerapi.KillAfter + 2*time.Second):
+		case <-time.After(runnerproto.KillAfter + 2*time.Second):
 			_ = syscall.Kill(-pgid, syscall.SIGKILL)
 		}
 	}()

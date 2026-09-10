@@ -18,6 +18,7 @@ import (
 	"github.com/alternayte/sluice/internal/api/apigen"
 	"github.com/alternayte/sluice/internal/audit"
 	"github.com/alternayte/sluice/internal/auth"
+	"github.com/alternayte/sluice/internal/kernel"
 	"github.com/alternayte/sluice/internal/platform/logging"
 	"github.com/alternayte/sluice/internal/testutil/pgtest"
 )
@@ -107,13 +108,13 @@ func TestSCN_AUTH_006_RouteInventory(t *testing.T) {
 	defer srv.Close()
 
 	ctx := audit.WithActor(context.Background(), audit.Actor{Type: audit.ActorSystem})
-	tokens := map[auth.Role]string{}
-	for _, role := range auth.AllRoles {
+	tokens := map[kernel.Role]string{}
+	for _, role := range kernel.AllRoles {
 		u, err := s.Auth.CreateUser(ctx, "inv-"+role.String()+"@example.com", "", role, "inventory-pass-1", false)
 		if err != nil {
 			t.Fatal(err)
 		}
-		secret, _, err := s.Auth.CreateToken(ctx, &auth.Principal{UserID: u.ID, Email: u.Email, Role: role}, "inv", role, nil)
+		secret, _, err := s.Auth.CreateToken(ctx, &kernel.Principal{UserID: u.ID, Email: u.Email, Role: role}, "inv", role, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -158,7 +159,7 @@ func TestSCN_AUTH_006_RouteInventory(t *testing.T) {
 				t.Errorf("%s: no auth returned %d, want 401", op.ID, anon)
 			}
 		}
-		for _, role := range auth.AllRoles {
+		for _, role := range kernel.AllRoles {
 			got := call(op, tokens[role])
 			allowed := acc.Public || acc.Other != "" || role >= acc.Min
 			if allowed && (got == http.StatusForbidden || got == http.StatusUnauthorized) {

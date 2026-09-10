@@ -13,21 +13,22 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/alternayte/sluice/internal/api/apigen"
-	"github.com/alternayte/sluice/internal/auth"
 	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/httpx"
+	"github.com/alternayte/sluice/internal/platform/token"
+	"github.com/alternayte/sluice/internal/runnerproto"
 )
 
 // Backend is the engine side of the runner protocol.
 type Backend interface {
 	TaskRunByTokenHash(ctx context.Context, hash []byte) (dbq.TaskRun, error)
-	Spec(ctx context.Context, tr dbq.TaskRun) (*Spec, error)
+	Spec(ctx context.Context, tr dbq.TaskRun) (*runnerproto.Spec, error)
 	Bundle(ctx context.Context, tr dbq.TaskRun) (io.ReadCloser, int64, error)
-	IngestLogs(ctx context.Context, tr dbq.TaskRun, seq int, lines []LogLine) error
-	IngestEvents(ctx context.Context, tr dbq.TaskRun, seq int, events []Event) error
+	IngestLogs(ctx context.Context, tr dbq.TaskRun, seq int, lines []runnerproto.LogLine) error
+	IngestEvents(ctx context.Context, tr dbq.TaskRun, seq int, events []runnerproto.Event) error
 	PutArtifact(ctx context.Context, tr dbq.TaskRun, name, contentType string, body io.Reader) error
 	Heartbeat(ctx context.Context, tr dbq.TaskRun) (bool, error)
-	Complete(ctx context.Context, tr dbq.TaskRun, c Complete) error
+	Complete(ctx context.Context, tr dbq.TaskRun, c runnerproto.Complete) error
 	Now() time.Time
 }
 
@@ -41,16 +42,16 @@ var ErrWrongTaskRun = httpx.Errorf(http.StatusForbidden, "forbidden", "the run t
 func TokenMiddleware(b Backend) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !strings.HasPrefix(r.URL.Path, BasePath+"/") {
+			if !strings.HasPrefix(r.URL.Path, runnerproto.BasePath+"/") {
 				next.ServeHTTP(w, r)
 				return
 			}
-			scheme, token, _ := strings.Cut(r.Header.Get("Authorization"), " ")
-			if !strings.EqualFold(scheme, "Bearer") || token == "" {
+			scheme, bearer, _ := strings.Cut(r.Header.Get("Authorization"), " ")
+			if !strings.EqualFold(scheme, "Bearer") || bearer == "" {
 				httpx.WriteError(w, r, httpx.ErrUnauthorized)
 				return
 			}
-			tr, err := b.TaskRunByTokenHash(r.Context(), auth.HashSecret(strings.TrimSpace(token)))
+			tr, err := b.TaskRunByTokenHash(r.Context(), token.HashSecret(strings.TrimSpace(bearer)))
 			if err != nil || tr.State != "RUNNING" || tr.TokenExpiresAt == nil || !b.Now().Before(*tr.TokenExpiresAt) {
 				httpx.WriteError(w, r, httpx.ErrUnauthorized)
 				return
@@ -132,9 +133,9 @@ func (h RunnerAPI) RunnerPostLogs(ctx context.Context, req apigen.RunnerPostLogs
 	if err != nil {
 		return nil, err
 	}
-	lines := make([]LogLine, len(req.Body.Lines))
+	lines := make([]runnerproto.LogLine, len(req.Body.Lines))
 	for i, l := range req.Body.Lines {
-		lines[i] = LogLine{TS: l.Ts, Stream: string(l.Stream), Text: l.Text}
+		lines[i] = runnerproto.LogLine{TS: l.Ts, Stream: string(l.Stream), Text: l.Text}
 	}
 	if err := h.B.IngestLogs(ctx, tr, req.Body.Seq, lines); err != nil {
 		return nil, err
@@ -148,9 +149,9 @@ func (h RunnerAPI) RunnerPostEvents(ctx context.Context, req apigen.RunnerPostEv
 	if err != nil {
 		return nil, err
 	}
-	events := make([]Event, 0, len(req.Body.Events))
+	events := make([]runnerproto.Event, 0, len(req.Body.Events))
 	for _, ev := range req.Body.Events {
-		e := Event{Type: string(ev.Type)}
+		e := runnerproto.Event{Type: string(ev.Type)}
 		if ev.Key != nil {
 			e.Key = *ev.Key
 		}
@@ -208,7 +209,7 @@ func (h RunnerAPI) RunnerComplete(ctx context.Context, req apigen.RunnerComplete
 	if err != nil {
 		return nil, err
 	}
-	c := Complete{ExitCode: req.Body.ExitCode, Error: req.Body.Error}
+	c := runnerproto.Complete{ExitCode: req.Body.ExitCode, Error: req.Body.Error}
 	if req.Body.Reason != nil {
 		c.Reason = *req.Body.Reason
 	}
@@ -223,7 +224,7 @@ type ctKey struct{}
 // ContentTypeMiddleware keeps the request Content-Type for artifact uploads.
 func ContentTypeMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, BasePath+"/") {
+		if strings.HasPrefix(r.URL.Path, runnerproto.BasePath+"/") {
 			r = r.WithContext(context.WithValue(r.Context(), ctKey{}, r.Header.Get("Content-Type")))
 		}
 		next.ServeHTTP(w, r)

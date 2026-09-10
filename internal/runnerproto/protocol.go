@@ -1,6 +1,6 @@
-// Package runnerapi holds the runner protocol (Appendix C): the shared message types
-// and the server side of /api/runner/v1.
-package runnerapi
+// Package runnerproto holds the runner protocol (Appendix C): the message types,
+// environment names and limits that the server, the executors and the runner share.
+package runnerproto
 
 import (
 	"encoding/json"

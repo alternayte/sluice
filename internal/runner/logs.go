@@ -8,21 +8,21 @@ import (
 	"unicode/utf8"
 
 	"github.com/alternayte/sluice/internal/platform/masking"
-	"github.com/alternayte/sluice/internal/runnerapi"
+	"github.com/alternayte/sluice/internal/runnerproto"
 )
 
 // LogShipper batches log lines and sends them with increasing seq (REQ-RUN-002).
 // While the API is unreachable it keeps up to MaxPending bytes and drops the oldest
 // lines beyond that, then sends a marker with the dropped count (REQ-RUN-006).
 type LogShipper struct {
-	Send       func(ctx context.Context, b runnerapi.LogBatch) error
+	Send       func(ctx context.Context, b runnerproto.LogBatch) error
 	Masker     *masking.Masker
 	MaxPending int
 	Interval   time.Duration
 	BatchBytes int
 
 	mu      sync.Mutex
-	pending []runnerapi.LogLine
+	pending []runnerproto.LogLine
 	bytes   int
 	dropped int
 	seq     int
@@ -34,13 +34,13 @@ type LogShipper struct {
 
 func (s *LogShipper) init() {
 	if s.MaxPending <= 0 {
-		s.MaxPending = runnerapi.PendingBufferBytes
+		s.MaxPending = runnerproto.PendingBufferBytes
 	}
 	if s.Interval <= 0 {
-		s.Interval = runnerapi.BatchInterval
+		s.Interval = runnerproto.BatchInterval
 	}
 	if s.BatchBytes <= 0 {
-		s.BatchBytes = runnerapi.BatchBytes
+		s.BatchBytes = runnerproto.BatchBytes
 	}
 	s.wake = make(chan struct{}, 1)
 	s.done = make(chan struct{})
@@ -55,19 +55,19 @@ func (s *LogShipper) Start(ctx context.Context) {
 
 // truncateLine cuts lines above 16 KiB and appends the marker (REQ-RUN-002).
 func truncateLine(text string) string {
-	if len(text) <= runnerapi.MaxLineBytes {
+	if len(text) <= runnerproto.MaxLineBytes {
 		return text
 	}
-	cut := runnerapi.MaxLineBytes - len(runnerapi.TruncatedMarker)
+	cut := runnerproto.MaxLineBytes - len(runnerproto.TruncatedMarker)
 	for cut > 0 && !utf8.RuneStart(text[cut]) {
 		cut--
 	}
-	return text[:cut] + runnerapi.TruncatedMarker
+	return text[:cut] + runnerproto.TruncatedMarker
 }
 
 // Add queues one line. It never blocks on the network.
 func (s *LogShipper) Add(stream, text string) {
-	line := runnerapi.LogLine{TS: time.Now().UTC(), Stream: stream, Text: truncateLine(s.Masker.String(text))}
+	line := runnerproto.LogLine{TS: time.Now().UTC(), Stream: stream, Text: truncateLine(s.Masker.String(text))}
 	s.mu.Lock()
 	s.pending = append(s.pending, line)
 	s.bytes += len(line.Text) + 48
@@ -87,12 +87,12 @@ func (s *LogShipper) Add(stream, text string) {
 }
 
 // take removes up to BatchBytes of lines, with a drop marker first when lines were dropped.
-func (s *LogShipper) take() []runnerapi.LogLine {
+func (s *LogShipper) take() []runnerproto.LogLine {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	var out []runnerapi.LogLine
+	var out []runnerproto.LogLine
 	if s.dropped > 0 {
-		out = append(out, runnerapi.LogLine{TS: time.Now().UTC(), Stream: "system",
+		out = append(out, runnerproto.LogLine{TS: time.Now().UTC(), Stream: "system",
 			Text: fmt.Sprintf("[sluice] dropped %d log lines while the API was unreachable", s.dropped)})
 		s.dropped = 0
 	}
@@ -128,7 +128,7 @@ func (s *LogShipper) loop(ctx context.Context) {
 				break
 			}
 			s.seq++
-			if err := s.Send(ctx, runnerapi.LogBatch{Seq: s.seq, Lines: batch}); err != nil {
+			if err := s.Send(ctx, runnerproto.LogBatch{Seq: s.seq, Lines: batch}); err != nil {
 				s.mu.Lock()
 				s.sendErr = err
 				s.mu.Unlock()

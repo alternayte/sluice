@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/alternayte/sluice/internal/audit"
+	"github.com/alternayte/sluice/internal/kernel"
 	"github.com/alternayte/sluice/internal/platform/httpx"
 )
 
@@ -46,7 +47,7 @@ func (s *Service) Middleware(next http.Handler) http.Handler {
 			if refresh != nil {
 				http.SetCookie(w, refresh)
 			}
-			ctx = WithPrincipal(ctx, p)
+			ctx = kernel.WithPrincipal(ctx, p)
 			actor := audit.Actor{Type: audit.ActorUser, ID: p.UserID.String(), IP: httpx.ClientIP(r)}
 			if p.TokenID != nil {
 				actor.Type = audit.ActorToken
@@ -114,7 +115,7 @@ func check(ctx context.Context, acc Access) error {
 	if acc.Public || acc.Other != "" {
 		return nil
 	}
-	p := FromContext(ctx)
+	p := kernel.FromContext(ctx)
 	if p == nil {
 		return httpx.ErrUnauthorized
 	}

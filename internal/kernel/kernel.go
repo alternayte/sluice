@@ -1,4 +1,5 @@
-package auth
+// Package kernel holds the types that many features share: roles and the caller.
+package kernel
 
 import (
 	"context"

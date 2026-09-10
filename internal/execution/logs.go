@@ -18,7 +18,7 @@ import (
 
 	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/masking"
-	"github.com/alternayte/sluice/internal/runnerapi"
+	"github.com/alternayte/sluice/internal/runnerproto"
 	"github.com/alternayte/sluice/internal/storage"
 )
 
@@ -105,7 +105,7 @@ func (e *Engine) MaskerFor(ctx context.Context, tr dbq.TaskRun) *masking.Masker 
 }
 
 // IngestLogs stores one runner batch. It is idempotent per (task run, seq) (REQ-RUN-002).
-func (e *Engine) IngestLogs(ctx context.Context, tr dbq.TaskRun, seq int, lines []runnerapi.LogLine) error {
+func (e *Engine) IngestLogs(ctx context.Context, tr dbq.TaskRun, seq int, lines []runnerproto.LogLine) error {
 	if len(lines) == 0 {
 		return nil
 	}
@@ -154,9 +154,9 @@ func (e *Engine) SystemLog(ctx context.Context, tr dbq.TaskRun, texts ...string)
 	if err := e.Pool.QueryRow(ctx, "SELECT coalesce(max(seq), 0) + 1 FROM log_chunks WHERE task_run_id = $1", tr.ID).Scan(&seq); err != nil {
 		return
 	}
-	lines := make([]runnerapi.LogLine, len(texts))
+	lines := make([]runnerproto.LogLine, len(texts))
 	for i, t := range texts {
-		lines[i] = runnerapi.LogLine{TS: e.Clock.Now(), Stream: "system", Text: t}
+		lines[i] = runnerproto.LogLine{TS: e.Clock.Now(), Stream: "system", Text: t}
 	}
 	if err := e.IngestLogs(ctx, tr, seq+100000, lines); err != nil {
 		e.Log.Warn("system log", "err", err)

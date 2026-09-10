@@ -1,12 +1,14 @@
 package auth
 
+import "github.com/alternayte/sluice/internal/kernel"
+
 // Access is the permission of one route or operation (SI-03). Default deny: a route
 // without an entry is rejected and fails the route inventory test.
 type Access struct {
 	// Public routes need no authentication.
 	Public bool
 	// Min is the lowest role that can call the route.
-	Min Role
+	Min kernel.Role
 	// Self routes are allowed while the user must change the password.
 	Self bool
 	// Other describes routes with their own authentication (run tokens, webhook keys).
@@ -15,12 +17,12 @@ type Access struct {
 
 var (
 	public        = Access{Public: true}
-	authenticated = Access{Min: Viewer, Self: true}
-	viewer        = Access{Min: Viewer}
-	operator      = Access{Min: Operator}
-	editor        = Access{Min: Editor}
+	authenticated = Access{Min: kernel.Viewer, Self: true}
+	viewer        = Access{Min: kernel.Viewer}
+	operator      = Access{Min: kernel.Operator}
+	editor        = Access{Min: kernel.Editor}
 	runToken      = Access{Other: "run token of the task run (SI-04)"}
-	admin         = Access{Min: Admin}
+	admin         = Access{Min: kernel.Admin}
 )
 
 // Operations maps each OpenAPI operationId to its permission (Appendix B).

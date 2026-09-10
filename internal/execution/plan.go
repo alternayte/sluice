@@ -14,7 +14,7 @@ import (
 
 	"github.com/alternayte/sluice/internal/flow"
 	"github.com/alternayte/sluice/internal/platform/dbq"
-	"github.com/alternayte/sluice/internal/runnerapi"
+	"github.com/alternayte/sluice/internal/runnerproto"
 )
 
 // SecretResolver resolves secret('KEY') references for a namespace (REQ-SEC-003).
@@ -312,7 +312,7 @@ func (e *Engine) BuildPlan(ctx context.Context, tr dbq.TaskRun) (*Plan, error) {
 }
 
 // RunnerSpec builds the spec of GET /task-runs/{id}/spec.
-func (e *Engine) RunnerSpec(ctx context.Context, tr dbq.TaskRun) (*runnerapi.Spec, error) {
+func (e *Engine) RunnerSpec(ctx context.Context, tr dbq.TaskRun) (*runnerproto.Spec, error) {
 	p, err := e.BuildPlan(ctx, tr)
 	if err != nil {
 		return nil, err
@@ -321,10 +321,10 @@ func (e *Engine) RunnerSpec(ctx context.Context, tr dbq.TaskRun) (*runnerapi.Spe
 	if err != nil {
 		return nil, err
 	}
-	return &runnerapi.Spec{TaskRunID: tr.ID.String(), ExecutionID: tr.ExecutionID.String(), Namespace: p.Def.Namespace, FlowID: p.Def.FlowKey,
+	return &runnerproto.Spec{TaskRunID: tr.ID.String(), ExecutionID: tr.ExecutionID.String(), Namespace: p.Def.Namespace, FlowID: p.Def.FlowKey,
 		TaskID: tr.TaskKey, Attempt: int(tr.Attempt), Command: p.Command, Workdir: p.Cfg.Task.Workdir, Env: p.Env, Runtime: p.Runtime,
 		TimeoutSeconds: int(p.Cfg.Timeout.Seconds()), MaskValues: nonNilStrings(p.MaskValues), BundleHash: sn.ManifestHash,
-		Limits: runnerapi.Limits{MaxArtifactBytes: e.Cfg.MaxArtifactBytes, MaxBundleBytes: e.Cfg.MaxBundleBytes}}, nil
+		Limits: runnerproto.Limits{MaxArtifactBytes: e.Cfg.MaxArtifactBytes, MaxBundleBytes: e.Cfg.MaxBundleBytes}}, nil
 }
 
 func nonNilStrings(s []string) []string {

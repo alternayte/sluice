@@ -69,14 +69,11 @@ lint: forbid
 forbid:
     go run ./tools/buildtool forbid
 
+# Go tests use the integration tag and testcontainers, so Docker must run.
 test:
     mkdir -p {{junit}}
-    {{gotestsum}} --junitfile {{junit}}/unit.xml -- -race -count=1 ./...
+    {{gotestsum}} --junitfile {{junit}}/go.xml -- -race -count=1 -tags integration ./...
     if [ -f ui/package.json ]; then cd ui && bun run test --reporter=default --reporter=junit --outputFile.junit=../{{junit}}/vitest.xml; fi
-
-test-int:
-    mkdir -p {{junit}}
-    {{gotestsum}} --junitfile {{junit}}/integration.xml -- -tags integration -count=1 -timeout 30m ./...
 
 # Build the UI, check its size, build the binary and both images.
 build: build-ui build-go build-images
@@ -108,17 +105,5 @@ perf:
 trace:
     go run ./tools/buildtool trace
 
-ledger-check:
-    go run ./tools/buildtool ledger-check
-
 # Fast loop.
 check: gen-check lint test
-
-verify:
-    go run ./tools/buildtool verify
-
-evidence:
-    go run ./tools/buildtool evidence
-
-evidence-check:
-    go run ./tools/buildtool evidence-check

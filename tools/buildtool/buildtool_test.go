@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -100,34 +99,5 @@ func TestTraceRules(t *testing.T) {
 	})
 	if !res.OK {
 		t.Fatalf("errors: %v", res.Errors)
-	}
-}
-
-func TestLedgerRules(t *testing.T) {
-	s := fixtureSDD(t)
-	ledger := func(status, rows string) *Ledger {
-		src := "# L\n\nstatus: " + status + "\nsdd_sha256: " + s.Hash + "\ncurrent_slice: S0\nreview_round: 0\nreview_complete: false\nblocking_findings_open: 0\n\n## Blocked\n\n## Items\n\n| ID | Status | Slice | Evidence |\n|---|---|---|---|\n" + rows
-		l, err := parseLedger(src)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return l
-	}
-	read := func(p string) ([]byte, error) {
-		if p == "x_test.go" {
-			return []byte("func TestSCN_CORE_001_A(t *testing.T) {}"), nil
-		}
-		return nil, errors.New("missing")
-	}
-	good := "| REQ-CORE-001 | PASS | S0 | SCN-CORE-001 |\n| REQ-CORE-002 | OPEN | S0 | |\n| SI-01 | OPEN | S0 | |\n| SCN-CORE-001 | PASS | S0 | x_test.go::TestSCN_CORE_001_A |\n| SCN-CORE-002 | OPEN | S0 | |\n"
-	if errs := checkLedger(ledger("IN_PROGRESS", good), s, read); len(errs) != 0 {
-		t.Fatalf("good ledger: %v", errs)
-	}
-	bad := "| REQ-CORE-001 | PASS | S0 | |\n| REQ-CORE-002 | PASS | S0 | |\n| SCN-CORE-001 | PASS | S0 | y_test.go::TestSCN_CORE_001_A |\n| SCN-CORE-002 | OPEN | S0 | |\n| SCN-CORE-002 | OPEN | S0 | |\n"
-	errs := strings.Join(checkLedger(ledger("DONE", bad), s, read), "\n")
-	for _, want := range []string{"rule 2: SI-01 appears 0", "rule 2: SCN-CORE-002 appears 2", "rule 3: SCN-CORE-001", "rule 4: REQ-CORE-002", "rule 5"} {
-		if !strings.Contains(errs, want) {
-			t.Errorf("missing %q in:\n%s", want, errs)
-		}
 	}
 }

@@ -105,8 +105,8 @@ func OperationKey(id string) string {
 	return string(id[0]+('a'-'A')) + id[1:]
 }
 
-// Routes maps router patterns that are not OpenAPI operations to their permission.
-var Routes = map[string]Access{
+// RoutePatterns maps router patterns that are not OpenAPI operations to their permission.
+var RoutePatterns = map[string]Access{
 	"GET /healthz": public,
 	"GET /readyz":  public,
 	"GET /metrics": public,

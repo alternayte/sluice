@@ -169,7 +169,7 @@ func errorFor(status int, msg string, errs []error) huma.StatusError {
 		for _, err := range errs {
 			var d *huma.ErrorDetail
 			if errors.As(err, &d) {
-				fields = append(fields, FieldError{Field: fieldName(d.Location), Message: d.Message})
+				fields = append(fields, FieldError{Field: fieldName(d.Location, d.Message), Message: d.Message})
 				continue
 			}
 			fields = append(fields, FieldError{Message: err.Error()})
@@ -179,12 +179,31 @@ func errorFor(status int, msg string, errs []error) huma.StatusError {
 	return &Error{Status: status, Code: codeFor(status), Message: msg}
 }
 
-// fieldName turns a huma location such as body.email, query.limit or path.userId into the field name.
-func fieldName(loc string) string {
+// fieldName turns a huma location such as body.email, query.limit or path.userId into the field
+// name. A missing required top-level property reaches this function with the bare location
+// "body" and the property name only in the message ("expected required property x to be
+// present"): this function reads the name from the message so the field still names the
+// property, as the old kin-openapi validator did.
+func fieldName(loc, msg string) string {
 	if _, rest, ok := strings.Cut(loc, "."); ok {
 		return rest
 	}
+	if loc == "body" {
+		if name, ok := requiredPropertyName(msg); ok {
+			return name
+		}
+	}
 	return loc
+}
+
+// requiredPropertyName extracts x from "expected required property x to be present".
+func requiredPropertyName(msg string) (string, bool) {
+	const prefix = "expected required property "
+	const suffix = " to be present"
+	if !strings.HasPrefix(msg, prefix) || !strings.HasSuffix(msg, suffix) {
+		return "", false
+	}
+	return msg[len(prefix) : len(msg)-len(suffix)], true
 }
 
 func codeFor(status int) string {

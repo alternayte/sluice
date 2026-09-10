@@ -104,7 +104,7 @@ func Authorize(ctx context.Context, operationID string) error {
 
 // AuthorizeRoute checks a non-OpenAPI route permission by its pattern.
 func AuthorizeRoute(ctx context.Context, pattern string) error {
-	acc, ok := Routes[pattern]
+	acc, ok := RoutePatterns[pattern]
 	if !ok {
 		return httpx.ErrForbidden
 	}

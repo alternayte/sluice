@@ -104,6 +104,26 @@ func TestAPIContract(t *testing.T) {
 			t.Fatalf("%d %s", r.status, r.body)
 		}
 	})
+	t.Run("malformed JSON maps to a body field error", func(t *testing.T) {
+		r := do(t, h, http.MethodPost, "/api/v1/things", "{bad json", kernel.Admin)
+		fields := map[string]bool{}
+		for _, d := range r.env.Error.Details {
+			fields[d.Field] = true
+		}
+		if r.status != http.StatusUnprocessableEntity || r.env.Error.Code != "validation_failed" || !fields["body"] {
+			t.Fatalf("%d %s", r.status, r.body)
+		}
+	})
+	t.Run("missing required property names the field", func(t *testing.T) {
+		r := do(t, h, http.MethodPost, "/api/v1/things", `{"email":"a@b.co","role":"admin"}`, kernel.Admin)
+		fields := map[string]bool{}
+		for _, d := range r.env.Error.Details {
+			fields[d.Field] = true
+		}
+		if r.status != http.StatusUnprocessableEntity || r.env.Error.Code != "validation_failed" || !fields["password"] {
+			t.Fatalf("%d %s", r.status, r.body)
+		}
+	})
 	t.Run("no caller gets 401 before validation", func(t *testing.T) {
 		r := do(t, h, http.MethodPost, "/api/v1/things", bad, kernel.RoleNone)
 		if r.status != http.StatusUnauthorized || r.env.Error.Code != "unauthorized" {

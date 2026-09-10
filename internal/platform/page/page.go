@@ -88,6 +88,18 @@ func DecodeStrings(c string, n int) ([]string, error) {
 	return parts, nil
 }
 
+// DecodeOpt decodes an optional cursor. An empty cursor gives nil values.
+func DecodeOpt(c string) (*time.Time, *uuid.UUID, error) {
+	if c == "" {
+		return nil, nil, nil
+	}
+	t, id, err := Decode(c)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &t, &id, nil
+}
+
 // DecodePtr decodes an optional cursor. It returns nil values for no cursor.
 func DecodePtr(c *string) (*time.Time, *uuid.UUID, error) {
 	if c == nil || *c == "" {

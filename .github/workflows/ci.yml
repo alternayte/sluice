@@ -16,6 +16,7 @@ env:
   BUN_VERSION: "1.2.13"
   JUST_VERSION: "1.58.0"
   GOLANGCI_LINT_VERSION: "v2.12.2"
+  UV_VERSION: "0.7.8"
 
 jobs:
   check:
@@ -82,6 +83,12 @@ jobs:
         uses: extractions/setup-just@v4
         with:
           just-version: ${{ env.JUST_VERSION }}
+
+      - name: Install uv.
+        uses: astral-sh/setup-uv@v10
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
 
       - name: Build the UI and the server binary.
         run: just build-ui build-go

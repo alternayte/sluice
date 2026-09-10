@@ -1,4 +1,5 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
+set dotenv-load
 
 version := `git describe --tags --always --dirty 2>/dev/null || echo dev`
 commit := `git rev-parse HEAD 2>/dev/null || echo unknown`
@@ -11,9 +12,42 @@ gotestsum := "go tool gotestsum --format pkgname-and-test-fails"
 default:
     @just --list
 
-# Check that all tools of SDD §10.1 exist.
+# Check the tools, create .env and install the UI packages.
 setup:
     go run ./tools/buildtool setup
+    test -f .env || cp .env.example .env
+    cd ui && bun install --frozen-lockfile
+    cd tests/ui && bun install --frozen-lockfile
+
+# Start Postgres for development.
+up:
+    docker compose -f deploy/compose/dev.yml up -d --wait
+
+# Stop the development services.
+down:
+    docker compose -f deploy/compose/dev.yml down
+
+# Run the Go server with live reload and the Vite dev server.
+dev:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    trap 'kill 0' EXIT
+    go tool air &
+    (cd ui && bun run dev) &
+    wait
+
+# Apply the database migrations.
+migrate:
+    go run ./cmd/sluice migrate
+
+# Drop the development database, create it again and apply the migrations.
+db-reset:
+    docker compose -f deploy/compose/dev.yml exec -T postgres psql -U sluice -d postgres -c 'DROP DATABASE IF EXISTS sluice WITH (FORCE)' -c 'CREATE DATABASE sluice'
+    go run ./cmd/sluice migrate
+
+# Compare tests/e2e with the refactor baseline.
+e2e-compare:
+    ./scripts/e2e-compare.sh
 
 # Generate code, schemas and reference docs.
 gen:
@@ -57,7 +91,6 @@ build-go:
 
 build-images:
     if [ -f deploy/docker/Dockerfile ]; then docker build -f deploy/docker/Dockerfile --target sluice --build-arg VERSION={{version}} --build-arg COMMIT={{commit}} -t sluice:dev . ; fi
-    if [ -f deploy/docker/Dockerfile ]; then docker build -f deploy/docker/Dockerfile --target sluice-uv --build-arg VERSION={{version}} --build-arg COMMIT={{commit}} -t sluice-uv:dev . ; fi
 
 e2e:
     mkdir -p {{junit}}

@@ -1,0 +1,30 @@
+name: sluice
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: sluice
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sluice}
+      POSTGRES_DB: sluice
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sluice -d sluice"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  sluice:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      target: sluice
+    image: sluice:dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SLUICE_DATABASE_URL: postgres://sluice:${POSTGRES_PASSWORD:-sluice}@postgres:5432/sluice?sslmode=disable
+      SLUICE_PUBLIC_URL: ${SLUICE_PUBLIC_URL:-http://localhost:8080}
+      SLUICE_BOOTSTRAP_ADMIN_EMAIL: ${SLUICE_BOOTSTRAP_ADMIN_EMAIL:-admin@local.test}
+      SLUICE_BOOTSTRAP_ADMIN_PASSWORD: ${SLUICE_BOOTSTRAP_ADMIN_PASSWORD:?set SLUICE_BOOTSTRAP_ADMIN_PASSWORD}
+      SLUICE_MASTER_KEYS: ${SLUICE_MASTER_KEYS:?set SLUICE_MASTER_KEYS}
+    ports:
+      - "8080:8080"

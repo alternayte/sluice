@@ -16,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/alternayte/sluice/internal/kernel"
+	"github.com/alternayte/sluice/internal/platform/logging"
 )
 
 // Access is the permission of one operation (Appendix B, SI-03).
@@ -60,9 +61,14 @@ func AccessOf(op *huma.Operation) (Access, bool) {
 var ErrPasswordChange = Errorf(http.StatusForbidden, "password_change_required", "change your password first")
 
 // Check returns nil when the caller in ctx can use an operation with access acc.
+// An access with Min at kernel.RoleNone and no other grant is a configuration error, not a
+// grant to every caller: Check denies it (default deny, D-23).
 func Check(ctx context.Context, acc Access) error {
 	if acc.Public || acc.Other != "" {
 		return nil
+	}
+	if acc.Min == kernel.RoleNone {
+		return ErrForbidden
 	}
 	p := kernel.FromContext(ctx)
 	if p == nil {
@@ -77,7 +83,10 @@ func Check(ctx context.Context, acc Access) error {
 	return nil
 }
 
-func init() { huma.NewError = newError }
+func init() {
+	huma.NewError = newError
+	huma.NewErrorWithContext = newErrorWithContext
+}
 
 // NewAPI creates the huma API on r. It serves no spec and no docs: `sluice openapi` prints the spec.
 // The access check runs before huma reads the request, so a caller without permission
@@ -119,13 +128,43 @@ func writeHuma(ctx huma.Context, err error) {
 	_ = json.NewEncoder(ctx.BodyWriter()).Encode(e)
 }
 
-// newError replaces huma.NewError. It keeps the Sluice envelope and codes (REQ-API-002).
+// newError replaces huma.NewError for callers without a request context. It keeps the Sluice
+// envelope and codes (REQ-API-002).
 func newError(status int, msg string, errs ...error) huma.StatusError {
-	switch {
-	case status >= http.StatusInternalServerError:
-		slog.Error("request failed", "status", status, "err", msg)
+	if status >= http.StatusInternalServerError {
+		slog.Error("request failed", "status", status, "err", msg, "cause", causesOf(errs))
 		return errInternal
-	case status == http.StatusUnprocessableEntity || (status == http.StatusBadRequest && len(errs) > 0):
+	}
+	return errorFor(status, msg, errs)
+}
+
+// newErrorWithContext replaces huma.NewErrorWithContext. A handler error reaches huma as
+// NewErrorWithContext(ctx, 500, "unexpected error occurred", err): logging it through
+// logging.From(ctx.Context()) keeps the real cause and the request ID (REQ-CORE-009), while the
+// response body still hides the cause behind errInternal.
+func newErrorWithContext(ctx huma.Context, status int, msg string, errs ...error) huma.StatusError {
+	if status >= http.StatusInternalServerError {
+		logging.From(ctx.Context()).Error("request failed", "status", status, "err", msg, "cause", causesOf(errs))
+		return errInternal
+	}
+	return errorFor(status, msg, errs)
+}
+
+// causesOf renders errs for a log line without leaking them into the response.
+func causesOf(errs []error) string {
+	msgs := make([]string, 0, len(errs))
+	for _, err := range errs {
+		if err == nil {
+			continue
+		}
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// errorFor builds the Sluice error for a non-5xx status (REQ-API-002).
+func errorFor(status int, msg string, errs []error) huma.StatusError {
+	if status == http.StatusUnprocessableEntity || (status == http.StatusBadRequest && len(errs) > 0) {
 		fields := make([]FieldError, 0, len(errs))
 		for _, err := range errs {
 			var d *huma.ErrorDetail
@@ -168,22 +207,41 @@ func codeFor(status int) string {
 	return strings.ReplaceAll(strings.ToLower(http.StatusText(status)), " ", "_")
 }
 
-// CheckAccess returns an error that names each operation without access (default deny, D-23).
+// CheckAccess returns an error that names each operation without access, and each operation
+// whose access is the zero value, since a zero Access grants every logged-in caller
+// instead of denying by default (D-23).
 func CheckAccess(api huma.API) error {
 	var missing []string
+	var empty []string
 	for path, item := range api.OpenAPI().Paths {
-		for _, op := range []*huma.Operation{item.Get, item.Put, item.Post, item.Delete, item.Patch, item.Head, item.Options} {
+		ops := []*huma.Operation{
+			item.Get, item.Put, item.Post, item.Delete, item.Patch, item.Head, item.Options, item.Trace,
+		}
+		for _, op := range ops {
 			if op == nil {
 				continue
 			}
-			if _, ok := AccessOf(op); !ok {
+			acc, ok := AccessOf(op)
+			if !ok {
 				missing = append(missing, op.Method+" "+path)
+				continue
+			}
+			if acc == (Access{}) {
+				empty = append(empty, op.Method+" "+path)
 			}
 		}
 	}
+	sort.Strings(missing)
+	sort.Strings(empty)
+	var msgs []string
 	if len(missing) > 0 {
-		sort.Strings(missing)
-		return fmt.Errorf("operations without access: %s", strings.Join(missing, ", "))
+		msgs = append(msgs, fmt.Sprintf("operations without access: %s", strings.Join(missing, ", ")))
+	}
+	if len(empty) > 0 {
+		msgs = append(msgs, fmt.Sprintf("operations with an empty access: %s", strings.Join(empty, ", ")))
+	}
+	if len(msgs) > 0 {
+		return errors.New(strings.Join(msgs, "; "))
 	}
 	return nil
 }

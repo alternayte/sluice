@@ -1,10 +1,12 @@
 package httpx_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -15,6 +17,7 @@ import (
 
 	"github.com/alternayte/sluice/internal/kernel"
 	"github.com/alternayte/sluice/internal/platform/httpx"
+	"github.com/alternayte/sluice/internal/platform/logging"
 )
 
 type createIn struct {
@@ -154,5 +157,62 @@ func TestCheckAccessFindsOperationWithoutAccess(t *testing.T) {
 		func(context.Context, *struct{}) (*okOut, error) { return &okOut{}, nil })
 	if err := httpx.CheckAccess(api); err == nil || !strings.Contains(err.Error(), "/api/v1/open") {
 		t.Fatalf("want error that names /api/v1/open, got %v", err)
+	}
+}
+
+// TestCheckAccessFindsOperationWithoutTrace covers the TRACE method: huma v2.39.1 supports it
+// (openapi.go sets pathItem.Trace), so CheckAccess must scan it too.
+func TestCheckAccessFindsOperationWithoutTrace(t *testing.T) {
+	api := httpx.NewAPI(chi.NewMux())
+	huma.Register(api, huma.Operation{OperationID: "probe", Method: http.MethodTrace, Path: "/api/v1/probe"},
+		func(context.Context, *struct{}) (*okOut, error) { return &okOut{}, nil })
+	if err := httpx.CheckAccess(api); err == nil || !strings.Contains(err.Error(), "/api/v1/probe") {
+		t.Fatalf("want error that names /api/v1/probe, got %v", err)
+	}
+}
+
+// TestCheckAccessFindsEmptyAccess covers Access{}: it is not a grant to every caller, since
+// Min at kernel.RoleNone with no other grant means default deny (D-23).
+func TestCheckAccessFindsEmptyAccess(t *testing.T) {
+	api := httpx.NewAPI(chi.NewMux())
+	huma.Register(api, httpx.Op("empty", http.MethodGet, "/api/v1/empty", httpx.Access{}),
+		func(context.Context, *struct{}) (*okOut, error) { return &okOut{}, nil })
+	if err := httpx.CheckAccess(api); err == nil || !strings.Contains(err.Error(), "/api/v1/empty") {
+		t.Fatalf("want error that names /api/v1/empty, got %v", err)
+	}
+}
+
+// TestCheckDeniesEmptyAccess covers Check directly: even an admin principal must not pass an
+// empty Access, since it carries neither Public, Other nor a real Min.
+func TestCheckDeniesEmptyAccess(t *testing.T) {
+	ctx := kernel.WithPrincipal(context.Background(), &kernel.Principal{Role: kernel.Admin})
+	err := httpx.Check(ctx, httpx.Access{})
+	if !errors.Is(err, httpx.ErrForbidden) {
+		t.Fatalf("want ErrForbidden, got %v", err)
+	}
+}
+
+// TestUnknownErrorLogsCause covers the 500 path from a handler error: huma calls
+// NewErrorWithContext(ctx, 500, "unexpected error occurred", err), and the real cause must
+// reach the request-scoped logger (REQ-CORE-009), even while the response body still hides it.
+func TestUnknownErrorLogsCause(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
+
+	r := chi.NewMux()
+	api := httpx.NewAPI(r)
+	huma.Register(api, httpx.Op("boom", http.MethodGet, "/api/v1/boom", httpx.Public),
+		func(context.Context, *struct{}) (*okOut, error) { return nil, errors.New("secret database detail") })
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/boom", nil)
+	req = req.WithContext(logging.With(req.Context(), logger))
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if strings.Contains(rec.Body.String(), "secret") {
+		t.Fatalf("response body must hide the cause: %s", rec.Body.String())
+	}
+	if !strings.Contains(buf.String(), "secret database detail") {
+		t.Fatalf("request logger must record the real cause, got %q", buf.String())
 	}
 }

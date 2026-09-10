@@ -1,0 +1,29 @@
+version: "2"
+run:
+  build-tags:
+    - integration
+    - e2e
+    - k8s
+    - perf
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - misspell
+    - nilerr
+    - unconvert
+  settings:
+    errcheck:
+      exclude-functions:
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - fmt.Fprint
+        - (*os.File).Close
+        - (*github.com/jackc/pgx/v5.Conn).Close
+  exclusions:
+    generated: strict
+    paths:
+      - ui/node_modules
+formatters:
+  enable:
+    - gofmt

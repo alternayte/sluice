@@ -1,8 +1,10 @@
 /build/
 /bin/
 node_modules/
-ui/dist/
+ui/dist/*
 !ui/dist/.keep
 *.test
 coverage.out
 .DS_Store
+tests/ui/test-results/
+tests/ui/playwright-report/

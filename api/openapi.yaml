@@ -1,0 +1,94 @@
+openapi: 3.0.3
+info:
+  title: Sluice API
+  version: 1.0.0
+  description: Sluice workflow orchestrator API. Errors use the envelope {"error":{"code","message","details"}}.
+servers:
+  - url: /
+tags:
+  - name: system
+paths:
+  /api/v1/instances:
+    get:
+      operationId: listInstances
+      tags: [system]
+      summary: List server instances with pools and executors.
+      responses:
+        "200":
+          description: Instances.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceList"
+        default:
+          $ref: "#/components/responses/Error"
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: sluice_session
+    token:
+      type: http
+      scheme: bearer
+  responses:
+    Error:
+      description: Error envelope.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+  schemas:
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorBody"
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details: {}
+    Instance:
+      type: object
+      required: [id, hostname, version, pools, executors, started_at, heartbeat_at, online]
+      properties:
+        id:
+          type: string
+          format: uuid
+        hostname:
+          type: string
+        version:
+          type: string
+        pools:
+          type: array
+          items:
+            type: string
+        executors:
+          type: array
+          items:
+            type: string
+        started_at:
+          type: string
+          format: date-time
+        heartbeat_at:
+          type: string
+          format: date-time
+        online:
+          type: boolean
+    InstanceList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Instance"
+security:
+  - session: []
+  - token: []

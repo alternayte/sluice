@@ -1,0 +1,16 @@
+# Word list for `just forbid`. This file is the only excluded file.
+# [words] are forbidden in .go, .ts, .tsx, .py, .sh, .yaml and .yml files outside
+# generated code and docs/. [test] entries are forbidden in any test file.
+[words]
+TODO
+FIXME
+XXX
+HACK
+not implemented
+unimplemented
+
+[test]
+t.Skip
+test.skip
+test.only
+describe.skip

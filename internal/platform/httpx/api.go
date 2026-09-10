@@ -98,6 +98,9 @@ func NewAPI(r *chi.Mux) huma.API {
 	cfg.SchemasPath = ""
 	// No $schema field in bodies and no Link header: the JSON contract stays as it is.
 	cfg.CreateHooks = nil
+	// api/openapi.yaml never sets additionalProperties: false, and the old validator accepted
+	// unknown body properties. Keep that contract: a newer client or runner can send a new field.
+	cfg.AllowAdditionalPropertiesByDefault = true
 	api := humachi.New(r, cfg)
 	api.UseMiddleware(func(ctx huma.Context, next func(huma.Context)) {
 		acc, ok := AccessOf(ctx.Operation())

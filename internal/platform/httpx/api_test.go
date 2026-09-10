@@ -114,6 +114,13 @@ func TestAPIContract(t *testing.T) {
 			t.Fatalf("%d %s", r.status, r.body)
 		}
 	})
+	t.Run("unknown body property is accepted as by the old validator", func(t *testing.T) {
+		body := `{"email":"a@b.co","role":"admin","password":"long-enough-1","extra":1}`
+		r := do(t, h, http.MethodPost, "/api/v1/things", body, kernel.Admin)
+		if r.status != http.StatusOK {
+			t.Fatalf("%d %s", r.status, r.body)
+		}
+	})
 	t.Run("malformed JSON maps to a body field error with a fixed message", func(t *testing.T) {
 		r := do(t, h, http.MethodPost, "/api/v1/things", "{bad json", kernel.Admin)
 		var got string

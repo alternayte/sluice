@@ -207,9 +207,15 @@ function Panel({ onClose }: { onClose: () => void }) {
     setError(undefined);
     setLive([]);
     try {
-      await postStream(url, body, onEvent);
+      let done = false;
+      await postStream(url, body, (ev) => {
+        if (ev.event === "done") done = true;
+        onEvent(ev);
+      });
       await qc.invalidateQueries({ queryKey: getAiConversationQueryKey({ path: { conversationId: id } }) });
       setLive((items) => items.filter((i) => i.kind === "error"));
+      // A stream that ends without "done" lost its connection or the server stopped the turn.
+      if (!done) setError("The answer stopped before the end. The saved part of the conversation shows below.");
     } catch (err) {
       setError(errorMessage(err));
     } finally {

@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"reflect"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -297,6 +298,14 @@ func cutUTF8(s string, n int) string {
 // runTurn calls the model until it answers without tool calls, a mutating call waits for
 // the user, or the step limit is reached (REQ-AI-005).
 func (s *Service) runTurn(ctx context.Context, m Model, convID uuid.UUID, em *emitter) {
+	// The stream header is sent already, so a panic must end the turn with an event. Without
+	// it the connection closes and the UI shows no error.
+	defer func() {
+		if r := recover(); r != nil {
+			s.Log.Error("assistant turn stopped with a panic", "conversation", convID, "panic", r, "stack", string(debug.Stack()))
+			em.fail("internal", "the turn stopped with an internal error")
+		}
+	}()
 	p := kernel.FromContext(ctx)
 	tools := assistantTools(p)
 	defs := make([]ToolDef, 0, len(tools))

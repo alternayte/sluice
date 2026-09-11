@@ -15,8 +15,9 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker/Dockerfile
-      target: sluice
-    image: sluice:dev
+      # sluice-uv runs Python, bash and bun tasks on the process executor.
+      target: sluice-uv
+    image: sluice-uv:dev
     depends_on:
       postgres:
         condition: service_healthy
@@ -26,5 +27,6 @@ services:
       SLUICE_BOOTSTRAP_ADMIN_EMAIL: ${SLUICE_BOOTSTRAP_ADMIN_EMAIL:-admin@local.test}
       SLUICE_BOOTSTRAP_ADMIN_PASSWORD: ${SLUICE_BOOTSTRAP_ADMIN_PASSWORD:?set SLUICE_BOOTSTRAP_ADMIN_PASSWORD}
       SLUICE_MASTER_KEYS: ${SLUICE_MASTER_KEYS:?set SLUICE_MASTER_KEYS}
+      SLUICE_EXECUTORS: process
     ports:
-      - "8080:8080"
+      - "${SLUICE_PORT:-8080}:8080"

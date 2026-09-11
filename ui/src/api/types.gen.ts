@@ -42,6 +42,18 @@ export type AuditList = {
   [key: string]: unknown;
 };
 
+export type BucketOut = {
+  cancelled: number;
+  failed: number;
+  p50_ms: number | null;
+  p95_ms: number | null;
+  skipped: number;
+  start: string;
+  success: number;
+  timed_out: number;
+  [key: string]: unknown;
+};
+
 export type ChangePasswordRequest = {
   current_password: string;
   new_password: string;
@@ -128,6 +140,18 @@ export type CreatedToken = {
   [key: string]: unknown;
 };
 
+export type DashboardOut = {
+  bucket_seconds: number;
+  buckets: Array<BucketOut>;
+  from: string;
+  kpis: KpisOut;
+  range: "24h" | "7d" | "30d";
+  recent_failures: Array<ExecutionOut>;
+  running: Array<ExecutionOut>;
+  to: string;
+  [key: string]: unknown;
+};
+
 export type ErrorBody = {
   code: string;
   details?: unknown;
@@ -192,6 +216,21 @@ export type ExecutionDetail = {
 export type ExecutionList = {
   items: Array<ExecutionSummary>;
   next_cursor?: string;
+  [key: string]: unknown;
+};
+
+export type ExecutionOut = {
+  created_at: string;
+  duration_ms?: number | null;
+  ended_at?: string | null;
+  error: string;
+  flow_id: string;
+  id: string;
+  namespace: string;
+  started_at?: string | null;
+  state: string;
+  triage_summary?: string | null;
+  trigger_type: string;
   [key: string]: unknown;
 };
 
@@ -302,6 +341,17 @@ export type FlowList = {
   [key: string]: unknown;
 };
 
+export type FlowMetricsOut = {
+  names: Array<string>;
+  series: Array<MetricSeriesOut>;
+  [key: string]: unknown;
+};
+
+export type FlowStatsOut = {
+  recent: Array<ExecutionOut>;
+  [key: string]: unknown;
+};
+
 export type FlowSummary = {
   description: string;
   disabled: boolean;
@@ -341,6 +391,28 @@ export type Issue = {
   line: number;
   message: string;
   path: string;
+  [key: string]: unknown;
+};
+
+export type KpisOut = {
+  cancelled: number;
+  /**
+   * Executions that ended in the range.
+   */
+  executions: number;
+  failed: number;
+  median_duration_ms: number | null;
+  /**
+   * Executions that run now.
+   */
+  running: number;
+  skipped: number;
+  succeeded: number;
+  /**
+   * SUCCESS / (SUCCESS + FAILED + TIMED_OUT) in the range.
+   */
+  success_rate: number | null;
+  timed_out: number;
   [key: string]: unknown;
 };
 
@@ -408,6 +480,22 @@ export type MetricPoint = {
   ts: string;
   unit: string;
   value: number;
+  [key: string]: unknown;
+};
+
+export type MetricPointOut = {
+  created_at: string;
+  execution_id: string;
+  value: number;
+  [key: string]: unknown;
+};
+
+export type MetricSeriesOut = {
+  /**
+   * Value of the group-by tag. Empty when the tag is missing or no group-by is set.
+   */
+  group: string;
+  points: Array<MetricPointOut>;
   [key: string]: unknown;
 };
 
@@ -741,6 +829,16 @@ export type SourceOut = {
   repo_url: string;
   webhook_secret_key: string;
   webhook_url: string;
+  [key: string]: unknown;
+};
+
+export type Status = {
+  driver: "postgres" | "fs" | "s3" | "azblob";
+  error?: string;
+  /**
+   * The result of a put, get and delete round trip.
+   */
+  healthy: boolean;
   [key: string]: unknown;
 };
 
@@ -1830,6 +1928,46 @@ export type TriggerFlowResponses = {
 export type TriggerFlowResponse =
   TriggerFlowResponses[keyof TriggerFlowResponses];
 
+export type GetFlowMetricsData = {
+  body?: never;
+  path: {
+    namespace: string;
+    flowId: string;
+  };
+  query?: {
+    /**
+     * Metric name. Empty returns only the names.
+     */
+    name?: string;
+    agg?: "sum" | "avg" | "max";
+    /**
+     * Tag key. One series per tag value.
+     */
+    group_by?: string;
+  };
+  url: "/api/v1/flows/{namespace}/{flowId}/metrics";
+};
+
+export type GetFlowMetricsErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetFlowMetricsError =
+  GetFlowMetricsErrors[keyof GetFlowMetricsErrors];
+
+export type GetFlowMetricsResponses = {
+  /**
+   * OK
+   */
+  200: FlowMetricsOut;
+};
+
+export type GetFlowMetricsResponse =
+  GetFlowMetricsResponses[keyof GetFlowMetricsResponses];
+
 export type ListFlowRevisionsData = {
   body?: never;
   path: {
@@ -1892,6 +2030,35 @@ export type GetFlowRevisionResponses = {
 
 export type GetFlowRevisionResponse =
   GetFlowRevisionResponses[keyof GetFlowRevisionResponses];
+
+export type GetFlowStatsData = {
+  body?: never;
+  path: {
+    namespace: string;
+    flowId: string;
+  };
+  query?: never;
+  url: "/api/v1/flows/{namespace}/{flowId}/stats";
+};
+
+export type GetFlowStatsErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetFlowStatsError = GetFlowStatsErrors[keyof GetFlowStatsErrors];
+
+export type GetFlowStatsResponses = {
+  /**
+   * OK
+   */
+  200: FlowStatsOut;
+};
+
+export type GetFlowStatsResponse =
+  GetFlowStatsResponses[keyof GetFlowStatsResponses];
 
 export type RotateWebhookKeyData = {
   body?: never;
@@ -3085,6 +3252,65 @@ export type CheckGlobalSecretResponses = {
 
 export type CheckGlobalSecretResponse =
   CheckGlobalSecretResponses[keyof CheckGlobalSecretResponses];
+
+export type GetDashboardData = {
+  body?: never;
+  path?: never;
+  query?: {
+    range?: "24h" | "7d" | "30d";
+    /**
+     * Namespace and its children.
+     */
+    namespace?: string;
+  };
+  url: "/api/v1/stats/dashboard";
+};
+
+export type GetDashboardErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetDashboardError = GetDashboardErrors[keyof GetDashboardErrors];
+
+export type GetDashboardResponses = {
+  /**
+   * OK
+   */
+  200: DashboardOut;
+};
+
+export type GetDashboardResponse =
+  GetDashboardResponses[keyof GetDashboardResponses];
+
+export type GetStorageStatusData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/storage";
+};
+
+export type GetStorageStatusErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetStorageStatusError =
+  GetStorageStatusErrors[keyof GetStorageStatusErrors];
+
+export type GetStorageStatusResponses = {
+  /**
+   * OK
+   */
+  200: Status;
+};
+
+export type GetStorageStatusResponse =
+  GetStorageStatusResponses[keyof GetStorageStatusResponses];
 
 export type ListTokensData = {
   body?: never;

@@ -57,9 +57,13 @@ type Start struct {
 	ChainDepth     int
 }
 
-// Starter creates an execution in a transaction. internal/app adapts the execution engine.
+// Starter creates executions. internal/app adapts the execution engine.
 type Starter interface {
+	// Start creates an execution in tx. The scheduler and flow triggers use it.
 	Start(ctx context.Context, tx pgx.Tx, s Start) (uuid.UUID, error)
+	// StartOwn creates an execution in its own transaction. It loads the flow first, so
+	// that concurrent calls cannot hold all pool connections (webhooks).
+	StartOwn(ctx context.Context, s Start) (uuid.UUID, error)
 }
 
 // Service fires schedule, webhook and flow triggers.
@@ -287,18 +291,15 @@ func (s *Service) FireWebhook(ctx context.Context, key string, body []byte, head
 			hdrs[lk] = v[0]
 		}
 	}
-	var id uuid.UUID
-	err = pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
-		var err error
-		id, err = s.Starter.Start(ctx, tx, Start{Namespace: row.Namespace, FlowKey: row.FlowKey, TriggerType: "webhook", TriggerID: row.ID,
-			Payload: map[string]any{"body": parsed, "headers": hdrs}, InputTemplates: cfg.Inputs})
-		if err != nil {
-			return err
-		}
-		_, err = tx.Exec(ctx, "UPDATE triggers SET last_fired_at = $2 WHERE id = $1", row.ID, s.Clock.Now())
-		return err
-	})
-	return id, err
+	id, err := s.Starter.StartOwn(ctx, Start{Namespace: row.Namespace, FlowKey: row.FlowKey, TriggerType: "webhook", TriggerID: row.ID,
+		Payload: map[string]any{"body": parsed, "headers": hdrs}, InputTemplates: cfg.Inputs})
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if _, err := s.Pool.Exec(ctx, "UPDATE triggers SET last_fired_at = $2 WHERE id = $1", row.ID, s.Clock.Now()); err != nil && s.Log != nil {
+		s.Log.Warn("record webhook fire time", "trigger", row.ID, "err", err)
+	}
+	return id, nil
 }
 
 // RotateWebhookKey creates a new key for a webhook trigger and returns it once. The old

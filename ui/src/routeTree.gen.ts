@@ -23,6 +23,7 @@ import { Route as SettingsGitRouteImport } from './routes/settings/git'
 import { Route as SettingsInstancesRouteImport } from './routes/settings/instances'
 import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
 import { Route as SettingsSecretProvidersRouteImport } from './routes/settings/secret-providers'
+import { Route as SettingsStorageRouteImport } from './routes/settings/storage'
 import { Route as SettingsTokensRouteImport } from './routes/settings/tokens'
 import { Route as SettingsUsersRouteImport } from './routes/settings/users'
 import { Route as FlowsNamespaceFlowIdRouteImport } from './routes/flows/$namespace/$flowId'
@@ -97,6 +98,11 @@ const SettingsSecretProvidersRoute = SettingsSecretProvidersRouteImport.update({
   path: '/settings/secret-providers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsStorageRoute = SettingsStorageRouteImport.update({
+  id: '/settings/storage',
+  path: '/settings/storage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsTokensRoute = SettingsTokensRouteImport.update({
   id: '/settings/tokens',
   path: '/settings/tokens',
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/secret-providers': typeof SettingsSecretProvidersRoute
+  '/settings/storage': typeof SettingsStorageRoute
   '/settings/tokens': typeof SettingsTokensRoute
   '/settings/users': typeof SettingsUsersRoute
   '/executions/': typeof ExecutionsIndexRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByTo {
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/secret-providers': typeof SettingsSecretProvidersRoute
+  '/settings/storage': typeof SettingsStorageRoute
   '/settings/tokens': typeof SettingsTokensRoute
   '/settings/users': typeof SettingsUsersRoute
   '/executions': typeof ExecutionsIndexRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/secret-providers': typeof SettingsSecretProvidersRoute
+  '/settings/storage': typeof SettingsStorageRoute
   '/settings/tokens': typeof SettingsTokensRoute
   '/settings/users': typeof SettingsUsersRoute
   '/executions/': typeof ExecutionsIndexRoute
@@ -185,6 +194,7 @@ export interface FileRouteTypes {
     | '/settings/instances'
     | '/settings/profile'
     | '/settings/secret-providers'
+    | '/settings/storage'
     | '/settings/tokens'
     | '/settings/users'
     | '/executions/'
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/settings/instances'
     | '/settings/profile'
     | '/settings/secret-providers'
+    | '/settings/storage'
     | '/settings/tokens'
     | '/settings/users'
     | '/executions'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/settings/instances'
     | '/settings/profile'
     | '/settings/secret-providers'
+    | '/settings/storage'
     | '/settings/tokens'
     | '/settings/users'
     | '/executions/'
@@ -243,6 +255,7 @@ export interface RootRouteChildren {
   SettingsInstancesRoute: typeof SettingsInstancesRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
   SettingsSecretProvidersRoute: typeof SettingsSecretProvidersRoute
+  SettingsStorageRoute: typeof SettingsStorageRoute
   SettingsTokensRoute: typeof SettingsTokensRoute
   SettingsUsersRoute: typeof SettingsUsersRoute
   ExecutionsIndexRoute: typeof ExecutionsIndexRoute
@@ -351,6 +364,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsSecretProvidersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/storage': {
+      id: '/settings/storage'
+      path: '/settings/storage'
+      fullPath: '/settings/storage'
+      preLoaderRoute: typeof SettingsStorageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/tokens': {
       id: '/settings/tokens'
       path: '/settings/tokens'
@@ -387,6 +407,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsInstancesRoute: SettingsInstancesRoute,
   SettingsProfileRoute: SettingsProfileRoute,
   SettingsSecretProvidersRoute: SettingsSecretProvidersRoute,
+  SettingsStorageRoute: SettingsStorageRoute,
   SettingsTokensRoute: SettingsTokensRoute,
   SettingsUsersRoute: SettingsUsersRoute,
   ExecutionsIndexRoute: ExecutionsIndexRoute,

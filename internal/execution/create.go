@@ -216,36 +216,66 @@ func InputErrors(errs []flow.InputError) error {
 }
 
 // Trigger creates an execution of a flow at its current revision.
+//
+// The flow loads before the transaction starts: a load inside the transaction would need a
+// second pool connection, and concurrent triggers could then hold all connections and wait
+// for each other.
 func (e *Engine) Trigger(ctx context.Context, r TriggerParams) (uuid.UUID, error) {
+	p, err := e.prepareTrigger(ctx, r)
+	if err != nil {
+		return uuid.Nil, err
+	}
 	var id uuid.UUID
-	err := pgx.BeginFunc(ctx, e.Pool, func(tx pgx.Tx) error {
+	err = pgx.BeginFunc(ctx, e.Pool, func(tx pgx.Tx) error {
 		var err error
-		id, err = e.TriggerTx(ctx, tx, r)
+		id, err = e.createPrepared(ctx, tx, r, p)
 		return err
 	})
 	return id, err
 }
 
-// TriggerTx is Trigger in the transaction tx. Schedules, webhooks and flow triggers use it,
-// so that the execution and the trigger state change together.
+// TriggerTx is Trigger in the transaction tx. The scheduler and flow triggers use it, so
+// that the execution and the trigger state change together.
 func (e *Engine) TriggerTx(ctx context.Context, tx pgx.Tx, r TriggerParams) (uuid.UUID, error) {
-	if err := validateLabels(r.Labels); err != nil {
+	p, err := e.prepareTrigger(ctx, r)
+	if err != nil {
 		return uuid.Nil, err
+	}
+	return e.createPrepared(ctx, tx, r, p)
+}
+
+// preparedTrigger is a loaded flow with resolved inputs.
+type preparedTrigger struct {
+	ref    *FlowRef
+	inputs map[string]any
+}
+
+// prepareTrigger loads the flow and resolves the inputs of a trigger. It reads through the
+// pool and needs no transaction.
+func (e *Engine) prepareTrigger(ctx context.Context, r TriggerParams) (*preparedTrigger, error) {
+	if err := validateLabels(r.Labels); err != nil {
+		return nil, err
 	}
 	ref, err := e.LoadFlow(ctx, r.Namespace, r.FlowKey)
 	if err != nil {
-		return uuid.Nil, err
+		return nil, err
 	}
 	given := r.Inputs
 	if len(r.InputTemplates) > 0 {
 		if given, err = renderTriggerInputs(ref.Def.Flow.Inputs, r.InputTemplates, r.TriggerPayload, r.Inputs); err != nil {
-			return uuid.Nil, err
+			return nil, err
 		}
 	}
 	inputs, ierrs := flow.ResolveInputs(ref.Def.Flow.Inputs, given)
 	if err := InputErrors(ierrs); err != nil {
-		return uuid.Nil, err
+		return nil, err
 	}
+	return &preparedTrigger{ref: ref, inputs: inputs}, nil
+}
+
+// createPrepared creates the execution of a prepared trigger in tx and audits it.
+func (e *Engine) createPrepared(ctx context.Context, tx pgx.Tx, r TriggerParams, p *preparedTrigger) (uuid.UUID, error) {
+	ref, inputs := p.ref, p.inputs
 	id, state, err := e.Create(ctx, tx, CreateParams{NamespaceID: ref.Flow.NamespaceID, FlowID: &ref.Flow.ID, RevisionID: &ref.Revision.ID,
 		SnapshotID: ref.Revision.SnapshotID, Def: ref.Def, TriggerType: r.TriggerType, TriggerID: r.TriggerID, ScheduledFor: r.ScheduledFor,
 		TriggerPayload: r.TriggerPayload, Inputs: inputs, Labels: r.Labels, ChainDepth: r.ChainDepth,

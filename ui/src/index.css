@@ -18,6 +18,8 @@
   --accent: #2f6feb;
   --accent-foreground: #ffffff;
   --accent-soft: #e8effd;
+  /* Accent for small text: #2f6feb does not reach 4.5:1 on light backgrounds (REQ-UI-011). */
+  --accent-text: #1f5bd0;
   --ring: #2f6feb;
   --destructive: #d64545;
   --destructive-foreground: #ffffff;
@@ -42,6 +44,7 @@
   --accent: #2f6feb;
   --accent-foreground: #ffffff;
   --accent-soft: #1b2a45;
+  --accent-text: #7aa5f5;
   --ring: #5b8ff0;
   --destructive: #d64545;
   --destructive-foreground: #ffffff;
@@ -59,6 +62,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
   --color-ring: var(--ring);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);

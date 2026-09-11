@@ -20,6 +20,12 @@ func (t triggerStarter) Start(ctx context.Context, tx pgx.Tx, s trigger.Start) (
 		TriggerID: &id, ScheduledFor: s.ScheduledFor, TriggerPayload: s.Payload, InputTemplates: s.InputTemplates, ChainDepth: s.ChainDepth})
 }
 
+func (t triggerStarter) StartOwn(ctx context.Context, s trigger.Start) (uuid.UUID, error) {
+	id := s.TriggerID
+	return t.e.Trigger(ctx, execution.TriggerParams{Namespace: s.Namespace, FlowKey: s.FlowKey, TriggerType: s.TriggerType,
+		TriggerID: &id, ScheduledFor: s.ScheduledFor, TriggerPayload: s.Payload, InputTemplates: s.InputTemplates, ChainDepth: s.ChainDepth})
+}
+
 // flowTriggerHook fires flow triggers in the transaction that ends an execution.
 func flowTriggerHook(t *trigger.Service) execution.EndHook {
 	return func(ctx context.Context, tx pgx.Tx, ex executiondb.Execution) error {

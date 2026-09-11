@@ -367,7 +367,7 @@ function Artifacts({ executionId }: { executionId: string }) {
                   <a
                     href={`/api/v1/executions/${encodeURIComponent(executionId)}/artifacts/${encodeURIComponent(a.id)}`}
                     download={a.name}
-                    className="inline-flex items-center gap-1 text-accent hover:underline"
+                    className="inline-flex items-center gap-1 text-accent-text hover:underline"
                   >
                     <Download className="h-3.5 w-3.5" aria-hidden />
                     Download

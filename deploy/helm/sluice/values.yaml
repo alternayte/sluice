@@ -1,0 +1,92 @@
+# Number of server replicas. Replicas share the work through Postgres (C-05).
+replicas: 2
+
+image:
+  repository: sluice
+  # Empty uses the chart appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# Image that holds the runner binary for task pods (SLUICE_RUNNER_IMAGE). Empty uses the
+# server image.
+runnerImage: ""
+
+# The database URL comes from a Secret. A pooled URL (PgBouncer transaction mode, Neon)
+# works (C-06).
+database:
+  existingSecret: sluice-db
+  key: url
+
+# Master keys for builtin secrets (SLUICE_MASTER_KEYS) come from a Secret. Empty disables
+# builtin secret writes (REQ-SEC-010).
+masterKeys:
+  existingSecret: ""
+  key: keys
+
+# The first admin, used only when the users table is empty (REQ-AUTH-002).
+bootstrapAdmin:
+  existingSecret: ""
+  emailKey: email
+  passwordKey: password
+
+# External base URL for links, cookies and webhooks (SLUICE_PUBLIC_URL).
+publicURL: http://localhost:8080
+
+# Base URL that runners in task pods call (SLUICE_INTERNAL_URL). Empty uses the Service.
+internalURL: ""
+
+# Pools that this deployment serves (SLUICE_POOLS).
+pools:
+  - default
+
+# Executors: auto, or a comma-separated list of process, docker and kubernetes.
+executors: auto
+
+storage:
+  # postgres, fs, s3 or azblob (SLUICE_STORAGE_TYPE). fs needs a shared file system and is
+  # not for more than one replica.
+  type: postgres
+
+kubernetes:
+  # Maximum running Jobs per pool (SLUICE_K8S_MAX_JOBS).
+  maxJobs: 50
+  # ttlSecondsAfterFinished of task Jobs (SLUICE_K8S_JOB_TTL).
+  jobTTL: 600s
+  # Maximum time a task pod can stay pending (SLUICE_K8S_PENDING_TIMEOUT).
+  pendingTimeout: 10m
+
+# The kubernetes secret provider reads Secrets in the namespace. Enabling it grants
+# "get" on secrets to the server service account.
+kubernetesSecretProvider:
+  enabled: false
+
+# Extra environment variables of the server, for example storage or Vault settings.
+extraEnv: []
+#  - name: SLUICE_S3_BUCKET
+#    value: sluice
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  host: ""
+  annotations: {}
+  tls: []
+
+resources: {}
+
+serviceAccount:
+  # Empty uses the release full name.
+  name: ""
+  annotations: {}
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# SIGTERM grace of the server (SLUICE_SHUTDOWN_GRACE). The pod grace is 10 s longer.
+shutdownGraceSeconds: 30

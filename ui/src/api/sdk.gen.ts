@@ -73,6 +73,9 @@ import type {
   DownloadExecutionLogsResponses,
   FireWebhookData,
   FireWebhookResponses,
+  GetDashboardData,
+  GetDashboardErrors,
+  GetDashboardResponses,
   GetExecutionData,
   GetExecutionErrors,
   GetExecutionLogsData,
@@ -83,6 +86,9 @@ import type {
   GetFileResponses,
   GetFlowData,
   GetFlowErrors,
+  GetFlowMetricsData,
+  GetFlowMetricsErrors,
+  GetFlowMetricsResponses,
   GetFlowResponses,
   GetFlowRevisionData,
   GetFlowRevisionErrors,
@@ -90,6 +96,9 @@ import type {
   GetFlowSchemaData,
   GetFlowSchemaErrors,
   GetFlowSchemaResponses,
+  GetFlowStatsData,
+  GetFlowStatsErrors,
+  GetFlowStatsResponses,
   GetGitSourceData,
   GetGitSourceErrors,
   GetGitSourceResponses,
@@ -102,6 +111,9 @@ import type {
   GetNamespaceGitErrors,
   GetNamespaceGitResponses,
   GetNamespaceResponses,
+  GetStorageStatusData,
+  GetStorageStatusErrors,
+  GetStorageStatusResponses,
   GitWebhookData,
   GitWebhookResponses,
   ListAuditEventsData,
@@ -658,6 +670,15 @@ export const triggerFlow = <ThrowOnError extends boolean = false>(
     },
   });
 
+export const getFlowMetrics = <ThrowOnError extends boolean = false>(
+  options: Options<GetFlowMetricsData, ThrowOnError>,
+): RequestResult<GetFlowMetricsResponses, GetFlowMetricsErrors, ThrowOnError> =>
+  (options.client ?? client).get<
+    GetFlowMetricsResponses,
+    GetFlowMetricsErrors,
+    ThrowOnError
+  >({ url: "/api/v1/flows/{namespace}/{flowId}/metrics", ...options });
+
 export const listFlowRevisions = <ThrowOnError extends boolean = false>(
   options: Options<ListFlowRevisionsData, ThrowOnError>,
 ): RequestResult<
@@ -686,6 +707,15 @@ export const getFlowRevision = <ThrowOnError extends boolean = false>(
     url: "/api/v1/flows/{namespace}/{flowId}/revisions/{revisionId}",
     ...options,
   });
+
+export const getFlowStats = <ThrowOnError extends boolean = false>(
+  options: Options<GetFlowStatsData, ThrowOnError>,
+): RequestResult<GetFlowStatsResponses, GetFlowStatsErrors, ThrowOnError> =>
+  (options.client ?? client).get<
+    GetFlowStatsResponses,
+    GetFlowStatsErrors,
+    ThrowOnError
+  >({ url: "/api/v1/flows/{namespace}/{flowId}/stats", ...options });
 
 export const rotateWebhookKey = <ThrowOnError extends boolean = false>(
   options: Options<RotateWebhookKeyData, ThrowOnError>,
@@ -1272,6 +1302,28 @@ export const checkGlobalSecret = <ThrowOnError extends boolean = false>(
     CheckGlobalSecretErrors,
     ThrowOnError
   >({ url: "/api/v1/secrets/{key}/check", ...options });
+
+export const getDashboard = <ThrowOnError extends boolean = false>(
+  options?: Options<GetDashboardData, ThrowOnError>,
+): RequestResult<GetDashboardResponses, GetDashboardErrors, ThrowOnError> =>
+  (options?.client ?? client).get<
+    GetDashboardResponses,
+    GetDashboardErrors,
+    ThrowOnError
+  >({ url: "/api/v1/stats/dashboard", ...options });
+
+export const getStorageStatus = <ThrowOnError extends boolean = false>(
+  options?: Options<GetStorageStatusData, ThrowOnError>,
+): RequestResult<
+  GetStorageStatusResponses,
+  GetStorageStatusErrors,
+  ThrowOnError
+> =>
+  (options?.client ?? client).get<
+    GetStorageStatusResponses,
+    GetStorageStatusErrors,
+    ThrowOnError
+  >({ url: "/api/v1/storage", ...options });
 
 export const listTokens = <ThrowOnError extends boolean = false>(
   options?: Options<ListTokensData, ThrowOnError>,

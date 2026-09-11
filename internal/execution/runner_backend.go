@@ -156,6 +156,10 @@ func (e *Engine) Complete(ctx context.Context, tr executiondb.TaskRun, c runnerp
 	switch {
 	case c.Reason == "timeout":
 		state, reason = TaskTimedOut, ReasonTimeout
+	case c.Reason == "cancelled" && !tr.CancelRequested:
+		// The runner got a stop signal that no cancel asked for, for example a Job deleted by
+		// hand or a pod eviction: the work is gone and the retry policy applies (REQ-EXR-006).
+		state, reason = TaskFailed, ReasonLost
 	case c.Reason == "cancelled":
 		state, reason = TaskCancelled, ReasonCancelled
 	case c.ExitCode != 0:

@@ -25,6 +25,7 @@ export const settingsItems: NavItem[] = [
   { to: "/settings/users", label: "Users", min: "admin" },
   { to: "/settings/git", label: "Git sources", min: "admin" },
   { to: "/settings/secret-providers", label: "Secret providers", min: "admin" },
+  { to: "/settings/storage", label: "Storage", min: "admin" },
   { to: "/settings/instances", label: "Instances", min: "admin" },
   { to: "/settings/audit", label: "Audit log", min: "admin" },
 ];
@@ -67,7 +68,7 @@ function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => 
             onClick={onNavigate}
             activeOptions={{ exact: item.to === "/" }}
             className="rounded-[6px] px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-            activeProps={{ className: "bg-accent-soft !text-accent font-medium" }}
+            activeProps={{ className: "bg-accent-soft !text-accent-text font-medium" }}
           >
             {item.label}
           </Link>

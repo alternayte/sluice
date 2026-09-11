@@ -32,16 +32,20 @@ import {
   downloadArtifact,
   downloadExecutionLogs,
   fireWebhook,
+  getDashboard,
   getExecution,
   getExecutionLogs,
   getFile,
   getFlow,
+  getFlowMetrics,
   getFlowRevision,
   getFlowSchema,
+  getFlowStats,
   getGitSource,
   getMe,
   getNamespace,
   getNamespaceGit,
+  getStorageStatus,
   gitWebhook,
   listAuditEvents,
   listExecutionArtifacts,
@@ -159,6 +163,9 @@ import type {
   DownloadArtifactResponse,
   DownloadExecutionLogsData,
   FireWebhookData,
+  GetDashboardData,
+  GetDashboardError,
+  GetDashboardResponse,
   GetExecutionData,
   GetExecutionError,
   GetExecutionLogsData,
@@ -169,12 +176,18 @@ import type {
   GetFileResponse,
   GetFlowData,
   GetFlowError,
+  GetFlowMetricsData,
+  GetFlowMetricsError,
+  GetFlowMetricsResponse,
   GetFlowResponse,
   GetFlowRevisionData,
   GetFlowRevisionError,
   GetFlowRevisionResponse,
   GetFlowSchemaData,
   GetFlowSchemaError,
+  GetFlowStatsData,
+  GetFlowStatsError,
+  GetFlowStatsResponse,
   GetGitSourceData,
   GetGitSourceError,
   GetGitSourceResponse,
@@ -187,6 +200,9 @@ import type {
   GetNamespaceGitError,
   GetNamespaceGitResponse,
   GetNamespaceResponse,
+  GetStorageStatusData,
+  GetStorageStatusError,
+  GetStorageStatusResponse,
   GitWebhookData,
   ListAuditEventsData,
   ListAuditEventsError,
@@ -1291,6 +1307,28 @@ export const triggerFlowMutation = (
   return mutationOptions;
 };
 
+export const getFlowMetricsQueryKey = (options: Options<GetFlowMetricsData>) =>
+  createQueryKey("getFlowMetrics", options);
+
+export const getFlowMetricsOptions = (options: Options<GetFlowMetricsData>) =>
+  queryOptions<
+    GetFlowMetricsResponse,
+    GetFlowMetricsError,
+    GetFlowMetricsResponse,
+    ReturnType<typeof getFlowMetricsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getFlowMetrics({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getFlowMetricsQueryKey(options),
+  });
+
 export const listFlowRevisionsQueryKey = (
   options: Options<ListFlowRevisionsData>,
 ) => createQueryKey("listFlowRevisions", options);
@@ -1337,6 +1375,28 @@ export const getFlowRevisionOptions = (options: Options<GetFlowRevisionData>) =>
       return data;
     },
     queryKey: getFlowRevisionQueryKey(options),
+  });
+
+export const getFlowStatsQueryKey = (options: Options<GetFlowStatsData>) =>
+  createQueryKey("getFlowStats", options);
+
+export const getFlowStatsOptions = (options: Options<GetFlowStatsData>) =>
+  queryOptions<
+    GetFlowStatsResponse,
+    GetFlowStatsError,
+    GetFlowStatsResponse,
+    ReturnType<typeof getFlowStatsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getFlowStats({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getFlowStatsQueryKey(options),
   });
 
 export const rotateWebhookKeyMutation = (
@@ -2321,6 +2381,53 @@ export const checkGlobalSecretMutation = (
   };
   return mutationOptions;
 };
+
+export const getDashboardQueryKey = (options?: Options<GetDashboardData>) =>
+  createQueryKey("getDashboard", options);
+
+export const getDashboardOptions = (options?: Options<GetDashboardData>) =>
+  queryOptions<
+    GetDashboardResponse,
+    GetDashboardError,
+    GetDashboardResponse,
+    ReturnType<typeof getDashboardQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getDashboard({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getDashboardQueryKey(options),
+  });
+
+export const getStorageStatusQueryKey = (
+  options?: Options<GetStorageStatusData>,
+) => createQueryKey("getStorageStatus", options);
+
+export const getStorageStatusOptions = (
+  options?: Options<GetStorageStatusData>,
+) =>
+  queryOptions<
+    GetStorageStatusResponse,
+    GetStorageStatusError,
+    GetStorageStatusResponse,
+    ReturnType<typeof getStorageStatusQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getStorageStatus({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getStorageStatusQueryKey(options),
+  });
 
 export const listTokensQueryKey = (options?: Options<ListTokensData>) =>
   createQueryKey("listTokens", options);

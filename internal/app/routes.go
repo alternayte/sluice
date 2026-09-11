@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"reflect"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -11,9 +12,11 @@ import (
 	"github.com/alternayte/sluice/internal/execution"
 	"github.com/alternayte/sluice/internal/gitsync"
 	"github.com/alternayte/sluice/internal/instance"
+	"github.com/alternayte/sluice/internal/metrics"
 	"github.com/alternayte/sluice/internal/namespace"
 	"github.com/alternayte/sluice/internal/platform/clock"
 	"github.com/alternayte/sluice/internal/secret"
+	"github.com/alternayte/sluice/internal/storage"
 	"github.com/alternayte/sluice/internal/trigger"
 	"github.com/alternayte/sluice/internal/variable"
 )
@@ -31,6 +34,10 @@ type services struct {
 	Secrets    *secret.Service
 	Variables  *variable.Service
 	Git        *gitsync.Service
+	Stats      *metrics.Service
+	// Store and StorageCheck serve the storage status. Route registration must not call them.
+	Store        func() storage.Store
+	StorageCheck func(context.Context) error
 }
 
 // registerRoutes registers every API operation on api, and the streamed routes on r.
@@ -48,9 +55,15 @@ func registerRoutes(api huma.API, r chi.Router, s services) {
 	secret.Routes(api, s.Secrets)
 	variable.Routes(api, s.Variables)
 	gitsync.Routes(api, r, s.Git)
+	metrics.Routes(api, s.Stats)
+	storage.Routes(api, func() storage.Store { return s.Store() }, func(ctx context.Context) error { return s.StorageCheck(ctx) })
 }
 
 func (s *Server) services() services {
 	return services{Auth: s.Auth, Audit: s.Audit, Instances: s.Registry, Clock: s.Clock, Namespaces: s.Namespaces,
-		Engine: s.Engine, Triggers: s.Triggers, Secrets: s.Secrets, Variables: s.Variables, Git: s.Git}
+		Engine: s.Engine, Triggers: s.Triggers, Secrets: s.Secrets, Variables: s.Variables, Git: s.Git, Stats: s.Stats,
+		Store: func() storage.Store { return s.Store },
+		StorageCheck: func(ctx context.Context) error {
+			return storage.RoundTrip(ctx, s.Store, "health/"+s.Instance.ID.String())
+		}}
 }

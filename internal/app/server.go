@@ -23,6 +23,7 @@ import (
 	"github.com/alternayte/sluice/internal/executor"
 	"github.com/alternayte/sluice/internal/gitsync"
 	"github.com/alternayte/sluice/internal/instance"
+	"github.com/alternayte/sluice/internal/metrics"
 	"github.com/alternayte/sluice/internal/namespace"
 	"github.com/alternayte/sluice/internal/platform/clock"
 	"github.com/alternayte/sluice/internal/platform/db"
@@ -69,6 +70,7 @@ type Server struct {
 	Secrets    *secret.Service
 	Variables  *variable.Service
 	Git        *gitsync.Service
+	Stats      *metrics.Service
 
 	httpServer *http.Server
 	listener   net.Listener
@@ -106,7 +108,7 @@ func newServer(ctx context.Context, cfg *Config, log *slog.Logger, clk clock.Clo
 			Hostname:  hostname,
 			Version:   Version,
 			Pools:     cfg.Pools,
-			Executors: enabledExecutors(cfg),
+			Executors: enabledExecutors(ctx, cfg),
 			StartedAt: clk.Now(),
 		},
 		Health:   &health.Checker{},
@@ -143,6 +145,23 @@ func newServer(ctx context.Context, cfg *Config, log *slog.Logger, clk clock.Clo
 			s.Engine.Executors[t] = &executor.InlineExecutor{Run: s.Engine.RunInline}
 		case executor.Process:
 			s.Engine.Executors[t] = &executor.ProcessExecutor{Log: log, Output: os.Stderr}
+		case executor.Docker:
+			dc, err := executor.NewDockerClient()
+			if err != nil {
+				pool.Close()
+				return nil, fmt.Errorf("docker executor: %w", err)
+			}
+			de := &executor.DockerExecutor{Client: dc, RunnerImage: cfg.RunnerImage, Keep: cfg.DockerKeepContainers, Log: log}
+			de.Sweep(ctx)
+			s.Engine.Executors[t] = de
+		case executor.Kubernetes:
+			kc, err := executor.NewKubeClient(cfg.K8sKubeconfig)
+			if err != nil {
+				pool.Close()
+				return nil, fmt.Errorf("kubernetes executor: %w", err)
+			}
+			s.Engine.Executors[t] = &executor.KubernetesExecutor{Client: kc, Namespace: k8sNamespace(cfg), RunnerImage: cfg.RunnerImage,
+				JobTTL: cfg.K8sJobTTL, Log: log}
 		}
 	}
 	s.Triggers = &trigger.Service{Pool: pool, Clock: clk, Audit: s.Audit, Log: log, Starter: triggerStarter{s.Engine},
@@ -165,6 +184,7 @@ func newServer(ctx context.Context, cfg *Config, log *slog.Logger, clk clock.Clo
 	s.Variables = &variable.Service{Pool: pool, Clock: clk, Audit: s.Audit}
 	s.Git = &gitsync.Service{Pool: pool, Clock: clk, Audit: s.Audit, Log: log, Namespaces: gitNamespaces{s.Namespaces},
 		Secrets: globalSecrets{s.Secrets}, Holder: id.String(), PublicURL: cfg.PublicURL, MaxFileBytes: int64(cfg.MaxFileBytes)}
+	s.Stats = &metrics.Service{Pool: pool, Clock: clk}
 	created, err := s.Auth.Bootstrap(ctx, cfg.BootstrapAdminEmail, cfg.BootstrapAdminPassword)
 	if err != nil {
 		pool.Close()
@@ -185,12 +205,20 @@ func newAuthService(cfg *Config, pool *pgxpool.Pool, clk clock.Clock, aw *audit.
 		SecureCookie: cfg.SecureCookies(), PublicOrigin: origin}
 }
 
-func enabledExecutors(cfg *Config) []string {
+// enabledExecutors returns the executors of this instance (REQ-EXR-002). With auto, inline
+// and process are always on and docker is on when the Docker API answers.
+func enabledExecutors(ctx context.Context, cfg *Config) []string {
 	out := []string{"inline"}
 	for _, e := range cfg.Executors {
 		switch e {
 		case "auto":
 			out = append(out, "process")
+			if executor.DockerAvailable(ctx) {
+				out = append(out, "docker")
+			}
+			if executor.KubernetesAvailable(ctx, cfg.K8sKubeconfig, k8sNamespace(cfg)) {
+				out = append(out, "kubernetes")
+			}
 		case "inline":
 		default:
 			out = append(out, e)
@@ -286,6 +314,12 @@ func (s *Server) Run(ctx context.Context) error {
 	s.goBG(func() { scheduler.Run(bg) })
 	gitLeader := &lease.Leader{Store: s.Leases, Name: lease.GitSync, Log: s.Log, Work: s.gitSyncWork}
 	s.goBG(func() { gitLeader.Run(bg) })
+	if _, ok := s.Engine.Executors[executor.Kubernetes]; ok {
+		for _, p := range s.Cfg.Pools {
+			reconciler := &lease.Leader{Store: s.Leases, Name: lease.K8sReconcile(p), Log: s.Log, Work: s.k8sReconcileWork(p)}
+			s.goBG(func() { reconciler.Run(bg) })
+		}
+	}
 
 	errc := make(chan error, 1)
 	go func() { errc <- s.httpServer.Serve(ln) }()
@@ -365,6 +399,35 @@ func (s *Server) schedulerWork(ctx context.Context) {
 		case <-t.C:
 		}
 	}
+}
+
+// k8sReconcileInterval is the pass interval of the k8s-reconcile:<pool> leader (REQ-EXR-006).
+const k8sReconcileInterval = 60 * time.Second
+
+// k8sReconcileWork returns the work of the k8s-reconcile:<pool> leader: one pass every 60 s.
+func (s *Server) k8sReconcileWork(pool string) func(ctx context.Context) {
+	return func(ctx context.Context) {
+		t := time.NewTicker(k8sReconcileInterval)
+		defer t.Stop()
+		for {
+			if err := s.Engine.ReconcileKubernetes(ctx, pool, s.Cfg.K8sPendingTimeout); err != nil && ctx.Err() == nil {
+				s.Log.Warn("kubernetes reconcile", "pool", pool, "err", err)
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+			}
+		}
+	}
+}
+
+// k8sNamespace returns the namespace of task Jobs: SLUICE_K8S_NAMESPACE, or default.
+func k8sNamespace(cfg *Config) string {
+	if cfg.K8sNamespace != "" {
+		return cfg.K8sNamespace
+	}
+	return "default"
 }
 
 // gitSyncWork syncs due git sources each second while this instance holds the git-sync lease.

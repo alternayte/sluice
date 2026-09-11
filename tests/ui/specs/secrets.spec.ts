@@ -60,9 +60,11 @@ test("SCN-SEC-002 an editor creates and updates a builtin namespace secret and n
   const listed = await api.get(`/api/v1/namespaces/${ns}/secrets`);
   const text = await listed.text();
   expect(text).not.toContain("first-secret-value");
+  // Other specs can create global secrets, which the list shows as inherited.
   const items = (JSON.parse(text) as { items: Record<string, unknown>[] }).items;
-  expect(items).toHaveLength(1);
-  expect(items[0]).not.toHaveProperty("value");
+  const own = items.filter((i) => i.inherited === false);
+  expect(own.map((i) => i.key)).toEqual(["DB_PASSWORD"]);
+  for (const i of items) expect(i).not.toHaveProperty("value");
 
   await row(page, "DB_PASSWORD").getByRole("button", { name: "Edit DB_PASSWORD" }).click();
   const edit = page.getByRole("dialog", { name: "Edit secret" });

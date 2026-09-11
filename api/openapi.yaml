@@ -1,5 +1,78 @@
 components:
   schemas:
+    AIProvider:
+      additionalProperties: true
+      properties:
+        api_key_secret_key:
+          description: Global secret key that holds the API key.
+          type: string
+        auto_triage:
+          type: boolean
+        base_url:
+          description: Empty uses the default URL of the type.
+          type: string
+        configured:
+          type: boolean
+        model:
+          type: string
+        type:
+          enum:
+            - anthropic
+            - openai_compatible
+          type: string
+      required:
+        - configured
+        - auto_triage
+      type: object
+    AIProviderPut:
+      additionalProperties: true
+      properties:
+        api_key_secret_key:
+          pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+          type: string
+        auto_triage:
+          type: boolean
+        base_url:
+          maxLength: 512
+          type: string
+        model:
+          maxLength: 200
+          minLength: 1
+          type: string
+        type:
+          enum:
+            - anthropic
+            - openai_compatible
+          type: string
+      required:
+        - type
+        - model
+        - api_key_secret_key
+      type: object
+    AIStatus:
+      additionalProperties: true
+      properties:
+        auto_triage:
+          type: boolean
+        enabled:
+          type: boolean
+      required:
+        - enabled
+        - auto_triage
+      type: object
+    AITestResult:
+      additionalProperties: true
+      properties:
+        message:
+          type: string
+        status:
+          enum:
+            - ok
+            - failed
+          type: string
+      required:
+        - status
+      type: object
     Artifact:
       additionalProperties: true
       properties:
@@ -92,6 +165,23 @@ components:
       required:
         - items
       type: object
+    Block:
+      additionalProperties: true
+      properties:
+        input: {}
+        is_error:
+          type: boolean
+        text:
+          type: string
+        tool_name:
+          type: string
+        tool_use_id:
+          type: string
+        type:
+          type: string
+      required:
+        - type
+      type: object
     BucketOut:
       additionalProperties: true
       properties:
@@ -172,6 +262,56 @@ components:
       required:
         - ref
       type: object
+    Conversation:
+      additionalProperties: true
+      properties:
+        created_at:
+          format: date-time
+          type: string
+        id:
+          type: string
+        title:
+          type: string
+      required:
+        - id
+        - title
+        - created_at
+      type: object
+    ConversationDetail:
+      additionalProperties: true
+      properties:
+        actions:
+          items:
+            $ref: "#/components/schemas/PendingAction"
+          type: array
+        created_at:
+          format: date-time
+          type: string
+        id:
+          type: string
+        messages:
+          items:
+            $ref: "#/components/schemas/StoredMessage"
+          type: array
+        title:
+          type: string
+      required:
+        - messages
+        - actions
+        - id
+        - title
+        - created_at
+      type: object
+    ConversationList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/Conversation"
+          type: array
+      required:
+        - items
+      type: object
     CountResult:
       additionalProperties: true
       properties:
@@ -180,6 +320,13 @@ components:
           type: integer
       required:
         - count
+      type: object
+    CreateAIConversationRequest:
+      additionalProperties: true
+      properties:
+        title:
+          maxLength: 200
+          type: string
       type: object
     CreateGitSourceRequest:
       additionalProperties: true
@@ -385,6 +532,21 @@ components:
           $ref: "#/components/schemas/ErrorBody"
       required:
         - error
+      type: object
+    Evidence:
+      additionalProperties: true
+      properties:
+        line:
+          format: int64
+          type: integer
+        task:
+          type: string
+        text:
+          type: string
+      required:
+        - task
+        - line
+        - text
       type: object
     ExecutionDetail:
       additionalProperties: true
@@ -846,6 +1008,72 @@ components:
         - description
         - error_count
       type: object
+    Insight:
+      additionalProperties: true
+      properties:
+        confidence:
+          enum:
+            - ""
+            - low
+            - medium
+            - high
+          type: string
+        created_at:
+          format: date-time
+          type: string
+        error:
+          type: string
+        evidence:
+          items:
+            $ref: "#/components/schemas/Evidence"
+          type: array
+        execution_id:
+          type: string
+        id:
+          type: string
+        kind:
+          enum:
+            - triage
+          type: string
+        model:
+          type: string
+        probable_cause:
+          type: string
+        status:
+          enum:
+            - pending
+            - running
+            - done
+            - failed
+          type: string
+        suggested_fix:
+          type: string
+        summary:
+          type: string
+      required:
+        - id
+        - execution_id
+        - kind
+        - status
+        - summary
+        - probable_cause
+        - evidence
+        - suggested_fix
+        - confidence
+        - model
+        - error
+        - created_at
+      type: object
+    InsightList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/Insight"
+          type: array
+      required:
+        - items
+      type: object
     Instance:
       additionalProperties: true
       properties:
@@ -1071,6 +1299,16 @@ components:
         - must_change_password
         - auth_type
       type: object
+    MessageIn:
+      additionalProperties: true
+      properties:
+        text:
+          maxLength: 20000
+          minLength: 1
+          type: string
+      required:
+        - text
+      type: object
     MetricList:
       additionalProperties: true
       properties:
@@ -1221,6 +1459,33 @@ components:
           type: array
       required:
         - items
+      type: object
+    PendingAction:
+      additionalProperties: true
+      properties:
+        arguments: {}
+        created_at:
+          format: date-time
+          type: string
+        id:
+          type: string
+        status:
+          enum:
+            - pending
+            - confirmed
+            - rejected
+          type: string
+        tool:
+          type: string
+        tool_call_id:
+          type: string
+      required:
+        - id
+        - tool_call_id
+        - tool
+        - arguments
+        - status
+        - created_at
       type: object
     ProviderList:
       additionalProperties: true
@@ -1916,6 +2181,30 @@ components:
         - driver
         - healthy
       type: object
+    StoredMessage:
+      additionalProperties: true
+      properties:
+        content:
+          items:
+            $ref: "#/components/schemas/Block"
+          type: array
+        created_at:
+          format: date-time
+          type: string
+        id:
+          type: string
+        role:
+          enum:
+            - user
+            - assistant
+            - tool
+          type: string
+      required:
+        - id
+        - role
+        - content
+        - created_at
+      type: object
     TaskRun:
       additionalProperties: true
       properties:
@@ -2499,6 +2788,225 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Error
+  /api/v1/ai/conversations:
+    get:
+      operationId: listAIConversations
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    post:
+      operationId: createAIConversation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAIConversationRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/ai/conversations/{conversationId}:
+    delete:
+      operationId: deleteAIConversation
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    get:
+      operationId: getAIConversation
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationDetail"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/ai/conversations/{conversationId}/actions/{actionId}/confirm:
+    post:
+      operationId: confirmAIAction
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            format: uuid
+            type: string
+        - in: path
+          name: actionId
+          required: true
+          schema:
+            format: uuid
+            type: string
+      responses:
+        "200":
+          content:
+            text/event-stream: {}
+          description: Events of the continued turn.
+  /api/v1/ai/conversations/{conversationId}/actions/{actionId}/reject:
+    post:
+      operationId: rejectAIAction
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            format: uuid
+            type: string
+        - in: path
+          name: actionId
+          required: true
+          schema:
+            format: uuid
+            type: string
+      responses:
+        "200":
+          content:
+            text/event-stream: {}
+          description: Events of the continued turn.
+  /api/v1/ai/conversations/{conversationId}/messages:
+    post:
+      operationId: sendAIMessage
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageIn"
+        required: true
+      responses:
+        "200":
+          content:
+            text/event-stream: {}
+          description: "Events of the turn: text, tool_call, tool_result, pending_action, error and done."
+  /api/v1/ai/provider:
+    delete:
+      operationId: deleteAIProvider
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    get:
+      operationId: getAIProvider
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIProvider"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    put:
+      operationId: putAIProvider
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AIProviderPut"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIProvider"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/ai/provider/test:
+    post:
+      operationId: testAIProvider
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AITestResult"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/ai/status:
+    get:
+      operationId: getAIStatus
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIStatus"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
   /api/v1/audit:
     get:
       operationId: listAuditEvents
@@ -2874,6 +3382,49 @@ paths:
           content:
             text/event-stream: {}
           description: Event stream.
+  /api/v1/executions/{executionId}/insights:
+    get:
+      operationId: listExecutionInsights
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InsightList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    post:
+      operationId: requestTriage
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InsightList"
+          description: Accepted
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
   /api/v1/executions/{executionId}/logs:
     get:
       operationId: getExecutionLogs

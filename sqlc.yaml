@@ -125,3 +125,14 @@ sql:
         emit_json_tags: false
         emit_empty_slices: true
         emit_pointers_for_null_types: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: internal/ai/queries.sql
+    gen:
+      go:
+        package: aidb
+        out: internal/ai/aidb
+        sql_package: pgx/v5
+        emit_json_tags: false
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true

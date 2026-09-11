@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/alternayte/sluice/internal/ai"
 	"github.com/alternayte/sluice/internal/audit"
 	"github.com/alternayte/sluice/internal/auth"
 	"github.com/alternayte/sluice/internal/execution"
@@ -71,6 +72,7 @@ type Server struct {
 	Variables  *variable.Service
 	Git        *gitsync.Service
 	Stats      *metrics.Service
+	AI         *ai.Service
 
 	httpServer *http.Server
 	listener   net.Listener
@@ -185,6 +187,9 @@ func newServer(ctx context.Context, cfg *Config, log *slog.Logger, clk clock.Clo
 	s.Git = &gitsync.Service{Pool: pool, Clock: clk, Audit: s.Audit, Log: log, Namespaces: gitNamespaces{s.Namespaces},
 		Secrets: globalSecrets{s.Secrets}, Holder: id.String(), PublicURL: cfg.PublicURL, MaxFileBytes: int64(cfg.MaxFileBytes)}
 	s.Stats = &metrics.Service{Pool: pool, Clock: clk}
+	s.AI = &ai.Service{Pool: pool, Clock: clk, Audit: s.Audit, Log: log, Secrets: globalSecrets{s.Secrets},
+		MaxContextChars: cfg.AIMaxContextChars, Data: aiData{ns: s.Namespaces, e: s.Engine, git: s.Git}, Version: Version}
+	s.Engine.EndHooks = append(s.Engine.EndHooks, aiTriageHook(s.AI))
 	created, err := s.Auth.Bootstrap(ctx, cfg.BootstrapAdminEmail, cfg.BootstrapAdminPassword)
 	if err != nil {
 		pool.Close()
@@ -308,6 +313,7 @@ func (s *Server) Run(ctx context.Context) error {
 	bg, stopBG := context.WithCancel(context.WithoutCancel(ctx))
 	s.goBG(func() { s.Registry.Run(bg, s.Instance) })
 	s.goBG(func() { s.Engine.Run(bg) })
+	s.goBG(func() { s.AI.RunTriage(bg) })
 	maintenance := &lease.Leader{Store: s.Leases, Name: lease.Maintenance, Log: s.Log, Work: s.leaderWork}
 	s.goBG(func() { maintenance.Run(bg) })
 	scheduler := &lease.Leader{Store: s.Leases, Name: lease.Scheduler, Log: s.Log, Work: s.schedulerWork}

@@ -25,6 +25,11 @@ import type {
   CheckSecretProviderData,
   CheckSecretProviderErrors,
   CheckSecretProviderResponses,
+  ConfirmAiActionData,
+  ConfirmAiActionResponses,
+  CreateAiConversationData,
+  CreateAiConversationErrors,
+  CreateAiConversationResponses,
   CreateGitSourceData,
   CreateGitSourceErrors,
   CreateGitSourceResponses,
@@ -40,6 +45,12 @@ import type {
   CreateUserData,
   CreateUserErrors,
   CreateUserResponses,
+  DeleteAiConversationData,
+  DeleteAiConversationErrors,
+  DeleteAiConversationResponses,
+  DeleteAiProviderData,
+  DeleteAiProviderErrors,
+  DeleteAiProviderResponses,
   DeleteGitSourceData,
   DeleteGitSourceErrors,
   DeleteGitSourceResponses,
@@ -73,6 +84,15 @@ import type {
   DownloadExecutionLogsResponses,
   FireWebhookData,
   FireWebhookResponses,
+  GetAiConversationData,
+  GetAiConversationErrors,
+  GetAiConversationResponses,
+  GetAiProviderData,
+  GetAiProviderErrors,
+  GetAiProviderResponses,
+  GetAiStatusData,
+  GetAiStatusErrors,
+  GetAiStatusResponses,
   GetDashboardData,
   GetDashboardErrors,
   GetDashboardResponses,
@@ -116,12 +136,18 @@ import type {
   GetStorageStatusResponses,
   GitWebhookData,
   GitWebhookResponses,
+  ListAiConversationsData,
+  ListAiConversationsErrors,
+  ListAiConversationsResponses,
   ListAuditEventsData,
   ListAuditEventsErrors,
   ListAuditEventsResponses,
   ListExecutionArtifactsData,
   ListExecutionArtifactsErrors,
   ListExecutionArtifactsResponses,
+  ListExecutionInsightsData,
+  ListExecutionInsightsErrors,
+  ListExecutionInsightsResponses,
   ListExecutionMetricsData,
   ListExecutionMetricsErrors,
   ListExecutionMetricsResponses,
@@ -185,6 +211,9 @@ import type {
   PushNamespaceBranchData,
   PushNamespaceBranchErrors,
   PushNamespaceBranchResponses,
+  PutAiProviderData,
+  PutAiProviderErrors,
+  PutAiProviderResponses,
   PutGlobalSecretData,
   PutGlobalSecretErrors,
   PutGlobalSecretResponses,
@@ -197,6 +226,11 @@ import type {
   PutNamespaceVariableData,
   PutNamespaceVariableErrors,
   PutNamespaceVariableResponses,
+  RejectAiActionData,
+  RejectAiActionResponses,
+  RequestTriageData,
+  RequestTriageErrors,
+  RequestTriageResponses,
   RerunExecutionData,
   RerunExecutionErrors,
   RerunExecutionResponses,
@@ -243,6 +277,8 @@ import type {
   SaveChangesData,
   SaveChangesErrors,
   SaveChangesResponses,
+  SendAiMessageData,
+  SendAiMessageResponses,
   StreamExecutionEventsData,
   StreamExecutionEventsResponses,
   StreamExecutionLogsData,
@@ -250,6 +286,9 @@ import type {
   SyncGitSourceData,
   SyncGitSourceErrors,
   SyncGitSourceResponses,
+  TestAiProviderData,
+  TestAiProviderErrors,
+  TestAiProviderResponses,
   TriggerFlowData,
   TriggerFlowErrors,
   TriggerFlowResponses,
@@ -392,6 +431,161 @@ export const runnerGetSpec = <ThrowOnError extends boolean = false>(
     RunnerGetSpecErrors,
     ThrowOnError
   >({ url: "/api/runner/v1/task-runs/{taskRunId}/spec", ...options });
+
+export const listAiConversations = <ThrowOnError extends boolean = false>(
+  options?: Options<ListAiConversationsData, ThrowOnError>,
+): RequestResult<
+  ListAiConversationsResponses,
+  ListAiConversationsErrors,
+  ThrowOnError
+> =>
+  (options?.client ?? client).get<
+    ListAiConversationsResponses,
+    ListAiConversationsErrors,
+    ThrowOnError
+  >({ url: "/api/v1/ai/conversations", ...options });
+
+export const createAiConversation = <ThrowOnError extends boolean = false>(
+  options: Options<CreateAiConversationData, ThrowOnError>,
+): RequestResult<
+  CreateAiConversationResponses,
+  CreateAiConversationErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    CreateAiConversationResponses,
+    CreateAiConversationErrors,
+    ThrowOnError
+  >({
+    url: "/api/v1/ai/conversations",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const deleteAiConversation = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteAiConversationData, ThrowOnError>,
+): RequestResult<
+  DeleteAiConversationResponses,
+  DeleteAiConversationErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).delete<
+    DeleteAiConversationResponses,
+    DeleteAiConversationErrors,
+    ThrowOnError
+  >({ url: "/api/v1/ai/conversations/{conversationId}", ...options });
+
+export const getAiConversation = <ThrowOnError extends boolean = false>(
+  options: Options<GetAiConversationData, ThrowOnError>,
+): RequestResult<
+  GetAiConversationResponses,
+  GetAiConversationErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).get<
+    GetAiConversationResponses,
+    GetAiConversationErrors,
+    ThrowOnError
+  >({ url: "/api/v1/ai/conversations/{conversationId}", ...options });
+
+export const confirmAiAction = <ThrowOnError extends boolean = false>(
+  options: Options<ConfirmAiActionData, ThrowOnError, unknown>,
+): Promise<ServerSentEventsResult<ConfirmAiActionResponses>> =>
+  (options.client ?? client).sse.post<
+    ConfirmAiActionResponses,
+    unknown,
+    ThrowOnError
+  >({
+    url: "/api/v1/ai/conversations/{conversationId}/actions/{actionId}/confirm",
+    ...options,
+  });
+
+export const rejectAiAction = <ThrowOnError extends boolean = false>(
+  options: Options<RejectAiActionData, ThrowOnError, unknown>,
+): Promise<ServerSentEventsResult<RejectAiActionResponses>> =>
+  (options.client ?? client).sse.post<
+    RejectAiActionResponses,
+    unknown,
+    ThrowOnError
+  >({
+    url: "/api/v1/ai/conversations/{conversationId}/actions/{actionId}/reject",
+    ...options,
+  });
+
+export const sendAiMessage = <ThrowOnError extends boolean = false>(
+  options: Options<SendAiMessageData, ThrowOnError, unknown>,
+): Promise<ServerSentEventsResult<SendAiMessageResponses>> =>
+  (options.client ?? client).sse.post<
+    SendAiMessageResponses,
+    unknown,
+    ThrowOnError
+  >({
+    url: "/api/v1/ai/conversations/{conversationId}/messages",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const deleteAiProvider = <ThrowOnError extends boolean = false>(
+  options?: Options<DeleteAiProviderData, ThrowOnError>,
+): RequestResult<
+  DeleteAiProviderResponses,
+  DeleteAiProviderErrors,
+  ThrowOnError
+> =>
+  (options?.client ?? client).delete<
+    DeleteAiProviderResponses,
+    DeleteAiProviderErrors,
+    ThrowOnError
+  >({ url: "/api/v1/ai/provider", ...options });
+
+export const getAiProvider = <ThrowOnError extends boolean = false>(
+  options?: Options<GetAiProviderData, ThrowOnError>,
+): RequestResult<GetAiProviderResponses, GetAiProviderErrors, ThrowOnError> =>
+  (options?.client ?? client).get<
+    GetAiProviderResponses,
+    GetAiProviderErrors,
+    ThrowOnError
+  >({ url: "/api/v1/ai/provider", ...options });
+
+export const putAiProvider = <ThrowOnError extends boolean = false>(
+  options: Options<PutAiProviderData, ThrowOnError>,
+): RequestResult<PutAiProviderResponses, PutAiProviderErrors, ThrowOnError> =>
+  (options.client ?? client).put<
+    PutAiProviderResponses,
+    PutAiProviderErrors,
+    ThrowOnError
+  >({
+    url: "/api/v1/ai/provider",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const testAiProvider = <ThrowOnError extends boolean = false>(
+  options?: Options<TestAiProviderData, ThrowOnError>,
+): RequestResult<TestAiProviderResponses, TestAiProviderErrors, ThrowOnError> =>
+  (options?.client ?? client).post<
+    TestAiProviderResponses,
+    TestAiProviderErrors,
+    ThrowOnError
+  >({ url: "/api/v1/ai/provider/test", ...options });
+
+export const getAiStatus = <ThrowOnError extends boolean = false>(
+  options?: Options<GetAiStatusData, ThrowOnError>,
+): RequestResult<GetAiStatusResponses, GetAiStatusErrors, ThrowOnError> =>
+  (options?.client ?? client).get<
+    GetAiStatusResponses,
+    GetAiStatusErrors,
+    ThrowOnError
+  >({ url: "/api/v1/ai/status", ...options });
 
 export const listAuditEvents = <ThrowOnError extends boolean = false>(
   options?: Options<ListAuditEventsData, ThrowOnError>,
@@ -542,6 +736,28 @@ export const streamExecutionEvents = <ThrowOnError extends boolean = false>(
     unknown,
     ThrowOnError
   >({ url: "/api/v1/executions/{executionId}/events", ...options });
+
+export const listExecutionInsights = <ThrowOnError extends boolean = false>(
+  options: Options<ListExecutionInsightsData, ThrowOnError>,
+): RequestResult<
+  ListExecutionInsightsResponses,
+  ListExecutionInsightsErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).get<
+    ListExecutionInsightsResponses,
+    ListExecutionInsightsErrors,
+    ThrowOnError
+  >({ url: "/api/v1/executions/{executionId}/insights", ...options });
+
+export const requestTriage = <ThrowOnError extends boolean = false>(
+  options: Options<RequestTriageData, ThrowOnError>,
+): RequestResult<RequestTriageResponses, RequestTriageErrors, ThrowOnError> =>
+  (options.client ?? client).post<
+    RequestTriageResponses,
+    RequestTriageErrors,
+    ThrowOnError
+  >({ url: "/api/v1/executions/{executionId}/insights", ...options });
 
 export const getExecutionLogs = <ThrowOnError extends boolean = false>(
   options: Options<GetExecutionLogsData, ThrowOnError>,

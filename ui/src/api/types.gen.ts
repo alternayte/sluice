@@ -4,6 +4,43 @@ export type ClientOptions = {
   baseUrl: `${string}://${string}` | (string & {});
 };
 
+export type AiProvider = {
+  /**
+   * Global secret key that holds the API key.
+   */
+  api_key_secret_key?: string;
+  auto_triage: boolean;
+  /**
+   * Empty uses the default URL of the type.
+   */
+  base_url?: string;
+  configured: boolean;
+  model?: string;
+  type?: "anthropic" | "openai_compatible";
+  [key: string]: unknown;
+};
+
+export type AiProviderPut = {
+  api_key_secret_key: string;
+  auto_triage?: boolean;
+  base_url?: string;
+  model: string;
+  type: "anthropic" | "openai_compatible";
+  [key: string]: unknown;
+};
+
+export type AiStatus = {
+  auto_triage: boolean;
+  enabled: boolean;
+  [key: string]: unknown;
+};
+
+export type AiTestResult = {
+  message?: string;
+  status: "ok" | "failed";
+  [key: string]: unknown;
+};
+
 export type Artifact = {
   content_type: string;
   created_at: string;
@@ -42,6 +79,16 @@ export type AuditList = {
   [key: string]: unknown;
 };
 
+export type Block = {
+  input?: unknown;
+  is_error?: boolean;
+  text?: string;
+  tool_name?: string;
+  tool_use_id?: string;
+  type: string;
+  [key: string]: unknown;
+};
+
 export type BucketOut = {
   cancelled: number;
   failed: number;
@@ -71,8 +118,34 @@ export type CheckSecretProviderRequest = {
   [key: string]: unknown;
 };
 
+export type Conversation = {
+  created_at: string;
+  id: string;
+  title: string;
+  [key: string]: unknown;
+};
+
+export type ConversationDetail = {
+  actions: Array<PendingAction>;
+  created_at: string;
+  id: string;
+  messages: Array<StoredMessage>;
+  title: string;
+  [key: string]: unknown;
+};
+
+export type ConversationList = {
+  items: Array<Conversation>;
+  [key: string]: unknown;
+};
+
 export type CountResult = {
   count: number;
+  [key: string]: unknown;
+};
+
+export type CreateAiConversationRequest = {
+  title?: string;
   [key: string]: unknown;
 };
 
@@ -161,6 +234,13 @@ export type ErrorBody = {
 
 export type ErrorEnvelope = {
   error: ErrorBody;
+  [key: string]: unknown;
+};
+
+export type Evidence = {
+  line: number;
+  task: string;
+  text: string;
   [key: string]: unknown;
 };
 
@@ -368,6 +448,27 @@ export type FlowSummary = {
   [key: string]: unknown;
 };
 
+export type Insight = {
+  confidence: "" | "low" | "medium" | "high";
+  created_at: string;
+  error: string;
+  evidence: Array<Evidence>;
+  execution_id: string;
+  id: string;
+  kind: "triage";
+  model: string;
+  probable_cause: string;
+  status: "pending" | "running" | "done" | "failed";
+  suggested_fix: string;
+  summary: string;
+  [key: string]: unknown;
+};
+
+export type InsightList = {
+  items: Array<Insight>;
+  [key: string]: unknown;
+};
+
 export type Instance = {
   executors: Array<string>;
   heartbeat_at: string;
@@ -465,6 +566,11 @@ export type Me = {
   [key: string]: unknown;
 };
 
+export type MessageIn = {
+  text: string;
+  [key: string]: unknown;
+};
+
 export type MetricList = {
   items: Array<MetricPoint>;
   [key: string]: unknown;
@@ -530,6 +636,16 @@ export type NamespaceGit = {
 
 export type NamespaceList = {
   items: Array<Namespace>;
+  [key: string]: unknown;
+};
+
+export type PendingAction = {
+  arguments: unknown;
+  created_at: string;
+  id: string;
+  status: "pending" | "confirmed" | "rejected";
+  tool: string;
+  tool_call_id: string;
   [key: string]: unknown;
 };
 
@@ -839,6 +955,14 @@ export type Status = {
    * The result of a put, get and delete round trip.
    */
   healthy: boolean;
+  [key: string]: unknown;
+};
+
+export type StoredMessage = {
+  content: Array<Block>;
+  created_at: string;
+  id: string;
+  role: "user" | "assistant" | "tool";
   [key: string]: unknown;
 };
 
@@ -1231,6 +1355,300 @@ export type RunnerGetSpecResponses = {
 export type RunnerGetSpecResponse =
   RunnerGetSpecResponses[keyof RunnerGetSpecResponses];
 
+export type ListAiConversationsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/conversations";
+};
+
+export type ListAiConversationsErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListAiConversationsError =
+  ListAiConversationsErrors[keyof ListAiConversationsErrors];
+
+export type ListAiConversationsResponses = {
+  /**
+   * OK
+   */
+  200: ConversationList;
+};
+
+export type ListAiConversationsResponse =
+  ListAiConversationsResponses[keyof ListAiConversationsResponses];
+
+export type CreateAiConversationData = {
+  body: CreateAiConversationRequest;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/conversations";
+};
+
+export type CreateAiConversationErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type CreateAiConversationError =
+  CreateAiConversationErrors[keyof CreateAiConversationErrors];
+
+export type CreateAiConversationResponses = {
+  /**
+   * Created
+   */
+  201: Conversation;
+};
+
+export type CreateAiConversationResponse =
+  CreateAiConversationResponses[keyof CreateAiConversationResponses];
+
+export type DeleteAiConversationData = {
+  body?: never;
+  path: {
+    conversationId: string;
+  };
+  query?: never;
+  url: "/api/v1/ai/conversations/{conversationId}";
+};
+
+export type DeleteAiConversationErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteAiConversationError =
+  DeleteAiConversationErrors[keyof DeleteAiConversationErrors];
+
+export type DeleteAiConversationResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteAiConversationResponse =
+  DeleteAiConversationResponses[keyof DeleteAiConversationResponses];
+
+export type GetAiConversationData = {
+  body?: never;
+  path: {
+    conversationId: string;
+  };
+  query?: never;
+  url: "/api/v1/ai/conversations/{conversationId}";
+};
+
+export type GetAiConversationErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetAiConversationError =
+  GetAiConversationErrors[keyof GetAiConversationErrors];
+
+export type GetAiConversationResponses = {
+  /**
+   * OK
+   */
+  200: ConversationDetail;
+};
+
+export type GetAiConversationResponse =
+  GetAiConversationResponses[keyof GetAiConversationResponses];
+
+export type ConfirmAiActionData = {
+  body?: never;
+  path: {
+    conversationId: string;
+    actionId: string;
+  };
+  query?: never;
+  url: "/api/v1/ai/conversations/{conversationId}/actions/{actionId}/confirm";
+};
+
+export type ConfirmAiActionResponses = {
+  /**
+   * Events of the continued turn.
+   */
+  200: unknown;
+};
+
+export type RejectAiActionData = {
+  body?: never;
+  path: {
+    conversationId: string;
+    actionId: string;
+  };
+  query?: never;
+  url: "/api/v1/ai/conversations/{conversationId}/actions/{actionId}/reject";
+};
+
+export type RejectAiActionResponses = {
+  /**
+   * Events of the continued turn.
+   */
+  200: unknown;
+};
+
+export type SendAiMessageData = {
+  body: MessageIn;
+  path: {
+    conversationId: string;
+  };
+  query?: never;
+  url: "/api/v1/ai/conversations/{conversationId}/messages";
+};
+
+export type SendAiMessageResponses = {
+  /**
+   * Events of the turn: text, tool_call, tool_result, pending_action, error and done.
+   */
+  200: unknown;
+};
+
+export type DeleteAiProviderData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/provider";
+};
+
+export type DeleteAiProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteAiProviderError =
+  DeleteAiProviderErrors[keyof DeleteAiProviderErrors];
+
+export type DeleteAiProviderResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteAiProviderResponse =
+  DeleteAiProviderResponses[keyof DeleteAiProviderResponses];
+
+export type GetAiProviderData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/provider";
+};
+
+export type GetAiProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetAiProviderError = GetAiProviderErrors[keyof GetAiProviderErrors];
+
+export type GetAiProviderResponses = {
+  /**
+   * OK
+   */
+  200: AiProvider;
+};
+
+export type GetAiProviderResponse =
+  GetAiProviderResponses[keyof GetAiProviderResponses];
+
+export type PutAiProviderData = {
+  body: AiProviderPut;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/provider";
+};
+
+export type PutAiProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type PutAiProviderError = PutAiProviderErrors[keyof PutAiProviderErrors];
+
+export type PutAiProviderResponses = {
+  /**
+   * OK
+   */
+  200: AiProvider;
+};
+
+export type PutAiProviderResponse =
+  PutAiProviderResponses[keyof PutAiProviderResponses];
+
+export type TestAiProviderData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/provider/test";
+};
+
+export type TestAiProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type TestAiProviderError =
+  TestAiProviderErrors[keyof TestAiProviderErrors];
+
+export type TestAiProviderResponses = {
+  /**
+   * OK
+   */
+  200: AiTestResult;
+};
+
+export type TestAiProviderResponse =
+  TestAiProviderResponses[keyof TestAiProviderResponses];
+
+export type GetAiStatusData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/status";
+};
+
+export type GetAiStatusErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetAiStatusError = GetAiStatusErrors[keyof GetAiStatusErrors];
+
+export type GetAiStatusResponses = {
+  /**
+   * OK
+   */
+  200: AiStatus;
+};
+
+export type GetAiStatusResponse =
+  GetAiStatusResponses[keyof GetAiStatusResponses];
+
 export type ListAuditEventsData = {
   body?: never;
   path?: never;
@@ -1605,6 +2023,63 @@ export type StreamExecutionEventsResponses = {
    */
   200: unknown;
 };
+
+export type ListExecutionInsightsData = {
+  body?: never;
+  path: {
+    executionId: string;
+  };
+  query?: never;
+  url: "/api/v1/executions/{executionId}/insights";
+};
+
+export type ListExecutionInsightsErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListExecutionInsightsError =
+  ListExecutionInsightsErrors[keyof ListExecutionInsightsErrors];
+
+export type ListExecutionInsightsResponses = {
+  /**
+   * OK
+   */
+  200: InsightList;
+};
+
+export type ListExecutionInsightsResponse =
+  ListExecutionInsightsResponses[keyof ListExecutionInsightsResponses];
+
+export type RequestTriageData = {
+  body?: never;
+  path: {
+    executionId: string;
+  };
+  query?: never;
+  url: "/api/v1/executions/{executionId}/insights";
+};
+
+export type RequestTriageErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type RequestTriageError = RequestTriageErrors[keyof RequestTriageErrors];
+
+export type RequestTriageResponses = {
+  /**
+   * Accepted
+   */
+  202: InsightList;
+};
+
+export type RequestTriageResponse =
+  RequestTriageResponses[keyof RequestTriageResponses];
 
 export type GetExecutionLogsData = {
   body?: never;

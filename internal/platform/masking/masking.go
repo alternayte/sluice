@@ -57,6 +57,24 @@ func New(values []string) *Masker {
 			set[f] = true
 		}
 	}
+	return build(set)
+}
+
+// Merge builds one masker from the forms of several maskers.
+func Merge(ms ...*Masker) *Masker {
+	set := map[string]bool{}
+	for _, m := range ms {
+		if m == nil {
+			continue
+		}
+		for _, f := range m.forms {
+			set[f] = true
+		}
+	}
+	return build(set)
+}
+
+func build(set map[string]bool) *Masker {
 	forms := make([]string, 0, len(set))
 	for f := range set {
 		forms = append(forms, f)

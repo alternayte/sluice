@@ -72,7 +72,7 @@ func (m *anthropicModel) body(req Request) anthropicRequest {
 		out.Messages = append(out.Messages, am)
 	}
 	for _, t := range req.Tools {
-		out.Tools = append(out.Tools, anthropicTool{Name: t.Name, Description: t.Description, InputSchema: t.InputSchema})
+		out.Tools = append(out.Tools, anthropicTool(t))
 	}
 	// A forced tool call gives the structured answer.
 	if len(req.JSONSchema) > 0 {

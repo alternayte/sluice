@@ -92,6 +92,11 @@ linters:
           deny:
             - pkg: github.com/alternayte/sluice/internal/metrics
               desc: a feature does not import another feature (SDD §4.4)
+        only-app-imports-ai:
+          files: ["**/internal/**", "!**/internal/ai/**", "!**/internal/app/**"]
+          deny:
+            - pkg: github.com/alternayte/sluice/internal/ai
+              desc: a feature does not import another feature (SDD §4.4)
         only-execution-imports-executor:
           files: ["**/internal/**", "!**/internal/executor/**", "!**/internal/execution/**", "!**/internal/app/**"]
           deny:

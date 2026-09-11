@@ -7,6 +7,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
 
+	"github.com/alternayte/sluice/internal/ai"
 	"github.com/alternayte/sluice/internal/audit"
 	"github.com/alternayte/sluice/internal/auth"
 	"github.com/alternayte/sluice/internal/execution"
@@ -35,6 +36,7 @@ type services struct {
 	Variables  *variable.Service
 	Git        *gitsync.Service
 	Stats      *metrics.Service
+	AI         *ai.Service
 	// Store and StorageCheck serve the storage status. Route registration must not call them.
 	Store        func() storage.Store
 	StorageCheck func(context.Context) error
@@ -56,12 +58,13 @@ func registerRoutes(api huma.API, r chi.Router, s services) {
 	variable.Routes(api, s.Variables)
 	gitsync.Routes(api, r, s.Git)
 	metrics.Routes(api, s.Stats)
+	ai.Routes(api, r, s.AI)
 	storage.Routes(api, func() storage.Store { return s.Store() }, func(ctx context.Context) error { return s.StorageCheck(ctx) })
 }
 
 func (s *Server) services() services {
 	return services{Auth: s.Auth, Audit: s.Audit, Instances: s.Registry, Clock: s.Clock, Namespaces: s.Namespaces,
-		Engine: s.Engine, Triggers: s.Triggers, Secrets: s.Secrets, Variables: s.Variables, Git: s.Git, Stats: s.Stats,
+		Engine: s.Engine, Triggers: s.Triggers, Secrets: s.Secrets, Variables: s.Variables, Git: s.Git, Stats: s.Stats, AI: s.AI,
 		Store: func() storage.Store { return s.Store },
 		StorageCheck: func(ctx context.Context) error {
 			return storage.RoundTrip(ctx, s.Store, "health/"+s.Instance.ID.String())

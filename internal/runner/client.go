@@ -11,6 +11,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/alternayte/sluice/internal/runnerproto"
@@ -24,6 +25,24 @@ type Client struct {
 	HTTP      *http.Client
 	// RetryWindow bounds retries of one request. Default runnerproto.RetryWindow.
 	RetryWindow time.Duration
+
+	// stopBy is the Unix nano time after which no request retries. Zero means no limit.
+	stopBy atomic.Int64
+}
+
+// stopFlushWindow bounds the final flush after the runner receives a stop signal.
+const stopFlushWindow = 5 * time.Second
+
+// Stop limits all retries, also the retries in progress, to a short flush window. The
+// runner calls it after a stop signal, so that it exits soon when the API is gone
+// (REQ-CORE-008).
+func (c *Client) Stop() {
+	c.stopBy.Store(time.Now().Add(stopFlushWindow).UnixNano())
+}
+
+func (c *Client) stopped() bool {
+	by := c.stopBy.Load()
+	return by != 0 && time.Now().UnixNano() > by
 }
 
 // PermanentError is an API error that retries cannot fix (4xx).
@@ -43,7 +62,11 @@ func (c *Client) url(suffix string) string {
 // do sends a request and retries network errors, 429 and 5xx with backoff for up to
 // the retry window (REQ-RUN-006). body is re-read for each attempt.
 func (c *Client) do(ctx context.Context, method, suffix string, body func() (io.Reader, error), contentType string, out any) error {
-	window := c.RetryWindow
+	return c.doWindow(ctx, c.RetryWindow, method, suffix, body, contentType, out)
+}
+
+// doWindow is do with an explicit retry window. A window of zero or less uses the default.
+func (c *Client) doWindow(ctx context.Context, window time.Duration, method, suffix string, body func() (io.Reader, error), contentType string, out any) error {
 	if window <= 0 {
 		window = runnerproto.RetryWindow
 	}
@@ -55,7 +78,7 @@ func (c *Client) do(ctx context.Context, method, suffix string, body func() (io.
 			return nil
 		}
 		var pe *PermanentError
-		if errors.As(err, &pe) || ctx.Err() != nil || time.Now().After(deadline) {
+		if errors.As(err, &pe) || ctx.Err() != nil || time.Now().After(deadline) || c.stopped() {
 			return err
 		}
 		jitter := time.Duration(rand.Int64N(int64(delay) / 2))
@@ -157,9 +180,7 @@ func (c *Client) Events(ctx context.Context, b runnerproto.EventBatch) error {
 func (c *Client) Heartbeat(ctx context.Context) (bool, error) {
 	var hr runnerproto.HeartbeatResponse
 	// Heartbeats do not retry for long: the next one follows in 10 s.
-	short := *c
-	short.RetryWindow = 5 * time.Second
-	if err := short.do(ctx, http.MethodPost, "/heartbeat", jsonBody(struct{}{}), "application/json", &hr); err != nil {
+	if err := c.doWindow(ctx, 5*time.Second, http.MethodPost, "/heartbeat", jsonBody(struct{}{}), "application/json", &hr); err != nil {
 		return false, err
 	}
 	return hr.Cancel, nil

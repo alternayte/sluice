@@ -254,6 +254,10 @@ func (r *run) execute(ctx context.Context) int {
 	close(waitDone)
 	// Remove processes that stay in the group, for example background children.
 	_ = syscall.Kill(-pgid, syscall.SIGKILL)
+	if ctx.Err() != nil {
+		// A stop signal ended the task. The API can be gone, so the flush is short.
+		r.c.Stop()
+	}
 	code := exitCode(cmd, werr)
 	reasonMu.Lock()
 	why := reason

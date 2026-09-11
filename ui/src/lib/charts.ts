@@ -30,3 +30,16 @@ export function formatRate(rate: number | null | undefined): string {
   if (rate === null || rate === undefined) return "—";
   return `${(rate * 100).toFixed(1)}%`;
 }
+
+/** pointCount returns the number of numeric values of key in rows. */
+export function pointCount(rows: Record<string, unknown>[], key: string): number {
+  return rows.filter((r) => typeof r[key] === "number" && Number.isFinite(r[key])).length;
+}
+
+/**
+ * needsDots reports whether a line series needs dots to be visible. A line with one
+ * point draws no segment, so a series with fewer than two points shows dots.
+ */
+export function needsDots(rows: Record<string, unknown>[], key: string): boolean {
+  return pointCount(rows, key) < 2;
+}

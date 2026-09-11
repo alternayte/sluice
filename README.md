@@ -41,10 +41,13 @@ You need Docker and [just](https://just.systems).
 | **Editor** | **Execution** |
 | ![Namespace editor](docs/images/editor.png) | ![Execution](docs/images/execution.png) |
 
-## More
+## Documentation
 
-- ELT example with dlt and SQLMesh: [examples/elt](examples/elt/README.md)
-- Flow reference: [docs/reference/flow.md](docs/reference/flow.md)
-- Environment variables: [docs/reference/env.md](docs/reference/env.md)
-- Kubernetes: the Helm chart in [deploy/helm/sluice](deploy/helm/sluice)
-- Design: [docs/sluice-sdd.md](docs/sluice-sdd.md)
+| Document | What it holds |
+|---|---|
+| [docs/ai.md](docs/ai.md) | The assistant, flow authoring, failure triage and the MCP server. |
+| [docs/reference/flow.md](docs/reference/flow.md) | The flow file reference. |
+| [docs/reference/env.md](docs/reference/env.md) | Every environment variable. |
+| [examples/elt](examples/elt/README.md) | An ELT example with dlt and SQLMesh, with demo data. |
+| [deploy/helm/sluice](deploy/helm/sluice) | The Helm chart for Kubernetes. |
+| [docs/sluice-sdd.md](docs/sluice-sdd.md) | The design: requirements, scenarios and decisions. |

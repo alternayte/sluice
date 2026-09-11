@@ -1,0 +1,24 @@
+# SQLMesh project of the ELT example: a Postgres gateway with its state in Postgres.
+# The task environment gives the connection values.
+gateways:
+  postgres:
+    connection:
+      type: postgres
+      host: "{{ env_var('PG_HOST') }}"
+      port: {{ env_var('PG_PORT', '5432') }}
+      user: "{{ env_var('PG_USER') }}"
+      password: "{{ env_var('PG_PASSWORD') }}"
+      database: "{{ env_var('PG_DATABASE') }}"
+    state_connection:
+      type: postgres
+      host: "{{ env_var('PG_HOST') }}"
+      port: {{ env_var('PG_PORT', '5432') }}
+      user: "{{ env_var('PG_USER') }}"
+      password: "{{ env_var('PG_PASSWORD') }}"
+      database: "{{ env_var('PG_DATABASE') }}"
+    state_schema: sqlmesh
+
+default_gateway: postgres
+
+model_defaults:
+  dialect: postgres

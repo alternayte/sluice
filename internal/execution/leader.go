@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/alternayte/sluice/internal/platform/instance"
 	"github.com/alternayte/sluice/internal/storage"
 )
 
@@ -98,7 +97,7 @@ func (e *Engine) taskDeadlines(ctx context.Context, now time.Time) error {
 func (e *Engine) offlineRuns(ctx context.Context, now time.Time) error {
 	rows, err := e.Pool.Query(ctx, `SELECT t.id FROM task_runs t LEFT JOIN instances i ON i.id = t.claimed_by
 		WHERE t.state = 'RUNNING' AND t.executor_type IN ('process', 'inline') AND t.task_type <> 'subflow'
-			AND (i.id IS NULL OR i.heartbeat_at < $1) LIMIT 500`, now.Add(-instance.OfflineAfter))
+			AND (i.id IS NULL OR i.heartbeat_at < $1) LIMIT 500`, now.Add(-e.OfflineAfter))
 	if err != nil {
 		return err
 	}
@@ -119,7 +118,7 @@ func (e *Engine) offlineRuns(ctx context.Context, now time.Time) error {
 // poolReasons sets no_instance_for_pool on queued task runs without an online instance
 // for their pool and executor, and clears it again (REQ-EXR-008).
 func (e *Engine) poolReasons(ctx context.Context, now time.Time) error {
-	online := now.Add(-instance.OfflineAfter)
+	online := now.Add(-e.OfflineAfter)
 	if _, err := e.Pool.Exec(ctx, `UPDATE task_runs t SET reason = 'no_instance_for_pool'
 		WHERE t.state = 'QUEUED' AND t.executor_type <> 'inline' AND t.reason = ''
 			AND NOT EXISTS (SELECT 1 FROM instances i WHERE i.heartbeat_at > $1 AND t.pool = ANY(i.pools) AND t.executor_type = ANY(i.executors))`, online); err != nil {

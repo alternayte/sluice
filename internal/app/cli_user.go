@@ -9,6 +9,7 @@ import (
 
 	"github.com/alternayte/sluice/internal/audit"
 	"github.com/alternayte/sluice/internal/auth"
+	"github.com/alternayte/sluice/internal/kernel"
 	"github.com/alternayte/sluice/internal/platform/clock"
 	"github.com/alternayte/sluice/internal/platform/db"
 	"github.com/alternayte/sluice/internal/platform/logging"
@@ -64,7 +65,7 @@ func runUserCreate(ctx context.Context, args []string, stdout, stderr io.Writer)
 	if err := fs.Parse(args); err != nil {
 		return exitConfig
 	}
-	r, ok := auth.ParseRole(*role)
+	r, ok := kernel.ParseRole(*role)
 	if *email == "" || !ok {
 		fmt.Fprintln(stderr, "user create: --email and a valid --role are required")
 		return exitConfig

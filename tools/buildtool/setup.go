@@ -19,8 +19,8 @@ func cmdSetup() error {
 			fmt.Printf("ok: %s\n", t)
 		}
 	}
-	// sqlc, oapi-codegen and gotestsum are Go tools pinned in go.mod.
-	for _, t := range []string{"sqlc", "oapi-codegen", "gotestsum"} {
+	// sqlc and gotestsum are Go tools pinned in go.mod.
+	for _, t := range []string{"sqlc", "gotestsum"} {
 		if err := exec.Command("go", "tool", "-n", t).Run(); err != nil {
 			missing = append(missing, t)
 			fmt.Printf("missing: go tool %s\n", t)

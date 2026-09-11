@@ -9,27 +9,27 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/alternayte/sluice/internal/api"
 	"github.com/alternayte/sluice/internal/audit"
 	"github.com/alternayte/sluice/internal/auth"
 	"github.com/alternayte/sluice/internal/execution"
 	"github.com/alternayte/sluice/internal/executor"
+	"github.com/alternayte/sluice/internal/instance"
 	"github.com/alternayte/sluice/internal/namespace"
 	"github.com/alternayte/sluice/internal/platform/clock"
 	"github.com/alternayte/sluice/internal/platform/db"
 	"github.com/alternayte/sluice/internal/platform/health"
 	"github.com/alternayte/sluice/internal/platform/httpx"
-	"github.com/alternayte/sluice/internal/platform/instance"
 	"github.com/alternayte/sluice/internal/platform/lease"
 	"github.com/alternayte/sluice/internal/platform/logging"
 	"github.com/alternayte/sluice/internal/platform/promx"
-	"github.com/alternayte/sluice/internal/runnerapi"
 	"github.com/alternayte/sluice/internal/storage"
 )
 
@@ -119,7 +119,7 @@ func NewServer(ctx context.Context, cfg *Config, log *slog.Logger) (*Server, err
 	s.GC = &storage.GC{Pool: pool, Store: s.Store, Clock: clk, Log: log}
 	s.Namespaces = &namespace.Service{Pool: pool, Store: s.Store, Clock: clk, Audit: s.Audit, Log: log,
 		MaxFileBytes: int64(cfg.MaxFileBytes), MaxBundleBytes: int64(cfg.MaxBundleBytes)}
-	s.Engine = &execution.Engine{Pool: pool, Clock: clk, Log: log, Audit: s.Audit, Namespaces: s.Namespaces, Store: s.Store,
+	s.Engine = &execution.Engine{Pool: pool, OfflineAfter: instance.OfflineAfter, Clock: clk, Log: log, Audit: s.Audit, Namespaces: namespacesAdapter{s.Namespaces}, Store: s.Store,
 		Instance: id, Pools: cfg.Pools, Cfg: execution.Config{WorkerSlots: cfg.WorkerSlots, K8sMaxJobs: cfg.K8sMaxJobs,
 			PollInterval: cfg.QueuePollInterval, HeartbeatTimeout: cfg.HeartbeatTimeout, APIURL: cfg.InternalURL,
 			DockerAPIURL: cfg.DockerAPIURL, ClusterAPIURL: cfg.InternalURL,
@@ -167,65 +167,60 @@ func enabledExecutors(cfg *Config) []string {
 	return out
 }
 
-// RecordingMux records the patterns registered on it for the route inventory (SI-03).
-type RecordingMux struct {
-	*http.ServeMux
-	Patterns []string
-}
-
-// Handle registers and records a handler.
-func (m *RecordingMux) Handle(pattern string, h http.Handler) {
-	m.Patterns = append(m.Patterns, pattern)
-	m.ServeMux.Handle(pattern, h)
-}
-
-// HandleFunc registers and records a handler function.
-func (m *RecordingMux) HandleFunc(pattern string, h func(http.ResponseWriter, *http.Request)) {
-	m.Patterns = append(m.Patterns, pattern)
-	m.ServeMux.HandleFunc(pattern, h)
-}
-
-// Routes builds the router and returns it with the recorded patterns.
-func (s *Server) Routes() (*RecordingMux, error) {
-	mux := &RecordingMux{ServeMux: http.NewServeMux()}
-	mux.HandleFunc("GET /healthz", health.Healthz)
-	mux.HandleFunc("GET /readyz", s.Health.Readyz)
-	mux.Handle("GET /metrics", s.Metrics.Handler())
-	apiServer := &api.Server{
-		System:    api.System{Instances: s.Registry, Clock: s.Clock},
-		Handlers:  auth.Handlers{Svc: s.Auth},
-		API:       namespace.API{Svc: s.Namespaces},
-		ExecAPI:   execution.ExecAPI{E: s.Engine},
-		RunnerAPI: runnerapi.RunnerAPI{B: s.Engine, MaxArtifactBytes: int64(s.Cfg.MaxArtifactBytes)},
-	}
-	if err := api.Mount(mux, apiServer, nil); err != nil {
-		return nil, err
-	}
-	mux.Handle("/", spaHandler())
-	return mux, nil
-}
-
 // Handler builds the root HTTP handler.
 func (s *Server) Handler() (http.Handler, error) {
-	mux, err := s.Routes()
-	if err != nil {
+	r := chi.NewMux()
+	r.Use(httpx.SecurityHeaders, httpx.WithRequestID, s.withLogger, s.metrics, getHead, s.Auth.Middleware,
+		execution.RunnerContentType, execution.RunTokenMiddleware(s.Engine))
+	r.Get("/healthz", health.Healthz)
+	r.Get("/readyz", s.Health.Readyz)
+	r.Method(http.MethodGet, "/metrics", s.Metrics.Handler())
+	api := httpx.NewAPI(r)
+	registerRoutes(api, r, s.services())
+	if err := httpx.CheckAccess(api); err != nil {
 		return nil, err
 	}
-	route := func(r *http.Request) string {
-		if r.Pattern == "" {
-			return "unmatched"
+	r.Handle("/api", httpx.NotFoundJSON())
+	r.Handle("/api/*", httpx.NotFoundJSON())
+	r.Handle("/*", spaHandler())
+	return r, nil
+}
+
+// getHead routes a HEAD request to the GET handler of its path, as the net/http ServeMux of
+// the old server did. chi middleware.GetHead is not sufficient: the /api/* catch-all takes
+// every method, so a HEAD match always exists. Here a HEAD match on a catch-all pattern
+// does not count when a more specific GET route matches. The net/http server sends no body
+// for HEAD.
+func getHead(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			rctx := chi.RouteContext(r.Context())
+			path := r.URL.RawPath
+			if path == "" {
+				path = r.URL.Path
+			}
+			head := rctx.Routes.Find(chi.NewRouteContext(), http.MethodHead, path)
+			if head == "" || strings.HasSuffix(head, "*") {
+				if get := rctx.Routes.Find(chi.NewRouteContext(), http.MethodGet, path); get != "" && get != head {
+					rctx.RouteMethod = http.MethodGet
+					rctx.RoutePath = path
+				}
+			}
 		}
-		return r.Pattern
-	}
-	authorize, err := api.AuthorizeMiddleware(auth.Authorize)
-	if err != nil {
-		return nil, err
-	}
-	inner := runnerapi.ContentTypeMiddleware(runnerapi.TokenMiddleware(s.Engine)(s.Metrics.Middleware(route, mux)))
-	h := s.Auth.Middleware(authorize(inner))
-	h = withLogger(s.Log, h)
-	h = httpx.WithRequestID(h)
-	return httpx.SecurityHeaders(h), nil
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) withLogger(next http.Handler) http.Handler { return withLogger(s.Log, next) }
+
+// metrics records the HTTP duration with the chi route pattern as the route label.
+func (s *Server) metrics(next http.Handler) http.Handler {
+	return s.Metrics.Middleware(func(r *http.Request) string {
+		if rc := chi.RouteContext(r.Context()); rc != nil && rc.RoutePattern() != "" {
+			return rc.RoutePattern()
+		}
+		return "unmatched"
+	}, next)
 }
 
 func withLogger(log *slog.Logger, next http.Handler) http.Handler {

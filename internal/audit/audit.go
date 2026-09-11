@@ -12,8 +12,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/alternayte/sluice/internal/audit/auditdb"
 	"github.com/alternayte/sluice/internal/platform/clock"
-	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/page"
 )
 
@@ -66,12 +66,12 @@ type Writer struct {
 }
 
 // Record writes an event with the actor of ctx. db is a pool or transaction.
-func (w *Writer) Record(ctx context.Context, db dbq.DBTX, e Event) error {
+func (w *Writer) Record(ctx context.Context, db auditdb.DBTX, e Event) error {
 	return w.RecordAs(ctx, db, ActorFrom(ctx), e)
 }
 
 // RecordAs writes an event with an explicit actor.
-func (w *Writer) RecordAs(ctx context.Context, db dbq.DBTX, a Actor, e Event) error {
+func (w *Writer) RecordAs(ctx context.Context, db auditdb.DBTX, a Actor, e Event) error {
 	if db == nil {
 		db = w.Pool
 	}
@@ -87,7 +87,7 @@ func (w *Writer) RecordAs(ctx context.Context, db dbq.DBTX, a Actor, e Event) er
 		return err
 	}
 	id, _ := uuid.NewV7()
-	return dbq.New(db).InsertAuditEvent(ctx, dbq.InsertAuditEventParams{
+	return auditdb.New(db).InsertAuditEvent(ctx, auditdb.InsertAuditEventParams{
 		ID: id, Ts: w.Clock.Now(), ActorType: a.Type, ActorID: a.ID, Action: e.Action,
 		TargetType: e.TargetType, TargetID: e.TargetID, Details: b, Ip: a.IP,
 	})
@@ -188,5 +188,5 @@ func (w *Writer) List(ctx context.Context, f Filter) ([]Row, string, error) {
 
 // DeleteExpired deletes events older than the retention. The maintenance leader calls it.
 func (w *Writer) DeleteExpired(ctx context.Context) (int64, error) {
-	return dbq.New(w.Pool).DeleteOldAuditEvents(ctx, w.Clock.Now().Add(-Retention))
+	return auditdb.New(w.Pool).DeleteOldAuditEvents(ctx, w.Clock.Now().Add(-Retention))
 }

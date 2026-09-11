@@ -16,9 +16,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/alternayte/sluice/internal/audit"
+	"github.com/alternayte/sluice/internal/auth/authdb"
+	"github.com/alternayte/sluice/internal/kernel"
 	"github.com/alternayte/sluice/internal/platform/clock"
-	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/httpx"
+	"github.com/alternayte/sluice/internal/platform/token"
 )
 
 // CookieName is the session cookie (REQ-AUTH-001).
@@ -38,7 +40,7 @@ const (
 var (
 	ErrInvalidCredentials  = httpx.Errorf(http.StatusUnauthorized, "invalid_credentials", "email or password is wrong")
 	ErrLastAdmin           = httpx.Errorf(http.StatusConflict, "last_admin", "at least one enabled admin must remain")
-	ErrPasswordChange      = httpx.Errorf(http.StatusForbidden, "password_change_required", "change your password first")
+	ErrPasswordChange      = httpx.ErrPasswordChange
 	ErrEmailTaken          = httpx.Errorf(http.StatusConflict, "email_taken", "a user with this email exists")
 	ErrTokenRoleTooHigh    = httpx.Errorf(http.StatusForbidden, "forbidden", "the token role must not exceed your role")
 	ErrWrongCurrentPasword = httpx.Validation(httpx.FieldError{Field: "current_password", Message: "the current password is wrong"})
@@ -56,11 +58,11 @@ type Service struct {
 	PublicOrigin string
 }
 
-func (s *Service) q(db dbq.DBTX) *dbq.Queries {
+func (s *Service) q(db authdb.DBTX) *authdb.Queries {
 	if db == nil {
-		return dbq.New(s.Pool)
+		return authdb.New(s.Pool)
 	}
-	return dbq.New(db)
+	return authdb.New(db)
 }
 
 func newID() uuid.UUID {
@@ -103,7 +105,7 @@ func (s *Service) Bootstrap(ctx context.Context, email, password string) (bool, 
 // LoginResult is a successful login.
 type LoginResult struct {
 	SessionID string
-	Principal *Principal
+	Principal *kernel.Principal
 }
 
 // Login checks the rate limit and the password and creates a session.
@@ -111,7 +113,7 @@ func (s *Service) Login(ctx context.Context, email, password, ip, userAgent stri
 	email = normEmail(email)
 	now := s.Clock.Now()
 	q := s.q(nil)
-	f, err := q.LoginFailures(ctx, dbq.LoginFailuresParams{Email: email, Ip: ip, Since: now.Add(-RateWindow)})
+	f, err := q.LoginFailures(ctx, authdb.LoginFailuresParams{Email: email, Ip: ip, Since: now.Add(-RateWindow)})
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +144,7 @@ func (s *Service) Login(ctx context.Context, email, password, ip, userAgent stri
 		s.Log.Error("password hash unreadable", "user", u.ID, "err", verr)
 	}
 	if !found || !ok || u.DisabledAt != nil {
-		_ = q.InsertLoginAttempt(ctx, dbq.InsertLoginAttemptParams{Email: email, Ip: ip, AttemptedAt: now, Success: false})
+		_ = q.InsertLoginAttempt(ctx, authdb.InsertLoginAttemptParams{Email: email, Ip: ip, AttemptedAt: now, Success: false})
 		actor := audit.Actor{Type: audit.ActorSystem, IP: ip}
 		if found {
 			actor = audit.Actor{Type: audit.ActorUser, ID: u.ID.String(), IP: ip}
@@ -150,17 +152,17 @@ func (s *Service) Login(ctx context.Context, email, password, ip, userAgent stri
 		_ = s.Audit.RecordAs(ctx, nil, actor, audit.Event{Action: "auth.login_failed", TargetType: "user", TargetID: idOrEmpty(found, u.ID), Details: map[string]any{"email": email}})
 		return nil, ErrInvalidCredentials
 	}
-	sid, sidHash := NewSecret()
+	sid, sidHash := token.NewSecret()
 	err = pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
-		qt := dbq.New(tx)
-		if err := qt.InsertLoginAttempt(ctx, dbq.InsertLoginAttemptParams{Email: email, Ip: ip, AttemptedAt: now, Success: true}); err != nil {
+		qt := authdb.New(tx)
+		if err := qt.InsertLoginAttempt(ctx, authdb.InsertLoginAttemptParams{Email: email, Ip: ip, AttemptedAt: now, Success: true}); err != nil {
 			return err
 		}
-		if err := qt.InsertSession(ctx, dbq.InsertSessionParams{IDHash: sidHash, UserID: u.ID, CreatedAt: now,
+		if err := qt.InsertSession(ctx, authdb.InsertSessionParams{IDHash: sidHash, UserID: u.ID, CreatedAt: now,
 			ExpiresAt: now.Add(s.SessionTTL), Ip: ip, UserAgent: truncate(userAgent, 512)}); err != nil {
 			return err
 		}
-		if err := qt.TouchLogin(ctx, dbq.TouchLoginParams{ID: u.ID, LastLoginAt: &now}); err != nil {
+		if err := qt.TouchLogin(ctx, authdb.TouchLoginParams{ID: u.ID, LastLoginAt: &now}); err != nil {
 			return err
 		}
 		return s.Audit.RecordAs(ctx, tx, audit.Actor{Type: audit.ActorUser, ID: u.ID.String(), IP: ip},
@@ -169,8 +171,8 @@ func (s *Service) Login(ctx context.Context, email, password, ip, userAgent stri
 	if err != nil {
 		return nil, err
 	}
-	role, _ := ParseRole(u.Role)
-	return &LoginResult{SessionID: sid, Principal: &Principal{UserID: u.ID, Email: u.Email, Name: u.Name, Role: role,
+	role, _ := kernel.ParseRole(u.Role)
+	return &LoginResult{SessionID: sid, Principal: &kernel.Principal{UserID: u.ID, Email: u.Email, Name: u.Name, Role: role,
 		Kind: "session", SessionHash: sidHash, MustChangePassword: u.MustChangePassword}}, nil
 }
 
@@ -189,7 +191,7 @@ func truncate(s string, n int) string {
 }
 
 // Logout deletes the current session.
-func (s *Service) Logout(ctx context.Context, p *Principal) error {
+func (s *Service) Logout(ctx context.Context, p *kernel.Principal) error {
 	if p.Kind == "session" {
 		if err := s.q(nil).DeleteSession(ctx, p.SessionHash); err != nil {
 			return err
@@ -203,14 +205,14 @@ var errAuth = httpx.ErrUnauthorized
 
 // authenticate resolves the principal from a bearer token or the session cookie.
 // It returns a refreshed cookie when the sliding session was extended.
-func (s *Service) authenticate(ctx context.Context, r *http.Request) (*Principal, *http.Cookie, error) {
+func (s *Service) authenticate(ctx context.Context, r *http.Request) (*kernel.Principal, *http.Cookie, error) {
 	now := s.Clock.Now()
 	if h := r.Header.Get("Authorization"); h != "" {
 		scheme, cred, _ := strings.Cut(h, " ")
 		if !strings.EqualFold(scheme, "Bearer") || !LooksLikeAPIToken(strings.TrimSpace(cred)) {
 			return nil, nil, errAuth
 		}
-		row, err := s.q(nil).GetTokenByHash(ctx, HashSecret(strings.TrimSpace(cred)))
+		row, err := s.q(nil).GetTokenByHash(ctx, token.HashSecret(strings.TrimSpace(cred)))
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil, errAuth
 		}
@@ -221,19 +223,19 @@ func (s *Service) authenticate(ctx context.Context, r *http.Request) (*Principal
 			return nil, nil, errAuth
 		}
 		if row.LastUsedAt == nil || now.Sub(*row.LastUsedAt) > tokenTouchEvery {
-			_ = s.q(nil).TouchToken(ctx, dbq.TouchTokenParams{ID: row.ID, LastUsedAt: &now})
+			_ = s.q(nil).TouchToken(ctx, authdb.TouchTokenParams{ID: row.ID, LastUsedAt: &now})
 		}
-		tr, _ := ParseRole(row.TokenRole)
-		ur, _ := ParseRole(row.UserRole)
+		tr, _ := kernel.ParseRole(row.TokenRole)
+		ur, _ := kernel.ParseRole(row.UserRole)
 		id := row.ID
-		return &Principal{UserID: row.UserID, Email: row.Email, Name: row.Name, Role: MinRole(tr, ur), Kind: "token",
+		return &kernel.Principal{UserID: row.UserID, Email: row.Email, Name: row.Name, Role: kernel.MinRole(tr, ur), Kind: "token",
 			TokenID: &id, MustChangePassword: row.MustChangePassword}, nil, nil
 	}
 	value := sessionCookieValue(r)
 	if value == "" {
 		return nil, nil, nil
 	}
-	hash := HashSecret(value)
+	hash := token.HashSecret(value)
 	row, err := s.q(nil).GetSession(ctx, hash)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil, errAuth
@@ -246,12 +248,12 @@ func (s *Service) authenticate(ctx context.Context, r *http.Request) (*Principal
 	}
 	var refresh *http.Cookie
 	if now.Sub(row.LastSeenAt) > sessionTouchEvery {
-		if err := s.q(nil).TouchSession(ctx, dbq.TouchSessionParams{IDHash: hash, LastSeenAt: now, ExpiresAt: now.Add(s.SessionTTL)}); err == nil {
+		if err := s.q(nil).TouchSession(ctx, authdb.TouchSessionParams{IDHash: hash, LastSeenAt: now, ExpiresAt: now.Add(s.SessionTTL)}); err == nil {
 			refresh = s.SessionCookie(value)
 		}
 	}
-	role, _ := ParseRole(row.Role)
-	return &Principal{UserID: row.UserID, Email: row.Email, Name: row.Name, Role: role, Kind: "session",
+	role, _ := kernel.ParseRole(row.Role)
+	return &kernel.Principal{UserID: row.UserID, Email: row.Email, Name: row.Name, Role: role, Kind: "session",
 		SessionHash: hash, MustChangePassword: row.MustChangePassword}, refresh, nil
 }
 
@@ -278,14 +280,14 @@ func (s *Service) ClearCookie() *http.Cookie {
 }
 
 // UpdateMe changes the own name.
-func (s *Service) UpdateMe(ctx context.Context, p *Principal, name string) (dbq.User, error) {
-	var out dbq.User
+func (s *Service) UpdateMe(ctx context.Context, p *kernel.Principal, name string) (authdb.User, error) {
+	var out authdb.User
 	err := pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
-		u, err := dbq.New(tx).GetUserForUpdate(ctx, p.UserID)
+		u, err := authdb.New(tx).GetUserForUpdate(ctx, p.UserID)
 		if err != nil {
 			return err
 		}
-		out, err = dbq.New(tx).UpdateUser(ctx, dbq.UpdateUserParams{ID: u.ID, Name: strings.TrimSpace(name), Role: u.Role, DisabledAt: u.DisabledAt})
+		out, err = authdb.New(tx).UpdateUser(ctx, authdb.UpdateUserParams{ID: u.ID, Name: strings.TrimSpace(name), Role: u.Role, DisabledAt: u.DisabledAt})
 		if err != nil {
 			return err
 		}
@@ -295,7 +297,7 @@ func (s *Service) UpdateMe(ctx context.Context, p *Principal, name string) (dbq.
 }
 
 // ChangePassword changes the own password and signs out other sessions (REQ-AUTH-004).
-func (s *Service) ChangePassword(ctx context.Context, p *Principal, current, next string) error {
+func (s *Service) ChangePassword(ctx context.Context, p *kernel.Principal, current, next string) error {
 	u, err := s.q(nil).GetUserByID(ctx, p.UserID)
 	if err != nil {
 		return err
@@ -315,18 +317,18 @@ func (s *Service) ChangePassword(ctx context.Context, p *Principal, current, nex
 		return err
 	}
 	return pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := dbq.New(tx)
-		if err := q.SetUserPassword(ctx, dbq.SetUserPasswordParams{ID: u.ID, PasswordHash: hash, MustChangePassword: false}); err != nil {
+		q := authdb.New(tx)
+		if err := q.SetUserPassword(ctx, authdb.SetUserPasswordParams{ID: u.ID, PasswordHash: hash, MustChangePassword: false}); err != nil {
 			return err
 		}
-		if _, err := q.DeleteOtherSessions(ctx, dbq.DeleteOtherSessionsParams{UserID: u.ID, IDHash: sessionHashOrNone(p)}); err != nil {
+		if _, err := q.DeleteOtherSessions(ctx, authdb.DeleteOtherSessionsParams{UserID: u.ID, IDHash: sessionHashOrNone(p)}); err != nil {
 			return err
 		}
 		return s.Audit.Record(ctx, tx, audit.Event{Action: "user.change_password", TargetType: "user", TargetID: u.ID.String()})
 	})
 }
 
-func sessionHashOrNone(p *Principal) []byte {
+func sessionHashOrNone(p *kernel.Principal) []byte {
 	if p.Kind == "session" {
 		return p.SessionHash
 	}
@@ -334,8 +336,8 @@ func sessionHashOrNone(p *Principal) []byte {
 }
 
 // RevokeOtherSessions deletes all sessions of the user except the current one.
-func (s *Service) RevokeOtherSessions(ctx context.Context, p *Principal) (int64, error) {
-	n, err := s.q(nil).DeleteOtherSessions(ctx, dbq.DeleteOtherSessionsParams{UserID: p.UserID, IDHash: sessionHashOrNone(p)})
+func (s *Service) RevokeOtherSessions(ctx context.Context, p *kernel.Principal) (int64, error) {
+	n, err := s.q(nil).DeleteOtherSessions(ctx, authdb.DeleteOtherSessionsParams{UserID: p.UserID, IDHash: sessionHashOrNone(p)})
 	if err != nil {
 		return 0, err
 	}
@@ -344,24 +346,24 @@ func (s *Service) RevokeOtherSessions(ctx context.Context, p *Principal) (int64,
 
 // CreateUser creates a user with a temporary password (REQ-AUTH-003). A temporary
 // password forces a change at next login.
-func (s *Service) CreateUser(ctx context.Context, email, name string, role Role, password string, temporary bool) (dbq.User, error) {
-	if role == RoleNone {
-		return dbq.User{}, httpx.Validation(httpx.FieldError{Field: "role", Message: "unknown role"})
+func (s *Service) CreateUser(ctx context.Context, email, name string, role kernel.Role, password string, temporary bool) (authdb.User, error) {
+	if role == kernel.RoleNone {
+		return authdb.User{}, httpx.Validation(httpx.FieldError{Field: "role", Message: "unknown role"})
 	}
 	if err := ValidatePassword(password); err != nil {
-		return dbq.User{}, httpx.Validation(httpx.FieldError{Field: "password", Message: err.Error()})
+		return authdb.User{}, httpx.Validation(httpx.FieldError{Field: "password", Message: err.Error()})
 	}
 	email = normEmail(email)
 	if !strings.Contains(email, "@") {
-		return dbq.User{}, httpx.Validation(httpx.FieldError{Field: "email", Message: "must be an email address"})
+		return authdb.User{}, httpx.Validation(httpx.FieldError{Field: "email", Message: "must be an email address"})
 	}
 	hash, err := HashPassword(password)
 	if err != nil {
-		return dbq.User{}, err
+		return authdb.User{}, err
 	}
 	id := newID()
 	err = pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
-		if err := dbq.New(tx).InsertUser(ctx, dbq.InsertUserParams{ID: id, Email: email, Name: strings.TrimSpace(name),
+		if err := authdb.New(tx).InsertUser(ctx, authdb.InsertUserParams{ID: id, Email: email, Name: strings.TrimSpace(name),
 			PasswordHash: hash, Role: role.String(), MustChangePassword: temporary, CreatedAt: s.Clock.Now()}); err != nil {
 			return err
 		}
@@ -370,10 +372,10 @@ func (s *Service) CreateUser(ctx context.Context, email, name string, role Role,
 	})
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-		return dbq.User{}, ErrEmailTaken
+		return authdb.User{}, ErrEmailTaken
 	}
 	if err != nil {
-		return dbq.User{}, err
+		return authdb.User{}, err
 	}
 	return s.q(nil).GetUserByID(ctx, id)
 }
@@ -381,15 +383,15 @@ func (s *Service) CreateUser(ctx context.Context, email, name string, role Role,
 // UserChange holds optional user changes.
 type UserChange struct {
 	Name     *string
-	Role     *Role
+	Role     *kernel.Role
 	Disabled *bool
 }
 
 // UpdateUser changes a user. The last enabled admin cannot be disabled or demoted.
-func (s *Service) UpdateUser(ctx context.Context, id uuid.UUID, ch UserChange) (dbq.User, error) {
-	var out dbq.User
+func (s *Service) UpdateUser(ctx context.Context, id uuid.UUID, ch UserChange) (authdb.User, error) {
+	var out authdb.User
 	err := pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := dbq.New(tx)
+		q := authdb.New(tx)
 		admins, err := q.LockEnabledAdmins(ctx)
 		if err != nil {
 			return err
@@ -408,7 +410,7 @@ func (s *Service) UpdateUser(ctx context.Context, id uuid.UUID, ch UserChange) (
 			details["name"] = name
 		}
 		if ch.Role != nil {
-			if *ch.Role == RoleNone {
+			if *ch.Role == kernel.RoleNone {
 				return httpx.Validation(httpx.FieldError{Field: "role", Message: "unknown role"})
 			}
 			if role != ch.Role.String() {
@@ -431,7 +433,7 @@ func (s *Service) UpdateUser(ctx context.Context, id uuid.UUID, ch UserChange) (
 		if wasEnabledAdmin && !staysEnabledAdmin && len(admins) <= 1 {
 			return ErrLastAdmin
 		}
-		out, err = q.UpdateUser(ctx, dbq.UpdateUserParams{ID: id, Name: name, Role: role, DisabledAt: disabledAt})
+		out, err = q.UpdateUser(ctx, authdb.UpdateUserParams{ID: id, Name: name, Role: role, DisabledAt: disabledAt})
 		if err != nil {
 			return err
 		}
@@ -455,13 +457,13 @@ func (s *Service) ResetPassword(ctx context.Context, id uuid.UUID, password stri
 		return err
 	}
 	return pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := dbq.New(tx)
+		q := authdb.New(tx)
 		if _, err := q.GetUserForUpdate(ctx, id); errors.Is(err, pgx.ErrNoRows) {
 			return httpx.ErrNotFound
 		} else if err != nil {
 			return err
 		}
-		if err := q.SetUserPassword(ctx, dbq.SetUserPasswordParams{ID: id, PasswordHash: hash, MustChangePassword: temporary}); err != nil {
+		if err := q.SetUserPassword(ctx, authdb.SetUserPasswordParams{ID: id, PasswordHash: hash, MustChangePassword: temporary}); err != nil {
 			return err
 		}
 		if _, err := q.DeleteUserSessions(ctx, id); err != nil {
@@ -472,7 +474,7 @@ func (s *Service) ResetPassword(ctx context.Context, id uuid.UUID, password stri
 }
 
 // UserByEmail returns a user.
-func (s *Service) UserByEmail(ctx context.Context, email string) (dbq.User, error) {
+func (s *Service) UserByEmail(ctx context.Context, email string) (authdb.User, error) {
 	u, err := s.q(nil).GetUserByEmail(ctx, normEmail(email))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return u, httpx.ErrNotFound
@@ -481,18 +483,18 @@ func (s *Service) UserByEmail(ctx context.Context, email string) (dbq.User, erro
 }
 
 // CreateToken creates an API token for the principal (REQ-AUTH-005).
-func (s *Service) CreateToken(ctx context.Context, p *Principal, name string, role Role, days *int) (string, dbq.ListTokensRow, error) {
-	if role == RoleNone {
-		return "", dbq.ListTokensRow{}, httpx.Validation(httpx.FieldError{Field: "role", Message: "unknown role"})
+func (s *Service) CreateToken(ctx context.Context, p *kernel.Principal, name string, role kernel.Role, days *int) (string, authdb.ListTokensRow, error) {
+	if role == kernel.RoleNone {
+		return "", authdb.ListTokensRow{}, httpx.Validation(httpx.FieldError{Field: "role", Message: "unknown role"})
 	}
 	if role > p.Role {
-		return "", dbq.ListTokensRow{}, ErrTokenRoleTooHigh
+		return "", authdb.ListTokensRow{}, ErrTokenRoleTooHigh
 	}
 	now := s.Clock.Now()
 	var exp *time.Time
 	if days != nil {
 		if *days < 1 || *days > maxTokenDays {
-			return "", dbq.ListTokensRow{}, httpx.Validation(httpx.FieldError{Field: "expires_in_days", Message: fmt.Sprintf("must be between 1 and %d", maxTokenDays)})
+			return "", authdb.ListTokensRow{}, httpx.Validation(httpx.FieldError{Field: "expires_in_days", Message: fmt.Sprintf("must be between 1 and %d", maxTokenDays)})
 		}
 		t := now.Add(time.Duration(*days) * 24 * time.Hour)
 		exp = &t
@@ -501,7 +503,7 @@ func (s *Service) CreateToken(ctx context.Context, p *Principal, name string, ro
 	id := newID()
 	name = strings.TrimSpace(name)
 	err := pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
-		if err := dbq.New(tx).InsertToken(ctx, dbq.InsertTokenParams{ID: id, UserID: p.UserID, Name: name, TokenHash: hash,
+		if err := authdb.New(tx).InsertToken(ctx, authdb.InsertTokenParams{ID: id, UserID: p.UserID, Name: name, TokenHash: hash,
 			Prefix: prefix, Role: role.String(), CreatedAt: now, ExpiresAt: exp}); err != nil {
 			return err
 		}
@@ -509,29 +511,29 @@ func (s *Service) CreateToken(ctx context.Context, p *Principal, name string, ro
 			Details: map[string]any{"name": name, "role": role.String(), "prefix": prefix}})
 	})
 	if err != nil {
-		return "", dbq.ListTokensRow{}, err
+		return "", authdb.ListTokensRow{}, err
 	}
-	return secret, dbq.ListTokensRow{ID: id, UserID: p.UserID, Name: name, Prefix: prefix, Role: role.String(),
+	return secret, authdb.ListTokensRow{ID: id, UserID: p.UserID, Name: name, Prefix: prefix, Role: role.String(),
 		CreatedAt: now, ExpiresAt: exp, UserEmail: p.Email}, nil
 }
 
 // ListTokens lists own tokens, or all tokens for admins with all=true.
-func (s *Service) ListTokens(ctx context.Context, p *Principal, all bool, afterCreated *time.Time, afterID *uuid.UUID, limit int) ([]dbq.ListTokensRow, error) {
+func (s *Service) ListTokens(ctx context.Context, p *kernel.Principal, all bool, afterCreated *time.Time, afterID *uuid.UUID, limit int) ([]authdb.ListTokensRow, error) {
 	var owner *uuid.UUID
 	if all {
-		if !p.Can(Admin) {
+		if !p.Can(kernel.Admin) {
 			return nil, httpx.ErrForbidden
 		}
 	} else {
 		owner = &p.UserID
 	}
-	return s.q(nil).ListTokens(ctx, dbq.ListTokensParams{UserID: owner, AfterCreated: afterCreated, AfterID: afterID, Lim: int32(limit)})
+	return s.q(nil).ListTokens(ctx, authdb.ListTokensParams{UserID: owner, AfterCreated: afterCreated, AfterID: afterID, Lim: int32(limit)})
 }
 
 // RevokeToken revokes a token. Owners and admins can revoke.
-func (s *Service) RevokeToken(ctx context.Context, p *Principal, id uuid.UUID) error {
+func (s *Service) RevokeToken(ctx context.Context, p *kernel.Principal, id uuid.UUID) error {
 	t, err := s.q(nil).GetToken(ctx, id)
-	if errors.Is(err, pgx.ErrNoRows) || (err == nil && t.UserID != p.UserID && !p.Can(Admin)) {
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && t.UserID != p.UserID && !p.Can(kernel.Admin)) {
 		return httpx.ErrNotFound
 	}
 	if err != nil {
@@ -539,7 +541,7 @@ func (s *Service) RevokeToken(ctx context.Context, p *Principal, id uuid.UUID) e
 	}
 	return pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
 		now := s.Clock.Now()
-		if err := dbq.New(tx).RevokeToken(ctx, dbq.RevokeTokenParams{ID: id, RevokedAt: &now}); err != nil {
+		if err := authdb.New(tx).RevokeToken(ctx, authdb.RevokeTokenParams{ID: id, RevokedAt: &now}); err != nil {
 			return err
 		}
 		return s.Audit.Record(ctx, tx, audit.Event{Action: "token.revoke", TargetType: "token", TargetID: id.String(),

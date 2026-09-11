@@ -85,7 +85,10 @@ func scanForbid(files []string, rules *forbidRules, read func(string) ([]byte, e
 	var out []forbidFinding
 	for _, p := range files {
 		slash := filepath.ToSlash(p)
-		if strings.HasPrefix(slash, "docs/") || slash == forbidWordsPath || strings.Contains(slash, "node_modules/") {
+		// ui/src/api/ holds only the hey-api client output. Exclude the whole
+		// directory: some of its generated files carry no "Code generated"
+		// header, so the header check in isGenerated does not catch them.
+		if strings.HasPrefix(slash, "docs/") || slash == forbidWordsPath || strings.Contains(slash, "node_modules/") || strings.HasPrefix(slash, "ui/src/api/") {
 			continue
 		}
 		ext := filepath.Ext(p)

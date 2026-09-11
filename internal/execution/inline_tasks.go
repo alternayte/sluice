@@ -12,9 +12,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/alternayte/sluice/internal/execution/executiondb"
 	"github.com/alternayte/sluice/internal/executor"
 	"github.com/alternayte/sluice/internal/flow"
-	"github.com/alternayte/sluice/internal/platform/dbq"
 	"github.com/alternayte/sluice/internal/platform/masking"
 )
 
@@ -27,7 +27,7 @@ const maxHTTPBody = 1 << 20
 // RunInline runs an http or subflow task in this instance. It is the InlineFunc of the
 // inline executor.
 func (e *Engine) RunInline(ctx context.Context, t executor.Task) executor.Result {
-	tr, err := dbq.New(e.Pool).GetTaskRun(ctx, t.TaskRunID)
+	tr, err := executiondb.New(e.Pool).GetTaskRun(ctx, t.TaskRunID)
 	if err != nil {
 		return executor.Result{ExitCode: 1, Err: err}
 	}
@@ -107,7 +107,7 @@ func (e *Engine) runHTTP(ctx context.Context, p *Plan) {
 		}
 	}
 	outputs, _ := json.Marshal(map[string]any{"status": resp.StatusCode, "headers": headers, "body": bodyVal})
-	if err := dbq.New(e.Pool).MergeTaskOutputs(ctx, dbq.MergeTaskOutputsParams{ID: tr.ID, Outputs: outputs}); err != nil {
+	if err := executiondb.New(e.Pool).MergeTaskOutputs(ctx, executiondb.MergeTaskOutputsParams{ID: tr.ID, Outputs: outputs}); err != nil {
 		e.Log.Warn("http outputs", "err", err)
 	}
 	e.SystemLog(ctx, tr, fmt.Sprintf("[sluice] http status %d in %s", resp.StatusCode, time.Since(start).Round(time.Millisecond)))
@@ -182,12 +182,12 @@ func (e *Engine) runSubflow(ctx context.Context, p *Plan) {
 		if err != nil {
 			return err
 		}
-		if err := dbq.New(tx).SetTaskRunChild(ctx, dbq.SetTaskRunChildParams{ID: tr.ID, ChildExecutionID: &childID}); err != nil {
+		if err := executiondb.New(tx).SetTaskRunChild(ctx, executiondb.SetTaskRunChildParams{ID: tr.ID, ChildExecutionID: &childID}); err != nil {
 			return err
 		}
 		if !wait {
 			out, _ := json.Marshal(map[string]any{"execution_id": childID.String()})
-			if err := dbq.New(tx).MergeTaskOutputs(ctx, dbq.MergeTaskOutputsParams{ID: tr.ID, Outputs: out}); err != nil {
+			if err := executiondb.New(tx).MergeTaskOutputs(ctx, executiondb.MergeTaskOutputsParams{ID: tr.ID, Outputs: out}); err != nil {
 				return err
 			}
 			return e.finishTaskTx(ctx, tx, tr.ID, []string{TaskRunning}, TaskSuccess, "", "", nil)

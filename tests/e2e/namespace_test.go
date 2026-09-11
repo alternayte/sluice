@@ -92,3 +92,77 @@ func TestSCN_NS_009_FileAndSnapshotLimits(t *testing.T) {
 		t.Fatalf("save of a file above the file limit: %d %s", r.Status, r.Body)
 	}
 }
+
+type snapshotOut struct {
+	Version *int   `json:"version"`
+	Author  string `json:"author"`
+}
+
+type fileDiff struct {
+	Path   string `json:"path"`
+	Status string `json:"status"`
+}
+
+type versionDiff struct {
+	Files []fileDiff `json:"files"`
+}
+
+// TestSaveVersionsDiffRevert saves changes over HTTP, lists versions, reads a diff between
+// versions, reverts to an earlier version, and checks that a stale base version is refused.
+func TestSaveVersionsDiffRevert(t *testing.T) {
+	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
+	editor := userToken(t, adminClient(t, p), "svr-editor@example.com", "editor")
+	editor.do(t, http.MethodPost, "/api/v1/namespaces", map[string]string{"name": "data"}, http.StatusCreated, nil)
+
+	var s1 snapshotOut
+	editor.do(t, http.MethodPost, "/api/v1/namespaces/data/changes",
+		map[string]any{"message": "v1", "changes": []map[string]any{{"op": "put", "path": "a.txt", "content": "one\n"}}},
+		http.StatusCreated, &s1)
+	if s1.Version == nil || *s1.Version != 1 || s1.Author != "svr-editor@example.com" {
+		t.Fatalf("v1: %+v", s1)
+	}
+	editor.do(t, http.MethodPost, "/api/v1/namespaces/data/changes",
+		map[string]any{"message": "v2", "changes": []map[string]any{
+			{"op": "put", "path": "a.txt", "content": "two\n"}, {"op": "put", "path": "b.txt", "content": "b\n"}}},
+		http.StatusCreated, nil)
+
+	base := 1
+	r := editor.raw(t, http.MethodPost, "/api/v1/namespaces/data/changes",
+		map[string]any{"message": "stale", "base_version": base, "changes": []map[string]any{{"op": "put", "path": "c.txt", "content": "c"}}}, nil)
+	if r.Status != http.StatusConflict {
+		t.Fatalf("stale base version: %d %s", r.Status, r.Body)
+	}
+
+	editor.do(t, http.MethodPost, "/api/v1/namespaces/data/changes",
+		map[string]any{"message": "v3", "changes": []map[string]any{{"op": "rename", "path": "b.txt", "new_path": "dir/b.txt"}}},
+		http.StatusCreated, nil)
+
+	var vlist struct {
+		Items []snapshotOut `json:"items"`
+	}
+	editor.do(t, http.MethodGet, "/api/v1/namespaces/data/versions", nil, http.StatusOK, &vlist)
+	if len(vlist.Items) != 3 {
+		t.Fatalf("versions: %+v", vlist.Items)
+	}
+
+	var diff versionDiff
+	editor.do(t, http.MethodGet, "/api/v1/namespaces/data/diff?from=1&to=3", nil, http.StatusOK, &diff)
+	if len(diff.Files) != 2 || diff.Files[0].Path != "a.txt" || diff.Files[0].Status != "modified" ||
+		diff.Files[1].Path != "dir/b.txt" || diff.Files[1].Status != "added" {
+		t.Fatalf("diff: %+v", diff.Files)
+	}
+
+	var s4 snapshotOut
+	editor.do(t, http.MethodPost, "/api/v1/namespaces/data/revert", map[string]any{"version": 1}, http.StatusCreated, &s4)
+	if s4.Version == nil || *s4.Version != 4 {
+		t.Fatalf("revert: %+v", s4)
+	}
+	ok := editor.raw(t, http.MethodGet, "/api/v1/namespaces/data/file?path=a.txt", nil, nil)
+	if ok.Status != http.StatusOK || string(ok.Body) != "one\n" {
+		t.Fatalf("after revert: %d %q", ok.Status, ok.Body)
+	}
+	missing := editor.raw(t, http.MethodGet, "/api/v1/namespaces/data/file?path=dir/b.txt", nil, nil)
+	if missing.Status != http.StatusNotFound {
+		t.Fatalf("file of v3 still in head: %d", missing.Status)
+	}
+}

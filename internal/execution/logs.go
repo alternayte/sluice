@@ -16,9 +16,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/alternayte/sluice/internal/platform/dbq"
+	"github.com/alternayte/sluice/internal/execution/executiondb"
 	"github.com/alternayte/sluice/internal/platform/masking"
-	"github.com/alternayte/sluice/internal/runnerapi"
+	"github.com/alternayte/sluice/internal/runnerproto"
 	"github.com/alternayte/sluice/internal/storage"
 )
 
@@ -83,7 +83,7 @@ type maskEntry struct {
 var masks = &maskCache{m: map[uuid.UUID]maskEntry{}}
 
 // MaskerFor returns the masker of a task run with its secret values (REQ-RUN-005, SI-10).
-func (e *Engine) MaskerFor(ctx context.Context, tr dbq.TaskRun) *masking.Masker {
+func (e *Engine) MaskerFor(ctx context.Context, tr executiondb.TaskRun) *masking.Masker {
 	masks.mu.Lock()
 	if ent, ok := masks.m[tr.ID]; ok && time.Since(ent.at) < 10*time.Minute {
 		masks.mu.Unlock()
@@ -105,13 +105,13 @@ func (e *Engine) MaskerFor(ctx context.Context, tr dbq.TaskRun) *masking.Masker 
 }
 
 // IngestLogs stores one runner batch. It is idempotent per (task run, seq) (REQ-RUN-002).
-func (e *Engine) IngestLogs(ctx context.Context, tr dbq.TaskRun, seq int, lines []runnerapi.LogLine) error {
+func (e *Engine) IngestLogs(ctx context.Context, tr executiondb.TaskRun, seq int, lines []runnerproto.LogLine) error {
 	if len(lines) == 0 {
 		return nil
 	}
 	m := e.MaskerFor(ctx, tr)
 	return pgx.BeginFunc(ctx, e.Pool, func(tx pgx.Tx) error {
-		q := dbq.New(tx)
+		q := executiondb.New(tx)
 		if _, err := q.LockTaskRun(ctx, tr.ID); err != nil {
 			return err
 		}
@@ -142,21 +142,21 @@ func (e *Engine) IngestLogs(ctx context.Context, tr dbq.TaskRun, seq int, lines 
 		if err != nil {
 			return err
 		}
-		_, err = q.InsertLogChunk(ctx, dbq.InsertLogChunkParams{TaskRunID: tr.ID, ExecutionID: tr.ExecutionID, Seq: int32(seq),
+		_, err = q.InsertLogChunk(ctx, executiondb.InsertLogChunkParams{TaskRunID: tr.ID, ExecutionID: tr.ExecutionID, Seq: int32(seq),
 			FirstLine: first, LineCount: int32(len(lines)), Data: data, CreatedAt: e.Clock.Now()})
 		return err
 	})
 }
 
 // SystemLog appends server lines to a task run log.
-func (e *Engine) SystemLog(ctx context.Context, tr dbq.TaskRun, texts ...string) {
+func (e *Engine) SystemLog(ctx context.Context, tr executiondb.TaskRun, texts ...string) {
 	var seq int
 	if err := e.Pool.QueryRow(ctx, "SELECT coalesce(max(seq), 0) + 1 FROM log_chunks WHERE task_run_id = $1", tr.ID).Scan(&seq); err != nil {
 		return
 	}
-	lines := make([]runnerapi.LogLine, len(texts))
+	lines := make([]runnerproto.LogLine, len(texts))
 	for i, t := range texts {
-		lines[i] = runnerapi.LogLine{TS: e.Clock.Now(), Stream: "system", Text: t}
+		lines[i] = runnerproto.LogLine{TS: e.Clock.Now(), Stream: "system", Text: t}
 	}
 	if err := e.IngestLogs(ctx, tr, seq+100000, lines); err != nil {
 		e.Log.Warn("system log", "err", err)
@@ -165,7 +165,7 @@ func (e *Engine) SystemLog(ctx context.Context, tr dbq.TaskRun, texts ...string)
 
 // ArchiveTaskLogs moves the chunks of an ended task run to storage (REQ-RUN-008).
 func (e *Engine) ArchiveTaskLogs(ctx context.Context, taskRunID uuid.UUID) error {
-	q := dbq.New(e.Pool)
+	q := executiondb.New(e.Pool)
 	tr, err := q.GetTaskRun(ctx, taskRunID)
 	if err != nil {
 		return err
@@ -217,7 +217,7 @@ func mergeLines(a, b []storedLine) []storedLine {
 
 // chunkLines reads lines after line number `after` from Postgres chunks.
 func (e *Engine) chunkLines(ctx context.Context, taskRunID uuid.UUID, after int64) ([]storedLine, error) {
-	chunks, err := dbq.New(e.Pool).ListLogChunks(ctx, dbq.ListLogChunksParams{TaskRunID: taskRunID, FirstLine: after})
+	chunks, err := executiondb.New(e.Pool).ListLogChunks(ctx, executiondb.ListLogChunksParams{TaskRunID: taskRunID, FirstLine: after})
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +237,7 @@ func (e *Engine) chunkLines(ctx context.Context, taskRunID uuid.UUID, after int6
 	return out, nil
 }
 
-func (e *Engine) archivedLines(ctx context.Context, tr dbq.TaskRun) ([]storedLine, error) {
+func (e *Engine) archivedLines(ctx context.Context, tr executiondb.TaskRun) ([]storedLine, error) {
 	r, err := e.Store.Get(ctx, storage.LogKey(tr.ExecutionID.String(), tr.ID.String()))
 	if errors.Is(err, storage.ErrNotFound) {
 		return nil, nil
@@ -254,7 +254,7 @@ func (e *Engine) archivedLines(ctx context.Context, tr dbq.TaskRun) ([]storedLin
 }
 
 // TaskLines reads all lines of a task run after `after` from both sources (REQ-RUN-008).
-func (e *Engine) TaskLines(ctx context.Context, tr dbq.TaskRun, after int64) ([]storedLine, error) {
+func (e *Engine) TaskLines(ctx context.Context, tr executiondb.TaskRun, after int64) ([]storedLine, error) {
 	arch, err := e.archivedLines(ctx, tr)
 	if err != nil {
 		return nil, err
@@ -283,7 +283,7 @@ type LogLine struct {
 // ExecutionLines reads the lines of all task runs of an execution, in time order.
 // positions maps task run IDs to the last line already read.
 func (e *Engine) ExecutionLines(ctx context.Context, execID uuid.UUID, task string, positions map[uuid.UUID]int64) ([]LogLine, error) {
-	runs, err := dbq.New(e.Pool).ListExecutionTaskRuns(ctx, execID)
+	runs, err := executiondb.New(e.Pool).ListExecutionTaskRuns(ctx, execID)
 	if err != nil {
 		return nil, err
 	}

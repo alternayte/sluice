@@ -3,6 +3,9 @@ package auth
 import (
 	"strings"
 	"testing"
+
+	"github.com/alternayte/sluice/internal/kernel"
+	"github.com/alternayte/sluice/internal/platform/token"
 )
 
 func TestPasswordHashArgon2idParameters(t *testing.T) {
@@ -37,7 +40,7 @@ func TestAPITokenFormat(t *testing.T) {
 			t.Fatal("duplicate token")
 		}
 		seen[s] = true
-		if !EqualHash(hash, HashSecret(s)) {
+		if !EqualHash(hash, token.HashSecret(s)) {
 			t.Fatal("hash mismatch")
 		}
 	}
@@ -61,19 +64,19 @@ func TestBase62Width(t *testing.T) {
 }
 
 func TestRoles(t *testing.T) {
-	for _, r := range AllRoles {
-		p, ok := ParseRole(r.String())
+	for _, r := range kernel.AllRoles {
+		p, ok := kernel.ParseRole(r.String())
 		if !ok || p != r {
 			t.Fatalf("round trip %v", r)
 		}
 	}
-	if Viewer >= Operator || Operator >= Editor || Editor >= Admin {
+	if kernel.Viewer >= kernel.Operator || kernel.Operator >= kernel.Editor || kernel.Editor >= kernel.Admin {
 		t.Fatal("role order")
 	}
-	if _, ok := ParseRole("root"); ok {
+	if _, ok := kernel.ParseRole("root"); ok {
 		t.Fatal("unknown role parsed")
 	}
-	if MinRole(Admin, Operator) != Operator {
+	if kernel.MinRole(kernel.Admin, kernel.Operator) != kernel.Operator {
 		t.Fatal("min role")
 	}
 }

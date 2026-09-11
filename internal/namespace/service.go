@@ -19,11 +19,13 @@ import (
 	"github.com/pmezard/go-difflib/difflib"
 
 	"github.com/alternayte/sluice/internal/audit"
-	"github.com/alternayte/sluice/internal/auth"
 	"github.com/alternayte/sluice/internal/flow"
+	"github.com/alternayte/sluice/internal/kernel"
+	"github.com/alternayte/sluice/internal/namespace/namespacedb"
 	"github.com/alternayte/sluice/internal/platform/clock"
-	"github.com/alternayte/sluice/internal/platform/dbq"
+	platformdb "github.com/alternayte/sluice/internal/platform/db"
 	"github.com/alternayte/sluice/internal/platform/httpx"
+	"github.com/alternayte/sluice/internal/snapshot"
 	"github.com/alternayte/sluice/internal/storage"
 )
 
@@ -56,8 +58,8 @@ func newID() uuid.UUID {
 }
 
 // Get returns a namespace by name.
-func (s *Service) Get(ctx context.Context, name string) (dbq.GetNamespaceRow, error) {
-	ns, err := dbq.New(s.Pool).GetNamespace(ctx, name)
+func (s *Service) Get(ctx context.Context, name string) (namespacedb.GetNamespaceRow, error) {
+	ns, err := namespacedb.New(s.Pool).GetNamespace(ctx, name)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ns, ErrNotFound
 	}
@@ -65,14 +67,14 @@ func (s *Service) Get(ctx context.Context, name string) (dbq.GetNamespaceRow, er
 }
 
 // Create creates a managed namespace (REQ-NS-001).
-func (s *Service) Create(ctx context.Context, name, description string) (dbq.GetNamespaceRow, error) {
+func (s *Service) Create(ctx context.Context, name, description string) (namespacedb.GetNamespaceRow, error) {
 	if !flow.ValidNamespaceName(name) {
-		return dbq.GetNamespaceRow{}, httpx.Validation(httpx.FieldError{Field: "name",
+		return namespacedb.GetNamespaceRow{}, httpx.Validation(httpx.FieldError{Field: "name",
 			Message: "lower case letters, digits and hyphens in dot-separated parts, at most 128 characters"})
 	}
 	id := newID()
 	err := pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
-		if err := dbq.New(tx).InsertNamespace(ctx, dbq.InsertNamespaceParams{ID: id, Name: name, SourceType: "managed",
+		if err := namespacedb.New(tx).InsertNamespace(ctx, namespacedb.InsertNamespaceParams{ID: id, Name: name, SourceType: "managed",
 			Description: strings.TrimSpace(description), CreatedAt: s.Clock.Now()}); err != nil {
 			return err
 		}
@@ -80,10 +82,10 @@ func (s *Service) Create(ctx context.Context, name, description string) (dbq.Get
 	})
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-		return dbq.GetNamespaceRow{}, ErrExists
+		return namespacedb.GetNamespaceRow{}, ErrExists
 	}
 	if err != nil {
-		return dbq.GetNamespaceRow{}, err
+		return namespacedb.GetNamespaceRow{}, err
 	}
 	return s.Get(ctx, name)
 }
@@ -93,7 +95,7 @@ type TreeNode struct {
 	Name     string
 	Parent   string
 	Implicit bool
-	Row      *dbq.ListNamespacesRow
+	Row      *namespacedb.ListNamespacesRow
 }
 
 // ParentOf returns the parent namespace name, or "".
@@ -106,7 +108,7 @@ func ParentOf(name string) string {
 
 // Tree lists namespaces with their implicit parents (REQ-NS-001).
 func (s *Service) Tree(ctx context.Context) ([]TreeNode, error) {
-	rows, err := dbq.New(s.Pool).ListNamespaces(ctx)
+	rows, err := namespacedb.New(s.Pool).ListNamespaces(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -130,49 +132,49 @@ func (s *Service) Tree(ctx context.Context) ([]TreeNode, error) {
 
 // SnapshotInfo is a snapshot with its author.
 type SnapshotInfo struct {
-	dbq.Snapshot
+	namespacedb.Snapshot
 	Author    string
 	FileCount int
 }
 
 // Manifest loads the files of a snapshot.
-func (s *Service) Manifest(ctx context.Context, db dbq.DBTX, snapshotID uuid.UUID) (Manifest, error) {
-	files, err := dbq.New(db).ListSnapshotFiles(ctx, snapshotID)
+func (s *Service) Manifest(ctx context.Context, db platformdb.DBTX, snapshotID uuid.UUID) (snapshot.Manifest, error) {
+	files, err := namespacedb.New(db).ListSnapshotFiles(ctx, snapshotID)
 	if err != nil {
 		return nil, err
 	}
-	m := make(Manifest, len(files))
+	m := make(snapshot.Manifest, len(files))
 	for _, f := range files {
-		m[f.Path] = Entry{Path: f.Path, Hash: f.Hash, Size: f.Size, Executable: f.Executable}
+		m[f.Path] = snapshot.Entry{Path: f.Path, Hash: f.Hash, Size: f.Size, Executable: f.Executable}
 	}
 	return m, nil
 }
 
 // Resolve returns the snapshot of a version (nil: head) and its manifest. A namespace
 // without a snapshot has an empty manifest.
-func (s *Service) Resolve(ctx context.Context, ns dbq.GetNamespaceRow, version *int) (*SnapshotInfo, Manifest, error) {
-	q := dbq.New(s.Pool)
+func (s *Service) Resolve(ctx context.Context, ns namespacedb.GetNamespaceRow, version *int) (*SnapshotInfo, snapshot.Manifest, error) {
+	q := namespacedb.New(s.Pool)
 	var info *SnapshotInfo
 	switch {
 	case version != nil:
-		sn, err := q.GetSnapshotByVersion(ctx, dbq.GetSnapshotByVersionParams{NamespaceID: ns.ID, Version: int32ptr(*version)})
+		sn, err := q.GetSnapshotByVersion(ctx, namespacedb.GetSnapshotByVersionParams{NamespaceID: ns.ID, Version: int32ptr(*version)})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil, ErrVersionNotFound
 		}
 		if err != nil {
 			return nil, nil, err
 		}
-		info = &SnapshotInfo{Snapshot: dbq.Snapshot{ID: sn.ID, NamespaceID: sn.NamespaceID, Version: sn.Version, GitSha: sn.GitSha,
+		info = &SnapshotInfo{Snapshot: namespacedb.Snapshot{ID: sn.ID, NamespaceID: sn.NamespaceID, Version: sn.Version, GitSha: sn.GitSha,
 			ManifestHash: sn.ManifestHash, Message: sn.Message, CreatedBy: sn.CreatedBy, CreatedAt: sn.CreatedAt}, Author: deref(sn.AuthorEmail)}
 	case ns.HeadSnapshotID != nil:
 		sn, err := q.GetSnapshot(ctx, *ns.HeadSnapshotID)
 		if err != nil {
 			return nil, nil, err
 		}
-		info = &SnapshotInfo{Snapshot: dbq.Snapshot{ID: sn.ID, NamespaceID: sn.NamespaceID, Version: sn.Version, GitSha: sn.GitSha,
+		info = &SnapshotInfo{Snapshot: namespacedb.Snapshot{ID: sn.ID, NamespaceID: sn.NamespaceID, Version: sn.Version, GitSha: sn.GitSha,
 			ManifestHash: sn.ManifestHash, Message: sn.Message, CreatedBy: sn.CreatedBy, CreatedAt: sn.CreatedAt}, Author: deref(sn.AuthorEmail)}
 	default:
-		return nil, Manifest{}, nil
+		return nil, snapshot.Manifest{}, nil
 	}
 	m, err := s.Manifest(ctx, s.Pool, info.ID)
 	if err != nil {
@@ -195,22 +197,22 @@ func deref(s *string) string {
 }
 
 // ReadFile opens one file of a version.
-func (s *Service) ReadFile(ctx context.Context, name, path string, version *int) (io.ReadCloser, Entry, error) {
+func (s *Service) ReadFile(ctx context.Context, name, path string, version *int) (io.ReadCloser, snapshot.Entry, error) {
 	ns, err := s.Get(ctx, name)
 	if err != nil {
-		return nil, Entry{}, err
+		return nil, snapshot.Entry{}, err
 	}
 	_, m, err := s.Resolve(ctx, ns, version)
 	if err != nil {
-		return nil, Entry{}, err
+		return nil, snapshot.Entry{}, err
 	}
 	e, ok := m[path]
 	if !ok {
-		return nil, Entry{}, ErrFileNotFound
+		return nil, snapshot.Entry{}, ErrFileNotFound
 	}
 	r, err := s.Store.Get(ctx, storage.FileKey(e.Hash))
 	if err != nil {
-		return nil, Entry{}, err
+		return nil, snapshot.Entry{}, err
 	}
 	return r, e, nil
 }
@@ -277,7 +279,7 @@ func (s *Service) Save(ctx context.Context, name string, changes []Change, messa
 			return nil, httpx.Validation(httpx.FieldError{Field: f + ".op", Message: "must be put, delete or rename"})
 		}
 	}
-	mutate := func(head Manifest) (Manifest, error) {
+	mutate := func(head snapshot.Manifest) (snapshot.Manifest, error) {
 		m := head.Clone()
 		for i, c := range changes {
 			f := fmt.Sprintf("changes[%d]", i)
@@ -290,7 +292,7 @@ func (s *Service) Save(ctx context.Context, name string, changes []Change, messa
 				if c.Executable != nil {
 					exec = *c.Executable
 				}
-				m[c.Path] = Entry{Path: c.Path, Hash: ContentHash(c.Content), Size: int64(len(c.Content)), Executable: exec}
+				m[c.Path] = snapshot.Entry{Path: c.Path, Hash: ContentHash(c.Content), Size: int64(len(c.Content)), Executable: exec}
 			case "delete":
 				if _, ok := m[c.Path]; !ok {
 					return nil, httpx.Validation(httpx.FieldError{Field: f + ".path", Message: "file does not exist"})
@@ -346,13 +348,13 @@ func (s *Service) Revert(ctx context.Context, name string, version int, message 
 	if message == "" {
 		message = fmt.Sprintf("Revert to version %d", version)
 	}
-	return s.commit(ctx, ns, nil, func(Manifest) (Manifest, error) { return target.Clone(), nil }, message, nil,
+	return s.commit(ctx, ns, nil, func(snapshot.Manifest) (snapshot.Manifest, error) { return target.Clone(), nil }, message, nil,
 		map[string]any{"revert_to": version})
 }
 
 // commit uploads new content, then creates the snapshot, moves the head and syncs flows
 // in one transaction.
-func (s *Service) commit(ctx context.Context, ns dbq.GetNamespaceRow, uploads map[string][]byte, mutate func(Manifest) (Manifest, error),
+func (s *Service) commit(ctx context.Context, ns namespacedb.GetNamespaceRow, uploads map[string][]byte, mutate func(snapshot.Manifest) (snapshot.Manifest, error),
 	message string, baseVersion *int, details map[string]any) (*SnapshotInfo, error) {
 	message = strings.TrimSpace(message)
 	if message == "" {
@@ -363,14 +365,14 @@ func (s *Service) commit(ctx context.Context, ns dbq.GetNamespaceRow, uploads ma
 	}
 	var author *uuid.UUID
 	authorEmail := ""
-	if p := auth.FromContext(ctx); p != nil {
+	if p := kernel.FromContext(ctx); p != nil {
 		id := p.UserID
 		author = &id
 		authorEmail = p.Email
 	}
 	var out *SnapshotInfo
 	err := pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := dbq.New(tx)
+		q := namespacedb.New(tx)
 		locked, err := q.LockNamespace(ctx, ns.ID)
 		if err != nil {
 			return err
@@ -378,7 +380,7 @@ func (s *Service) commit(ctx context.Context, ns dbq.GetNamespaceRow, uploads ma
 		if locked.DeletedAt != nil {
 			return ErrNotFound
 		}
-		head := Manifest{}
+		head := snapshot.Manifest{}
 		var headVersion int
 		if locked.HeadSnapshotID != nil {
 			sn, err := q.GetSnapshot(ctx, *locked.HeadSnapshotID)
@@ -424,7 +426,7 @@ func (s *Service) commit(ctx context.Context, ns dbq.GetNamespaceRow, uploads ma
 		if err != nil {
 			return err
 		}
-		snap := dbq.Snapshot{ID: newID(), NamespaceID: ns.ID, Version: &version, ManifestHash: next.Hash(), Message: message,
+		snap := namespacedb.Snapshot{ID: newID(), NamespaceID: ns.ID, Version: &version, ManifestHash: next.Hash(), Message: message,
 			CreatedBy: author, CreatedAt: s.Clock.Now()}
 		if err := s.insertSnapshot(ctx, tx, snap, next); err != nil {
 			return err
@@ -450,12 +452,12 @@ func (s *Service) commit(ctx context.Context, ns dbq.GetNamespaceRow, uploads ma
 }
 
 // insertSnapshot writes the snapshot row, its files and moves the namespace head.
-func (s *Service) insertSnapshot(ctx context.Context, tx pgx.Tx, snap dbq.Snapshot, m Manifest) error {
-	q := dbq.New(tx)
-	if err := q.InsertSnapshot(ctx, dbq.InsertSnapshotParams(snap)); err != nil {
+func (s *Service) insertSnapshot(ctx context.Context, tx pgx.Tx, snap namespacedb.Snapshot, m snapshot.Manifest) error {
+	q := namespacedb.New(tx)
+	if err := q.InsertSnapshot(ctx, namespacedb.InsertSnapshotParams(snap)); err != nil {
 		return err
 	}
-	p := dbq.InsertSnapshotFilesParams{SnapshotID: snap.ID}
+	p := namespacedb.InsertSnapshotFilesParams{SnapshotID: snap.ID}
 	for _, path := range m.Paths() {
 		e := m[path]
 		p.Paths = append(p.Paths, e.Path)
@@ -468,12 +470,12 @@ func (s *Service) insertSnapshot(ctx context.Context, tx pgx.Tx, snap dbq.Snapsh
 			return err
 		}
 	}
-	return q.SetNamespaceHead(ctx, dbq.SetNamespaceHeadParams{ID: snap.NamespaceID, HeadSnapshotID: &snap.ID})
+	return q.SetNamespaceHead(ctx, namespacedb.SetNamespaceHeadParams{ID: snap.NamespaceID, HeadSnapshotID: &snap.ID})
 }
 
 // uploadBlobs stores new content objects (deduplicated by hash, REQ-STO-005).
 func (s *Service) uploadBlobs(ctx context.Context, uploads map[string][]byte) error {
-	q := dbq.New(s.Pool)
+	q := namespacedb.New(s.Pool)
 	for hash, content := range uploads {
 		exists, err := q.FileObjectExists(ctx, hash)
 		if err != nil {
@@ -487,7 +489,7 @@ func (s *Service) uploadBlobs(ctx context.Context, uploads map[string][]byte) er
 		if _, err := s.Store.Put(ctx, storage.FileKey(hash), bytes.NewReader(content), "application/octet-stream"); err != nil {
 			return err
 		}
-		if err := q.InsertFileObject(ctx, dbq.InsertFileObjectParams{Hash: hash, Size: int64(len(content)), CreatedAt: s.Clock.Now()}); err != nil {
+		if err := q.InsertFileObject(ctx, namespacedb.InsertFileObjectParams{Hash: hash, Size: int64(len(content)), CreatedAt: s.Clock.Now()}); err != nil {
 			return err
 		}
 	}
@@ -495,7 +497,7 @@ func (s *Service) uploadBlobs(ctx context.Context, uploads map[string][]byte) er
 }
 
 // flowFiles returns all paths of m with content for flow files and namespace.yaml.
-func (s *Service) flowFiles(ctx context.Context, m Manifest, pending map[string][]byte) (map[string][]byte, error) {
+func (s *Service) flowFiles(ctx context.Context, m snapshot.Manifest, pending map[string][]byte) (map[string][]byte, error) {
 	files := make(map[string][]byte, len(m))
 	for p, e := range m {
 		if !needsContent(p) {
@@ -521,7 +523,7 @@ func (s *Service) Versions(ctx context.Context, name string, limit int) ([]Snaps
 	if err != nil {
 		return nil, err
 	}
-	rows, err := dbq.New(s.Pool).ListSnapshots(ctx, dbq.ListSnapshotsParams{NamespaceID: ns.ID, Limit: int32(limit)})
+	rows, err := namespacedb.New(s.Pool).ListSnapshots(ctx, namespacedb.ListSnapshotsParams{NamespaceID: ns.ID, Limit: int32(limit)})
 	if err != nil {
 		return nil, err
 	}
@@ -529,14 +531,14 @@ func (s *Service) Versions(ctx context.Context, name string, limit int) ([]Snaps
 	for _, r := range rows {
 		var n int
 		_ = s.Pool.QueryRow(ctx, "SELECT count(*) FROM snapshot_files WHERE snapshot_id = $1", r.ID).Scan(&n)
-		out = append(out, SnapshotInfo{Snapshot: dbq.Snapshot{ID: r.ID, NamespaceID: r.NamespaceID, Version: r.Version, GitSha: r.GitSha,
+		out = append(out, SnapshotInfo{Snapshot: namespacedb.Snapshot{ID: r.ID, NamespaceID: r.NamespaceID, Version: r.Version, GitSha: r.GitSha,
 			ManifestHash: r.ManifestHash, Message: r.Message, CreatedBy: r.CreatedBy, CreatedAt: r.CreatedAt}, Author: deref(r.AuthorEmail), FileCount: n})
 	}
 	return out, nil
 }
 
-// FileDiff is the difference of one file between two versions.
-type FileDiff struct {
+// VersionFileDiff is the difference of one file between two versions.
+type VersionFileDiff struct {
 	Path   string
 	Status string // added, removed, modified
 	Binary bool
@@ -544,7 +546,7 @@ type FileDiff struct {
 }
 
 // Diff compares two versions (REQ-NS-003).
-func (s *Service) Diff(ctx context.Context, name string, from, to int) ([]FileDiff, error) {
+func (s *Service) Diff(ctx context.Context, name string, from, to int) ([]VersionFileDiff, error) {
 	ns, err := s.Get(ctx, name)
 	if err != nil {
 		return nil, err
@@ -569,14 +571,14 @@ func (s *Service) Diff(ctx context.Context, name string, from, to int) ([]FileDi
 		sorted = append(sorted, p)
 	}
 	sort.Strings(sorted)
-	var out []FileDiff
+	var out []VersionFileDiff
 	for _, p := range sorted {
 		ea, inA := a[p]
 		eb, inB := b[p]
 		if inA && inB && ea.Hash == eb.Hash {
 			continue
 		}
-		fd := FileDiff{Path: p, Status: "modified"}
+		fd := VersionFileDiff{Path: p, Status: "modified"}
 		switch {
 		case !inA:
 			fd.Status = "added"
@@ -627,7 +629,7 @@ func (s *Service) Delete(ctx context.Context, name string) error {
 		return ErrReadOnly
 	}
 	return pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := dbq.New(tx)
+		q := namespacedb.New(tx)
 		if _, err := q.LockNamespace(ctx, ns.ID); err != nil {
 			return err
 		}
@@ -639,7 +641,7 @@ func (s *Service) Delete(ctx context.Context, name string) error {
 			return ErrExecutionsRunning
 		}
 		now := s.Clock.Now()
-		if err := q.SoftDeleteNamespace(ctx, dbq.SoftDeleteNamespaceParams{ID: ns.ID, DeletedAt: &now}); err != nil {
+		if err := q.SoftDeleteNamespace(ctx, namespacedb.SoftDeleteNamespaceParams{ID: ns.ID, DeletedAt: &now}); err != nil {
 			return err
 		}
 		flows, err := q.ListNamespaceFlows(ctx, ns.ID)
@@ -647,7 +649,7 @@ func (s *Service) Delete(ctx context.Context, name string) error {
 			return err
 		}
 		for _, f := range flows {
-			if err := q.MarkFlowDeleted(ctx, dbq.MarkFlowDeletedParams{ID: f.ID, DeletedAt: &now}); err != nil {
+			if err := q.MarkFlowDeleted(ctx, namespacedb.MarkFlowDeletedParams{ID: f.ID, DeletedAt: &now}); err != nil {
 				return err
 			}
 			if err := q.DeactivateFlowTriggers(ctx, f.ID); err != nil {

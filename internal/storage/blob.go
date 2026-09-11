@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/fileblob"
@@ -22,6 +23,8 @@ import (
 type Blob struct {
 	Bucket *blob.Bucket
 	Name   string
+	// beforeWrite, if set, goes to blob.WriterOptions.BeforeWrite on each Put.
+	beforeWrite func(func(any) bool) error
 }
 
 // Driver returns the driver name.
@@ -45,7 +48,7 @@ func (b *Blob) Put(ctx context.Context, key string, r io.Reader, contentType str
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
-	w, err := b.Bucket.NewWriter(ctx, key, &blob.WriterOptions{ContentType: contentType, BufferSize: 5 << 20, MaxConcurrency: 2})
+	w, err := b.Bucket.NewWriter(ctx, key, &blob.WriterOptions{ContentType: contentType, BufferSize: 5 << 20, MaxConcurrency: 2, BeforeWrite: b.beforeWrite})
 	if err != nil {
 		return 0, err
 	}
@@ -162,7 +165,45 @@ func OpenS3(ctx context.Context, c S3Config) (*Blob, error) {
 	if c.Prefix != "" {
 		bkt = blob.PrefixedBucket(bkt, normPrefix(c.Prefix))
 	}
-	return &Blob{Bucket: bkt, Name: "s3"}, nil
+	return &Blob{Bucket: bkt, Name: "s3", beforeWrite: s3UploadLimits(client)}, nil
+}
+
+// S3 upload memory bounds (REQ-STO-004). The transfer manager keeps a pool of
+// s3UploadConcurrency+1 part buffers of S3PartSize bytes. It reads the first
+// part with io.ReadAll up to the multipart threshold, and io.ReadAll holds its
+// chunks and the final copy together, so the first part costs up to twice the
+// threshold. The default threshold is 16 MiB, which gives a live peak of
+// about 47 MiB. With a threshold equal to the part size, the live peak of one
+// upload is about 3*5 + 2*5 = 25 MiB, independent of the object size.
+// The small part size and low concurrency trade upload throughput for bounded
+// memory on purpose (SCN-STO-001). Do not restore the SDK defaults.
+const (
+	S3PartSize          = 5 << 20 // S3 minimum part size.
+	S3MaxParts          = 10000   // S3 maximum part count of one upload.
+	s3UploadConcurrency = 2
+	// S3MaxObjectBytes is the largest object that one s3 upload can write.
+	// The config check uses it for the size limits (REQ-CORE-002).
+	S3MaxObjectBytes = S3PartSize * S3MaxParts
+)
+
+// s3UploadLimits returns a BeforeWrite hook that replaces the transfer
+// manager options of gocloud.dev/blob/s3blob. The s3blob writer keeps the
+// *transfermanager.Client that it gives to the hook, so the hook sets the
+// options in place. The WriterOptions BufferSize and MaxConcurrency cannot
+// set the multipart threshold.
+func s3UploadLimits(client *s3.Client) func(func(any) bool) error {
+	return func(as func(any) bool) error {
+		var tm *transfermanager.Client
+		if !as(&tm) || tm == nil {
+			return errors.New("s3 writer: no transfer manager client")
+		}
+		*tm = *transfermanager.New(client, func(o *transfermanager.Options) {
+			o.PartSizeBytes = S3PartSize
+			o.Concurrency = s3UploadConcurrency
+			o.MultipartUploadThreshold = S3PartSize
+		})
+		return nil
+	}
 }
 
 func normPrefix(p string) string {

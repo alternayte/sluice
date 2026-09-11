@@ -12,7 +12,7 @@ import (
 
 	"github.com/alternayte/sluice/internal/audit"
 	"github.com/alternayte/sluice/internal/flow"
-	"github.com/alternayte/sluice/internal/platform/dbq"
+	"github.com/alternayte/sluice/internal/namespace/namespacedb"
 	"github.com/alternayte/sluice/internal/platform/httpx"
 )
 
@@ -20,13 +20,13 @@ import (
 // (REQ-FLOW-001, REQ-FLOW-004, REQ-FLOW-005, REQ-GIT-006). files holds every path of
 // the snapshot, with content for flow files and namespace.yaml.
 func (s *Service) SyncFlows(ctx context.Context, tx pgx.Tx, nsID, snapshotID uuid.UUID, files map[string][]byte) error {
-	q := dbq.New(tx)
+	q := namespacedb.New(tx)
 	res := flow.ValidateNamespace(files)
 	existing, err := q.ListNamespaceFlows(ctx, nsID)
 	if err != nil {
 		return err
 	}
-	byKey := map[string]dbq.Flow{}
+	byKey := map[string]namespacedb.Flow{}
 	for _, f := range existing {
 		byKey[f.FlowKey] = f
 	}
@@ -46,8 +46,8 @@ func (s *Service) SyncFlows(ctx context.Context, tx pgx.Tx, nsID, snapshotID uui
 		pf := groups[key]
 		fl, ok := byKey[key]
 		if !ok {
-			fl = dbq.Flow{ID: newID(), NamespaceID: nsID, FlowKey: key, Path: pf.Path}
-			if err := q.InsertFlow(ctx, dbq.InsertFlowParams{ID: fl.ID, NamespaceID: nsID, FlowKey: key, Path: pf.Path, CreatedAt: now}); err != nil {
+			fl = namespacedb.Flow{ID: newID(), NamespaceID: nsID, FlowKey: key, Path: pf.Path}
+			if err := q.InsertFlow(ctx, namespacedb.InsertFlowParams{ID: fl.ID, NamespaceID: nsID, FlowKey: key, Path: pf.Path, CreatedAt: now}); err != nil {
 				return err
 			}
 		}
@@ -73,15 +73,15 @@ func (s *Service) SyncFlows(ctx context.Context, tx pgx.Tx, nsID, snapshotID uui
 		valid := pf.Valid()
 		if needRevision {
 			id := newID()
-			if err := q.InsertFlowRevision(ctx, dbq.InsertFlowRevisionParams{ID: id, FlowID: fl.ID, SnapshotID: snapshotID,
+			if err := q.InsertFlowRevision(ctx, namespacedb.InsertFlowRevisionParams{ID: id, FlowID: fl.ID, SnapshotID: snapshotID,
 				SourceHash: pf.SourceHash, Source: pf.Source, Path: pf.Path, Definition: def, Errors: errJSON, CreatedAt: now}); err != nil {
 				return err
 			}
 			revID = &id
-			if err := q.UpdateFlowRevision(ctx, dbq.UpdateFlowRevisionParams{ID: fl.ID, CurrentRevisionID: revID, Valid: valid, Path: pf.Path}); err != nil {
+			if err := q.UpdateFlowRevision(ctx, namespacedb.UpdateFlowRevisionParams{ID: fl.ID, CurrentRevisionID: revID, Valid: valid, Path: pf.Path}); err != nil {
 				return err
 			}
-		} else if err := q.UpdateFlowPathValid(ctx, dbq.UpdateFlowPathValidParams{ID: fl.ID, Valid: valid, Path: pf.Path}); err != nil {
+		} else if err := q.UpdateFlowPathValid(ctx, namespacedb.UpdateFlowPathValidParams{ID: fl.ID, Valid: valid, Path: pf.Path}); err != nil {
 			return err
 		}
 		if err := syncTriggers(ctx, q, fl.ID, *revID, pf, valid && !fl.Disabled); err != nil {
@@ -90,7 +90,7 @@ func (s *Service) SyncFlows(ctx context.Context, tx pgx.Tx, nsID, snapshotID uui
 	}
 	// Flow files that no longer exist: mark deleted, deactivate triggers (REQ-GIT-006).
 	for _, fl := range byKey {
-		if err := q.MarkFlowDeleted(ctx, dbq.MarkFlowDeletedParams{ID: fl.ID, DeletedAt: &now}); err != nil {
+		if err := q.MarkFlowDeleted(ctx, namespacedb.MarkFlowDeletedParams{ID: fl.ID, DeletedAt: &now}); err != nil {
 			return err
 		}
 		if err := q.DeactivateFlowTriggers(ctx, fl.ID); err != nil {
@@ -110,31 +110,31 @@ func normJSON(b []byte) []byte {
 }
 
 // syncTriggers upserts the declared triggers. Invalid, disabled or deleted flows have no active triggers.
-func syncTriggers(ctx context.Context, q *dbq.Queries, flowID, revID uuid.UUID, pf *flow.ParsedFlow, active bool) error {
+func syncTriggers(ctx context.Context, q *namespacedb.Queries, flowID, revID uuid.UUID, pf *flow.ParsedFlow, active bool) error {
 	if pf.Flow == nil || !pf.Valid() {
 		return q.DeactivateFlowTriggers(ctx, flowID)
 	}
 	keys := []string{}
 	for _, tr := range pf.Flow.Triggers {
 		cfg, _ := json.Marshal(tr)
-		if err := q.UpsertTrigger(ctx, dbq.UpsertTriggerParams{ID: newID(), FlowID: flowID, RevisionID: revID, TriggerKey: tr.ID,
+		if err := q.UpsertTrigger(ctx, namespacedb.UpsertTriggerParams{ID: newID(), FlowID: flowID, RevisionID: revID, TriggerKey: tr.ID,
 			Type: tr.Type, Config: cfg, Active: active}); err != nil {
 			return err
 		}
 		keys = append(keys, tr.ID)
 	}
-	return q.DeactivateMissingTriggers(ctx, dbq.DeactivateMissingTriggersParams{FlowID: flowID, Keys: keys})
+	return q.DeactivateMissingTriggers(ctx, namespacedb.DeactivateMissingTriggersParams{FlowID: flowID, Keys: keys})
 }
 
 // FlowRow is a flow with its namespace name.
-type FlowRow = dbq.GetFlowRow
+type FlowRow = namespacedb.GetFlowRow
 
 // ErrFlowNotFound is returned for unknown flows.
 var ErrFlowNotFound = httpx.Errorf(404, "flow_not_found", "flow not found")
 
 // GetFlow returns a flow by namespace and flow ID.
 func (s *Service) GetFlow(ctx context.Context, namespace, flowID string) (FlowRow, error) {
-	f, err := dbq.New(s.Pool).GetFlow(ctx, dbq.GetFlowParams{Name: namespace, FlowKey: flowID})
+	f, err := namespacedb.New(s.Pool).GetFlow(ctx, namespacedb.GetFlowParams{Name: namespace, FlowKey: flowID})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return f, ErrFlowNotFound
 	}
@@ -148,8 +148,8 @@ func (s *Service) SetDisabled(ctx context.Context, namespace, flowID string, dis
 		return err
 	}
 	return pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := dbq.New(tx)
-		if err := q.SetFlowDisabled(ctx, dbq.SetFlowDisabledParams{ID: f.ID, Disabled: disabled}); err != nil {
+		q := namespacedb.New(tx)
+		if err := q.SetFlowDisabled(ctx, namespacedb.SetFlowDisabledParams{ID: f.ID, Disabled: disabled}); err != nil {
 			return err
 		}
 		if f.CurrentRevisionID != nil {

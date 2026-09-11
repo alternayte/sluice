@@ -9,10 +9,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/alternayte/sluice/internal/auth"
+	"github.com/alternayte/sluice/internal/execution/executiondb"
 	"github.com/alternayte/sluice/internal/executor"
-	"github.com/alternayte/sluice/internal/platform/dbq"
-	"github.com/alternayte/sluice/internal/runnerapi"
+	"github.com/alternayte/sluice/internal/platform/token"
+	"github.com/alternayte/sluice/internal/runnerproto"
 )
 
 // TokenGrace is added to the task timeout for the run token lifetime (SI-04).
@@ -179,14 +179,14 @@ func (e *Engine) claim(ctx context.Context) error {
 					timeout = def.Config(*t).Timeout
 				}
 			}
-			token, hash := auth.NewSecret()
+			runToken, hash := token.NewSecret()
 			exp := now.Add(timeout + TokenGrace)
 			if _, err := tx.Exec(ctx, `UPDATE task_runs SET state = 'RUNNING', claimed_by = $2, started_at = $3, heartbeat_at = $3,
 				run_token_hash = $4, token_expires_at = $5, reason = '' WHERE id = $1 AND state = 'QUEUED'`,
 				c.id, e.Instance, now, hash, exp); err != nil {
 				return err
 			}
-			got = append(got, claimed{id: c.id, token: token})
+			got = append(got, claimed{id: c.id, token: runToken})
 		}
 		return nil
 	})
@@ -212,7 +212,7 @@ func (e *Engine) apiURLFor(typ string) string {
 // launch resolves the plan and starts the executor. A template or secret error fails
 // the task before any process starts (REQ-EXE-012).
 func (e *Engine) launch(ctx context.Context, id uuid.UUID, token string) {
-	tr, err := dbq.New(e.Pool).GetTaskRun(ctx, id)
+	tr, err := executiondb.New(e.Pool).GetTaskRun(ctx, id)
 	if err != nil {
 		e.Log.Warn("launch: load task run", "task_run", id, "err", err)
 		return
@@ -238,7 +238,7 @@ func (e *Engine) launch(ctx context.Context, id uuid.UUID, token string) {
 	}
 	task := executor.Task{TaskRunID: tr.ID, ExecutionID: tr.ExecutionID, TaskKey: tr.TaskKey, Attempt: int(tr.Attempt), Pool: tr.Pool,
 		Executor: plan.Cfg.Executor, Timeout: plan.Cfg.Timeout,
-		Env: map[string]string{runnerapi.EnvAPIURL: e.apiURLFor(tr.ExecutorType), runnerapi.EnvRunToken: token, runnerapi.EnvTaskRunID: tr.ID.String()}}
+		Env: map[string]string{runnerproto.EnvAPIURL: e.apiURLFor(tr.ExecutorType), runnerproto.EnvRunToken: token, runnerproto.EnvTaskRunID: tr.ID.String()}}
 	e.mu.Lock()
 	if e.local == nil {
 		e.local = map[uuid.UUID]*localRun{}
@@ -261,7 +261,7 @@ func (e *Engine) launch(ctx context.Context, id uuid.UUID, token string) {
 	e.mu.Lock()
 	lr.ref = ref
 	e.mu.Unlock()
-	if err := dbq.New(e.Pool).SetTaskRunExternal(ctx, dbq.SetTaskRunExternalParams{ID: tr.ID, ExternalRef: ref}); err != nil {
+	if err := executiondb.New(e.Pool).SetTaskRunExternal(ctx, executiondb.SetTaskRunExternalParams{ID: tr.ID, ExternalRef: ref}); err != nil {
 		e.Log.Warn("set external ref", "err", err)
 	}
 	go func() {

@@ -37,6 +37,7 @@ func commands() []command {
 		{"user create", "Create a user in the database.", runUserCreate},
 		{"user reset-password", "Set a new password for a user.", runUserResetPassword},
 		{"validate", "Validate a namespace directory offline.", runValidate},
+		{"openapi", "Print the OpenAPI document of the API.", runOpenAPI},
 		{"version", "Print version, commit and build date.", runVersion},
 	}
 }

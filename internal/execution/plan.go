@@ -12,9 +12,9 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/alternayte/sluice/internal/execution/executiondb"
 	"github.com/alternayte/sluice/internal/flow"
-	"github.com/alternayte/sluice/internal/platform/dbq"
-	"github.com/alternayte/sluice/internal/runnerapi"
+	"github.com/alternayte/sluice/internal/runnerproto"
 )
 
 // SecretResolver resolves secret('KEY') references for a namespace (REQ-SEC-003).
@@ -59,7 +59,7 @@ func (e *PlanError) Error() string { return e.Msg }
 
 // Plan is the resolved work of one task run.
 type Plan struct {
-	TaskRun    dbq.TaskRun
+	TaskRun    executiondb.TaskRun
 	Exec       execInfo
 	Def        *Definition
 	Cfg        TaskConfig
@@ -88,12 +88,12 @@ type execInfo struct {
 	ChainDepth  int
 }
 
-func infoOf(ex dbq.Execution) execInfo {
+func infoOf(ex executiondb.Execution) execInfo {
 	return execInfo{ID: ex.ID, NamespaceID: ex.NamespaceID, FlowID: ex.FlowID, SnapshotID: ex.SnapshotID, CreatedAt: ex.CreatedAt,
 		Inputs: ex.Inputs, Payload: ex.TriggerPayload, ChainDepth: int(ex.ChainDepth)}
 }
 
-func infoOfRow(ex dbq.GetExecutionRow) execInfo {
+func infoOfRow(ex executiondb.GetExecutionRow) execInfo {
 	return execInfo{ID: ex.ID, NamespaceID: ex.NamespaceID, FlowID: ex.FlowID, SnapshotID: ex.SnapshotID, CreatedAt: ex.CreatedAt,
 		Inputs: ex.Inputs, Payload: ex.TriggerPayload, ChainDepth: int(ex.ChainDepth)}
 }
@@ -174,7 +174,7 @@ func (e *Engine) variables(ctx context.Context, ns string, flowVars map[string]s
 	return out, rows.Err()
 }
 
-func (e *Engine) templateContext(ctx context.Context, ex execInfo, def *Definition, latest map[string]dbq.TaskRun, secret func(string) (string, error)) (*flow.Context, error) {
+func (e *Engine) templateContext(ctx context.Context, ex execInfo, def *Definition, latest map[string]executiondb.TaskRun, secret func(string) (string, error)) (*flow.Context, error) {
 	var inputs, payload map[string]any
 	_ = json.Unmarshal(ex.Inputs, &inputs)
 	_ = json.Unmarshal(ex.Payload, &payload)
@@ -210,8 +210,8 @@ func planErr(err error) error {
 }
 
 // BuildPlan resolves the templates of a task run at dispatch (REQ-EXE-012).
-func (e *Engine) BuildPlan(ctx context.Context, tr dbq.TaskRun) (*Plan, error) {
-	q := dbq.New(e.Pool)
+func (e *Engine) BuildPlan(ctx context.Context, tr executiondb.TaskRun) (*Plan, error) {
+	q := executiondb.New(e.Pool)
 	row, err := q.GetExecution(ctx, tr.ExecutionID)
 	if err != nil {
 		return nil, err
@@ -312,19 +312,19 @@ func (e *Engine) BuildPlan(ctx context.Context, tr dbq.TaskRun) (*Plan, error) {
 }
 
 // RunnerSpec builds the spec of GET /task-runs/{id}/spec.
-func (e *Engine) RunnerSpec(ctx context.Context, tr dbq.TaskRun) (*runnerapi.Spec, error) {
+func (e *Engine) RunnerSpec(ctx context.Context, tr executiondb.TaskRun) (*runnerproto.Spec, error) {
 	p, err := e.BuildPlan(ctx, tr)
 	if err != nil {
 		return nil, err
 	}
-	sn, err := dbq.New(e.Pool).GetSnapshot(ctx, p.Exec.SnapshotID)
+	sn, err := executiondb.New(e.Pool).GetSnapshot(ctx, p.Exec.SnapshotID)
 	if err != nil {
 		return nil, err
 	}
-	return &runnerapi.Spec{TaskRunID: tr.ID.String(), ExecutionID: tr.ExecutionID.String(), Namespace: p.Def.Namespace, FlowID: p.Def.FlowKey,
+	return &runnerproto.Spec{TaskRunID: tr.ID.String(), ExecutionID: tr.ExecutionID.String(), Namespace: p.Def.Namespace, FlowID: p.Def.FlowKey,
 		TaskID: tr.TaskKey, Attempt: int(tr.Attempt), Command: p.Command, Workdir: p.Cfg.Task.Workdir, Env: p.Env, Runtime: p.Runtime,
 		TimeoutSeconds: int(p.Cfg.Timeout.Seconds()), MaskValues: nonNilStrings(p.MaskValues), BundleHash: sn.ManifestHash,
-		Limits: runnerapi.Limits{MaxArtifactBytes: e.Cfg.MaxArtifactBytes, MaxBundleBytes: e.Cfg.MaxBundleBytes}}, nil
+		Limits: runnerproto.Limits{MaxArtifactBytes: e.Cfg.MaxArtifactBytes, MaxBundleBytes: e.Cfg.MaxBundleBytes}}, nil
 }
 
 func nonNilStrings(s []string) []string {

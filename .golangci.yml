@@ -9,6 +9,7 @@ linters:
   default: standard
   enable:
     - bodyclose
+    - depguard
     - misspell
     - nilerr
     - unconvert
@@ -20,6 +21,62 @@ linters:
         - fmt.Fprint
         - (*os.File).Close
         - (*github.com/jackc/pgx/v5.Conn).Close
+    depguard:
+      rules:
+        kernel:
+          files: ["**/internal/kernel/**"]
+          deny:
+            - pkg: github.com/alternayte/sluice/internal
+              desc: kernel imports no internal package
+        platform:
+          # Strict: platform imports only the standard library, the listed modules, kernel and
+          # platform. Tests can also use the test helpers in internal/testutil.
+          list-mode: strict
+          files: ["**/internal/platform/**"]
+          allow:
+            - $gostd
+            - github.com/alternayte/sluice/db
+            - github.com/alternayte/sluice/internal/kernel
+            - github.com/alternayte/sluice/internal/platform
+            - github.com/alternayte/sluice/internal/testutil
+            - github.com/danielgtaylor/huma/v2
+            - github.com/go-chi/chi/v5
+            - github.com/google/uuid
+            - github.com/jackc/pgx/v5
+            - github.com/prometheus/client_golang
+          deny:
+            - pkg: github.com/alternayte/sluice/internal
+              desc: platform imports only kernel and platform
+        only-app-imports-auth:
+          files: ["**/internal/**", "!**/internal/auth/**", "!**/internal/app/**"]
+          deny:
+            - pkg: github.com/alternayte/sluice/internal/auth
+              desc: a feature does not import another feature (SDD §4.4)
+        only-app-imports-namespace:
+          files: ["**/internal/**", "!**/internal/namespace/**", "!**/internal/app/**"]
+          deny:
+            - pkg: github.com/alternayte/sluice/internal/namespace
+              desc: a feature does not import another feature (SDD §4.4)
+        only-app-imports-execution:
+          files: ["**/internal/**", "!**/internal/execution/**", "!**/internal/app/**"]
+          deny:
+            - pkg: github.com/alternayte/sluice/internal/execution
+              desc: a feature does not import another feature (SDD §4.4)
+        only-app-imports-instance:
+          files: ["**/internal/**", "!**/internal/instance/**", "!**/internal/app/**"]
+          deny:
+            - pkg: github.com/alternayte/sluice/internal/instance
+              desc: a feature does not import another feature (SDD §4.4)
+        only-execution-imports-executor:
+          files: ["**/internal/**", "!**/internal/executor/**", "!**/internal/execution/**", "!**/internal/app/**"]
+          deny:
+            - pkg: github.com/alternayte/sluice/internal/executor
+              desc: executor is the adapter set of execution
+        only-app-imports-runner:
+          files: ["**/internal/**", "!**/internal/runner/**", "!**/internal/app/**"]
+          deny:
+            - pkg: github.com/alternayte/sluice/internal/runner$
+              desc: the runner client is wired only by app
   exclusions:
     generated: strict
     paths:

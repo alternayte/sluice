@@ -21,6 +21,17 @@ import (
 	"github.com/alternayte/sluice/db"
 )
 
+// DBTX is the query interface a generated per-feature Queries type accepts.
+// A feature package passes a value of this type where it needs to share a
+// database handle, such as a pool or a transaction, across a feature
+// boundary. Each generated <feature>db.DBTX has the same method set, so a
+// db.DBTX value satisfies it without a conversion.
+type DBTX interface {
+	Exec(context.Context, string, ...interface{}) (pgconn.CommandTag, error)
+	Query(context.Context, string, ...interface{}) (pgx.Rows, error)
+	QueryRow(context.Context, string, ...interface{}) pgx.Row
+}
+
 // Open creates a pool that is safe for PgBouncer transaction mode.
 func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(url)

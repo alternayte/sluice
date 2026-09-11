@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alternayte/sluice/internal/runnerapi"
+	"github.com/alternayte/sluice/internal/runnerproto"
 )
 
 // Client calls the runner API with the run token.
@@ -22,7 +22,7 @@ type Client struct {
 	Token     string
 	TaskRunID string
 	HTTP      *http.Client
-	// RetryWindow bounds retries of one request. Default runnerapi.RetryWindow.
+	// RetryWindow bounds retries of one request. Default runnerproto.RetryWindow.
 	RetryWindow time.Duration
 }
 
@@ -37,7 +37,7 @@ func (e *PermanentError) Error() string {
 }
 
 func (c *Client) url(suffix string) string {
-	return strings.TrimRight(c.BaseURL, "/") + runnerapi.BasePath + "/task-runs/" + c.TaskRunID + suffix
+	return strings.TrimRight(c.BaseURL, "/") + runnerproto.BasePath + "/task-runs/" + c.TaskRunID + suffix
 }
 
 // do sends a request and retries network errors, 429 and 5xx with backoff for up to
@@ -45,7 +45,7 @@ func (c *Client) url(suffix string) string {
 func (c *Client) do(ctx context.Context, method, suffix string, body func() (io.Reader, error), contentType string, out any) error {
 	window := c.RetryWindow
 	if window <= 0 {
-		window = runnerapi.RetryWindow
+		window = runnerproto.RetryWindow
 	}
 	deadline := time.Now().Add(window)
 	delay := 100 * time.Millisecond
@@ -130,8 +130,8 @@ func jsonBody(v any) func() (io.Reader, error) {
 }
 
 // Spec fetches the task spec.
-func (c *Client) Spec(ctx context.Context) (*runnerapi.Spec, error) {
-	var s runnerapi.Spec
+func (c *Client) Spec(ctx context.Context) (*runnerproto.Spec, error) {
+	var s runnerproto.Spec
 	if err := c.do(ctx, http.MethodGet, "/spec", nil, "", &s); err != nil {
 		return nil, err
 	}
@@ -144,18 +144,18 @@ func (c *Client) Bundle(ctx context.Context, w io.Writer) error {
 }
 
 // Logs sends one log batch.
-func (c *Client) Logs(ctx context.Context, b runnerapi.LogBatch) error {
+func (c *Client) Logs(ctx context.Context, b runnerproto.LogBatch) error {
 	return c.do(ctx, http.MethodPost, "/logs", jsonBody(b), "application/json", nil)
 }
 
 // Events sends one event batch.
-func (c *Client) Events(ctx context.Context, b runnerapi.EventBatch) error {
+func (c *Client) Events(ctx context.Context, b runnerproto.EventBatch) error {
 	return c.do(ctx, http.MethodPost, "/events", jsonBody(b), "application/json", nil)
 }
 
 // Heartbeat reports liveness and returns whether the task must be cancelled.
 func (c *Client) Heartbeat(ctx context.Context) (bool, error) {
-	var hr runnerapi.HeartbeatResponse
+	var hr runnerproto.HeartbeatResponse
 	// Heartbeats do not retry for long: the next one follows in 10 s.
 	short := *c
 	short.RetryWindow = 5 * time.Second
@@ -174,7 +174,7 @@ func (c *Client) Artifact(ctx context.Context, name, contentType string, open fu
 }
 
 // Complete reports the end of the task.
-func (c *Client) Complete(ctx context.Context, done runnerapi.Complete) error {
+func (c *Client) Complete(ctx context.Context, done runnerproto.Complete) error {
 	return c.do(ctx, http.MethodPost, "/complete", jsonBody(done), "application/json", nil)
 }
 

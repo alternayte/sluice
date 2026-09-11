@@ -13,37 +13,51 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/caarlos0/env/v11"
+
+	"github.com/alternayte/sluice/internal/storage"
 )
 
 // ByteSize is a size in bytes. It parses values like 10MiB, 512KiB or 1024.
 type ByteSize int64
 
+// UnmarshalText parses a byte size for caarlos0/env.
+func (b *ByteSize) UnmarshalText(text []byte) error {
+	n, err := ParseByteSize(string(text))
+	if err != nil {
+		return err
+	}
+	*b = ByteSize(n)
+	return nil
+}
+
 // Config holds all server configuration. Every field comes from one environment
 // variable (C-04). The struct tags are the single source for docs/reference/env.md.
 type Config struct {
-	DatabaseURL            string        `env:"SLUICE_DATABASE_URL" required:"always" desc:"Postgres URL. A pooled URL (PgBouncer transaction mode, Neon pooler) is allowed."`
-	ListenAddr             string        `env:"SLUICE_LISTEN_ADDR" default:":8080" desc:"HTTP listen address."`
-	PublicURL              string        `env:"SLUICE_PUBLIC_URL" required:"server" desc:"External base URL for links, cookies and webhooks. An https URL makes the session cookie Secure."`
-	InternalURL            string        `env:"SLUICE_INTERNAL_URL" default:"http://127.0.0.1:<port>" desc:"Base URL that runners call. Use the Service URL in Kubernetes."`
+	DatabaseURL            string        `env:"SLUICE_DATABASE_URL,required" desc:"Postgres URL. A pooled URL (PgBouncer transaction mode, Neon pooler) is allowed."`
+	ListenAddr             string        `env:"SLUICE_LISTEN_ADDR" envDefault:":8080" desc:"HTTP listen address."`
+	PublicURL              string        "env:\"SLUICE_PUBLIC_URL\" docDefault:\"required for `server`\" desc:\"External base URL for links, cookies and webhooks. An https URL makes the session cookie Secure.\""
+	InternalURL            string        "env:\"SLUICE_INTERNAL_URL\" docDefault:\"`http://127.0.0.1:<port>`\" desc:\"Base URL that runners call. Use the Service URL in Kubernetes.\""
 	MasterKeys             string        `env:"SLUICE_MASTER_KEYS" desc:"Master keys for builtin secrets as kid:base64key pairs separated by commas. The first key is active."`
 	BootstrapAdminEmail    string        `env:"SLUICE_BOOTSTRAP_ADMIN_EMAIL" desc:"Email of the first admin. Used only when the users table is empty."`
 	BootstrapAdminPassword string        `env:"SLUICE_BOOTSTRAP_ADMIN_PASSWORD" secret:"true" desc:"Password of the first admin. Used only when the users table is empty."`
-	SessionTTL             time.Duration `env:"SLUICE_SESSION_TTL" default:"168h" desc:"Sliding session lifetime."`
-	LogLevel               string        `env:"SLUICE_LOG_LEVEL" default:"info" enum:"debug,info,warn,error" desc:"Server log level."`
-	LogFormat              string        `env:"SLUICE_LOG_FORMAT" default:"json" enum:"json,text" desc:"Server log format."`
-	Pools                  []string      `env:"SLUICE_POOLS" default:"default" desc:"Comma-separated pools that this instance serves."`
-	Executors              []string      `env:"SLUICE_EXECUTORS" default:"auto" desc:"auto, or a comma-separated list of process, docker and kubernetes. inline is always enabled."`
-	WorkerSlots            int           `env:"SLUICE_WORKER_SLOTS" default:"8" min:"0" desc:"Slots for process and docker tasks on this instance."`
-	QueuePollInterval      time.Duration `env:"SLUICE_QUEUE_POLL_INTERVAL" default:"1s" desc:"Interval between queue claim polls."`
-	HeartbeatTimeout       time.Duration `env:"SLUICE_HEARTBEAT_TIMEOUT" default:"60s" desc:"Time without runner heartbeat after which a task run is checked and can become lost."`
-	ShutdownGrace          time.Duration `env:"SLUICE_SHUTDOWN_GRACE" default:"30s" desc:"Maximum time between SIGTERM and process exit."`
-	RetentionDays          int           `env:"SLUICE_RETENTION_DAYS" default:"90" min:"1" desc:"Days to keep ended executions with their logs, metrics and artifacts."`
-	StorageType            string        `env:"SLUICE_STORAGE_TYPE" default:"postgres" enum:"postgres,fs,s3,azblob" desc:"Object storage driver."`
+	SessionTTL             time.Duration `env:"SLUICE_SESSION_TTL" envDefault:"168h" desc:"Sliding session lifetime."`
+	LogLevel               string        `env:"SLUICE_LOG_LEVEL" envDefault:"info" desc:"Server log level."`
+	LogFormat              string        `env:"SLUICE_LOG_FORMAT" envDefault:"json" desc:"Server log format."`
+	Pools                  []string      `env:"SLUICE_POOLS" envDefault:"default" desc:"Comma-separated pools that this instance serves."`
+	Executors              []string      `env:"SLUICE_EXECUTORS" envDefault:"auto" desc:"auto, or a comma-separated list of process, docker and kubernetes. inline is always enabled."`
+	WorkerSlots            int           `env:"SLUICE_WORKER_SLOTS" envDefault:"8" desc:"Slots for process and docker tasks on this instance."`
+	QueuePollInterval      time.Duration `env:"SLUICE_QUEUE_POLL_INTERVAL" envDefault:"1s" desc:"Interval between queue claim polls."`
+	HeartbeatTimeout       time.Duration `env:"SLUICE_HEARTBEAT_TIMEOUT" envDefault:"60s" desc:"Time without runner heartbeat after which a task run is checked and can become lost."`
+	ShutdownGrace          time.Duration `env:"SLUICE_SHUTDOWN_GRACE" envDefault:"30s" desc:"Maximum time between SIGTERM and process exit."`
+	RetentionDays          int           `env:"SLUICE_RETENTION_DAYS" envDefault:"90" desc:"Days to keep ended executions with their logs, metrics and artifacts."`
+	StorageType            string        `env:"SLUICE_STORAGE_TYPE" envDefault:"postgres" desc:"Object storage driver."`
 	FSRoot                 string        `env:"SLUICE_FS_ROOT" desc:"Root directory of the fs storage driver."`
 	S3Bucket               string        `env:"SLUICE_S3_BUCKET" desc:"Bucket of the s3 storage driver."`
 	S3Region               string        `env:"SLUICE_S3_REGION" desc:"Region of the s3 storage driver."`
 	S3Endpoint             string        `env:"SLUICE_S3_ENDPOINT" desc:"Endpoint override of the s3 storage driver (Cloudflare R2, MinIO)."`
-	S3ForcePathStyle       bool          `env:"SLUICE_S3_FORCE_PATH_STYLE" default:"false" desc:"Use path-style addressing in the s3 storage driver."`
+	S3ForcePathStyle       bool          `env:"SLUICE_S3_FORCE_PATH_STYLE" envDefault:"false" desc:"Use path-style addressing in the s3 storage driver."`
 	S3AccessKeyID          string        `env:"SLUICE_S3_ACCESS_KEY_ID" desc:"Static access key ID. Empty uses the default AWS credential chain."`
 	S3SecretAccessKey      string        `env:"SLUICE_S3_SECRET_ACCESS_KEY" secret:"true" desc:"Static secret access key. Empty uses the default AWS credential chain."`
 	S3Prefix               string        `env:"SLUICE_S3_PREFIX" desc:"Key prefix in the s3 bucket."`
@@ -51,32 +65,26 @@ type Config struct {
 	AzblobContainer        string        `env:"SLUICE_AZBLOB_CONTAINER" desc:"Container of the azblob storage driver."`
 	AzblobConnectionString string        `env:"SLUICE_AZBLOB_CONNECTION_STRING" secret:"true" desc:"Connection string of the azblob storage driver. Used instead of the account URL."`
 	AzblobPrefix           string        `env:"SLUICE_AZBLOB_PREFIX" desc:"Key prefix in the azblob container."`
-	MaxFileBytes           ByteSize      `env:"SLUICE_MAX_FILE_BYTES" default:"10MiB" desc:"Maximum size of one namespace file."`
-	MaxBundleBytes         ByteSize      `env:"SLUICE_MAX_BUNDLE_BYTES" default:"200MiB" desc:"Maximum total size of one snapshot."`
-	MaxArtifactBytes       ByteSize      `env:"SLUICE_MAX_ARTIFACT_BYTES" default:"100MiB" desc:"Maximum size of one artifact."`
-	RunnerImage            string        `env:"SLUICE_RUNNER_IMAGE" default:"sluice:<version>" desc:"Image that holds the runner binary for injection into docker and kubernetes tasks."`
-	DockerAPIURL           string        `env:"SLUICE_DOCKER_API_URL" default:"http://host.docker.internal:<port>" desc:"Base URL that runners in docker containers call."`
-	DockerKeepContainers   bool          `env:"SLUICE_DOCKER_KEEP_CONTAINERS" default:"false" desc:"Keep docker task containers after completion."`
+	MaxFileBytes           ByteSize      `env:"SLUICE_MAX_FILE_BYTES" envDefault:"10MiB" desc:"Maximum size of one namespace file."`
+	MaxBundleBytes         ByteSize      `env:"SLUICE_MAX_BUNDLE_BYTES" envDefault:"200MiB" desc:"Maximum total size of one snapshot."`
+	MaxArtifactBytes       ByteSize      `env:"SLUICE_MAX_ARTIFACT_BYTES" envDefault:"100MiB" desc:"Maximum size of one artifact."`
+	RunnerImage            string        "env:\"SLUICE_RUNNER_IMAGE\" docDefault:\"`sluice:<version>`\" desc:\"Image that holds the runner binary for injection into docker and kubernetes tasks.\""
+	DockerAPIURL           string        "env:\"SLUICE_DOCKER_API_URL\" docDefault:\"`http://host.docker.internal:<port>`\" desc:\"Base URL that runners in docker containers call.\""
+	DockerKeepContainers   bool          `env:"SLUICE_DOCKER_KEEP_CONTAINERS" envDefault:"false" desc:"Keep docker task containers after completion."`
 	K8sKubeconfig          string        `env:"SLUICE_K8S_KUBECONFIG" desc:"Path to a kubeconfig for out-of-cluster access."`
-	K8sNamespace           string        `env:"SLUICE_K8S_NAMESPACE" default:"<own namespace>" desc:"Kubernetes namespace for task Jobs. Default is the namespace of the server pod."`
-	K8sMaxJobs             int           `env:"SLUICE_K8S_MAX_JOBS" default:"50" min:"1" desc:"Maximum running Jobs per pool."`
-	K8sJobTTL              time.Duration `env:"SLUICE_K8S_JOB_TTL" default:"600s" desc:"ttlSecondsAfterFinished of task Jobs."`
-	K8sPendingTimeout      time.Duration `env:"SLUICE_K8S_PENDING_TIMEOUT" default:"10m" desc:"Maximum time a task pod can stay pending."`
-	SecretCacheTTL         time.Duration `env:"SLUICE_SECRET_CACHE_TTL" default:"60s" desc:"Cache lifetime of external secret values."`
+	K8sNamespace           string        "env:\"SLUICE_K8S_NAMESPACE\" docDefault:\"`<own namespace>`\" desc:\"Kubernetes namespace for task Jobs. Default is the namespace of the server pod.\""
+	K8sMaxJobs             int           `env:"SLUICE_K8S_MAX_JOBS" envDefault:"50" desc:"Maximum running Jobs per pool."`
+	K8sJobTTL              time.Duration `env:"SLUICE_K8S_JOB_TTL" envDefault:"600s" desc:"ttlSecondsAfterFinished of task Jobs."`
+	K8sPendingTimeout      time.Duration `env:"SLUICE_K8S_PENDING_TIMEOUT" envDefault:"10m" desc:"Maximum time a task pod can stay pending."`
+	SecretCacheTTL         time.Duration `env:"SLUICE_SECRET_CACHE_TTL" envDefault:"60s" desc:"Cache lifetime of external secret values."`
 	VaultAddr              string        `env:"SLUICE_VAULT_ADDR" desc:"HashiCorp Vault address."`
 	VaultToken             string        `env:"SLUICE_VAULT_TOKEN" secret:"true" desc:"HashiCorp Vault token."`
 	VaultK8sRole           string        `env:"SLUICE_VAULT_K8S_ROLE" desc:"HashiCorp Vault Kubernetes auth role. Used when no token is set."`
-	AIMaxContextChars      int           `env:"SLUICE_AI_MAX_CONTEXT_CHARS" default:"120000" min:"1000" desc:"Maximum characters of model context."`
+	AIMaxContextChars      int           `env:"SLUICE_AI_MAX_CONTEXT_CHARS" envDefault:"120000" desc:"Maximum characters of model context."`
 }
 
 // SecretEnvPrefix is the prefix of variables that hold values for the env secret provider.
 const SecretEnvPrefix = "SLUICE_SECRET_"
-
-// Requirement levels for the `required` tag.
-const (
-	requiredAlways = "always"
-	requiredServer = "server"
-)
 
 // ConfigError lists all configuration errors. Startup stops with exit code 2.
 type ConfigError struct{ Problems []string }
@@ -85,46 +93,26 @@ func (e *ConfigError) Error() string {
 	return "invalid configuration:\n  " + strings.Join(e.Problems, "\n  ")
 }
 
-// LoadOptions selects which requirement levels apply.
+// LoadOptions selects the checks that apply and the source of the values.
 type LoadOptions struct {
+	// Server adds the checks that only `sluice server` needs.
 	Server  bool
 	Version string
-	Getenv  func(string) string
+	// Env replaces the process environment when it is not nil. Tests use it.
+	Env map[string]string
 }
 
 // LoadConfig reads the configuration from the environment and validates it.
+// It returns a ConfigError that lists all problems (REQ-CORE-002).
 func LoadConfig(opts LoadOptions) (*Config, error) {
-	getenv := opts.Getenv
-	if getenv == nil {
-		getenv = os.Getenv
-	}
 	cfg := &Config{}
 	var problems []string
-	v := reflect.ValueOf(cfg).Elem()
-	t := v.Type()
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		name := f.Tag.Get("env")
-		raw := strings.TrimSpace(getenv(name))
-		req := f.Tag.Get("required")
-		if raw == "" {
-			if req == requiredAlways || (req == requiredServer && opts.Server) {
-				problems = append(problems, fmt.Sprintf("%s: required", name))
-				continue
-			}
-			raw = f.Tag.Get("default")
-			if strings.Contains(raw, "<") {
-				continue // computed default, see applyComputedDefaults
-			}
-		}
-		if raw == "" {
-			continue
-		}
-		if err := setField(v.Field(i), f, raw); err != nil {
-			problems = append(problems, fmt.Sprintf("%s: %v", name, err))
-		}
+	if err := env.ParseWithOptions(cfg, env.Options{Environment: opts.Env}); err != nil {
+		problems = append(problems, parseProblems(err)...)
 	}
-	problems = append(problems, cfg.validate()...)
+	cfg.Pools = trimList(cfg.Pools)
+	cfg.Executors = trimList(cfg.Executors)
+	problems = append(problems, cfg.validate(opts.Server)...)
 	if len(problems) > 0 {
 		return nil, &ConfigError{Problems: problems}
 	}
@@ -132,57 +120,52 @@ func LoadConfig(opts LoadOptions) (*Config, error) {
 	return cfg, nil
 }
 
-func setField(fv reflect.Value, f reflect.StructField, raw string) error {
-	if enum := f.Tag.Get("enum"); enum != "" {
-		if !contains(strings.Split(enum, ","), raw) {
-			return fmt.Errorf("must be one of %s, got %q", enum, raw)
+// parseProblems turns caarlos0/env errors into "VARIABLE: problem" lines.
+func parseProblems(err error) []string {
+	var agg env.AggregateError
+	if !errors.As(err, &agg) {
+		return []string{err.Error()}
+	}
+	keys := tagsByField("env")
+	var out []string
+	for _, e := range agg.Errors {
+		var notSet env.VarIsNotSetError
+		var empty env.EmptyVarError
+		var parse env.ParseError
+		switch {
+		case errors.As(e, &notSet):
+			out = append(out, notSet.Key+": required")
+		case errors.As(e, &empty):
+			out = append(out, empty.Key+": required")
+		case errors.As(e, &parse):
+			out = append(out, fmt.Sprintf("%s: %v", keys[parse.Name], parse.Err))
+		default:
+			out = append(out, e.Error())
 		}
 	}
-	switch fv.Interface().(type) {
-	case string:
-		fv.SetString(raw)
-	case bool:
-		b, err := strconv.ParseBool(raw)
-		if err != nil {
-			return fmt.Errorf("must be true or false, got %q", raw)
-		}
-		fv.SetBool(b)
-	case int:
-		n, err := strconv.Atoi(raw)
-		if err != nil {
-			return fmt.Errorf("must be an integer, got %q", raw)
-		}
-		if m := f.Tag.Get("min"); m != "" {
-			minV, _ := strconv.Atoi(m)
-			if n < minV {
-				return fmt.Errorf("must be at least %d, got %d", minV, n)
-			}
-		}
-		fv.SetInt(int64(n))
-	case time.Duration:
-		d, err := time.ParseDuration(raw)
-		if err != nil || d <= 0 {
-			return fmt.Errorf("must be a positive duration like 30s, got %q", raw)
-		}
-		fv.SetInt(int64(d))
-	case ByteSize:
-		n, err := ParseByteSize(raw)
-		if err != nil {
-			return err
-		}
-		fv.SetInt(n)
-	case []string:
-		var out []string
-		for _, p := range strings.Split(raw, ",") {
-			if p = strings.TrimSpace(p); p != "" {
-				out = append(out, p)
-			}
-		}
-		fv.Set(reflect.ValueOf(out))
-	default:
-		return fmt.Errorf("unsupported field type %s", fv.Type())
+	return out
+}
+
+// tagsByField maps each Config field name to the first part of one struct tag.
+func tagsByField(tag string) map[string]string {
+	out := map[string]string{}
+	t := reflect.TypeOf(Config{})
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		v, _, _ := strings.Cut(f.Tag.Get(tag), ",")
+		out[f.Name] = v
 	}
-	return nil
+	return out
+}
+
+func trimList(in []string) []string {
+	var out []string
+	for _, p := range in {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // ParseByteSize parses 1024, 512KiB, 10MiB, 1GiB (and KB, MB, GB as the same binary units).
@@ -207,8 +190,38 @@ func ParseByteSize(raw string) (int64, error) {
 	return n * mult, nil
 }
 
-func (c *Config) validate() []string {
+func (c *Config) validate(server bool) []string {
 	var p []string
+	if server && c.PublicURL == "" {
+		p = append(p, "SLUICE_PUBLIC_URL: required")
+	}
+	oneOf := func(name, val string, allowed ...string) {
+		if !contains(allowed, val) {
+			p = append(p, fmt.Sprintf("%s: must be one of %s, got %q", name, strings.Join(allowed, ","), val))
+		}
+	}
+	oneOf("SLUICE_LOG_LEVEL", c.LogLevel, "debug", "info", "warn", "error")
+	oneOf("SLUICE_LOG_FORMAT", c.LogFormat, "json", "text")
+	oneOf("SLUICE_STORAGE_TYPE", c.StorageType, "postgres", "fs", "s3", "azblob")
+	atLeast := func(name string, val, min int) {
+		if val < min {
+			p = append(p, fmt.Sprintf("%s: must be at least %d, got %d", name, min, val))
+		}
+	}
+	atLeast("SLUICE_WORKER_SLOTS", c.WorkerSlots, 0)
+	atLeast("SLUICE_RETENTION_DAYS", c.RetentionDays, 1)
+	atLeast("SLUICE_K8S_MAX_JOBS", c.K8sMaxJobs, 1)
+	atLeast("SLUICE_AI_MAX_CONTEXT_CHARS", c.AIMaxContextChars, 1000)
+	for name, d := range map[string]time.Duration{
+		"SLUICE_SESSION_TTL": c.SessionTTL, "SLUICE_QUEUE_POLL_INTERVAL": c.QueuePollInterval,
+		"SLUICE_HEARTBEAT_TIMEOUT": c.HeartbeatTimeout, "SLUICE_SHUTDOWN_GRACE": c.ShutdownGrace,
+		"SLUICE_K8S_JOB_TTL": c.K8sJobTTL, "SLUICE_K8S_PENDING_TIMEOUT": c.K8sPendingTimeout,
+		"SLUICE_SECRET_CACHE_TTL": c.SecretCacheTTL,
+	} {
+		if d <= 0 {
+			p = append(p, name+": must be a positive duration like 30s")
+		}
+	}
 	if c.PublicURL != "" {
 		if u, err := url.Parse(c.PublicURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 			p = append(p, "SLUICE_PUBLIC_URL: must be an absolute http or https URL")
@@ -254,6 +267,12 @@ func (c *Config) validate() []string {
 		if (c.S3AccessKeyID == "") != (c.S3SecretAccessKey == "") {
 			p = append(p, "SLUICE_S3_ACCESS_KEY_ID and SLUICE_S3_SECRET_ACCESS_KEY: set both or neither")
 		}
+		// One s3 upload writes at most S3MaxParts parts of S3PartSize bytes.
+		for name, v := range map[string]ByteSize{"SLUICE_MAX_ARTIFACT_BYTES": c.MaxArtifactBytes, "SLUICE_MAX_BUNDLE_BYTES": c.MaxBundleBytes} {
+			if v > storage.S3MaxObjectBytes {
+				p = append(p, fmt.Sprintf("%s: must be at most %d bytes when SLUICE_STORAGE_TYPE is s3, got %d", name, int64(storage.S3MaxObjectBytes), int64(v)))
+			}
+		}
 	case "azblob":
 		if c.AzblobContainer == "" {
 			p = append(p, "SLUICE_AZBLOB_CONTAINER: required when SLUICE_STORAGE_TYPE is azblob")
@@ -262,6 +281,7 @@ func (c *Config) validate() []string {
 			p = append(p, "SLUICE_AZBLOB_ACCOUNT_URL or SLUICE_AZBLOB_CONNECTION_STRING: one is required when SLUICE_STORAGE_TYPE is azblob")
 		}
 	}
+	sort.Strings(p)
 	return p
 }
 
@@ -357,34 +377,33 @@ func contains(list []string, s string) bool {
 	return false
 }
 
-// EnvDoc renders docs/reference/env.md from the Config struct tags (REQ-DOC-001).
+// EnvDoc renders docs/reference/env.md from the Config struct (REQ-DOC-001).
 func EnvDoc() (string, error) {
+	params, err := env.GetFieldParams(&Config{})
+	if err != nil {
+		return "", err
+	}
+	descs := tagsByKey("desc")
+	docDefaults := tagsByKey("docDefault")
 	var b strings.Builder
 	b.WriteString("# Environment variables\n\n")
 	b.WriteString("Generated from `internal/app/config.go` by `just gen`. Do not edit.\n\n")
 	b.WriteString("| Variable | Default | Description |\n|---|---|---|\n")
-	t := reflect.TypeOf(Config{})
 	var missing []string
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		name := f.Tag.Get("env")
-		desc := f.Tag.Get("desc")
-		if desc == "" {
-			missing = append(missing, name)
-		}
-		def := f.Tag.Get("default")
-		switch f.Tag.Get("required") {
-		case requiredAlways:
+	for _, p := range params {
+		def := "empty"
+		switch {
+		case docDefaults[p.Key] != "":
+			def = docDefaults[p.Key]
+		case p.Required:
 			def = "required"
-		case requiredServer:
-			def = "required for `server`"
+		case p.HasDefaultValue:
+			def = "`" + p.DefaultValue + "`"
 		}
-		if def == "" {
-			def = "empty"
-		} else if def != "required" && def != "required for `server`" {
-			def = "`" + def + "`"
+		if descs[p.Key] == "" {
+			missing = append(missing, p.Key)
 		}
-		fmt.Fprintf(&b, "| `%s` | %s | %s |\n", name, def, desc)
+		fmt.Fprintf(&b, "| `%s` | %s | %s |\n", p.Key, def, descs[p.Key])
 	}
 	fmt.Fprintf(&b, "| `%s<KEY>` | empty | Value of secret `<KEY>` for the env secret provider. |\n", SecretEnvPrefix)
 	b.WriteString("\nAzure credentials use the standard `AZURE_*` variables, workload identity or managed identity.\n")
@@ -393,4 +412,16 @@ func EnvDoc() (string, error) {
 		return "", fmt.Errorf("config fields without description: %s", strings.Join(missing, ", "))
 	}
 	return b.String(), nil
+}
+
+// tagsByKey maps each environment variable name to the value of one struct tag.
+func tagsByKey(tag string) map[string]string {
+	out := map[string]string{}
+	t := reflect.TypeOf(Config{})
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		key, _, _ := strings.Cut(f.Tag.Get("env"), ",")
+		out[key] = f.Tag.Get(tag)
+	}
+	return out
 }

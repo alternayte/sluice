@@ -1,4 +1,5 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
+set dotenv-load
 
 version := `git describe --tags --always --dirty 2>/dev/null || echo dev`
 commit := `git rev-parse HEAD 2>/dev/null || echo unknown`
@@ -11,21 +12,54 @@ gotestsum := "go tool gotestsum --format pkgname-and-test-fails"
 default:
     @just --list
 
-# Check that all tools of SDD §10.1 exist.
+# Check the tools, create .env and install the UI packages.
 setup:
     go run ./tools/buildtool setup
+    test -f .env || cp .env.example .env
+    cd ui && bun install --frozen-lockfile
+    cd tests/ui && bun install --frozen-lockfile
+
+# Start Postgres for development.
+up:
+    docker compose -f deploy/compose/dev.yml up -d --wait
+
+# Stop the development services.
+down:
+    docker compose -f deploy/compose/dev.yml down
+
+# Run the Go server with live reload and the Vite dev server.
+dev:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    trap 'kill 0' EXIT
+    go tool air &
+    (cd ui && bun run dev) &
+    wait
+
+# Apply the database migrations.
+migrate:
+    go run ./cmd/sluice migrate
+
+# Drop the development database, create it again and apply the migrations.
+db-reset:
+    docker compose -f deploy/compose/dev.yml exec -T postgres psql -U sluice -d postgres -c 'DROP DATABASE IF EXISTS sluice WITH (FORCE)' -c 'CREATE DATABASE sluice'
+    go run ./cmd/sluice migrate
+
+# Compare tests/e2e with the refactor baseline.
+e2e-compare:
+    ./scripts/e2e-compare.sh
 
 # Generate code, schemas and reference docs.
 gen:
     go tool sqlc generate
-    go tool oapi-codegen -config api/oapi-codegen.yaml api/openapi.yaml
+    go run ./cmd/sluice openapi > api/openapi.yaml
     if [ -f ui/package.json ]; then cd ui && bun install --frozen-lockfile >/dev/null && bun run gen:api; fi
     go run ./tools/buildtool gen
 
 # Fail when generated files differ from the committed files.
 gen-check: gen
     git diff --exit-code
-    test -z "$(git status --porcelain --untracked-files=all -- internal/api/apigen internal/platform/dbq ui/src/api schemas docs/reference)"
+    test -z "$(git status --porcelain --untracked-files=all -- api/openapi.yaml internal/*/*db ui/src/api schemas docs/reference)"
 
 lint: forbid
     golangci-lint run ./...
@@ -35,14 +69,11 @@ lint: forbid
 forbid:
     go run ./tools/buildtool forbid
 
+# Go tests use the integration tag and testcontainers, so Docker must run.
 test:
     mkdir -p {{junit}}
-    {{gotestsum}} --junitfile {{junit}}/unit.xml -- -race -count=1 ./...
+    {{gotestsum}} --junitfile {{junit}}/go.xml -- -race -count=1 -tags integration ./...
     if [ -f ui/package.json ]; then cd ui && bun run test --reporter=default --reporter=junit --outputFile.junit=../{{junit}}/vitest.xml; fi
-
-test-int:
-    mkdir -p {{junit}}
-    {{gotestsum}} --junitfile {{junit}}/integration.xml -- -tags integration -count=1 -timeout 30m ./...
 
 # Build the UI, check its size, build the binary and both images.
 build: build-ui build-go build-images
@@ -57,7 +88,6 @@ build-go:
 
 build-images:
     if [ -f deploy/docker/Dockerfile ]; then docker build -f deploy/docker/Dockerfile --target sluice --build-arg VERSION={{version}} --build-arg COMMIT={{commit}} -t sluice:dev . ; fi
-    if [ -f deploy/docker/Dockerfile ]; then docker build -f deploy/docker/Dockerfile --target sluice-uv --build-arg VERSION={{version}} --build-arg COMMIT={{commit}} -t sluice-uv:dev . ; fi
 
 e2e:
     mkdir -p {{junit}}
@@ -75,17 +105,5 @@ perf:
 trace:
     go run ./tools/buildtool trace
 
-ledger-check:
-    go run ./tools/buildtool ledger-check
-
 # Fast loop.
 check: gen-check lint test
-
-verify:
-    go run ./tools/buildtool verify
-
-evidence:
-    go run ./tools/buildtool evidence
-
-evidence-check:
-    go run ./tools/buildtool evidence-check

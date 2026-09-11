@@ -56,10 +56,13 @@ export function ExecutionPage({
   executionId,
   search,
   navigate,
+  insights,
 }: {
   executionId: string;
   search: DetailSearch;
   navigate: (opts: { search: DetailSearch }) => void;
+  /** insights renders the failure triage. The route passes it, because a feature does not import another feature. */
+  insights?: (e: ExecutionDetail) => ReactNode;
 }) {
   const qc = useQueryClient();
   const detail = useQuery({
@@ -95,6 +98,7 @@ export function ExecutionPage({
         {(e) => (
           <>
             <Header execution={e} live={live} />
+            {insights?.(e)}
             <section aria-labelledby="timeline-heading" className="flex min-w-0 flex-col gap-2">
               <h2 id="timeline-heading" className="text-base font-semibold">
                 Timeline

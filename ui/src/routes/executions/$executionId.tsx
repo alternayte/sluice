@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { InsightPanel } from "@/features/ai";
 import { ExecutionPage, type DetailSearch } from "@/features/executions";
 
 export const Route = createFileRoute("/executions/$executionId")({
@@ -8,6 +9,13 @@ export const Route = createFileRoute("/executions/$executionId")({
     const { executionId } = Route.useParams();
     const search = Route.useSearch();
     const navigate = useNavigate({ from: Route.fullPath });
-    return <ExecutionPage executionId={executionId} search={search} navigate={navigate} />;
+    return (
+      <ExecutionPage
+        executionId={executionId}
+        search={search}
+        navigate={navigate}
+        insights={(e) => <InsightPanel execution={e} />}
+      />
+    );
   },
 });

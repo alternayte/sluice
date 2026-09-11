@@ -5,7 +5,7 @@ import { createTypeScriptImportResolver } from "eslint-import-resolver-typescrip
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-const features = ["auth", "audit", "namespaces", "flows", "executions", "instances"];
+const features = ["auth", "audit", "namespaces", "flows", "executions", "instances", "ai"];
 
 export default tseslint.config(
   { ignores: ["dist", "node_modules", "src/routeTree.gen.ts", "src/api/**"] },

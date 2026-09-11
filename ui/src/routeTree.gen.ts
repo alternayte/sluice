@@ -18,6 +18,7 @@ import { Route as ExecutionsExecutionIdRouteImport } from './routes/executions/$
 import { Route as FlowsIndexRouteImport } from './routes/flows/index'
 import { Route as NamespacesIndexRouteImport } from './routes/namespaces/index'
 import { Route as NamespacesNamespaceRouteImport } from './routes/namespaces/$namespace'
+import { Route as SettingsAiRouteImport } from './routes/settings/ai'
 import { Route as SettingsAuditRouteImport } from './routes/settings/audit'
 import { Route as SettingsGitRouteImport } from './routes/settings/git'
 import { Route as SettingsInstancesRouteImport } from './routes/settings/instances'
@@ -73,6 +74,11 @@ const NamespacesNamespaceRoute = NamespacesNamespaceRouteImport.update({
   path: '/namespaces/$namespace',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsAiRoute = SettingsAiRouteImport.update({
+  id: '/settings/ai',
+  path: '/settings/ai',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsAuditRoute = SettingsAuditRouteImport.update({
   id: '/settings/audit',
   path: '/settings/audit',
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/variables': typeof VariablesRoute
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/namespaces/$namespace': typeof NamespacesNamespaceRoute
+  '/settings/ai': typeof SettingsAiRoute
   '/settings/audit': typeof SettingsAuditRoute
   '/settings/git': typeof SettingsGitRoute
   '/settings/instances': typeof SettingsInstancesRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/variables': typeof VariablesRoute
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/namespaces/$namespace': typeof NamespacesNamespaceRoute
+  '/settings/ai': typeof SettingsAiRoute
   '/settings/audit': typeof SettingsAuditRoute
   '/settings/git': typeof SettingsGitRoute
   '/settings/instances': typeof SettingsInstancesRoute
@@ -167,6 +175,7 @@ export interface FileRoutesById {
   '/variables': typeof VariablesRoute
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/namespaces/$namespace': typeof NamespacesNamespaceRoute
+  '/settings/ai': typeof SettingsAiRoute
   '/settings/audit': typeof SettingsAuditRoute
   '/settings/git': typeof SettingsGitRoute
   '/settings/instances': typeof SettingsInstancesRoute
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/variables'
     | '/executions/$executionId'
     | '/namespaces/$namespace'
+    | '/settings/ai'
     | '/settings/audit'
     | '/settings/git'
     | '/settings/instances'
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/variables'
     | '/executions/$executionId'
     | '/namespaces/$namespace'
+    | '/settings/ai'
     | '/settings/audit'
     | '/settings/git'
     | '/settings/instances'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/variables'
     | '/executions/$executionId'
     | '/namespaces/$namespace'
+    | '/settings/ai'
     | '/settings/audit'
     | '/settings/git'
     | '/settings/instances'
@@ -250,6 +262,7 @@ export interface RootRouteChildren {
   VariablesRoute: typeof VariablesRoute
   ExecutionsExecutionIdRoute: typeof ExecutionsExecutionIdRoute
   NamespacesNamespaceRoute: typeof NamespacesNamespaceRoute
+  SettingsAiRoute: typeof SettingsAiRoute
   SettingsAuditRoute: typeof SettingsAuditRoute
   SettingsGitRoute: typeof SettingsGitRoute
   SettingsInstancesRoute: typeof SettingsInstancesRoute
@@ -329,6 +342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NamespacesNamespaceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/ai': {
+      id: '/settings/ai'
+      path: '/settings/ai'
+      fullPath: '/settings/ai'
+      preLoaderRoute: typeof SettingsAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/audit': {
       id: '/settings/audit'
       path: '/settings/audit'
@@ -402,6 +422,7 @@ const rootRouteChildren: RootRouteChildren = {
   VariablesRoute: VariablesRoute,
   ExecutionsExecutionIdRoute: ExecutionsExecutionIdRoute,
   NamespacesNamespaceRoute: NamespacesNamespaceRoute,
+  SettingsAiRoute: SettingsAiRoute,
   SettingsAuditRoute: SettingsAuditRoute,
   SettingsGitRoute: SettingsGitRoute,
   SettingsInstancesRoute: SettingsInstancesRoute,

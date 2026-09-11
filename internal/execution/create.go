@@ -139,9 +139,13 @@ type FlowRef struct {
 	Flow     FlowInfo
 	Revision executiondb.FlowRevision
 	Def      *Definition
+	// SnapshotID is the namespace head that a new execution pins (REQ-EXE-001, DI-41).
+	SnapshotID uuid.UUID
 }
 
-// LoadFlow loads a flow and builds its effective definition at the current revision.
+// LoadFlow loads a flow and builds its effective definition at the current revision. A new
+// execution pins the namespace head, so that a change of any file reaches it. The
+// revision snapshot is only the version where the flow file last changed.
 func (e *Engine) LoadFlow(ctx context.Context, ns, flowKey string) (*FlowRef, error) {
 	f, err := e.Namespaces.GetFlow(ctx, ns, flowKey)
 	if err != nil {
@@ -158,11 +162,20 @@ func (e *Engine) LoadFlow(ctx context.Context, ns, flowKey string) (*FlowRef, er
 	if err := json.Unmarshal(rev.Definition, &fl); err != nil {
 		return nil, ErrFlowInvalid
 	}
-	defaults, err := e.namespaceDefaults(ctx, rev.SnapshotID)
+	snapshotID := rev.SnapshotID
+	var head *uuid.UUID
+	if err := e.Pool.QueryRow(ctx, "SELECT head_snapshot_id FROM namespaces WHERE id = $1", f.NamespaceID).Scan(&head); err != nil {
+		return nil, err
+	}
+	if head != nil {
+		snapshotID = *head
+	}
+	defaults, err := e.namespaceDefaults(ctx, snapshotID)
 	if err != nil {
 		return nil, err
 	}
-	return &FlowRef{Flow: f, Revision: rev, Def: &Definition{Namespace: ns, FlowKey: flowKey, Flow: fl, Defaults: defaults}}, nil
+	return &FlowRef{Flow: f, Revision: rev, SnapshotID: snapshotID,
+		Def: &Definition{Namespace: ns, FlowKey: flowKey, Flow: fl, Defaults: defaults}}, nil
 }
 
 // namespaceDefaults parses namespace.yaml of a snapshot.
@@ -277,7 +290,7 @@ func (e *Engine) prepareTrigger(ctx context.Context, r TriggerParams) (*prepared
 func (e *Engine) createPrepared(ctx context.Context, tx pgx.Tx, r TriggerParams, p *preparedTrigger) (uuid.UUID, error) {
 	ref, inputs := p.ref, p.inputs
 	id, state, err := e.Create(ctx, tx, CreateParams{NamespaceID: ref.Flow.NamespaceID, FlowID: &ref.Flow.ID, RevisionID: &ref.Revision.ID,
-		SnapshotID: ref.Revision.SnapshotID, Def: ref.Def, TriggerType: r.TriggerType, TriggerID: r.TriggerID, ScheduledFor: r.ScheduledFor,
+		SnapshotID: ref.SnapshotID, Def: ref.Def, TriggerType: r.TriggerType, TriggerID: r.TriggerID, ScheduledFor: r.ScheduledFor,
 		TriggerPayload: r.TriggerPayload, Inputs: inputs, Labels: r.Labels, ChainDepth: r.ChainDepth,
 		ParentExecID: r.ParentExecID, ParentTaskRun: r.ParentTaskRun})
 	if err != nil {

@@ -87,7 +87,7 @@ When an instance shows **Offline**:
 2. Read the last log lines of the instance. Look for `instance heartbeat failed` or `lease renew failed`.
 3. Make sure that the instance can reach Postgres.
 
-The `maintenance` leader marks the `RUNNING` `process` and `inline` task runs of an offline instance as `FAILED` with reason `lost`. Their retry policy applies. Docker and Kubernetes work continues, because another instance can check it.
+The `maintenance` leader marks the `RUNNING` task runs of a missing or offline instance as `FAILED` with reason `lost`. Their retry policy applies. A docker or kubernetes task run becomes lost only when its task heartbeat is also older than `SLUICE_HEARTBEAT_TIMEOUT`, because its container or Job can continue without the instance (DI-48).
 
 ## Stuck or lost executions
 
@@ -117,7 +117,7 @@ These actions need the `operator` role. They write the audit events `execution.c
 | Rerun | **Rerun** | `POST /api/v1/executions/{id}/rerun` | A new execution with the same snapshot, definition, inputs and labels. All tasks run. |
 | Restart from failed | **Restart from failed** | `POST /api/v1/executions/{id}/restart` | A new execution with the same snapshot. `SUCCESS` task runs are copied with reason `reused`. The other tasks run. |
 
-Restart from failed works only on a `FAILED`, `TIMED_OUT` or `CANCELLED` execution. Other states get 409 `not_restartable`. Cancel of an ended execution gets 409 `execution_active`. Rerun and restart use the pinned snapshot, so a file change after the first run does not apply. To use the new files, trigger the flow again. The Playwright tests `SCN-EXE-008` and `SCN-EXE-009` prove these actions.
+Restart from failed works only on a `FAILED`, `TIMED_OUT` or `CANCELLED` execution. Other states get 409 `not_restartable`. Cancel of an ended execution gets 409 `execution_ended` (DI-49). Cancel of a `CANCELLING` execution does nothing more. Rerun and restart use the pinned snapshot, so a file change after the first run does not apply. To use the new files, trigger the flow again. The Playwright tests `SCN-EXE-008` and `SCN-EXE-009` prove these actions.
 
 To cancel an execution with the API:
 

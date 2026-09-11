@@ -80,7 +80,7 @@ triggers:
 
 Rules:
 
-- A trigger input template can read `trigger.<path>` only. Other lookups have no value when the trigger fires, and task outputs are a validation error.
+- A trigger input template can read `trigger.<path>` only. Every other reference, for example `vars`, `inputs`, `execution`, `secret()` or `tasks`, is the validation issue `trigger_input_reference`, because it has no value when the trigger fires (DI-50).
 - A rendered value is text. For an input of type `int`, `number`, `boolean` or `json`, Sluice parses the text as JSON when it can. Thus `"42"` becomes the number 42.
 - Sluice then checks the values against the input declarations and applies the defaults, as for a manual run.
 
@@ -176,9 +176,9 @@ tasks:
 
 ### Create the key
 
-A webhook trigger has no key after you save the flow (DI-28). An editor creates the key through the API. The **Triggers** tab lists the trigger but does not show or create keys.
+A webhook trigger has no key after you save the flow (DI-28). An editor creates the key on the **Triggers** tab of the flow, or through the API. On the tab, click **Rotate key of <trigger>**, confirm, and copy the URL from the dialog **New webhook URL** (DI-51).
 
-1. Create the key:
+1. Create the key through the API:
 
    ```sh
    curl -X POST http://localhost:8080/api/v1/flows/demo/greet/triggers/hook/webhook-key \
@@ -193,7 +193,7 @@ A webhook trigger has no key after you save the flow (DI-28). An editor creates 
 
 The key has 256 random bits. Sluice stores only its SHA-256 hash. The URL is `SLUICE_PUBLIC_URL` followed by `/hooks/<key>`, so `SLUICE_PUBLIC_URL` must be the address that callers use. The flow detail API shows `has_webhook_key` for each trigger. Each rotation writes the audit event `trigger.webhook_key_rotate`.
 
-To rotate the key, send the same request again. The new key works at once, and the old key returns 404 at once.
+To rotate the key, click **Rotate key** again or send the same request again. The new key works at once, and the old key returns 404 at once.
 
 ### Call the webhook
 

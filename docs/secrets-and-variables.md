@@ -206,7 +206,7 @@ The provider reads HashiCorp Vault KV version 2. The reference `data/postgres#ur
 |---|---|
 | Address | The provider `address`, else `SLUICE_VAULT_ADDR`. One of them is required. |
 | Token auth | `SLUICE_VAULT_TOKEN`. It wins when it is set. |
-| Kubernetes auth | `SLUICE_VAULT_K8S_ROLE`. Sluice logs in at `auth/kubernetes/login` with the service account token from `/var/run/secrets/kubernetes.io/serviceaccount/token`. |
+| Kubernetes auth | `SLUICE_VAULT_K8S_ROLE`. Sluice logs in at `auth/kubernetes/login` with the service account token from `/var/run/secrets/kubernetes.io/serviceaccount/token`. It logs in again at 3/4 of the auth lease, and one time after a 401 or 403 (DI-47). It reads the token file at each login. |
 
 A field that is not a string resolves to its JSON text.
 
@@ -352,7 +352,7 @@ Masking has limits:
 
 - A value with fewer than 4 characters is not masked.
 - Metric names and numeric values are not masked.
-- Artifact files are stored as the task wrote them. Do not write secrets into artifacts.
+- Artifact files are masked as they go to storage, with the same forms as logs (DI-46). The stored size is the masked size.
 - A task gets the plain values in its environment. A script that transforms a value in another way, for example reverses it, produces text that Sluice does not recognize.
 
 The test `SCN-RUN-005` prints a secret raw, as base64 standard, as base64 URL, URL-encoded and JSON-escaped, and writes it to an output and to the error text. Every stored form shows `***`. The test `SCN-SEC-010` searches the database, the storage, the Docker container config and all LLM requests for a canary secret and finds none.

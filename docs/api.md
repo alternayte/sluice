@@ -258,11 +258,11 @@ The execution actions have these results:
 
 | Action | Success | Error |
 |---|---|---|
-| Cancel | 202 with the execution. | 409 `execution_active` when the execution already ended. See the note below the table. |
+| Cancel | 202 with the execution. | 409 `execution_ended` when the execution already ended (DI-49). |
 | Rerun | 201 with a new execution that has the same snapshot, definition, inputs and labels. | 404 `execution_not_found`. |
 | Restart from failed | 201 with a new execution. `SUCCESS` task runs are copied with reason `reused`. | 409 `not_restartable` unless the old execution is `FAILED`, `TIMED_OUT` or `CANCELLED`. |
 
-> **Note:** A cancel of an ended execution returns `{"error":{"code":"execution_active","message":"the execution has not ended","details":{"state":"FAILED"}}}`. The execution is not active. Read `details.state` to see the real state.
+> **Note:** A cancel of an ended execution returns `{"error":{"code":"execution_ended","message":"the execution has ended","details":{"state":"FAILED"}}}`. A cancel of a `CANCELLING` execution returns 202 and does nothing more.
 
 ### Secrets and variables
 
@@ -409,7 +409,7 @@ $ curl -s -H 'Authorization: Bearer nope' \
 
 ## MCP
 
-`/mcp` serves the Model Context Protocol over stateless streamable HTTP with JSON answers. It accepts only bearer API tokens. The token role limits the tools that a client can call. A request without a token gets 401 `unauthenticated`.
+`/mcp` serves the Model Context Protocol over stateless streamable HTTP with JSON answers. It accepts only bearer API tokens. The token role limits the tools that a client can call. A request without a token, or with a session cookie, gets 401 `unauthorized` with a `WWW-Authenticate: Bearer` header (DI-43).
 
 ```console
 $ curl -s -X POST -H "Authorization: Bearer $SLUICE_TOKEN" -H 'Content-Type: application/json' \

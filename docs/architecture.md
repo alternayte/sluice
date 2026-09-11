@@ -217,7 +217,7 @@ Sluice finds lost work in three places:
 | Check | Runs on | Interval | Action |
 |---|---|---|---|
 | Heartbeat check | the instance that claimed the task run | 5 s | A `RUNNING` task run with `heartbeat_at` older than `SLUICE_HEARTBEAT_TIMEOUT` is checked with its executor. When the work is gone, the task run becomes `FAILED` with reason `lost`. |
-| Offline instances | `maintenance` leader | 2 s | A `RUNNING` `process` or `inline` task run whose instance has no heartbeat for 60 s becomes `FAILED` with reason `lost`. |
+| Offline instances | `maintenance` leader | 2 s | A `RUNNING` task run whose instance is missing or has no heartbeat for 60 s becomes `FAILED` with reason `lost`. A `docker` or `kubernetes` task run also needs a task heartbeat older than `SLUICE_HEARTBEAT_TIMEOUT` (DI-48). |
 | Kubernetes reconcile | `k8s-reconcile:<pool>` leader | 60 s | A task run whose Job is gone becomes `FAILED` with reason `lost`. The leader deletes Jobs that have no active task run. |
 
 The retry policy applies to a lost attempt. `TestSCN_EXE_011_LostRunner` kills the runner with SIGKILL, and the retry reaches `SUCCESS`.

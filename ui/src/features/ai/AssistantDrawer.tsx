@@ -4,9 +4,11 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   createAiConversationMutation,
   getAiConversationOptions,
+  getAiConversationQueryKey,
   listAiConversationsOptions,
   listAiConversationsQueryKey,
 } from "@/api/@tanstack/react-query.gen";
+import { getAiConversation } from "@/api/sdk.gen";
 import type { Block, PendingAction, StoredMessage } from "@/api/types.gen";
 import { DiffView } from "@/components/diff-view";
 import { Badge } from "@/components/ui/badge";
@@ -211,9 +213,13 @@ function Panel({ onClose }: { onClose: () => void }) {
         if (ev.event === "done") done = true;
         onEvent(ev);
       });
-      // Load the saved turn with a new request. An invalidation can keep a detail request that
-      // started before the turn saved its messages, and the answer then disappears.
-      await qc.fetchQuery({ ...getAiConversationOptions({ path: { conversationId: id } }), staleTime: 0 });
+      // Load the saved turn with a new request. A detail request can start before the turn saves
+      // its messages and end after the stream. An invalidation or fetchQuery reuses that request,
+      // so the answer then disappears. Cancel it, and write the result of a new request.
+      const key = getAiConversationQueryKey({ path: { conversationId: id } });
+      await qc.cancelQueries({ queryKey: key });
+      const { data } = await getAiConversation({ path: { conversationId: id }, throwOnError: true });
+      qc.setQueryData(key, data);
       setLive((items) => items.filter((i) => i.kind === "error"));
       // A stream that ends without "done" lost its connection or the server stopped the turn.
       if (!done) setError("The answer stopped before the end. The saved part of the conversation shows below.");

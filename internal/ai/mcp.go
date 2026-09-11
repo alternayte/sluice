@@ -28,7 +28,7 @@ func mcpHandler(s *Service) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if p := kernel.FromContext(r.Context()); p == nil || p.Kind != "token" {
 			w.Header().Set("WWW-Authenticate", `Bearer realm="sluice"`)
-			httpx.WriteError(w, r, httpx.Errorf(http.StatusUnauthorized, "unauthenticated", "use a bearer API token"))
+			httpx.WriteError(w, r, httpx.Errorf(http.StatusUnauthorized, "unauthorized", "use a bearer API token"))
 			return
 		}
 		h.ServeHTTP(w, r)

@@ -667,7 +667,7 @@ func userSlug(email string) string {
 func (s *Service) Push(ctx context.Context, namespace string, changes []Change, message string) (branch, sha string, err error) {
 	p := kernel.FromContext(ctx)
 	if p == nil {
-		return "", "", httpx.Errorf(http.StatusUnauthorized, "unauthenticated", "sign in first")
+		return "", "", httpx.Errorf(http.StatusUnauthorized, "unauthorized", "sign in first")
 	}
 	message = strings.TrimSpace(message)
 	if message == "" {

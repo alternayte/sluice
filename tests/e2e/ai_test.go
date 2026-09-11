@@ -107,6 +107,19 @@ func TestSCN_AI_003_MCP(t *testing.T) {
 	viewer := mcpSession(t, p.URL, viewerToken)
 	editor := mcpSession(t, p.URL, editorToken)
 
+	t.Run("SCN-AI-003 /mcp without a bearer token answers 401 with the API code", func(t *testing.T) {
+		ping := map[string]any{"jsonrpc": "2.0", "id": 1, "method": "ping"}
+		for name, c := range map[string]*client{"no token": tokenClient(p.URL, ""), "session cookie": session} {
+			r := c.raw(t, http.MethodPost, "/mcp", ping, map[string]string{"Accept": "application/json, text/event-stream"})
+			if r.Status != http.StatusUnauthorized || errCode(r.Body) != "unauthorized" {
+				t.Fatalf("%s: status %d: %s", name, r.Status, r.Body)
+			}
+			if h := r.Header.Get("WWW-Authenticate"); !strings.HasPrefix(h, "Bearer") {
+				t.Fatalf("%s: WWW-Authenticate %q", name, h)
+			}
+		}
+	})
+
 	t.Run("SCN-AI-003 an MCP client lists the tools", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()

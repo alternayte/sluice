@@ -380,12 +380,17 @@ func uuidStrings(ids []uuid.UUID) []string {
 	return out
 }
 
+// heartbeatTimeout returns the configured heartbeat timeout or 60 s when it is not set.
+func (e *Engine) heartbeatTimeout() time.Duration {
+	if e.Cfg.HeartbeatTimeout <= 0 {
+		return 60 * time.Second
+	}
+	return e.Cfg.HeartbeatTimeout
+}
+
 // checkHeartbeats checks task runs of this instance without heartbeat with their executor.
 func (e *Engine) checkHeartbeats(ctx context.Context) {
-	timeout := e.Cfg.HeartbeatTimeout
-	if timeout <= 0 {
-		timeout = 60 * time.Second
-	}
+	timeout := e.heartbeatTimeout()
 	rows, err := e.Pool.Query(ctx, `SELECT id, executor_type, external_ref FROM task_runs
 		WHERE claimed_by = $1 AND state = 'RUNNING' AND task_type <> 'subflow' AND heartbeat_at < $2`,
 		e.Instance, e.Clock.Now().Add(-timeout))

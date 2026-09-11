@@ -93,11 +93,17 @@ func (e *Engine) taskDeadlines(ctx context.Context, now time.Time) error {
 	return nil
 }
 
-// offlineRuns marks running process and inline task runs of offline instances as lost.
+// offlineRuns marks running task runs of offline instances as lost. The retry policy
+// applies. Process and inline tasks run in the instance, so they are lost at once. Docker
+// and Kubernetes tasks can continue without their instance, so they are lost only when
+// their heartbeat is older than the heartbeat timeout. A restarted server gets a new
+// instance ID, so no instance checks these task runs with checkHeartbeats.
 func (e *Engine) offlineRuns(ctx context.Context, now time.Time) error {
 	rows, err := e.Pool.Query(ctx, `SELECT t.id FROM task_runs t LEFT JOIN instances i ON i.id = t.claimed_by
-		WHERE t.state = 'RUNNING' AND t.executor_type IN ('process', 'inline') AND t.task_type <> 'subflow'
-			AND (i.id IS NULL OR i.heartbeat_at < $1) LIMIT 500`, now.Add(-e.OfflineAfter))
+		WHERE t.state = 'RUNNING' AND t.task_type <> 'subflow'
+			AND (i.id IS NULL OR i.heartbeat_at < $1)
+			AND (t.executor_type IN ('process', 'inline') OR t.heartbeat_at IS NULL OR t.heartbeat_at < $2) LIMIT 500`,
+		now.Add(-e.OfflineAfter), now.Add(-e.heartbeatTimeout()))
 	if err != nil {
 		return err
 	}
@@ -110,6 +116,7 @@ func (e *Engine) offlineRuns(ctx context.Context, now time.Time) error {
 	}
 	rows.Close()
 	for _, id := range ids {
+		e.Log.Warn("task run lost", "task_run", id, "reason", "offline instance")
 		e.finish(ctx, id, TaskFailed, ReasonLost, "the claiming instance is offline", nil)
 	}
 	return nil

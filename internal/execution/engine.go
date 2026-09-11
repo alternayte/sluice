@@ -482,9 +482,12 @@ func (e *Engine) cancelTx(ctx context.Context, tx pgx.Tx, id uuid.UUID, record b
 		if err := e.stopTasks(ctx, tx, id); err != nil {
 			return err
 		}
+	case ExecCancelling:
+		// A cancel is already in progress. A second cancel changes nothing.
+		return nil
 	default:
 		if record {
-			return ErrNotEnded.WithDetails(map[string]string{"state": ex.State})
+			return ErrEnded.WithDetails(map[string]string{"state": ex.State})
 		}
 		return nil
 	}

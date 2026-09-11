@@ -97,7 +97,7 @@ func lockTurn(id uuid.UUID) (func(), bool) {
 func userOf(ctx context.Context) (*kernel.Principal, error) {
 	p := kernel.FromContext(ctx)
 	if p == nil {
-		return nil, httpx.Errorf(http.StatusUnauthorized, "unauthenticated", "sign in first")
+		return nil, httpx.Errorf(http.StatusUnauthorized, "unauthorized", "sign in first")
 	}
 	return p, nil
 }

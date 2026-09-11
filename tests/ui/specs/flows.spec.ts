@@ -86,3 +86,41 @@ test("SCN-FLOW-008 the run form renders typed inputs, shows a missing input and 
   await context.close();
   await api.dispose();
 });
+
+test("an editor rotates a webhook key and the new URL starts an execution", async ({ browser }) => {
+  const api = await adminAPI();
+  const ns = await seedNamespace(api, "hookrot", {
+    "hook.flow.yaml": [
+      "id: hook",
+      "triggers:",
+      "  - id: push",
+      "    type: webhook",
+      "tasks:",
+      "  - id: say",
+      "    type: command",
+      '    command: ["echo", "hi"]',
+      "",
+    ].join("\n"),
+  });
+  const { context, page } = await signInAs(browser, api, "editor");
+
+  await page.goto(`/flows/${ns}/hook?tab=triggers`);
+  await page.getByRole("button", { name: "Rotate key of push" }).click();
+  const confirm = page.getByRole("dialog", { name: "Rotate webhook key" });
+  await expect(confirm).toContainText("The old key stops working");
+  await confirm.getByRole("button", { name: "Rotate key", exact: true }).click();
+
+  const result = page.getByRole("dialog", { name: "New webhook URL" });
+  await expect(result).toContainText("It is not shown again.");
+  await expect(result.getByRole("button", { name: "Copy" })).toBeVisible();
+  const url = await result.getByRole("textbox", { name: "Webhook URL" }).inputValue();
+  expect(url).toMatch(/\/hooks\/[^/]+$/);
+
+  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+  expect(res.status, await res.text()).toBe(202);
+
+  await result.getByRole("button", { name: "Done" }).click();
+  await expect(result).toBeHidden();
+  await context.close();
+  await api.dispose();
+});

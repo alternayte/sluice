@@ -26,7 +26,7 @@ var (
 	ErrNotRunnable    = httpx.Validation(httpx.FieldError{Field: "path", Message: "the file has no runnable extension (.py, .sh, .ts, .js)"})
 	ErrNotFound       = httpx.Errorf(http.StatusNotFound, "execution_not_found", "execution not found")
 	ErrNotRestartable = httpx.Errorf(http.StatusConflict, "not_restartable", "only ended executions that did not succeed can restart from failed")
-	ErrNotEnded       = httpx.Errorf(http.StatusConflict, "execution_active", "the execution has not ended")
+	ErrEnded          = httpx.Errorf(http.StatusConflict, "execution_ended", "the execution has ended")
 )
 
 // CreateParams describe a new execution.

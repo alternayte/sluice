@@ -117,7 +117,7 @@ docker compose -f deploy/compose/compose.yml up -d --build
 
 The test `SCN-DEP-005` proves that `/readyz` answers 200 within 60 s after `docker compose up`.
 
-The compose file declares no named volume for Postgres. Add one before you keep data that you need. `deploy/compose/dev.yml` is a different file. It holds only a Postgres with a volume for local development with `just up`.
+Postgres keeps its data in the named volume `postgres-data` (DI-44). `docker compose down` keeps the volume. `docker compose down -v` deletes it with all data. `deploy/compose/dev.yml` is a different file. It holds only a Postgres with a volume for local development with `just up`.
 
 ## Coolify
 
@@ -504,10 +504,10 @@ The test `SCN-FLOW-006` proves the exit codes and the JSON format. See [flows.md
 $ docker run --rm sluice:dev version
 version: dev
 commit: unknown
-build_date: unknown
+build_date: 2026-09-11T08:57:02Z
 ```
 
-The Dockerfile sets `version` and `commit` from the build arguments `VERSION` and `COMMIT`. It does not set `build_date`.
+The Dockerfile sets `version`, `commit` and `build_date` from the build arguments `VERSION`, `COMMIT` and `BUILD_DATE` (DI-45). `just build-images` gives all three. A build without these arguments prints `unknown`.
 
 ## Related documents
 

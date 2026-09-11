@@ -14,8 +14,9 @@ COPY . .
 COPY --from=ui /src/ui/dist ./ui/dist
 ARG VERSION=dev
 ARG COMMIT=unknown
+ARG BUILD_DATE=unknown
 RUN CGO_ENABLED=0 go build -trimpath \
-    -ldflags "-s -w -X github.com/alternayte/sluice/internal/app.Version=${VERSION} -X github.com/alternayte/sluice/internal/app.Commit=${COMMIT}" \
+    -ldflags "-s -w -X github.com/alternayte/sluice/internal/app.Version=${VERSION} -X github.com/alternayte/sluice/internal/app.Commit=${COMMIT} -X github.com/alternayte/sluice/internal/app.BuildDate=${BUILD_DATE}" \
     -o /out/sluice ./cmd/sluice
 
 FROM ghcr.io/astral-sh/uv:0.11.7 AS uv

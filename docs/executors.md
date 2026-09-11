@@ -380,7 +380,7 @@ Sluice finds lost work in three ways:
 | Check | Who | Interval | Rule |
 |---|---|---|---|
 | Heartbeat check | The instance that claimed the task | 5 s | A `RUNNING` task run without a heartbeat for `SLUICE_HEARTBEAT_TIMEOUT` goes to its executor. When the executor reports that the work is gone, the attempt becomes `FAILED` with `lost`. When the work still exists, nothing changes. |
-| Offline instance | The maintenance leader | 2 s | A `RUNNING` process or inline task run whose instance is offline becomes `FAILED` with `lost`. An instance is offline after 60 s without an instance heartbeat. |
+| Offline instance | The maintenance leader | 2 s | A `RUNNING` task run whose instance is missing or offline becomes `FAILED` with `lost`. A docker or kubernetes task run also needs a task heartbeat older than `SLUICE_HEARTBEAT_TIMEOUT`, because its container or Job can continue without the instance (DI-48). An instance is offline after 60 s without an instance heartbeat. |
 | Kubernetes reconciler | The `k8s-reconcile:<pool>` leader | 60 s | See [the reconciler](#the-reconciler). |
 
 `SLUICE_HEARTBEAT_TIMEOUT` defaults to `60s`. For inline tasks, the instance that claimed the task writes the heartbeat every second. Subflow tasks have no heartbeat check. They end with their child execution.

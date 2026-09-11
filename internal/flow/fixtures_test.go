@@ -117,7 +117,7 @@ func readExpect(t *testing.T, dir string) invalidExpect {
 // TestSCN_FLOW_002_InvalidFixtures returns the expected code, path and line for every invalid fixture.
 func TestSCN_FLOW_002_InvalidFixtures(t *testing.T) {
 	required := []string{"cycle", "unknown_dependency", "duplicate_task_id", "duplicate_flow_id", "bad_cron", "unknown_timezone",
-		"missing_file", "secret_in_args", "output_non_dependency", "executor_on_http", "bad_input_default"}
+		"missing_file", "secret_in_args", "output_non_dependency", "executor_on_http", "bad_input_default", "trigger_input_reference"}
 	have := map[string]bool{}
 	for _, name := range fixtureDirs(t, "invalid") {
 		have[name] = true

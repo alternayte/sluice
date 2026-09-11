@@ -41,6 +41,7 @@ const (
 	CodeInvalidInputDefault = "invalid_input_default"
 	CodeInvalidPath         = "invalid_path"
 	CodeUnknownRuntime      = "unknown_runtime"
+	CodeTriggerInputRef     = "trigger_input_reference"
 )
 
 // Issue is one validation error with its YAML path and position.

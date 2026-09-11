@@ -1,4 +1,5 @@
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { needsDots } from "@/lib/charts";
 
 /** Series is one bar or line of a chart. */
 export type Series = { key: string; label: string; color: string };
@@ -38,8 +39,18 @@ export function Lines({ rows, series }: { rows: ChartRow[]; series: Series[] }) 
         <YAxis tick={axis} tickLine={false} axisLine={false} />
         <Tooltip contentStyle={tooltipStyle} isAnimationActive={false} />
         <Legend wrapperStyle={{ fontSize: 12 }} />
+        {/* A line with one point draws no segment. Such a series shows dots, so that one bucket is visible. */}
         {series.map((s) => (
-          <Line key={s.key} dataKey={s.key} name={s.label} stroke={s.color} dot={false} strokeWidth={2} connectNulls isAnimationActive={false} />
+          <Line
+            key={s.key}
+            dataKey={s.key}
+            name={s.label}
+            stroke={s.color}
+            dot={needsDots(rows, s.key) ? { r: 3, fill: s.color, strokeWidth: 0 } : false}
+            strokeWidth={2}
+            connectNulls
+            isAnimationActive={false}
+          />
         ))}
       </LineChart>
     </ResponsiveContainer>

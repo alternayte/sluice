@@ -315,3 +315,49 @@ func TestSCN_RUN_005_Masking(t *testing.T) {
 		}
 	}
 }
+
+// TestSCN_RUN_005_ArtifactMasking checks that a secret value in an artifact is stored as ***
+// in raw and base64 form. The padding puts the second raw value across byte 65536, which is a
+// 32 KiB chunk boundary of the stream masker (REQ-RUN-005, SI-01, SI-10).
+func TestSCN_RUN_005_ArtifactMasking(t *testing.T) {
+	const value = `Canary+/Val?&"q\z9`
+	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t), "SLUICE_MASTER_KEYS": masterKey("k1", 1)})
+	c := adminClient(t, p)
+	c.do(t, http.MethodPut, "/api/v1/secrets/CANARY", map[string]any{"value": value}, http.StatusOK, nil)
+	saveFiles(t, c, "artmask", map[string]string{
+		"art.sh": "{ echo \"raw: $S\"; head -c 65501 /dev/zero | tr '\\0' 'x'; echo \"raw: $S\"; echo \"b64: $(printf '%s' \"$S\" | base64)\"; } > leak.txt\n" +
+			"echo '{\"type\":\"artifact\",\"path\":\"leak.txt\",\"name\":\"leak\",\"content_type\":\"text/plain\"}' >> \"$SLUICE_OUTPUTS\"\n",
+		"a.flow.yaml": "id: a\nenv:\n  S: \"${{ secret('CANARY') }}\"\ntasks:\n  - {id: t, type: script, file: art.sh}\n",
+	})
+	d := waitTerminal(t, c, triggerFlow(t, c, "artmask", "a", nil, nil).ID, 60*time.Second)
+	if d.State != "SUCCESS" {
+		t.Fatalf("execution %s", d.State)
+	}
+	var arts struct {
+		Items []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+			Size int64  `json:"size"`
+		} `json:"items"`
+	}
+	c.do(t, http.MethodGet, "/api/v1/executions/"+d.ID+"/artifacts", nil, http.StatusOK, &arts)
+	if len(arts.Items) != 1 || arts.Items[0].Name != "leak" {
+		t.Fatalf("artifacts %+v", arts.Items)
+	}
+	r := c.raw(t, http.MethodGet, "/api/v1/executions/"+d.ID+"/artifacts/"+arts.Items[0].ID, nil, nil)
+	if r.Status != http.StatusOK {
+		t.Fatalf("artifact download %d", r.Status)
+	}
+	body := string(r.Body)
+	if strings.Count(body, "raw: ***\n") != 2 || !strings.Contains(body, "b64: ***\n") {
+		t.Errorf("artifact does not show ***: %q", body[len(body)-80:])
+	}
+	for _, f := range masking.Forms(value) {
+		if strings.Contains(body, f) {
+			t.Errorf("the stored artifact contains the form %q", f)
+		}
+	}
+	if arts.Items[0].Size != int64(len(r.Body)) {
+		t.Errorf("stored size %d, want the masked size %d", arts.Items[0].Size, len(r.Body))
+	}
+}

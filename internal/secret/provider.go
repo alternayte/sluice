@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
@@ -116,7 +118,17 @@ func (p envProvider) Resolve(_ context.Context, ref string) (string, error) {
 type vaultProvider struct {
 	client *vault.Client
 	mount  string
+	// login gets a new token. It is nil for static-token auth, which is never renewed.
+	login vaultLogin
+	now   func() time.Time
+
+	mu sync.Mutex
+	// renewAt is the time of the next login, at 3/4 of the lease. Zero means no renewal.
+	renewAt time.Time
 }
+
+// vaultLogin logs in to Vault and returns the auth response.
+type vaultLogin func(ctx context.Context, client *vault.Client) (*vault.Secret, error)
 
 // VaultAuth holds the Vault credentials from the environment (Appendix A).
 type VaultAuth struct {
@@ -128,8 +140,37 @@ type VaultAuth struct {
 }
 
 func newVaultProvider(ctx context.Context, c ProviderConfig, auth VaultAuth) (*vaultProvider, error) {
+	switch {
+	case auth.Token != "":
+		p, err := newVaultClient(c, auth.Addr, nil)
+		if err != nil {
+			return nil, err
+		}
+		p.client.SetToken(auth.Token)
+		return p, nil
+	case auth.K8sRole != "":
+		return newVaultProviderLogin(ctx, c, auth.Addr, kubernetesLogin(auth))
+	default:
+		return nil, errors.New("no Vault credential: set SLUICE_VAULT_TOKEN or SLUICE_VAULT_K8S_ROLE")
+	}
+}
+
+// newVaultProviderLogin returns a provider that gets its token from login. It logs in again
+// before the lease ends and once after an access error (REQ-SEC-001).
+func newVaultProviderLogin(ctx context.Context, c ProviderConfig, addr string, login vaultLogin) (*vaultProvider, error) {
+	p, err := newVaultClient(c, addr, login)
+	if err != nil {
+		return nil, err
+	}
+	if err := p.relogin(ctx); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func newVaultClient(c ProviderConfig, addr string, login vaultLogin) (*vaultProvider, error) {
 	cfg := vault.DefaultConfig()
-	cfg.Address = auth.Addr
+	cfg.Address = addr
 	if c.Address != "" {
 		cfg.Address = c.Address
 	}
@@ -141,34 +182,53 @@ func newVaultProvider(ctx context.Context, c ProviderConfig, auth VaultAuth) (*v
 	if err != nil {
 		return nil, err
 	}
-	switch {
-	case auth.Token != "":
-		client.SetToken(auth.Token)
-	case auth.K8sRole != "":
-		path := auth.K8sTokenPath
-		if path == "" {
-			path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-		}
-		jwt, err := os.ReadFile(path)
-		if err != nil {
-			return nil, fmt.Errorf("vault kubernetes auth: %w", err)
-		}
-		s, err := client.Logical().WriteWithContext(ctx, "auth/kubernetes/login", map[string]any{"role": auth.K8sRole, "jwt": string(jwt)})
-		if err != nil {
-			return nil, fmt.Errorf("vault kubernetes auth: %w", err)
-		}
-		if s == nil || s.Auth == nil {
-			return nil, errors.New("vault kubernetes auth: no token")
-		}
-		client.SetToken(s.Auth.ClientToken)
-	default:
-		return nil, errors.New("no Vault credential: set SLUICE_VAULT_TOKEN or SLUICE_VAULT_K8S_ROLE")
-	}
 	mount := c.Mount
 	if mount == "" {
 		mount = "secret"
 	}
-	return &vaultProvider{client: client, mount: mount}, nil
+	return &vaultProvider{client: client, mount: mount, login: login, now: time.Now}, nil
+}
+
+// kubernetesLogin logs in with the Kubernetes auth method. It reads the service account
+// token file at each login, because the kubelet rotates the file.
+func kubernetesLogin(auth VaultAuth) vaultLogin {
+	path := auth.K8sTokenPath
+	if path == "" {
+		path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	}
+	return func(ctx context.Context, client *vault.Client) (*vault.Secret, error) {
+		jwt, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		return client.Logical().WriteWithContext(ctx, "auth/kubernetes/login", map[string]any{"role": auth.K8sRole, "jwt": string(jwt)})
+	}
+}
+
+// relogin gets a new token and sets the next renewal time from the lease duration.
+func (p *vaultProvider) relogin(ctx context.Context) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	s, err := p.login(ctx, p.client)
+	if err != nil {
+		return fmt.Errorf("vault kubernetes auth: %w", err)
+	}
+	if s == nil || s.Auth == nil || s.Auth.ClientToken == "" {
+		return errors.New("vault kubernetes auth: no token")
+	}
+	p.client.SetToken(s.Auth.ClientToken)
+	p.renewAt = time.Time{}
+	if s.Auth.LeaseDuration > 0 {
+		p.renewAt = p.now().Add(time.Duration(s.Auth.LeaseDuration) * time.Second * 3 / 4)
+	}
+	return nil
+}
+
+// renewDue reports whether the token lease is near its end.
+func (p *vaultProvider) renewDue() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return !p.renewAt.IsZero() && !p.now().Before(p.renewAt)
 }
 
 func (p *vaultProvider) Resolve(ctx context.Context, ref string) (string, error) {
@@ -176,9 +236,21 @@ func (p *vaultProvider) Resolve(ctx context.Context, ref string) (string, error)
 	if !ok || path == "" || field == "" {
 		return "", fmt.Errorf("%w: vault references have the form path#field", ErrValueNotFound)
 	}
+	if p.login != nil && p.renewDue() {
+		if err := p.relogin(ctx); err != nil {
+			return "", err
+		}
+	}
 	s, err := p.client.KVv2(p.mount).Get(ctx, path)
+	var re *vault.ResponseError
+	if err != nil && p.login != nil && errors.As(err, &re) && (re.StatusCode == http.StatusForbidden || re.StatusCode == http.StatusUnauthorized) {
+		// The token can be expired or revoked. Log in again once and read again.
+		if lerr := p.relogin(ctx); lerr != nil {
+			return "", lerr
+		}
+		s, err = p.client.KVv2(p.mount).Get(ctx, path)
+	}
 	if err != nil {
-		var re *vault.ResponseError
 		switch {
 		case errors.Is(err, vault.ErrSecretNotFound):
 			return "", fmt.Errorf("%w: %s", ErrValueNotFound, path)

@@ -28,4 +28,22 @@ The user needs these rights: read the schema `source`, and create the schemas `r
 3. Set the variables and the secret.
 4. Run the flow `elt`.
 
+## Faster runs
+
+`uv` installs the packages when a task starts. The time that this takes depends on the executor:
+
+- Process executor: `uv` keeps its cache in the Sluice container. Only the first run downloads the packages.
+- Docker and kubernetes executors: each task starts in a new container with an empty cache, so each run downloads the packages again.
+
+For docker and kubernetes, build an image that already has the packages, and use it as the executor image:
+
+```dockerfile
+FROM sluice-uv:<version>
+RUN uv pip install --system --python 3.12 "dlt[postgres,sql_database]==1.30.0" "psycopg2-binary==2.9.13" "sqlalchemy==2.0.52" "sqlmesh==0.236.2"
+```
+
+Then set it in `namespace.yaml`: `defaults: { executor: { type: kubernetes, image: <your-image> } }`. `uv` finds the installed packages and does not download them.
+
+## Executors
+
 The flow runs on the process executor of the `sluice-uv` image. To run it on the kubernetes executor, add `defaults: { executor: { type: kubernetes, image: sluice-uv:<version> } }` to `namespace.yaml`.

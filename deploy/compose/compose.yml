@@ -6,6 +6,9 @@ services:
       POSTGRES_USER: sluice
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sluice}
       POSTGRES_DB: sluice
+    # The data stays when the container is recreated. "down -v" removes it.
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sluice -d sluice"]
       interval: 2s
@@ -30,3 +33,5 @@ services:
       SLUICE_EXECUTORS: process
     ports:
       - "${SLUICE_PORT:-8080}:8080"
+volumes:
+  postgres-data:

@@ -1,0 +1,12 @@
+id: hook
+inputs:
+  - { id: dataset, type: string }
+triggers:
+  - id: push
+    type: webhook
+    inputs:
+      dataset: "${{ vars.DATASET }}"
+tasks:
+  - id: show
+    type: command
+    command: ["echo", "${{ inputs.dataset }}"]

@@ -569,6 +569,14 @@ func (v *validation) templates(idx map[string]int) {
 			continue
 		}
 		for _, r := range tpl.Refs() {
+			// A trigger renders its inputs over the trigger payload only (§6.5), so other
+			// references have no value at fire time.
+			if s.triggerSite {
+				if r.Kind != RefTrigger {
+					v.add(CodeTriggerInputRef, s.path, "trigger inputs can use only trigger.<path>: %q has no value when the trigger fires", r.Expr)
+				}
+				continue
+			}
 			switch r.Kind {
 			case RefSecret:
 				if !s.allowSecret {
@@ -579,10 +587,6 @@ func (v *validation) templates(idx map[string]int) {
 					v.add(CodeUnknownInput, s.path, "unknown input %q", r.Key())
 				}
 			case RefTasks:
-				if s.triggerSite {
-					v.add(CodeInvalidTemplate, s.path, "trigger inputs cannot use task outputs")
-					continue
-				}
 				if _, ok := idx[r.Key()]; !ok {
 					v.add(CodeUnknownTask, s.path, "unknown task %q", r.Key())
 					continue

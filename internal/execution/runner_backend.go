@@ -109,7 +109,9 @@ func (e *Engine) IngestEvents(ctx context.Context, tr executiondb.TaskRun, seq i
 	return nil
 }
 
-// PutArtifact streams an artifact to storage.
+// PutArtifact streams an artifact to storage. The secret values of the task run are masked
+// in the stream, so no plain value reaches storage (SI-01, SI-10). The size limit applies to
+// the bytes that the runner sent. The stored size is the masked size.
 func (e *Engine) PutArtifact(ctx context.Context, tr executiondb.TaskRun, name, contentType string, body io.Reader) error {
 	if !artifactNameRe.MatchString(name) {
 		return httpx.Validation(httpx.FieldError{Field: "name", Message: "invalid artifact name"})
@@ -119,11 +121,11 @@ func (e *Engine) PutArtifact(ctx context.Context, tr executiondb.TaskRun, name, 
 	}
 	key := storage.ArtifactKey(tr.ExecutionID.String(), tr.ID.String(), name)
 	limited := &countingReader{r: io.LimitReader(body, e.Cfg.MaxArtifactBytes+1)}
-	n, err := e.Store.Put(ctx, key, limited, contentType)
+	n, err := e.Store.Put(ctx, key, e.MaskerFor(ctx, tr).Reader(limited), contentType)
 	if err != nil {
 		return err
 	}
-	if n > e.Cfg.MaxArtifactBytes {
+	if limited.n > e.Cfg.MaxArtifactBytes {
 		_ = e.Store.Delete(ctx, key)
 		return httpx.Errorf(http.StatusRequestEntityTooLarge, "artifact_too_large", "the artifact is larger than %d bytes", e.Cfg.MaxArtifactBytes)
 	}

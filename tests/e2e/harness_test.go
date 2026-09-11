@@ -144,7 +144,12 @@ func newDatabase(t testing.TB) string {
 // startServer starts `sluice server` and waits until /readyz is 200.
 func startServer(t testing.TB, env map[string]string) *Proc {
 	t.Helper()
-	port := freePort(t)
+	return startServerOnPort(t, freePort(t), env)
+}
+
+// startServerOnPort is startServer on a given loopback port.
+func startServerOnPort(t testing.TB, port int, env map[string]string) *Proc {
+	t.Helper()
 	full := map[string]string{
 		"SLUICE_LISTEN_ADDR":    fmt.Sprintf("127.0.0.1:%d", port),
 		"SLUICE_PUBLIC_URL":     fmt.Sprintf("http://127.0.0.1:%d", port),

@@ -7,7 +7,28 @@ This example loads data from Postgres with dlt and transforms it with SQLMesh. T
 
 The tasks install their Python packages with `uv` at run time. The image `sluice-uv` has `uv` and Python 3.12. The first run downloads the packages, so it takes longer.
 
-## Configure
+## Run the demo
+
+`compose.yml` starts Sluice and a demo warehouse. `seed.sql` fills the schema `source` with 3 customers and 5 orders. `setup.py` loads the example into Sluice and runs it.
+
+1. Build the images: `just build-images`.
+2. Start the stack from the repository root:
+
+   ```sh
+   export SLUICE_BOOTSTRAP_ADMIN_PASSWORD=change-me-now-1
+   export SLUICE_MASTER_KEYS="k1:$(openssl rand -base64 32)"
+   docker compose -f examples/elt/compose.yml up -d
+   ```
+
+3. Load and run the example: `python3 examples/elt/setup.py`.
+4. Open <http://localhost:8080>. The execution shows the logs of dlt and SQLMesh. The metric `rows_loaded` shows 3 customers and 5 orders.
+5. See the result in the warehouse:
+
+   ```sh
+   docker compose -f examples/elt/compose.yml exec warehouse psql -U elt -d warehouse -c "SELECT * FROM analytics.customer_orders"
+   ```
+
+## Configure your own database
 
 The flow reads the connection from namespace variables and one secret. Set them in the namespace `elt`:
 

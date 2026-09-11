@@ -54,19 +54,19 @@ func TestSCN_EX_002_Kubernetes(t *testing.T) {
 	c := adminClient(t, newForward(t))
 	id := uniq()
 	user, db, ns := "elt_"+id, "warehouse_"+id, "elt-"+id
-	psql := func(database, sql string) string {
+	psqlAs := func(role, database, sql string) string {
 		t.Helper()
-		return kubectl(t, "exec", "deploy/postgres", "--", "psql", "-v", "ON_ERROR_STOP=1", "-U", "sluice", "-d", database, "-tAc", sql)
+		return kubectl(t, "exec", "deploy/postgres", "--", "psql", "-v", "ON_ERROR_STOP=1", "-U", role, "-d", database, "-tAc", sql)
 	}
+	psql := func(database, sql string) string { t.Helper(); return psqlAs("sluice", database, sql) }
 	psql("sluice", "CREATE USER "+user+" PASSWORD 'elt-password-1'")
 	psql("sluice", "CREATE DATABASE "+db+" OWNER "+user)
-	psql(db, `CREATE SCHEMA source AUTHORIZATION `+user+`;
-CREATE TABLE source.customers (id integer PRIMARY KEY, name text NOT NULL);
-CREATE TABLE source.orders (id integer PRIMARY KEY, customer_id integer NOT NULL, amount numeric(10,2) NOT NULL);
-INSERT INTO source.customers VALUES (1, 'Ada'), (2, 'Bob'), (3, 'Cy');
-INSERT INTO source.orders VALUES (1, 1, 10.00), (2, 1, 5.50), (3, 2, 7.25), (4, 2, 1.00), (5, 2, 2.25);
-ALTER TABLE source.customers OWNER TO `+user+`;
-ALTER TABLE source.orders OWNER TO `+user+`;`)
+	seed, err := os.ReadFile(filepath.Join(repoRoot(t), "examples", "elt", "seed.sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The seed runs as the owner, as in examples/elt/compose.yml.
+	psqlAs(user, db, string(seed))
 
 	files := exampleFiles(t)
 	files["namespace.yaml"] = strings.TrimRight(files["namespace.yaml"], "\n") + "\ndefaults:\n  " + k8sExecutor

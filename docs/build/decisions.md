@@ -46,3 +46,4 @@
 
 | ID | Answers | Date | Answer |
 |---|---|---|---|
+| H-1 | B-1 | 2026-09-11 | Option A: the implementer runs `go clean -cache`. The implementer also clears the Docker build cache when the daemon answers. |

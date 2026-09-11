@@ -97,15 +97,15 @@ func exampleFiles(t testing.TB) map[string]string {
 	return files
 }
 
-// exampleSeed creates the source schema: 3 customers and 5 orders.
-const exampleSeed = `CREATE SCHEMA source AUTHORIZATION elt;
-CREATE TABLE source.customers (id integer PRIMARY KEY, name text NOT NULL);
-CREATE TABLE source.orders (id integer PRIMARY KEY, customer_id integer NOT NULL, amount numeric(10,2) NOT NULL);
-INSERT INTO source.customers VALUES (1, 'Ada'), (2, 'Bob'), (3, 'Cy');
-INSERT INTO source.orders VALUES (1, 1, 10.00), (2, 1, 5.50), (3, 2, 7.25), (4, 2, 1.00), (5, 2, 2.25);
-ALTER TABLE source.customers OWNER TO elt;
-ALTER TABLE source.orders OWNER TO elt;
-`
+// exampleSeed returns examples/elt/seed.sql: 3 customers and 5 orders in the schema source.
+func exampleSeed(t testing.TB) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join(repoRoot(), "examples", "elt", "seed.sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
 
 // exampleModelQuery reads the SQLMesh model table in customer order.
 const exampleModelQuery = `SELECT customer_name || '|' || order_count || '|' || round(order_amount::numeric, 2) FROM analytics.customer_orders ORDER BY customer_id`
@@ -162,13 +162,15 @@ func TestSCN_EX_001_SingleContainer(t *testing.T) {
 			t.Fatal("postgres not ready")
 		}
 	}
-	psql := func(db, sql string) string {
+	psqlAs := func(user, db, sql string) string {
 		t.Helper()
-		return docker(t, "exec", pg, "psql", "-v", "ON_ERROR_STOP=1", "-U", "sluice", "-d", db, "-tAc", sql)
+		return docker(t, "exec", pg, "psql", "-v", "ON_ERROR_STOP=1", "-U", user, "-d", db, "-tAc", sql)
 	}
+	psql := func(db, sql string) string { t.Helper(); return psqlAs("sluice", db, sql) }
 	psql("sluice", "CREATE USER elt PASSWORD 'elt-password-1'")
 	psql("sluice", "CREATE DATABASE warehouse OWNER elt")
-	psql("warehouse", exampleSeed)
+	// The seed runs as the owner, as in examples/elt/compose.yml.
+	psqlAs("elt", "warehouse", exampleSeed(t))
 
 	docker(t, "run", "-d", "--name", app, "--network", net, "-p", "127.0.0.1::8080",
 		"-e", "SLUICE_DATABASE_URL=postgres://sluice:sluice@"+pg+":5432/sluice?sslmode=disable",

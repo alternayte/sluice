@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   createAiConversationMutation,
   getAiConversationOptions,
-  getAiConversationQueryKey,
   listAiConversationsOptions,
   listAiConversationsQueryKey,
 } from "@/api/@tanstack/react-query.gen";
@@ -212,7 +211,9 @@ function Panel({ onClose }: { onClose: () => void }) {
         if (ev.event === "done") done = true;
         onEvent(ev);
       });
-      await qc.invalidateQueries({ queryKey: getAiConversationQueryKey({ path: { conversationId: id } }) });
+      // Load the saved turn with a new request. An invalidation can keep a detail request that
+      // started before the turn saved its messages, and the answer then disappears.
+      await qc.fetchQuery({ ...getAiConversationOptions({ path: { conversationId: id } }), staleTime: 0 });
       setLive((items) => items.filter((i) => i.kind === "error"));
       // A stream that ends without "done" lost its connection or the server stopped the turn.
       if (!done) setError("The answer stopped before the end. The saved part of the conversation shows below.");

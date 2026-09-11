@@ -12,6 +12,7 @@ import (
 	"github.com/alternayte/sluice/internal/instance"
 	"github.com/alternayte/sluice/internal/namespace"
 	"github.com/alternayte/sluice/internal/platform/clock"
+	"github.com/alternayte/sluice/internal/trigger"
 )
 
 // services holds what the routes call. `sluice openapi` passes the zero value:
@@ -23,6 +24,7 @@ type services struct {
 	Clock      clock.Clock
 	Namespaces *namespace.Service
 	Engine     *execution.Engine
+	Triggers   *trigger.Service
 }
 
 // registerRoutes registers every API operation on api, and the streamed routes on r.
@@ -36,9 +38,10 @@ func registerRoutes(api huma.API, r chi.Router, s services) {
 	namespace.Routes(api, r, s.Namespaces)
 	execution.Routes(api, r, s.Engine)
 	execution.RunnerRoutes(api, r, s.Engine)
+	trigger.Routes(api, r, s.Triggers)
 }
 
 func (s *Server) services() services {
 	return services{Auth: s.Auth, Audit: s.Audit, Instances: s.Registry, Clock: s.Clock, Namespaces: s.Namespaces,
-		Engine: s.Engine}
+		Engine: s.Engine, Triggers: s.Triggers}
 }

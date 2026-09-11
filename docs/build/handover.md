@@ -1,100 +1,39 @@
 # Build handover
 
-This file records where the build stopped. `decisions.md` is the authoritative record of decisions.
+This file records where the build stopped. `decisions.md` is the authoritative record of decisions. The build follows SDD 1.1 (DI-25): this file holds the state per slice, `just trace` gives the evidence, and SDD §13 defines done.
 
 ## State at the last commit
 
-- Slices S0 to S4 and slice R (architecture refactor) are complete on branch
-  `refactor/architecture`. The last implementation commit is `4d578ef`
-  ("Ledger: set S4 requirements PASS whose scenarios pass"). This handover
-  commit follows it and closes slice R.
-- SDD 1.1 (`docs/sluice-sdd.md`) describes the target layout: vertical slices
-  (§4.4), chi and huma with a generated `api/openapi.yaml` (D-09),
-  `caarlos0/env` config (D-21), per-feature sqlc (D-10), depguard rules
-  (D-22), and access declared per operation with `httpx.Op` (D-23).
-- Plan: `docs/superpowers/plans/2026-09-10-architecture-refactor.md`. The checkboxes show the progress.
-- Design: `docs/superpowers/specs/2026-09-10-architecture-refactor-design.md`.
-- Refactor proof: `scripts/e2e-compare.sh` against `docs/build/e2e-baseline.txt`
-  (39 baseline PASS, 2 baseline FAIL, plus 3 tests added during slice R with
-  no scenario ID: `TestServerHeadAndBareAPI`, `TestSaveVersionsDiffRevert`,
-  `TestLoginRateLimitSharedAcrossInstances`; all 3 pass). The final
-  verification run of task 19 found no regression: 42 PASS, the same 2 FAIL
-  as the baseline.
+- Slices S0 to S5 and slice R are complete, except the open items below.
+- Session of 2026-09-11: SCN-CORE-007 fixed (the runner forwards SIGTERM and flushes for at most 5 s). New tests: SCN-CORE-004, SCN-CORE-008, SCN-EXE-010, SCN-EXE-014, SCN-RUN-006, SCN-NFR-002. Slice S5 added `internal/trigger` (scheduler, webhooks, flow triggers, upcoming schedules) with SCN-TRG-002 to SCN-TRG-007, SCN-FLOW-003, SCN-FLOW-005 and SCN-DEP-004.
+
+## Open work per slice
+
+- S0: SCN-CORE-001 fails until the `secrets rekey` command exists (S6).
+- S1: SCN-AUTH-010 (the audit page shows a secret update, needs S6).
+- S3: SCN-NS-002 (UI gap: new files must be staged in the editor and saved together with a message, REQ-UI-007). SCN-NS-004 and the git part of SCN-NS-005 need S7. SCN-FLOW-006 needs `examples/elt` (S12).
+- S4: SCN-EXE-012 (vars precedence needs the S6 variables API), SCN-RUN-005 (masking of secrets, S6), SCN-RUN-007 (images, S8), SCN-EXR-001 (Docker and kind detection, S8 and S9).
+- Later slices: S6 to S12 in SDD §11 order, then SDD §13.
+- Playwright scenarios still open: SCN-UI-001, SCN-UI-004, SCN-UI-006, SCN-UI-007, SCN-UI-009 (S10), SCN-UI-010 (S6 secrets page).
 
 ## Laptop flow
 
-- `just setup` (installs tools and packages), `just up` (starts Postgres),
-  `just dev` (runs the Go server with live reload and the Vite dev server).
-  Vite listens on :5173 and sends `/api`, `/hooks` and `/mcp` to the Go
-  server on :8080. Sign in with the `.env` bootstrap admin.
+- `just setup` (installs tools and packages), `just up` (starts Postgres), `just dev` (Go server with live reload and the Vite dev server). Vite listens on :5173 and sends `/api`, `/hooks` and `/mcp` to the Go server on :8080. Sign in with the `.env` bootstrap admin.
 - Coolify deploys `deploy/docker/Dockerfile` or `deploy/compose/compose.yml`.
 - Kubernetes: the Helm chart comes in S9.
 
-## Open work in S4
+## Test layout
 
-- SCN-CORE-001 fails: the CLI help text does not list the `secrets rekey`
-  command. That command comes with S6 secrets.
-- SCN-CORE-007 fails: after SIGTERM, instance A does not exit within
-  `SLUICE_SHUTDOWN_GRACE` (10 s in the test). Check `app.Server.Run`: the order is
-  `Engine.Shutdown`, stop background loops, HTTP shutdown. A likely cause is a
-  background loop that does not return (the lease leader waits for `leaderWork`,
-  or `Engine.Run` waits on a slow query), or open SSE connections that keep
-  `http.Server.Shutdown` waiting. Test: `go test -tags e2e -run SCN_CORE_007 ./tests/e2e/`.
-- Not written yet: SCN-EXE-010 (claims across two instances, [I]),
-  SCN-EXE-014 (retention with a fake clock, [I]), SCN-EXE-012 (templates; needs the
-  S6 variables API for vars precedence), SCN-RUN-005 (masking; needs S6 secrets),
-  SCN-RUN-006 (Toxiproxy), SCN-RUN-007 (needs S8 images), SCN-EXR-001 (needs
-  docker and kind detection), SCN-NFR-002 (perf), SCN-CORE-004, SCN-CORE-008,
-  SCN-FLOW-003, SCN-FLOW-005 (later slices). Open Playwright scenarios:
-  SCN-NS-002 (the UI saves each new file at once; SCN-NS-002 needs new files
-  staged in the editor and saved together with a message; UI gap, REQ-UI-007),
-  SCN-UI-001 (dashboard KPIs and charts come in S10), SCN-UI-004 (the flow
-  state strip, duration chart and metric chart come in S10), SCN-UI-006
-  (git sources need S7, secret providers need S6, the AI provider needs S11),
-  SCN-UI-007 (axe runs in S10, and the secrets page comes in S6), SCN-UI-009
-  (the dashboard of S10 is one of the three pages), SCN-UI-010 (the inherited
-  secret key needs the S6 secrets page). `just trace` also lists scenarios
-  for slices after S4 that are not in scope yet: SCN-AI-*,
-  SCN-AUTH-010, SCN-DEP-*, SCN-EX-001, SCN-EX-002, SCN-EXR-003 to
-  SCN-EXR-007, SCN-FLOW-006, SCN-GIT-*, SCN-NFR-001, SCN-NFR-003,
-  SCN-NS-004, SCN-NS-005, SCN-SEC-*, SCN-TRG-002 to SCN-TRG-007. None of
-  these were open before slice R, so none is a regression.
-- Playwright specs for S3 and S4 pages are in `tests/ui/specs/`: `namespaces.spec.ts`
-  (SCN-NS-003, SCN-NS-007, and a check of the new file action with no scenario ID), `flows.spec.ts` (SCN-FLOW-004,
-  SCN-FLOW-008), `executions.spec.ts` (SCN-EXE-008, SCN-EXE-009, SCN-UI-002,
-  SCN-UI-003, SCN-UI-008), `logs.spec.ts` (SCN-RUN-008) and `roles.spec.ts`
-  (SCN-UI-005). `tests/ui/helpers/app.ts` holds the shared setup: `signInAs`,
-  `seedNamespace`, `saveFilesAPI`, `triggerFlowAPI`, `runFileAPI`,
-  `waitExecutionState`, `cancelExecutionAPI`, `executionHeading`, `ganttRow` and
-  `dbQuery`. The executions list and the flow executions tab poll each 1 s, so a
-  state change shows within the 2 s of REQ-UI-012. Labels: namespace page
-  buttons "New file" (dialog "New file", submit "Create", field "Path"), "Save"
-  (dialog "Save file", field "Commit message", submit "Save"), "Rename", "Delete",
-  tabs "Files" and "Versions", "Revert to this version" (confirm "Revert"); flow page
-  tabs "Overview", "Triggers", "Source", "Revisions", switch "Enabled"/"Disabled";
-  editor container `data-testid="file-editor"`; Gantt `data-testid="gantt"` with bars
-  `data-testid="gantt-bar"`; log panel `data-testid="log-panel"`; executions table
-  `data-testid="executions-table"`.
+- Go e2e tests: `tests/e2e` (build tag `e2e`). `startServer` and `startServerOnPort` start the binary. Tests that wait for real minute boundaries (`schedule_test.go`) use `t.Parallel`.
+- Perf tests: `tests/perf` (build tag `perf`) with their own small harness. They need `SLUICE_E2E_BINARY` (`just build`, then `just perf`). Results go to `build/reports/perf/`.
+- Fake-clock scheduler tests: `internal/app/scheduler_integration_test.go` builds servers with `newServer(..., clock)` and calls `Triggers.Tick` directly.
+- Playwright: `tests/ui/specs`, shared setup in `tests/ui/helpers/app.ts`.
 
 ## How to run checks
 
 - Unit: `go test ./...`, UI: `cd ui && bun run lint && bun run test && bun run build`.
 - Integration: `go test -tags integration ./...` (Docker needed).
-- E2E: `go test -tags e2e ./tests/e2e/` (builds its own binary without UI), and
-  Playwright `cd tests/ui && SLUICE_E2E_BINARY=$PWD/../../bin/sluice bunx playwright test`
-  after `just build-ui build-go`.
-- Fast loop: `just check` (generated-file check, lint, forbid scan, unit and
-  UI tests). Full definition of done: `just check`, `just build`, `just e2e`,
-  `just trace`, `scripts/e2e-compare.sh` (SDD §10, §12, §13).
-- CI: `.github/workflows/ci.yml` runs on each pull request and each push to
-  main, with jobs `check` (`just check`), `e2e` (Go e2e compare against the
-  baseline, then the Playwright suite), and `image` (the container build).
-- Commit chains must use `set -eo pipefail` and must not pipe a failing command into
-  `tail` or `grep -v` without checking the status.
-
-## Next slices
-
-Next: S5 (schedules, webhooks, flow triggers, two-instance cooperation). After
-S5: S6 (secrets, variables, masking), S7 (git), S8 (docker, images, compose),
-S9 (kubernetes, Helm, kind), S10 (dashboard, charts, accessibility, perf),
-S11 (AI), S12 (example ELT project). Then SDD §13 definition of done.
+- E2E: `go test -tags e2e ./tests/e2e/` (builds its own binary without UI), and Playwright `cd tests/ui && SLUICE_E2E_BINARY=$PWD/../../bin/sluice bunx playwright test` after `just build-ui build-go`.
+- Fast loop: `just check` (generated-file check, lint, forbid scan, unit and integration tests, UI tests). Full definition of done: SDD §13.
+- CI: `.github/workflows/ci.yml` runs `check`, `e2e` and `image` jobs.
+- Commit chains must use `set -eo pipefail` and must not pipe a failing command into `tail` or `grep -v` without checking the status.

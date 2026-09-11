@@ -38,6 +38,8 @@ import type {
   DownloadArtifactResponses,
   DownloadExecutionLogsData,
   DownloadExecutionLogsResponses,
+  FireWebhookData,
+  FireWebhookResponses,
   GetExecutionData,
   GetExecutionErrors,
   GetExecutionLogsData,
@@ -91,6 +93,9 @@ import type {
   ListTokensData,
   ListTokensErrors,
   ListTokensResponses,
+  ListUpcomingSchedulesData,
+  ListUpcomingSchedulesErrors,
+  ListUpcomingSchedulesResponses,
   ListUsersData,
   ListUsersErrors,
   ListUsersResponses,
@@ -121,6 +126,9 @@ import type {
   RevokeTokenData,
   RevokeTokenErrors,
   RevokeTokenResponses,
+  RotateWebhookKeyData,
+  RotateWebhookKeyErrors,
+  RotateWebhookKeyResponses,
   RunFileData,
   RunFileErrors,
   RunFileResponses,
@@ -593,6 +601,22 @@ export const getFlowRevision = <ThrowOnError extends boolean = false>(
     ...options,
   });
 
+export const rotateWebhookKey = <ThrowOnError extends boolean = false>(
+  options: Options<RotateWebhookKeyData, ThrowOnError>,
+): RequestResult<
+  RotateWebhookKeyResponses,
+  RotateWebhookKeyErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    RotateWebhookKeyResponses,
+    RotateWebhookKeyErrors,
+    ThrowOnError
+  >({
+    url: "/api/v1/flows/{namespace}/{flowId}/triggers/{triggerId}/webhook-key",
+    ...options,
+  });
+
 export const listInstances = <ThrowOnError extends boolean = false>(
   options?: Options<ListInstancesData, ThrowOnError>,
 ): RequestResult<ListInstancesResponses, ListInstancesErrors, ThrowOnError> =>
@@ -765,6 +789,19 @@ export const listVersions = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({ url: "/api/v1/namespaces/{namespace}/versions", ...options });
 
+export const listUpcomingSchedules = <ThrowOnError extends boolean = false>(
+  options?: Options<ListUpcomingSchedulesData, ThrowOnError>,
+): RequestResult<
+  ListUpcomingSchedulesResponses,
+  ListUpcomingSchedulesErrors,
+  ThrowOnError
+> =>
+  (options?.client ?? client).get<
+    ListUpcomingSchedulesResponses,
+    ListUpcomingSchedulesErrors,
+    ThrowOnError
+  >({ url: "/api/v1/schedules/upcoming", ...options });
+
 export const getFlowSchema = <ThrowOnError extends boolean = false>(
   options?: Options<GetFlowSchemaData, ThrowOnError>,
 ): RequestResult<GetFlowSchemaResponses, GetFlowSchemaErrors, ThrowOnError> =>
@@ -867,4 +904,15 @@ export const resetUserPassword = <ThrowOnError extends boolean = false>(
       "Content-Type": "application/json",
       ...options.headers,
     },
+  });
+
+/**
+ * Start the flow of a webhook trigger
+ */
+export const fireWebhook = <ThrowOnError extends boolean = false>(
+  options: Options<FireWebhookData, ThrowOnError>,
+): RequestResult<FireWebhookResponses, unknown, ThrowOnError> =>
+  (options.client ?? client).post<FireWebhookResponses, unknown, ThrowOnError>({
+    url: "/hooks/{key}",
+    ...options,
   });

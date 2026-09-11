@@ -20,6 +20,7 @@ import {
   diffVersions,
   downloadArtifact,
   downloadExecutionLogs,
+  fireWebhook,
   getExecution,
   getExecutionLogs,
   getFile,
@@ -38,6 +39,7 @@ import {
   listInstances,
   listNamespaces,
   listTokens,
+  listUpcomingSchedules,
   listUsers,
   listVersions,
   login,
@@ -49,6 +51,7 @@ import {
   revertVersion,
   revokeOtherSessions,
   revokeToken,
+  rotateWebhookKey,
   runFile,
   runnerComplete,
   runnerGetBundle,
@@ -93,6 +96,7 @@ import type {
   DownloadArtifactData,
   DownloadArtifactResponse,
   DownloadExecutionLogsData,
+  FireWebhookData,
   GetExecutionData,
   GetExecutionError,
   GetExecutionLogsData,
@@ -145,6 +149,9 @@ import type {
   ListTokensData,
   ListTokensError,
   ListTokensResponse,
+  ListUpcomingSchedulesData,
+  ListUpcomingSchedulesError,
+  ListUpcomingSchedulesResponse,
   ListUsersData,
   ListUsersError,
   ListUsersResponse,
@@ -175,6 +182,9 @@ import type {
   RevokeTokenData,
   RevokeTokenError,
   RevokeTokenResponse,
+  RotateWebhookKeyData,
+  RotateWebhookKeyError,
+  RotateWebhookKeyResponse,
   RunFileData,
   RunFileError,
   RunFileResponse,
@@ -1216,6 +1226,30 @@ export const getFlowRevisionOptions = (options: Options<GetFlowRevisionData>) =>
     queryKey: getFlowRevisionQueryKey(options),
   });
 
+export const rotateWebhookKeyMutation = (
+  options?: Partial<Options<RotateWebhookKeyData>>,
+): UseMutationOptions<
+  RotateWebhookKeyResponse,
+  RotateWebhookKeyError,
+  Options<RotateWebhookKeyData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RotateWebhookKeyResponse,
+    RotateWebhookKeyError,
+    Options<RotateWebhookKeyData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await rotateWebhookKey({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
 export const listInstancesQueryKey = (options?: Options<ListInstancesData>) =>
   createQueryKey("listInstances", options);
 
@@ -1530,6 +1564,31 @@ export const listVersionsOptions = (options: Options<ListVersionsData>) =>
     queryKey: listVersionsQueryKey(options),
   });
 
+export const listUpcomingSchedulesQueryKey = (
+  options?: Options<ListUpcomingSchedulesData>,
+) => createQueryKey("listUpcomingSchedules", options);
+
+export const listUpcomingSchedulesOptions = (
+  options?: Options<ListUpcomingSchedulesData>,
+) =>
+  queryOptions<
+    ListUpcomingSchedulesResponse,
+    ListUpcomingSchedulesError,
+    ListUpcomingSchedulesResponse,
+    ReturnType<typeof listUpcomingSchedulesQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listUpcomingSchedules({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listUpcomingSchedulesQueryKey(options),
+  });
+
 export const getFlowSchemaQueryKey = (options?: Options<GetFlowSchemaData>) =>
   createQueryKey("getFlowSchema", options);
 
@@ -1802,6 +1861,29 @@ export const resetUserPasswordMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await resetUserPassword({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Start the flow of a webhook trigger
+ */
+export const fireWebhookMutation = (
+  options?: Partial<Options<FireWebhookData>>,
+): UseMutationOptions<unknown, DefaultError, Options<FireWebhookData>> => {
+  const mutationOptions: UseMutationOptions<
+    unknown,
+    DefaultError,
+    Options<FireWebhookData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await fireWebhook({
         ...options,
         ...fnOptions,
         throwOnError: true,

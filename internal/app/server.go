@@ -31,6 +31,7 @@ import (
 	"github.com/alternayte/sluice/internal/platform/logging"
 	"github.com/alternayte/sluice/internal/platform/promx"
 	"github.com/alternayte/sluice/internal/storage"
+	"github.com/alternayte/sluice/internal/trigger"
 )
 
 func storageConfig(cfg *Config) storage.Config {
@@ -61,6 +62,7 @@ type Server struct {
 	GC         *storage.GC
 	Namespaces *namespace.Service
 	Engine     *execution.Engine
+	Triggers   *trigger.Service
 
 	httpServer *http.Server
 	listener   net.Listener
@@ -69,6 +71,11 @@ type Server struct {
 
 // NewServer opens the database, applies migrations and builds all components.
 func NewServer(ctx context.Context, cfg *Config, log *slog.Logger) (*Server, error) {
+	return newServer(ctx, cfg, log, clock.Real{})
+}
+
+// newServer is NewServer with a clock. Fake-clock tests use it.
+func newServer(ctx context.Context, cfg *Config, log *slog.Logger, clk clock.Clock) (*Server, error) {
 	pool, err := db.Open(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return nil, err
@@ -83,7 +90,6 @@ func NewServer(ctx context.Context, cfg *Config, log *slog.Logger) (*Server, err
 	}
 	hostname, _ := os.Hostname()
 	id, _ := uuid.NewV7()
-	clk := clock.Real{}
 	s := &Server{
 		Cfg:   cfg,
 		Log:   log,
@@ -133,6 +139,9 @@ func NewServer(ctx context.Context, cfg *Config, log *slog.Logger) (*Server, err
 			s.Engine.Executors[t] = &executor.ProcessExecutor{Log: log, Output: os.Stderr}
 		}
 	}
+	s.Triggers = &trigger.Service{Pool: pool, Clock: clk, Audit: s.Audit, Log: log, Starter: triggerStarter{s.Engine},
+		Holder: id.String(), PublicURL: cfg.PublicURL}
+	s.Engine.EndHooks = append(s.Engine.EndHooks, flowTriggerHook(s.Triggers))
 	created, err := s.Auth.Bootstrap(ctx, cfg.BootstrapAdminEmail, cfg.BootstrapAdminPassword)
 	if err != nil {
 		pool.Close()
@@ -250,6 +259,8 @@ func (s *Server) Run(ctx context.Context) error {
 	s.goBG(func() { s.Engine.Run(bg) })
 	maintenance := &lease.Leader{Store: s.Leases, Name: lease.Maintenance, Log: s.Log, Work: s.leaderWork}
 	s.goBG(func() { maintenance.Run(bg) })
+	scheduler := &lease.Leader{Store: s.Leases, Name: lease.Scheduler, Log: s.Log, Work: s.schedulerWork}
+	s.goBG(func() { scheduler.Run(bg) })
 
 	errc := make(chan error, 1)
 	go func() { errc <- s.httpServer.Serve(ln) }()
@@ -313,6 +324,22 @@ func (s *Server) leaderWork(ctx context.Context) {
 	}()
 	s.maintenance(ctx)
 	wg.Wait()
+}
+
+// schedulerWork fires due schedules each second while this instance holds the scheduler lease.
+func (s *Server) schedulerWork(ctx context.Context) {
+	t := time.NewTicker(time.Second)
+	defer t.Stop()
+	for {
+		if err := s.Triggers.Tick(ctx); err != nil && ctx.Err() == nil {
+			s.Log.Warn("scheduler tick", "err", err)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+	}
 }
 
 // maintenance runs cleanup while this instance holds the maintenance lease.

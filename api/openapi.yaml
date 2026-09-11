@@ -1378,6 +1378,40 @@ components:
           maxProperties: 20
           type: object
       type: object
+    UpcomingList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/UpcomingSchedule"
+          type: array
+      required:
+        - items
+      type: object
+    UpcomingSchedule:
+      additionalProperties: true
+      properties:
+        cron:
+          type: string
+        flow_id:
+          type: string
+        namespace:
+          type: string
+        next_fire_at:
+          format: date-time
+          type: string
+        timezone:
+          type: string
+        trigger_id:
+          type: string
+      required:
+        - namespace
+        - flow_id
+        - trigger_id
+        - cron
+        - timezone
+        - next_fire_at
+      type: object
     UpdateFlowRequest:
       additionalProperties: true
       properties:
@@ -1509,6 +1543,17 @@ components:
         - from
         - to
         - files
+      type: object
+    WebhookKey:
+      additionalProperties: true
+      properties:
+        key:
+          type: string
+        url:
+          type: string
+      required:
+        - key
+        - url
       type: object
 info:
   title: Sluice API
@@ -2471,6 +2516,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Error
+  /api/v1/flows/{namespace}/{flowId}/triggers/{triggerId}/webhook-key:
+    post:
+      operationId: rotateWebhookKey
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: flowId
+          required: true
+          schema:
+            maxLength: 63
+            pattern: ^[a-z0-9][a-z0-9-]*$
+            type: string
+        - in: path
+          name: triggerId
+          required: true
+          schema:
+            maxLength: 63
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookKey"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
   /api/v1/instances:
     get:
       operationId: listInstances
@@ -2859,6 +2941,39 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Error
+  /api/v1/schedules/upcoming:
+    get:
+      operationId: listUpcomingSchedules
+      parameters:
+        - description: Namespace and its children.
+          explode: false
+          in: query
+          name: namespace
+          schema:
+            description: Namespace and its children.
+            type: string
+        - explode: false
+          in: query
+          name: limit
+          schema:
+            default: 10
+            format: int64
+            maximum: 200
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpcomingList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
   /api/v1/schemas/flow.json:
     get:
       operationId: getFlowSchema
@@ -3055,3 +3170,18 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Error
+  /hooks/{key}:
+    post:
+      operationId: fireWebhook
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          content:
+            application/json: {}
+          description: The execution was created.
+      summary: Start the flow of a webhook trigger

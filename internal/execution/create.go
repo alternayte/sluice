@@ -198,6 +198,9 @@ type TriggerParams struct {
 	ChainDepth     int
 	ParentExecID   *uuid.UUID
 	ParentTaskRun  *uuid.UUID
+	// InputTemplates are trigger inputs (§6.5). They render over TriggerPayload as
+	// `trigger` and override Inputs.
+	InputTemplates map[string]string
 }
 
 // InputErrors converts input errors to a validation error (REQ-FLOW-008).
@@ -214,6 +217,18 @@ func InputErrors(errs []flow.InputError) error {
 
 // Trigger creates an execution of a flow at its current revision.
 func (e *Engine) Trigger(ctx context.Context, r TriggerParams) (uuid.UUID, error) {
+	var id uuid.UUID
+	err := pgx.BeginFunc(ctx, e.Pool, func(tx pgx.Tx) error {
+		var err error
+		id, err = e.TriggerTx(ctx, tx, r)
+		return err
+	})
+	return id, err
+}
+
+// TriggerTx is Trigger in the transaction tx. Schedules, webhooks and flow triggers use it,
+// so that the execution and the trigger state change together.
+func (e *Engine) TriggerTx(ctx context.Context, tx pgx.Tx, r TriggerParams) (uuid.UUID, error) {
 	if err := validateLabels(r.Labels); err != nil {
 		return uuid.Nil, err
 	}
@@ -221,25 +236,55 @@ func (e *Engine) Trigger(ctx context.Context, r TriggerParams) (uuid.UUID, error
 	if err != nil {
 		return uuid.Nil, err
 	}
-	inputs, ierrs := flow.ResolveInputs(ref.Def.Flow.Inputs, r.Inputs)
+	given := r.Inputs
+	if len(r.InputTemplates) > 0 {
+		if given, err = renderTriggerInputs(ref.Def.Flow.Inputs, r.InputTemplates, r.TriggerPayload, r.Inputs); err != nil {
+			return uuid.Nil, err
+		}
+	}
+	inputs, ierrs := flow.ResolveInputs(ref.Def.Flow.Inputs, given)
 	if err := InputErrors(ierrs); err != nil {
 		return uuid.Nil, err
 	}
-	var id uuid.UUID
-	err = pgx.BeginFunc(ctx, e.Pool, func(tx pgx.Tx) error {
-		var state string
-		var err error
-		id, state, err = e.Create(ctx, tx, CreateParams{NamespaceID: ref.Flow.NamespaceID, FlowID: &ref.Flow.ID, RevisionID: &ref.Revision.ID,
-			SnapshotID: ref.Revision.SnapshotID, Def: ref.Def, TriggerType: r.TriggerType, TriggerID: r.TriggerID, ScheduledFor: r.ScheduledFor,
-			TriggerPayload: r.TriggerPayload, Inputs: inputs, Labels: r.Labels, ChainDepth: r.ChainDepth,
-			ParentExecID: r.ParentExecID, ParentTaskRun: r.ParentTaskRun})
-		if err != nil {
-			return err
-		}
-		return e.Audit.Record(ctx, tx, audit.Event{Action: "execution.trigger", TargetType: "execution", TargetID: id.String(),
-			Details: map[string]any{"flow": r.Namespace + "/" + r.FlowKey, "trigger_type": r.TriggerType, "state": state}})
-	})
+	id, state, err := e.Create(ctx, tx, CreateParams{NamespaceID: ref.Flow.NamespaceID, FlowID: &ref.Flow.ID, RevisionID: &ref.Revision.ID,
+		SnapshotID: ref.Revision.SnapshotID, Def: ref.Def, TriggerType: r.TriggerType, TriggerID: r.TriggerID, ScheduledFor: r.ScheduledFor,
+		TriggerPayload: r.TriggerPayload, Inputs: inputs, Labels: r.Labels, ChainDepth: r.ChainDepth,
+		ParentExecID: r.ParentExecID, ParentTaskRun: r.ParentTaskRun})
+	if err != nil {
+		return uuid.Nil, err
+	}
+	err = e.Audit.Record(ctx, tx, audit.Event{Action: "execution.trigger", TargetType: "execution", TargetID: id.String(),
+		Details: map[string]any{"flow": r.Namespace + "/" + r.FlowKey, "trigger_type": r.TriggerType, "state": state}})
 	return id, err
+}
+
+// renderTriggerInputs renders trigger input templates over the trigger payload. A value
+// for an input that is not a string or select input is parsed as JSON when it can be.
+func renderTriggerInputs(defs []flow.Input, tmpl map[string]string, payload map[string]any, given map[string]any) (map[string]any, error) {
+	types := map[string]string{}
+	for _, d := range defs {
+		types[d.ID] = d.Type
+	}
+	out := map[string]any{}
+	for k, v := range given {
+		out[k] = v
+	}
+	c := &flow.Context{Trigger: payload}
+	for _, k := range sortedKeys(tmpl) {
+		s, err := flow.RenderString(tmpl[k], c)
+		if err != nil {
+			return nil, httpx.Validation(httpx.FieldError{Field: "inputs." + k, Message: err.Error()})
+		}
+		var v any = s
+		if t := types[k]; t != "" && t != "string" && t != "select" {
+			var j any
+			if json.Unmarshal([]byte(s), &j) == nil {
+				v = j
+			}
+		}
+		out[k] = v
+	}
+	return out, nil
 }
 
 // RunFile creates an execution with one script task for a file (REQ-NS-007).

@@ -603,6 +603,21 @@ export type TriggerRequest = {
   [key: string]: unknown;
 };
 
+export type UpcomingList = {
+  items: Array<UpcomingSchedule>;
+  [key: string]: unknown;
+};
+
+export type UpcomingSchedule = {
+  cron: string;
+  flow_id: string;
+  namespace: string;
+  next_fire_at: string;
+  timezone: string;
+  trigger_id: string;
+  [key: string]: unknown;
+};
+
 export type UpdateFlowRequest = {
   disabled: boolean;
   [key: string]: unknown;
@@ -656,6 +671,12 @@ export type VersionDiff = {
   files: Array<FileDiff>;
   from: number;
   to: number;
+  [key: string]: unknown;
+};
+
+export type WebhookKey = {
+  key: string;
+  url: string;
   [key: string]: unknown;
 };
 
@@ -1602,6 +1623,37 @@ export type GetFlowRevisionResponses = {
 export type GetFlowRevisionResponse =
   GetFlowRevisionResponses[keyof GetFlowRevisionResponses];
 
+export type RotateWebhookKeyData = {
+  body?: never;
+  path: {
+    namespace: string;
+    flowId: string;
+    triggerId: string;
+  };
+  query?: never;
+  url: "/api/v1/flows/{namespace}/{flowId}/triggers/{triggerId}/webhook-key";
+};
+
+export type RotateWebhookKeyErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type RotateWebhookKeyError =
+  RotateWebhookKeyErrors[keyof RotateWebhookKeyErrors];
+
+export type RotateWebhookKeyResponses = {
+  /**
+   * OK
+   */
+  200: WebhookKey;
+};
+
+export type RotateWebhookKeyResponse =
+  RotateWebhookKeyResponses[keyof RotateWebhookKeyResponses];
+
 export type ListInstancesData = {
   body?: never;
   path?: never;
@@ -1993,6 +2045,39 @@ export type ListVersionsResponses = {
 export type ListVersionsResponse =
   ListVersionsResponses[keyof ListVersionsResponses];
 
+export type ListUpcomingSchedulesData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Namespace and its children.
+     */
+    namespace?: string;
+    limit?: number;
+  };
+  url: "/api/v1/schedules/upcoming";
+};
+
+export type ListUpcomingSchedulesErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListUpcomingSchedulesError =
+  ListUpcomingSchedulesErrors[keyof ListUpcomingSchedulesErrors];
+
+export type ListUpcomingSchedulesResponses = {
+  /**
+   * OK
+   */
+  200: UpcomingList;
+};
+
+export type ListUpcomingSchedulesResponse =
+  ListUpcomingSchedulesResponses[keyof ListUpcomingSchedulesResponses];
+
 export type GetFlowSchemaData = {
   body?: never;
   path?: never;
@@ -2210,3 +2295,19 @@ export type ResetUserPasswordResponses = {
 
 export type ResetUserPasswordResponse =
   ResetUserPasswordResponses[keyof ResetUserPasswordResponses];
+
+export type FireWebhookData = {
+  body?: never;
+  path: {
+    key: string;
+  };
+  query?: never;
+  url: "/hooks/{key}";
+};
+
+export type FireWebhookResponses = {
+  /**
+   * The execution was created.
+   */
+  202: unknown;
+};

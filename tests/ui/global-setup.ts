@@ -59,6 +59,8 @@ export default async function globalSetup() {
       // A fixed test master key (32 bytes of 0x01) for builtin secrets.
       SLUICE_MASTER_KEYS: `k1:${Buffer.alloc(32, 1).toString("base64")}`,
       SLUICE_LOG_FORMAT: "text",
+      // A value for the env secret provider check of SCN-UI-006.
+      SLUICE_SECRET_UI_CHECK: "ui-check-value",
     },
     stdio: ["ignore", out, out],
     detached: true,

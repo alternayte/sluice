@@ -28,8 +28,18 @@ export default async function globalSetup() {
     "-e", "POSTGRES_PASSWORD=sluice", "-e", "POSTGRES_USER=sluice", "-e", "POSTGRES_DB=sluice",
     "postgres:17-alpine",
   ]).toString().trim();
-  const mapped = execFileSync("docker", ["port", container, "5432/tcp"]).toString().trim().split("\n")[0]!;
-  const pgPort = mapped.split(":").pop();
+  // A busy Docker engine can report the mapped port a little later than the start.
+  let pgPort = "";
+  for (let i = 0; i < 60 && !/^\d+$/.test(pgPort); i++) {
+    try {
+      const mapped = execFileSync("docker", ["port", container, "5432/tcp"]).toString().trim().split("\n")[0] ?? "";
+      pgPort = mapped.split(":").pop() ?? "";
+    } catch {
+      pgPort = "";
+    }
+    if (!/^\d+$/.test(pgPort)) await sleep(500);
+  }
+  if (!/^\d+$/.test(pgPort)) throw new Error(`no mapped port for the Postgres container ${container}`);
   for (let i = 0; i < 120; i++) {
     try {
       execFileSync("docker", ["exec", container, "pg_isready", "-U", "sluice", "-h", "127.0.0.1"], { stdio: "ignore" });

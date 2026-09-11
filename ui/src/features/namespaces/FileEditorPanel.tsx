@@ -39,6 +39,9 @@ export function useSaveChanges(namespace: string) {
   };
 }
 
+/** fileContentKey is the query key of the head content of a file. */
+export const fileContentKey = (namespace: string, path: string) => ["namespace", namespace, "file", path];
+
 export function FileEditorPanel({
   namespace,
   path,
@@ -46,6 +49,10 @@ export function FileEditorPanel({
   canEdit,
   gitPush = false,
   onSelect,
+  draft,
+  onDraft,
+  isNew = false,
+  onDiscard,
 }: {
   namespace: string;
   path: string;
@@ -54,9 +61,16 @@ export function FileEditorPanel({
   /** gitPush makes the editor editable for a git namespace: changes go to a new branch (REQ-GIT-005). */
   gitPush?: boolean;
   onSelect: (path: string | undefined) => void;
+  /** draft is the staged content of the file. The parent keeps it, so that drafts of several files are saved together. */
+  draft?: string;
+  /** onDraft stages new content, or clears the draft with null. */
+  onDraft: (content: string | null) => void;
+  /** isNew marks a staged file that no version has yet. */
+  isNew?: boolean;
+  onDiscard?: () => void;
 }) {
   const qc = useQueryClient();
-  const contentKey = ["namespace", namespace, "file", path];
+  const contentKey = fileContentKey(namespace, path);
   const content = useQuery({
     queryKey: contentKey,
     queryFn: async () => {
@@ -65,13 +79,13 @@ export function FileEditorPanel({
       );
       return res.text();
     },
+    enabled: !isNew,
   });
-  const [draft, setDraft] = useState<string | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [dialog, setDialog] = useState<"save" | "rename" | "delete" | "run" | "push" | null>(null);
   const del = useSaveChanges(namespace);
   const me = useCurrentUser();
-  const canRun = can(me.role, "operator") && runnableFile(path);
+  const canRun = !isNew && can(me.role, "operator") && runnableFile(path);
   const validated = isValidatedPath(path);
 
   const validate = useCallback(
@@ -86,11 +100,9 @@ export function FileEditorPanel({
     [namespace, path],
   );
 
-  return (
-    <DataState query={content}>
-      {(saved) => {
+  const body = (saved: string) => {
         const value = draft ?? saved;
-        const dirty = draft !== null && draft !== saved;
+        const dirty = isNew || (draft !== undefined && draft !== saved);
         return (
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -116,14 +128,23 @@ export function FileEditorPanel({
                   )}
                   {canEdit && (
                     <>
-                      <Button size="sm" variant="ghost" onClick={() => setDialog("rename")}>
-                        <Pencil className="h-3.5 w-3.5" aria-hidden />
-                        Rename
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setDialog("delete")}>
-                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                        Delete
-                      </Button>
+                      {isNew ? (
+                        <Button size="sm" variant="ghost" onClick={onDiscard}>
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                          Discard
+                        </Button>
+                      ) : (
+                        <>
+                          <Button size="sm" variant="ghost" onClick={() => setDialog("rename")}>
+                            <Pencil className="h-3.5 w-3.5" aria-hidden />
+                            Rename
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setDialog("delete")}>
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                            Delete
+                          </Button>
+                        </>
+                      )}
                       <Button size="sm" disabled={!dirty} onClick={() => setDialog("save")}>
                         <Save className="h-3.5 w-3.5" aria-hidden />
                         Save
@@ -139,7 +160,7 @@ export function FileEditorPanel({
               path={path}
               label={`Content of ${path}`}
               readOnly={!canEdit && !gitPush}
-              onChange={setDraft}
+              onChange={(text) => onDraft(!isNew && text === saved ? null : text)}
               validate={validated ? validate : undefined}
               onIssues={setIssues}
             />
@@ -166,22 +187,23 @@ export function FileEditorPanel({
                 namespace={namespace}
                 path={path}
                 content={value}
+                isNew={isNew}
                 baseVersion={baseVersion}
                 onClose={() => setDialog(null)}
                 onSaved={() => {
                   qc.setQueryData(contentKey, value);
-                  setDraft(null);
+                  onDraft(null);
                   setDialog(null);
                 }}
                 onReload={() => {
-                  setDraft(null);
+                  onDraft(null);
                   setDialog(null);
                   invalidateNamespace(qc, namespace);
                 }}
               />
             )}
             {dialog === "push" && (
-              <PushDialog namespace={namespace} path={path} content={value} onClose={() => setDialog(null)} onPushed={() => setDraft(null)} />
+              <PushDialog namespace={namespace} path={path} content={value} onClose={() => setDialog(null)} onPushed={() => onDraft(null)} />
             )}
             {dialog === "run" && (
               <RunFileDialog namespace={namespace} path={path} onClose={() => setDialog(null)} />
@@ -222,15 +244,16 @@ export function FileEditorPanel({
             )}
           </div>
         );
-      }}
-    </DataState>
-  );
+  };
+
+  return isNew ? body("") : <DataState query={content}>{body}</DataState>;
 }
 
 function SaveDialog({
   namespace,
   path,
   content,
+  isNew,
   baseVersion,
   onClose,
   onSaved,
@@ -239,12 +262,13 @@ function SaveDialog({
   namespace: string;
   path: string;
   content: string;
+  isNew: boolean;
   baseVersion?: number;
   onClose: () => void;
   onSaved: () => void;
   onReload: () => void;
 }) {
-  const [message, setMessage] = useState(`Update ${path}`);
+  const [message, setMessage] = useState(`${isNew ? "Create" : "Update"} ${path}`);
   const save = useSaveChanges(namespace);
   const conflict = save.error instanceof ApiError && save.error.code === "version_conflict";
 

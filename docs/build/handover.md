@@ -19,7 +19,8 @@ This file records where the build stopped. `decisions.md` is the authoritative r
 
 ## Open work per slice
 
-- S3: SCN-NS-002 (UI gap: new files must be staged in the editor and saved together with a message, REQ-UI-007). SCN-NS-004 and the git part of SCN-NS-005 need S7. SCN-FLOW-006 needs `examples/elt` (S12).
+- S3: complete. SCN-NS-002 passes with staged files (DI-42). SCN-FLOW-006 passes with `examples/elt/namespace`.
+- Playwright global setup: it waits up to 30 s for the mapped Postgres port. A busy Docker engine (for example during `just build-images`) reported the port late, and the server then used port 5432. Do not edit `ui/` while `just build-images` runs: the image build copies the source, and a half-done edit breaks the UI stage.
 - S4: SCN-EXR-001 (kind detection, S9). SCN-RUN-007 passes.
 - S6: SCN-SEC-010 (after S11), SCN-SEC-012 (S9).
 - S8: complete. The docker e2e tests pass after `just build-images`.

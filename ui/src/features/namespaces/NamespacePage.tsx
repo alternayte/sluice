@@ -5,6 +5,7 @@ import { DataState } from "@/components/data-state";
 import { NamespaceTree } from "@/features/namespaces/NamespaceTree";
 import { SourceBadges } from "@/features/namespaces/namespace-source";
 import { VersionsPanel } from "@/features/namespaces/VersionsPanel";
+import { GitSourcePanel } from "@/features/namespaces/GitSourcePanel";
 import type { ReactNode } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs } from "@/components/ui/tabs";
@@ -44,6 +45,7 @@ export function NamespacePage({
         {(ns) => {
           const isGit = ns.source_type === "git" || ns.read_only === true;
           const canEdit = can(me.role, "editor") && ns.source_type === "managed" && !ns.read_only;
+          const canPush = can(me.role, "editor") && ns.source_type === "git";
           return (
             <>
               <SourceBadges ns={ns} />
@@ -53,9 +55,10 @@ export function NamespacePage({
                   className="flex items-center gap-2 rounded-[8px] border bg-panel p-3 text-sm text-muted-foreground"
                 >
                   <GitBranch className="h-4 w-4 shrink-0" aria-hidden />
-                  This namespace comes from git and is read-only.
+                  This namespace comes from git. Edits go to a new branch.
                 </p>
               )}
+              {ns.source_type === "git" && <GitSourcePanel namespace={namespace} />}
               <Tabs
                 label="Namespace sections"
                 tabs={tabs}
@@ -66,6 +69,7 @@ export function NamespacePage({
                 <NamespaceTree
                   namespace={namespace}
                   canEdit={canEdit}
+                  canPush={canPush}
                   selected={search.file}
                   onSelect={(file) => navigate({ search: (prev) => ({ ...prev, file }) })}
                 />

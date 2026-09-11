@@ -19,6 +19,7 @@ import { Route as FlowsIndexRouteImport } from './routes/flows/index'
 import { Route as NamespacesIndexRouteImport } from './routes/namespaces/index'
 import { Route as NamespacesNamespaceRouteImport } from './routes/namespaces/$namespace'
 import { Route as SettingsAuditRouteImport } from './routes/settings/audit'
+import { Route as SettingsGitRouteImport } from './routes/settings/git'
 import { Route as SettingsInstancesRouteImport } from './routes/settings/instances'
 import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
 import { Route as SettingsSecretProvidersRouteImport } from './routes/settings/secret-providers'
@@ -76,6 +77,11 @@ const SettingsAuditRoute = SettingsAuditRouteImport.update({
   path: '/settings/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsGitRoute = SettingsGitRouteImport.update({
+  id: '/settings/git',
+  path: '/settings/git',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsInstancesRoute = SettingsInstancesRouteImport.update({
   id: '/settings/instances',
   path: '/settings/instances',
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/namespaces/$namespace': typeof NamespacesNamespaceRoute
   '/settings/audit': typeof SettingsAuditRoute
+  '/settings/git': typeof SettingsGitRoute
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/secret-providers': typeof SettingsSecretProvidersRoute
@@ -133,6 +140,7 @@ export interface FileRoutesByTo {
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/namespaces/$namespace': typeof NamespacesNamespaceRoute
   '/settings/audit': typeof SettingsAuditRoute
+  '/settings/git': typeof SettingsGitRoute
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/secret-providers': typeof SettingsSecretProvidersRoute
@@ -152,6 +160,7 @@ export interface FileRoutesById {
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/namespaces/$namespace': typeof NamespacesNamespaceRoute
   '/settings/audit': typeof SettingsAuditRoute
+  '/settings/git': typeof SettingsGitRoute
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/secret-providers': typeof SettingsSecretProvidersRoute
@@ -172,6 +181,7 @@ export interface FileRouteTypes {
     | '/executions/$executionId'
     | '/namespaces/$namespace'
     | '/settings/audit'
+    | '/settings/git'
     | '/settings/instances'
     | '/settings/profile'
     | '/settings/secret-providers'
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/executions/$executionId'
     | '/namespaces/$namespace'
     | '/settings/audit'
+    | '/settings/git'
     | '/settings/instances'
     | '/settings/profile'
     | '/settings/secret-providers'
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | '/executions/$executionId'
     | '/namespaces/$namespace'
     | '/settings/audit'
+    | '/settings/git'
     | '/settings/instances'
     | '/settings/profile'
     | '/settings/secret-providers'
@@ -227,6 +239,7 @@ export interface RootRouteChildren {
   ExecutionsExecutionIdRoute: typeof ExecutionsExecutionIdRoute
   NamespacesNamespaceRoute: typeof NamespacesNamespaceRoute
   SettingsAuditRoute: typeof SettingsAuditRoute
+  SettingsGitRoute: typeof SettingsGitRoute
   SettingsInstancesRoute: typeof SettingsInstancesRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
   SettingsSecretProvidersRoute: typeof SettingsSecretProvidersRoute
@@ -310,6 +323,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/git': {
+      id: '/settings/git'
+      path: '/settings/git'
+      fullPath: '/settings/git'
+      preLoaderRoute: typeof SettingsGitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/instances': {
       id: '/settings/instances'
       path: '/settings/instances'
@@ -363,6 +383,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExecutionsExecutionIdRoute: ExecutionsExecutionIdRoute,
   NamespacesNamespaceRoute: NamespacesNamespaceRoute,
   SettingsAuditRoute: SettingsAuditRoute,
+  SettingsGitRoute: SettingsGitRoute,
   SettingsInstancesRoute: SettingsInstancesRoute,
   SettingsProfileRoute: SettingsProfileRoute,
   SettingsSecretProvidersRoute: SettingsSecretProvidersRoute,

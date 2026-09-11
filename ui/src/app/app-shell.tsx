@@ -23,6 +23,7 @@ export const settingsItems: NavItem[] = [
   { to: "/settings/profile", label: "Profile", min: "viewer" },
   { to: "/settings/tokens", label: "API tokens", min: "viewer" },
   { to: "/settings/users", label: "Users", min: "admin" },
+  { to: "/settings/git", label: "Git sources", min: "admin" },
   { to: "/settings/secret-providers", label: "Secret providers", min: "admin" },
   { to: "/settings/instances", label: "Instances", min: "admin" },
   { to: "/settings/audit", label: "Audit log", min: "admin" },

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Play, Save, Trash2 } from "lucide-react";
+import { GitBranch, Pencil, Play, Save, Trash2 } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
-import { saveChangesMutation } from "@/api/@tanstack/react-query.gen";
+import { pushNamespaceBranchMutation, saveChangesMutation } from "@/api/@tanstack/react-query.gen";
 import { validateFile } from "@/api/sdk.gen";
 import type { SaveChangesRequest } from "@/api/types.gen";
 import { ApiError, rawFetch } from "@/api-client";
@@ -44,12 +44,15 @@ export function FileEditorPanel({
   path,
   baseVersion,
   canEdit,
+  gitPush = false,
   onSelect,
 }: {
   namespace: string;
   path: string;
   baseVersion?: number;
   canEdit: boolean;
+  /** gitPush makes the editor editable for a git namespace: changes go to a new branch (REQ-GIT-005). */
+  gitPush?: boolean;
   onSelect: (path: string | undefined) => void;
 }) {
   const qc = useQueryClient();
@@ -65,7 +68,7 @@ export function FileEditorPanel({
   });
   const [draft, setDraft] = useState<string | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
-  const [dialog, setDialog] = useState<"save" | "rename" | "delete" | "run" | null>(null);
+  const [dialog, setDialog] = useState<"save" | "rename" | "delete" | "run" | "push" | null>(null);
   const del = useSaveChanges(namespace);
   const me = useCurrentUser();
   const canRun = can(me.role, "operator") && runnableFile(path);
@@ -97,12 +100,18 @@ export function FileEditorPanel({
                 </h2>
                 {dirty && <Badge tone="warning">Unsaved changes</Badge>}
               </div>
-              {(canEdit || canRun) && (
+              {(canEdit || canRun || gitPush) && (
                 <div className="flex flex-wrap gap-2">
                   {canRun && (
                     <Button size="sm" variant="secondary" onClick={() => setDialog("run")}>
                       <Play className="h-3.5 w-3.5" aria-hidden />
                       Run
+                    </Button>
+                  )}
+                  {gitPush && (
+                    <Button size="sm" disabled={!dirty} onClick={() => setDialog("push")}>
+                      <GitBranch className="h-3.5 w-3.5" aria-hidden />
+                      Push to branch
                     </Button>
                   )}
                   {canEdit && (
@@ -129,7 +138,7 @@ export function FileEditorPanel({
               value={value}
               path={path}
               label={`Content of ${path}`}
-              readOnly={!canEdit}
+              readOnly={!canEdit && !gitPush}
               onChange={setDraft}
               validate={validated ? validate : undefined}
               onIssues={setIssues}
@@ -170,6 +179,9 @@ export function FileEditorPanel({
                   invalidateNamespace(qc, namespace);
                 }}
               />
+            )}
+            {dialog === "push" && (
+              <PushDialog namespace={namespace} path={path} content={value} onClose={() => setDialog(null)} onPushed={() => setDraft(null)} />
             )}
             {dialog === "run" && (
               <RunFileDialog namespace={namespace} path={path} onClose={() => setDialog(null)} />
@@ -266,6 +278,61 @@ function SaveDialog({
           </Button>
         </div>
       </form>
+    </Dialog>
+  );
+}
+
+/** PushDialog commits the edited file to a new branch of the git source (REQ-GIT-005). */
+function PushDialog({
+  namespace,
+  path,
+  content,
+  onClose,
+  onPushed,
+}: {
+  namespace: string;
+  path: string;
+  content: string;
+  onClose: () => void;
+  onPushed: () => void;
+}) {
+  const [message, setMessage] = useState(`Update ${path}`);
+  const push = useMutation({ ...pushNamespaceBranchMutation(), onSuccess: onPushed });
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    push.mutate({ path: { namespace }, body: { message: message.trim(), changes: [{ op: "put", path, content }] } });
+  };
+  return (
+    <Dialog open onClose={onClose} title="Push to branch">
+      {push.data ? (
+        <div className="flex flex-col gap-4">
+          <p role="status" className="text-sm">
+            Pushed to branch <span className="font-mono">{push.data.branch}</span>. The namespace changes when the branch is merged
+            and synced.
+          </p>
+          <div className="flex justify-end">
+            <Button onClick={onClose}>Done</Button>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          <p className="text-sm text-muted-foreground">
+            The change goes to a new branch from the last synced commit. The tracked branch does not change.
+          </p>
+          <Field id="push-message" label="Commit message">
+            <Input value={message} onChange={(e) => setMessage(e.target.value)} required maxLength={2000} autoFocus />
+          </Field>
+          {push.isError && <FormError>{errorMessage(push.error)}</FormError>}
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={push.isPending || message.trim() === ""}>
+              Push
+            </Button>
+          </div>
+        </form>
+      )}
     </Dialog>
   );
 }

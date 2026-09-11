@@ -15,11 +15,14 @@ import { cn, formatBytes } from "@/lib/utils";
 export function NamespaceTree({
   namespace,
   canEdit,
+  canPush = false,
   selected,
   onSelect,
 }: {
   namespace: string;
   canEdit: boolean;
+  /** canPush lets an editor of a git namespace push edits to a new branch. */
+  canPush?: boolean;
   selected?: string;
   onSelect: (path: string | undefined) => void;
 }) {
@@ -117,6 +120,7 @@ export function NamespaceTree({
                 path={selected}
                 baseVersion={list.version ?? undefined}
                 canEdit={canEdit}
+                gitPush={canPush}
                 onSelect={onSelect}
               />
             ) : (

@@ -2175,7 +2175,10 @@ export type DeleteNamespaceSecretResponse =
 
 export type PutNamespaceSecretData = {
   body: SecretPutWritable;
-  path?: never;
+  path: {
+    namespace: string;
+    key: string;
+  };
   query?: never;
   url: "/api/v1/namespaces/{namespace}/secrets/{key}";
 };
@@ -2319,7 +2322,10 @@ export type DeleteNamespaceVariableResponse =
 
 export type PutNamespaceVariableData = {
   body: VariablePut;
-  path?: never;
+  path: {
+    namespace: string;
+    key: string;
+  };
   query?: never;
   url: "/api/v1/namespaces/{namespace}/variables/{key}";
 };
@@ -2515,7 +2521,9 @@ export type DeleteSecretProviderResponse =
 
 export type UpdateSecretProviderData = {
   body: UpdateSecretProviderRequest;
-  path?: never;
+  path: {
+    name: string;
+  };
   query?: never;
   url: "/api/v1/secret-providers/{name}";
 };
@@ -2542,7 +2550,9 @@ export type UpdateSecretProviderResponse =
 
 export type CheckSecretProviderData = {
   body: CheckSecretProviderRequest;
-  path?: never;
+  path: {
+    name: string;
+  };
   query?: never;
   url: "/api/v1/secret-providers/{name}/check";
 };
@@ -2625,7 +2635,9 @@ export type DeleteGlobalSecretResponse =
 
 export type PutGlobalSecretData = {
   body: SecretPutWritable;
-  path?: never;
+  path: {
+    key: string;
+  };
   query?: never;
   url: "/api/v1/secrets/{key}";
 };
@@ -2932,7 +2944,9 @@ export type DeleteGlobalVariableResponse =
 
 export type PutGlobalVariableData = {
   body: VariablePut;
-  path?: never;
+  path: {
+    key: string;
+  };
   query?: never;
   url: "/api/v1/variables/{key}";
 };

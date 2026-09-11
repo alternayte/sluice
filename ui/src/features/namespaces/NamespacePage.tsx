@@ -5,27 +5,33 @@ import { DataState } from "@/components/data-state";
 import { NamespaceTree } from "@/features/namespaces/NamespaceTree";
 import { SourceBadges } from "@/features/namespaces/namespace-source";
 import { VersionsPanel } from "@/features/namespaces/VersionsPanel";
+import type { ReactNode } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs } from "@/components/ui/tabs";
 import { useCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/roles";
 
-export type Tab = "files" | "versions";
-export type NamespaceSearch = { tab?: "versions"; file?: string };
+export type Tab = "files" | "versions" | "variables" | "secrets";
+export type NamespaceSearch = { tab?: Exclude<Tab, "files">; file?: string };
 
 const tabs: { value: Tab; label: string }[] = [
   { value: "files", label: "Files" },
   { value: "versions", label: "Versions" },
+  { value: "variables", label: "Variables" },
+  { value: "secrets", label: "Secrets" },
 ];
 
 export function NamespacePage({
   namespace,
   search,
   navigate,
+  scopePanels,
 }: {
   namespace: string;
   search: NamespaceSearch;
   navigate: (opts: { search: (prev: NamespaceSearch) => NamespaceSearch }) => void;
+  /** scopePanels are the variables and secrets views of the namespace. The route passes them from their features. */
+  scopePanels: { variables: ReactNode; secrets: ReactNode };
 }) {
   const me = useCurrentUser();
   const info = useQuery(getNamespaceOptions({ path: { namespace } }));
@@ -54,20 +60,19 @@ export function NamespacePage({
                 label="Namespace sections"
                 tabs={tabs}
                 value={tab}
-                onChange={(t) =>
-                  navigate({ search: (prev) => ({ ...prev, tab: t === "versions" ? "versions" : undefined }) })
-                }
+                onChange={(t) => navigate({ search: (prev) => ({ ...prev, tab: t === "files" ? undefined : t }) })}
               />
-              {tab === "files" ? (
+              {tab === "files" && (
                 <NamespaceTree
                   namespace={namespace}
                   canEdit={canEdit}
                   selected={search.file}
                   onSelect={(file) => navigate({ search: (prev) => ({ ...prev, file }) })}
                 />
-              ) : (
-                <VersionsPanel namespace={namespace} canEdit={canEdit} head={ns.head_version ?? undefined} />
               )}
+              {tab === "versions" && <VersionsPanel namespace={namespace} canEdit={canEdit} head={ns.head_version ?? undefined} />}
+              {tab === "variables" && scopePanels.variables}
+              {tab === "secrets" && scopePanels.secrets}
             </>
           );
         }}

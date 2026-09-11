@@ -99,3 +99,21 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/*
+ * CodeMirror draws the lint marker and the error underline as data: SVG images. The CSP
+ * default-src 'self' of SI-12 blocks them (DI-32), so these rules draw both with CSS. Three
+ * classes beat the two-class rules of the CodeMirror lint theme.
+ */
+.cm-editor .cm-gutter-lint .cm-lint-marker-error {
+  content: none;
+  background-image: none;
+  background-color: var(--state-failed);
+  border-radius: 9999px;
+}
+
+.cm-editor .cm-content .cm-lintRange-error {
+  background-image: none;
+  text-decoration: underline wavy var(--state-failed);
+  text-decoration-skip-ink: none;
+}

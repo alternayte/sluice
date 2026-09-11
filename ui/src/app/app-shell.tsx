@@ -15,12 +15,15 @@ export const navItems: NavItem[] = [
   { to: "/executions", label: "Executions", min: "viewer" },
   { to: "/flows", label: "Flows", min: "viewer" },
   { to: "/namespaces", label: "Namespaces", min: "viewer" },
+  { to: "/secrets", label: "Secrets", min: "viewer" },
+  { to: "/variables", label: "Variables", min: "viewer" },
 ];
 
 export const settingsItems: NavItem[] = [
   { to: "/settings/profile", label: "Profile", min: "viewer" },
   { to: "/settings/tokens", label: "API tokens", min: "viewer" },
   { to: "/settings/users", label: "Users", min: "admin" },
+  { to: "/settings/secret-providers", label: "Secret providers", min: "admin" },
   { to: "/settings/instances", label: "Instances", min: "admin" },
   { to: "/settings/audit", label: "Audit log", min: "admin" },
 ];

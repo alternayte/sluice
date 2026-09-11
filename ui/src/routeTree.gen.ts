@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as SecretsRouteImport } from './routes/secrets'
+import { Route as VariablesRouteImport } from './routes/variables'
 import { Route as ExecutionsIndexRouteImport } from './routes/executions/index'
 import { Route as ExecutionsExecutionIdRouteImport } from './routes/executions/$executionId'
 import { Route as FlowsIndexRouteImport } from './routes/flows/index'
@@ -19,6 +21,7 @@ import { Route as NamespacesNamespaceRouteImport } from './routes/namespaces/$na
 import { Route as SettingsAuditRouteImport } from './routes/settings/audit'
 import { Route as SettingsInstancesRouteImport } from './routes/settings/instances'
 import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
+import { Route as SettingsSecretProvidersRouteImport } from './routes/settings/secret-providers'
 import { Route as SettingsTokensRouteImport } from './routes/settings/tokens'
 import { Route as SettingsUsersRouteImport } from './routes/settings/users'
 import { Route as FlowsNamespaceFlowIdRouteImport } from './routes/flows/$namespace/$flowId'
@@ -31,6 +34,16 @@ const IndexRoute = IndexRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SecretsRoute = SecretsRouteImport.update({
+  id: '/secrets',
+  path: '/secrets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VariablesRoute = VariablesRouteImport.update({
+  id: '/variables',
+  path: '/variables',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExecutionsIndexRoute = ExecutionsIndexRouteImport.update({
@@ -73,6 +86,11 @@ const SettingsProfileRoute = SettingsProfileRouteImport.update({
   path: '/settings/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsSecretProvidersRoute = SettingsSecretProvidersRouteImport.update({
+  id: '/settings/secret-providers',
+  path: '/settings/secret-providers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsTokensRoute = SettingsTokensRouteImport.update({
   id: '/settings/tokens',
   path: '/settings/tokens',
@@ -92,11 +110,14 @@ const FlowsNamespaceFlowIdRoute = FlowsNamespaceFlowIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/secrets': typeof SecretsRoute
+  '/variables': typeof VariablesRoute
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/namespaces/$namespace': typeof NamespacesNamespaceRoute
   '/settings/audit': typeof SettingsAuditRoute
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
+  '/settings/secret-providers': typeof SettingsSecretProvidersRoute
   '/settings/tokens': typeof SettingsTokensRoute
   '/settings/users': typeof SettingsUsersRoute
   '/executions/': typeof ExecutionsIndexRoute
@@ -107,11 +128,14 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/secrets': typeof SecretsRoute
+  '/variables': typeof VariablesRoute
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/namespaces/$namespace': typeof NamespacesNamespaceRoute
   '/settings/audit': typeof SettingsAuditRoute
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
+  '/settings/secret-providers': typeof SettingsSecretProvidersRoute
   '/settings/tokens': typeof SettingsTokensRoute
   '/settings/users': typeof SettingsUsersRoute
   '/executions': typeof ExecutionsIndexRoute
@@ -123,11 +147,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/secrets': typeof SecretsRoute
+  '/variables': typeof VariablesRoute
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/namespaces/$namespace': typeof NamespacesNamespaceRoute
   '/settings/audit': typeof SettingsAuditRoute
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
+  '/settings/secret-providers': typeof SettingsSecretProvidersRoute
   '/settings/tokens': typeof SettingsTokensRoute
   '/settings/users': typeof SettingsUsersRoute
   '/executions/': typeof ExecutionsIndexRoute
@@ -140,11 +167,14 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/secrets'
+    | '/variables'
     | '/executions/$executionId'
     | '/namespaces/$namespace'
     | '/settings/audit'
     | '/settings/instances'
     | '/settings/profile'
+    | '/settings/secret-providers'
     | '/settings/tokens'
     | '/settings/users'
     | '/executions/'
@@ -155,11 +185,14 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/secrets'
+    | '/variables'
     | '/executions/$executionId'
     | '/namespaces/$namespace'
     | '/settings/audit'
     | '/settings/instances'
     | '/settings/profile'
+    | '/settings/secret-providers'
     | '/settings/tokens'
     | '/settings/users'
     | '/executions'
@@ -170,11 +203,14 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/secrets'
+    | '/variables'
     | '/executions/$executionId'
     | '/namespaces/$namespace'
     | '/settings/audit'
     | '/settings/instances'
     | '/settings/profile'
+    | '/settings/secret-providers'
     | '/settings/tokens'
     | '/settings/users'
     | '/executions/'
@@ -186,11 +222,14 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  SecretsRoute: typeof SecretsRoute
+  VariablesRoute: typeof VariablesRoute
   ExecutionsExecutionIdRoute: typeof ExecutionsExecutionIdRoute
   NamespacesNamespaceRoute: typeof NamespacesNamespaceRoute
   SettingsAuditRoute: typeof SettingsAuditRoute
   SettingsInstancesRoute: typeof SettingsInstancesRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
+  SettingsSecretProvidersRoute: typeof SettingsSecretProvidersRoute
   SettingsTokensRoute: typeof SettingsTokensRoute
   SettingsUsersRoute: typeof SettingsUsersRoute
   ExecutionsIndexRoute: typeof ExecutionsIndexRoute
@@ -213,6 +252,20 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/secrets': {
+      id: '/secrets'
+      path: '/secrets'
+      fullPath: '/secrets'
+      preLoaderRoute: typeof SecretsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/variables': {
+      id: '/variables'
+      path: '/variables'
+      fullPath: '/variables'
+      preLoaderRoute: typeof VariablesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/executions/': {
@@ -271,6 +324,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/secret-providers': {
+      id: '/settings/secret-providers'
+      path: '/settings/secret-providers'
+      fullPath: '/settings/secret-providers'
+      preLoaderRoute: typeof SettingsSecretProvidersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/tokens': {
       id: '/settings/tokens'
       path: '/settings/tokens'
@@ -298,11 +358,14 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  SecretsRoute: SecretsRoute,
+  VariablesRoute: VariablesRoute,
   ExecutionsExecutionIdRoute: ExecutionsExecutionIdRoute,
   NamespacesNamespaceRoute: NamespacesNamespaceRoute,
   SettingsAuditRoute: SettingsAuditRoute,
   SettingsInstancesRoute: SettingsInstancesRoute,
   SettingsProfileRoute: SettingsProfileRoute,
+  SettingsSecretProvidersRoute: SettingsSecretProvidersRoute,
   SettingsTokensRoute: SettingsTokensRoute,
   SettingsUsersRoute: SettingsUsersRoute,
   ExecutionsIndexRoute: ExecutionsIndexRoute,

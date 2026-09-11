@@ -56,6 +56,8 @@ export default async function globalSetup() {
       SLUICE_BOOTSTRAP_ADMIN_EMAIL: adminEmail,
       SLUICE_BOOTSTRAP_ADMIN_PASSWORD: adminPassword,
       SLUICE_EXECUTORS: "process",
+      // A fixed test master key (32 bytes of 0x01) for builtin secrets.
+      SLUICE_MASTER_KEYS: `k1:${Buffer.alloc(32, 1).toString("base64")}`,
       SLUICE_LOG_FORMAT: "text",
     },
     stdio: ["ignore", out, out],

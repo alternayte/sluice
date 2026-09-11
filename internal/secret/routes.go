@@ -121,7 +121,7 @@ func Routes(api huma.API, s *Service) {
 		func(ctx context.Context, _ *struct{}) (*struct{ Body SecretList }, error) { return list(ctx, "") })
 	huma.Register(api, httpx.Op("putGlobalSecret", http.MethodPut, "/api/v1/secrets/{key}", admin),
 		func(ctx context.Context, in *struct {
-			globalKeyIn
+			Key  string `path:"key" pattern:"^[A-Za-z_][A-Za-z0-9_]{0,127}$"`
 			Body SecretPut
 		}) (*secretOut, error) {
 			return put(ctx, "", in.Key, in.Body)
@@ -140,8 +140,9 @@ func Routes(api huma.API, s *Service) {
 		})
 	huma.Register(api, httpx.Op("putNamespaceSecret", http.MethodPut, "/api/v1/namespaces/{namespace}/secrets/{key}", editor),
 		func(ctx context.Context, in *struct {
-			nsKeyIn
-			Body SecretPut
+			Namespace string `path:"namespace" maxLength:"128" pattern:"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$"`
+			Key       string `path:"key" pattern:"^[A-Za-z_][A-Za-z0-9_]{0,127}$"`
+			Body      SecretPut
 		}) (*secretOut, error) {
 			return put(ctx, in.Namespace, in.Key, in.Body)
 		})
@@ -185,7 +186,7 @@ func Routes(api huma.API, s *Service) {
 	})
 	huma.Register(api, httpx.Op("updateSecretProvider", http.MethodPut, "/api/v1/secret-providers/{name}", admin),
 		func(ctx context.Context, in *struct {
-			providerIn
+			Name string `path:"name" pattern:"^[a-z0-9][a-z0-9_-]{0,62}$"`
 			Body struct {
 				Config map[string]any `json:"config"`
 			}
@@ -201,7 +202,7 @@ func Routes(api huma.API, s *Service) {
 	huma.Register(api, pdel, func(ctx context.Context, in *providerIn) (*noBody, error) { return nil, s.DeleteProvider(ctx, in.Name) })
 	huma.Register(api, httpx.Op("checkSecretProvider", http.MethodPost, "/api/v1/secret-providers/{name}/check", admin),
 		func(ctx context.Context, in *struct {
-			providerIn
+			Name string `path:"name" pattern:"^[a-z0-9][a-z0-9_-]{0,62}$"`
 			Body struct {
 				Ref string `json:"ref" minLength:"1" maxLength:"512"`
 			}

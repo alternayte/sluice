@@ -4,19 +4,19 @@ This file records where the build stopped. `decisions.md` is the authoritative r
 
 ## State at the last commit
 
-- Status: BLOCKED on B-1 in `decisions.md`. H-1 answered it with option A. `go clean -cache` ran, and the disk has 54 GiB free. The Docker daemon still does not answer `/_ping`, so the human must restart Docker Desktop. After the restart, run `docker builder prune -f` (H-1) and continue with the S6 tests below.
-- Slice S6 is in progress. Done and committed: `internal/secret` (providers builtin, env, vault, azure_key_vault, kubernetes; AES-256-GCM keyring; secrets per scope; resolution; check; cache; rekey; `master_keys` readiness check), `internal/variable`, the `sluice secrets rekey` command, the secret resolver of the engine, and `TemplateError.Unwrap` (a `secret()` failure keeps its reason). Verified: unit tests, lint, SCN-AUTH-006, SCN-API-001, and the builtin, env and vault parts of SCN-SEC-001. Written but not run yet (they need Docker): the azure_key_vault part of SCN-SEC-001, `tests/e2e/secrets_test.go` (SCN-SEC-003, 004, 005, 006, 008, 009, 011, SCN-RUN-005) and `tests/e2e/templates_test.go` (SCN-EXE-012). Next S6 steps after these tests: the UI pages for secrets, variables and secret providers (REQ-UI-008), then SCN-SEC-002, SCN-SEC-007, SCN-UI-010 and SCN-AUTH-010 in Playwright. SCN-SEC-010 needs S8 (docker) and S11 (AI) as well.
+- Status: in progress, slice S6. B-1 is resolved: H-1 chose option A, `go clean -cache` and `docker builder prune -f` ran, and Docker Desktop restarted on the human's request. The disk had 61 GiB free afterwards. Keep an eye on free disk space: the Go build cache grows fast with `-race` builds.
+- Slice S6 is complete except SCN-SEC-010 (it also needs the S8 docker executor and the S11 AI triage) and SCN-SEC-012 (kind, S9). Passing: SCN-SEC-001 to SCN-SEC-009, SCN-SEC-011, SCN-RUN-005, SCN-EXE-012, SCN-UI-010, SCN-AUTH-010, SCN-CORE-001. UI: `/secrets`, `/variables`, `/settings/secret-providers`, and the Variables and Secrets tabs of a namespace (the route passes the panels to `NamespacePage`, because a feature must not import another feature).
+- Two defects fixed in S6: huma drops path parameters of unexported embedded input structs, so put and provider operations now declare their path fields directly; the CSP of SI-12 blocked the CodeMirror `<style>` elements and `data:` images and fonts (DI-32: constructed style sheet, `assetsInlineLimit: 0`, CSS lint markers).
 - Slices S0 to S5 and slice R are complete, except the open items below.
 - Session of 2026-09-11: SCN-CORE-007 fixed (the runner forwards SIGTERM and flushes for at most 5 s). New tests: SCN-CORE-004, SCN-CORE-008, SCN-EXE-010, SCN-EXE-014, SCN-RUN-006, SCN-NFR-002. Slice S5 added `internal/trigger` (scheduler, webhooks, flow triggers, upcoming schedules) with SCN-TRG-002 to SCN-TRG-007, SCN-FLOW-003, SCN-FLOW-005 and SCN-DEP-004.
 
 ## Open work per slice
 
-- S0: SCN-CORE-001 fails until the `secrets rekey` command exists (S6).
-- S1: SCN-AUTH-010 (the audit page shows a secret update, needs S6).
 - S3: SCN-NS-002 (UI gap: new files must be staged in the editor and saved together with a message, REQ-UI-007). SCN-NS-004 and the git part of SCN-NS-005 need S7. SCN-FLOW-006 needs `examples/elt` (S12).
-- S4: SCN-EXE-012 (vars precedence needs the S6 variables API), SCN-RUN-005 (masking of secrets, S6), SCN-RUN-007 (images, S8), SCN-EXR-001 (Docker and kind detection, S8 and S9).
-- Later slices: S6 to S12 in SDD §11 order, then SDD §13.
-- Playwright scenarios still open: SCN-UI-001, SCN-UI-004, SCN-UI-006, SCN-UI-007, SCN-UI-009 (S10), SCN-UI-010 (S6 secrets page).
+- S4: SCN-RUN-007 (images, S8), SCN-EXR-001 (Docker and kind detection, S8 and S9).
+- S6: SCN-SEC-010 (after S8 and S11), SCN-SEC-012 (S9).
+- Later slices: S7 to S12 in SDD §11 order, then SDD §13.
+- Playwright scenarios still open: SCN-UI-001, SCN-UI-004, SCN-UI-006, SCN-UI-007, SCN-UI-009 (S10).
 
 ## Laptop flow
 

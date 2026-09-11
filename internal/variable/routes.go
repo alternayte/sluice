@@ -78,7 +78,7 @@ func Routes(api huma.API, s *Service) {
 		func(ctx context.Context, _ *struct{}) (*struct{ Body VariableList }, error) { return list(ctx, "") })
 	huma.Register(api, httpx.Op("putGlobalVariable", http.MethodPut, "/api/v1/variables/{key}", admin),
 		func(ctx context.Context, in *struct {
-			globalKeyIn
+			Key  string `path:"key" pattern:"^[A-Za-z_][A-Za-z0-9_]{0,127}$"`
 			Body VariablePut
 		}) (*struct{ Body VariableInfo }, error) {
 			return put(ctx, "", in.Key, in.Body.Value)
@@ -93,8 +93,9 @@ func Routes(api huma.API, s *Service) {
 		})
 	huma.Register(api, httpx.Op("putNamespaceVariable", http.MethodPut, "/api/v1/namespaces/{namespace}/variables/{key}", editor),
 		func(ctx context.Context, in *struct {
-			nsKeyIn
-			Body VariablePut
+			Namespace string `path:"namespace" maxLength:"128" pattern:"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$"`
+			Key       string `path:"key" pattern:"^[A-Za-z_][A-Za-z0-9_]{0,127}$"`
+			Body      VariablePut
 		}) (*struct{ Body VariableInfo }, error) {
 			return put(ctx, in.Namespace, in.Key, in.Body.Value)
 		})

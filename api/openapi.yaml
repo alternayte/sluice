@@ -3144,6 +3144,20 @@ paths:
           description: Error
     put:
       operationId: putNamespaceSecret
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
       requestBody:
         content:
           application/json:
@@ -3275,6 +3289,20 @@ paths:
           description: Error
     put:
       operationId: putNamespaceVariable
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
       requestBody:
         content:
           application/json:
@@ -3433,6 +3461,13 @@ paths:
           description: Error
     put:
       operationId: updateSecretProvider
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            pattern: ^[a-z0-9][a-z0-9_-]{0,62}$
+            type: string
       requestBody:
         content:
           application/json:
@@ -3455,6 +3490,13 @@ paths:
   /api/v1/secret-providers/{name}/check:
     post:
       operationId: checkSecretProvider
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            pattern: ^[a-z0-9][a-z0-9_-]{0,62}$
+            type: string
       requestBody:
         content:
           application/json:
@@ -3511,6 +3553,13 @@ paths:
           description: Error
     put:
       operationId: putGlobalSecret
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
       requestBody:
         content:
           application/json:
@@ -3771,6 +3820,13 @@ paths:
           description: Error
     put:
       operationId: putGlobalVariable
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
       requestBody:
         content:
           application/json:

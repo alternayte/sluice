@@ -407,20 +407,8 @@ func (s *Service) commit(ctx context.Context, ns namespacedb.GetNamespaceRow, up
 		if total := next.Total(); total > s.MaxBundleBytes {
 			return errTooLarge("snapshot_too_large", "the snapshot has %d bytes, the limit is %d", total, s.MaxBundleBytes)
 		}
-		hashes := map[string]bool{}
-		for _, e := range next {
-			hashes[e.Hash] = true
-		}
-		list := make([]string, 0, len(hashes))
-		for h := range hashes {
-			list = append(list, h)
-		}
-		locks, err := q.ShareLockFileObjects(ctx, list)
-		if err != nil {
+		if err := s.lockFileObjects(ctx, q, next); err != nil {
 			return err
-		}
-		if len(locks) != len(list) {
-			return fmt.Errorf("file objects are missing, retry the save")
 		}
 		version, err := q.NextSnapshotVersion(ctx, ns.ID)
 		if err != nil {

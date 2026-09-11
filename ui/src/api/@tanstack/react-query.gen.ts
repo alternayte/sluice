@@ -15,10 +15,12 @@ import {
   checkGlobalSecret,
   checkNamespaceSecret,
   checkSecretProvider,
+  createGitSource,
   createNamespace,
   createSecretProvider,
   createToken,
   createUser,
+  deleteGitSource,
   deleteGlobalSecret,
   deleteGlobalVariable,
   deleteNamespace,
@@ -36,8 +38,11 @@ import {
   getFlow,
   getFlowRevision,
   getFlowSchema,
+  getGitSource,
   getMe,
   getNamespace,
+  getNamespaceGit,
+  gitWebhook,
   listAuditEvents,
   listExecutionArtifacts,
   listExecutionMetrics,
@@ -45,6 +50,8 @@ import {
   listFiles,
   listFlowRevisions,
   listFlows,
+  listGitSources,
+  listGitSyncRuns,
   listGlobalSecrets,
   listGlobalVariables,
   listInstances,
@@ -59,6 +66,7 @@ import {
   login,
   logout,
   type Options,
+  pushNamespaceBranch,
   putGlobalSecret,
   putGlobalVariable,
   putNamespaceSecret,
@@ -79,8 +87,10 @@ import {
   runnerPostLogs,
   runnerPutArtifact,
   saveChanges,
+  syncGitSource,
   triggerFlow,
   updateFlow,
+  updateGitSource,
   updateMe,
   updateSecretProvider,
   updateUser,
@@ -103,6 +113,9 @@ import type {
   CheckSecretProviderData,
   CheckSecretProviderError,
   CheckSecretProviderResponse,
+  CreateGitSourceData,
+  CreateGitSourceError,
+  CreateGitSourceResponse,
   CreateNamespaceData,
   CreateNamespaceError,
   CreateNamespaceResponse,
@@ -115,6 +128,9 @@ import type {
   CreateUserData,
   CreateUserError,
   CreateUserResponse,
+  DeleteGitSourceData,
+  DeleteGitSourceError,
+  DeleteGitSourceResponse,
   DeleteGlobalSecretData,
   DeleteGlobalSecretError,
   DeleteGlobalSecretResponse,
@@ -159,12 +175,19 @@ import type {
   GetFlowRevisionResponse,
   GetFlowSchemaData,
   GetFlowSchemaError,
+  GetGitSourceData,
+  GetGitSourceError,
+  GetGitSourceResponse,
   GetMeData,
   GetMeError,
   GetMeResponse,
   GetNamespaceData,
   GetNamespaceError,
+  GetNamespaceGitData,
+  GetNamespaceGitError,
+  GetNamespaceGitResponse,
   GetNamespaceResponse,
+  GitWebhookData,
   ListAuditEventsData,
   ListAuditEventsError,
   ListAuditEventsResponse,
@@ -186,6 +209,12 @@ import type {
   ListFlowsData,
   ListFlowsError,
   ListFlowsResponse,
+  ListGitSourcesData,
+  ListGitSourcesError,
+  ListGitSourcesResponse,
+  ListGitSyncRunsData,
+  ListGitSyncRunsError,
+  ListGitSyncRunsResponse,
   ListGlobalSecretsData,
   ListGlobalSecretsError,
   ListGlobalSecretsResponse,
@@ -225,6 +254,9 @@ import type {
   LogoutData,
   LogoutError,
   LogoutResponse,
+  PushNamespaceBranchData,
+  PushNamespaceBranchError,
+  PushNamespaceBranchResponse,
   PutGlobalSecretData,
   PutGlobalSecretError,
   PutGlobalSecretResponse,
@@ -283,12 +315,17 @@ import type {
   SaveChangesData,
   SaveChangesError,
   SaveChangesResponse,
+  SyncGitSourceData,
+  SyncGitSourceError,
   TriggerFlowData,
   TriggerFlowError,
   TriggerFlowResponse,
   UpdateFlowData,
   UpdateFlowError,
   UpdateFlowResponse,
+  UpdateGitSourceData,
+  UpdateGitSourceError,
+  UpdateGitSourceResponse,
   UpdateMeData,
   UpdateMeError,
   UpdateMeResponse,
@@ -1326,6 +1363,169 @@ export const rotateWebhookKeyMutation = (
   return mutationOptions;
 };
 
+export const listGitSourcesQueryKey = (options?: Options<ListGitSourcesData>) =>
+  createQueryKey("listGitSources", options);
+
+export const listGitSourcesOptions = (options?: Options<ListGitSourcesData>) =>
+  queryOptions<
+    ListGitSourcesResponse,
+    ListGitSourcesError,
+    ListGitSourcesResponse,
+    ReturnType<typeof listGitSourcesQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listGitSources({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listGitSourcesQueryKey(options),
+  });
+
+export const createGitSourceMutation = (
+  options?: Partial<Options<CreateGitSourceData>>,
+): UseMutationOptions<
+  CreateGitSourceResponse,
+  CreateGitSourceError,
+  Options<CreateGitSourceData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateGitSourceResponse,
+    CreateGitSourceError,
+    Options<CreateGitSourceData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createGitSource({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const deleteGitSourceMutation = (
+  options?: Partial<Options<DeleteGitSourceData>>,
+): UseMutationOptions<
+  DeleteGitSourceResponse,
+  DeleteGitSourceError,
+  Options<DeleteGitSourceData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteGitSourceResponse,
+    DeleteGitSourceError,
+    Options<DeleteGitSourceData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteGitSource({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getGitSourceQueryKey = (options: Options<GetGitSourceData>) =>
+  createQueryKey("getGitSource", options);
+
+export const getGitSourceOptions = (options: Options<GetGitSourceData>) =>
+  queryOptions<
+    GetGitSourceResponse,
+    GetGitSourceError,
+    GetGitSourceResponse,
+    ReturnType<typeof getGitSourceQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getGitSource({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getGitSourceQueryKey(options),
+  });
+
+export const updateGitSourceMutation = (
+  options?: Partial<Options<UpdateGitSourceData>>,
+): UseMutationOptions<
+  UpdateGitSourceResponse,
+  UpdateGitSourceError,
+  Options<UpdateGitSourceData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UpdateGitSourceResponse,
+    UpdateGitSourceError,
+    Options<UpdateGitSourceData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await updateGitSource({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listGitSyncRunsQueryKey = (
+  options: Options<ListGitSyncRunsData>,
+) => createQueryKey("listGitSyncRuns", options);
+
+export const listGitSyncRunsOptions = (options: Options<ListGitSyncRunsData>) =>
+  queryOptions<
+    ListGitSyncRunsResponse,
+    ListGitSyncRunsError,
+    ListGitSyncRunsResponse,
+    ReturnType<typeof listGitSyncRunsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listGitSyncRuns({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listGitSyncRunsQueryKey(options),
+  });
+
+export const syncGitSourceMutation = (
+  options?: Partial<Options<SyncGitSourceData>>,
+): UseMutationOptions<
+  unknown,
+  SyncGitSourceError,
+  Options<SyncGitSourceData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    unknown,
+    SyncGitSourceError,
+    Options<SyncGitSourceData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await syncGitSource({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
 export const listInstancesQueryKey = (options?: Options<ListInstancesData>) =>
   createQueryKey("listInstances", options);
 
@@ -1549,6 +1749,53 @@ export const listFilesOptions = (options: Options<ListFilesData>) =>
     },
     queryKey: listFilesQueryKey(options),
   });
+
+export const getNamespaceGitQueryKey = (
+  options: Options<GetNamespaceGitData>,
+) => createQueryKey("getNamespaceGit", options);
+
+export const getNamespaceGitOptions = (options: Options<GetNamespaceGitData>) =>
+  queryOptions<
+    GetNamespaceGitResponse,
+    GetNamespaceGitError,
+    GetNamespaceGitResponse,
+    ReturnType<typeof getNamespaceGitQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getNamespaceGit({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getNamespaceGitQueryKey(options),
+  });
+
+export const pushNamespaceBranchMutation = (
+  options?: Partial<Options<PushNamespaceBranchData>>,
+): UseMutationOptions<
+  PushNamespaceBranchResponse,
+  PushNamespaceBranchError,
+  Options<PushNamespaceBranchData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    PushNamespaceBranchResponse,
+    PushNamespaceBranchError,
+    Options<PushNamespaceBranchData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await pushNamespaceBranch({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 export const revertVersionMutation = (
   options?: Partial<Options<RevertVersionData>>,
@@ -2398,6 +2645,29 @@ export const putGlobalVariableMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await putGlobalVariable({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Request a sync of a git source from a push webhook
+ */
+export const gitWebhookMutation = (
+  options?: Partial<Options<GitWebhookData>>,
+): UseMutationOptions<unknown, DefaultError, Options<GitWebhookData>> => {
+  const mutationOptions: UseMutationOptions<
+    unknown,
+    DefaultError,
+    Options<GitWebhookData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await gitWebhook({
         ...options,
         ...fnOptions,
         throwOnError: true,

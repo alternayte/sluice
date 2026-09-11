@@ -82,6 +82,11 @@ linters:
           deny:
             - pkg: github.com/alternayte/sluice/internal/variable
               desc: a feature does not import another feature (SDD §4.4)
+        only-app-imports-gitsync:
+          files: ["**/internal/**", "!**/internal/gitsync/**", "!**/internal/app/**"]
+          deny:
+            - pkg: github.com/alternayte/sluice/internal/gitsync
+              desc: a feature does not import another feature (SDD §4.4)
         only-execution-imports-executor:
           files: ["**/internal/**", "!**/internal/executor/**", "!**/internal/execution/**", "!**/internal/app/**"]
           deny:

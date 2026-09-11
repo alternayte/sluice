@@ -21,6 +21,7 @@ import (
 	"github.com/alternayte/sluice/internal/auth"
 	"github.com/alternayte/sluice/internal/execution"
 	"github.com/alternayte/sluice/internal/executor"
+	"github.com/alternayte/sluice/internal/gitsync"
 	"github.com/alternayte/sluice/internal/instance"
 	"github.com/alternayte/sluice/internal/namespace"
 	"github.com/alternayte/sluice/internal/platform/clock"
@@ -67,6 +68,7 @@ type Server struct {
 	Triggers   *trigger.Service
 	Secrets    *secret.Service
 	Variables  *variable.Service
+	Git        *gitsync.Service
 
 	httpServer *http.Server
 	listener   net.Listener
@@ -161,6 +163,8 @@ func newServer(ctx context.Context, cfg *Config, log *slog.Logger, clk clock.Clo
 	s.Health.Add("master_keys", s.Secrets.CheckKeys)
 	s.Engine.Secrets = secretResolver{s.Secrets}
 	s.Variables = &variable.Service{Pool: pool, Clock: clk, Audit: s.Audit}
+	s.Git = &gitsync.Service{Pool: pool, Clock: clk, Audit: s.Audit, Log: log, Namespaces: gitNamespaces{s.Namespaces},
+		Secrets: globalSecrets{s.Secrets}, Holder: id.String(), PublicURL: cfg.PublicURL, MaxFileBytes: int64(cfg.MaxFileBytes)}
 	created, err := s.Auth.Bootstrap(ctx, cfg.BootstrapAdminEmail, cfg.BootstrapAdminPassword)
 	if err != nil {
 		pool.Close()
@@ -280,6 +284,8 @@ func (s *Server) Run(ctx context.Context) error {
 	s.goBG(func() { maintenance.Run(bg) })
 	scheduler := &lease.Leader{Store: s.Leases, Name: lease.Scheduler, Log: s.Log, Work: s.schedulerWork}
 	s.goBG(func() { scheduler.Run(bg) })
+	gitLeader := &lease.Leader{Store: s.Leases, Name: lease.GitSync, Log: s.Log, Work: s.gitSyncWork}
+	s.goBG(func() { gitLeader.Run(bg) })
 
 	errc := make(chan error, 1)
 	go func() { errc <- s.httpServer.Serve(ln) }()
@@ -352,6 +358,22 @@ func (s *Server) schedulerWork(ctx context.Context) {
 	for {
 		if err := s.Triggers.Tick(ctx); err != nil && ctx.Err() == nil {
 			s.Log.Warn("scheduler tick", "err", err)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+	}
+}
+
+// gitSyncWork syncs due git sources each second while this instance holds the git-sync lease.
+func (s *Server) gitSyncWork(ctx context.Context) {
+	t := time.NewTicker(time.Second)
+	defer t.Stop()
+	for {
+		if err := s.Git.Tick(ctx); err != nil && ctx.Err() == nil {
+			s.Log.Warn("git sync tick", "err", err)
 		}
 		select {
 		case <-ctx.Done():

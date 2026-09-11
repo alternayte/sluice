@@ -64,6 +64,31 @@ export type CountResult = {
   [key: string]: unknown;
 };
 
+export type CreateGitSourceRequest = {
+  auth_type: "none" | "https_token" | "ssh_key";
+  branch: string;
+  /**
+   * Global secret key with the token or the private key.
+   */
+  credential_secret_key?: string;
+  known_hosts?: string;
+  mappings: Array<MappingIo>;
+  name: string;
+  /**
+   * Seconds between polls. Default 60.
+   */
+  poll_interval?: number;
+  /**
+   * https or ssh URL.
+   */
+  repo_url: string;
+  /**
+   * Global secret key with the webhook secret.
+   */
+  webhook_secret_key?: string;
+  [key: string]: unknown;
+};
+
 export type CreateNamespaceRequest = {
   description?: string;
   name: string;
@@ -349,6 +374,15 @@ export type LoginRequest = {
   [key: string]: unknown;
 };
 
+export type MappingIo = {
+  namespace: string;
+  /**
+   * Directory in the repository. Empty is the repository root.
+   */
+  repo_path: string;
+  [key: string]: unknown;
+};
+
 export type Me = {
   auth_type: "session" | "token";
   email: string;
@@ -393,6 +427,19 @@ export type Namespace = {
   [key: string]: unknown;
 };
 
+export type NamespaceGit = {
+  branch: string;
+  last_error: string;
+  last_sync_at?: string | null;
+  last_sync_status: string;
+  last_synced_sha: string;
+  repo_path: string;
+  repo_url: string;
+  source_id: string;
+  source_name: string;
+  [key: string]: unknown;
+};
+
 export type NamespaceList = {
   items: Array<Namespace>;
   [key: string]: unknown;
@@ -411,6 +458,37 @@ export type ProviderOut = {
   name: string;
   type: "builtin" | "env" | "kubernetes" | "azure_key_vault" | "vault";
   updated_at: string;
+  [key: string]: unknown;
+};
+
+export type PushChange = {
+  /**
+   * put only. UTF-8 text content.
+   */
+  content?: string;
+  /**
+   * put only. Binary content as base64.
+   */
+  content_base64?: string;
+  executable?: boolean;
+  /**
+   * rename only.
+   */
+  new_path?: string;
+  op: "put" | "delete" | "rename";
+  path: string;
+  [key: string]: unknown;
+};
+
+export type PushNamespaceBranchRequest = {
+  changes: Array<PushChange>;
+  message: string;
+  [key: string]: unknown;
+};
+
+export type PushResult = {
+  branch: string;
+  sha: string;
   [key: string]: unknown;
 };
 
@@ -460,6 +538,23 @@ export type RevisionSummary = {
 export type RunFileRequest = {
   args?: Array<string>;
   path: string;
+  [key: string]: unknown;
+};
+
+export type RunList = {
+  items: Array<RunOut>;
+  [key: string]: unknown;
+};
+
+export type RunOut = {
+  ended_at?: string | null;
+  error: string;
+  id: string;
+  sha: string;
+  snapshots_created: number;
+  started_at: string;
+  status: "running" | "success" | "failed";
+  warnings: Array<string>;
   [key: string]: unknown;
 };
 
@@ -598,6 +693,54 @@ export type Snapshot = {
 
 export type SnapshotList = {
   items: Array<Snapshot>;
+  [key: string]: unknown;
+};
+
+export type SourceBody = {
+  auth_type: "none" | "https_token" | "ssh_key";
+  branch: string;
+  /**
+   * Global secret key with the token or the private key.
+   */
+  credential_secret_key?: string;
+  known_hosts?: string;
+  mappings: Array<MappingIo>;
+  /**
+   * Seconds between polls. Default 60.
+   */
+  poll_interval?: number;
+  /**
+   * https or ssh URL.
+   */
+  repo_url: string;
+  /**
+   * Global secret key with the webhook secret.
+   */
+  webhook_secret_key?: string;
+  [key: string]: unknown;
+};
+
+export type SourceList = {
+  items: Array<SourceOut>;
+  [key: string]: unknown;
+};
+
+export type SourceOut = {
+  auth_type: string;
+  branch: string;
+  credential_secret_key: string;
+  id: string;
+  known_hosts: string;
+  last_error: string;
+  last_sync_at?: string | null;
+  last_sync_status: string;
+  last_synced_sha: string;
+  mappings: Array<MappingIo>;
+  name: string;
+  poll_interval: number;
+  repo_url: string;
+  webhook_secret_key: string;
+  webhook_url: string;
   [key: string]: unknown;
 };
 
@@ -1781,6 +1924,200 @@ export type RotateWebhookKeyResponses = {
 export type RotateWebhookKeyResponse =
   RotateWebhookKeyResponses[keyof RotateWebhookKeyResponses];
 
+export type ListGitSourcesData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/git-sources";
+};
+
+export type ListGitSourcesErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListGitSourcesError =
+  ListGitSourcesErrors[keyof ListGitSourcesErrors];
+
+export type ListGitSourcesResponses = {
+  /**
+   * OK
+   */
+  200: SourceList;
+};
+
+export type ListGitSourcesResponse =
+  ListGitSourcesResponses[keyof ListGitSourcesResponses];
+
+export type CreateGitSourceData = {
+  body: CreateGitSourceRequest;
+  path?: never;
+  query?: never;
+  url: "/api/v1/git-sources";
+};
+
+export type CreateGitSourceErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type CreateGitSourceError =
+  CreateGitSourceErrors[keyof CreateGitSourceErrors];
+
+export type CreateGitSourceResponses = {
+  /**
+   * Created
+   */
+  201: SourceOut;
+};
+
+export type CreateGitSourceResponse =
+  CreateGitSourceResponses[keyof CreateGitSourceResponses];
+
+export type DeleteGitSourceData = {
+  body?: never;
+  path: {
+    sourceId: string;
+  };
+  query?: never;
+  url: "/api/v1/git-sources/{sourceId}";
+};
+
+export type DeleteGitSourceErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteGitSourceError =
+  DeleteGitSourceErrors[keyof DeleteGitSourceErrors];
+
+export type DeleteGitSourceResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteGitSourceResponse =
+  DeleteGitSourceResponses[keyof DeleteGitSourceResponses];
+
+export type GetGitSourceData = {
+  body?: never;
+  path: {
+    sourceId: string;
+  };
+  query?: never;
+  url: "/api/v1/git-sources/{sourceId}";
+};
+
+export type GetGitSourceErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetGitSourceError = GetGitSourceErrors[keyof GetGitSourceErrors];
+
+export type GetGitSourceResponses = {
+  /**
+   * OK
+   */
+  200: SourceOut;
+};
+
+export type GetGitSourceResponse =
+  GetGitSourceResponses[keyof GetGitSourceResponses];
+
+export type UpdateGitSourceData = {
+  body: SourceBody;
+  path: {
+    sourceId: string;
+  };
+  query?: never;
+  url: "/api/v1/git-sources/{sourceId}";
+};
+
+export type UpdateGitSourceErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type UpdateGitSourceError =
+  UpdateGitSourceErrors[keyof UpdateGitSourceErrors];
+
+export type UpdateGitSourceResponses = {
+  /**
+   * OK
+   */
+  200: SourceOut;
+};
+
+export type UpdateGitSourceResponse =
+  UpdateGitSourceResponses[keyof UpdateGitSourceResponses];
+
+export type ListGitSyncRunsData = {
+  body?: never;
+  path: {
+    sourceId: string;
+  };
+  query?: never;
+  url: "/api/v1/git-sources/{sourceId}/runs";
+};
+
+export type ListGitSyncRunsErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListGitSyncRunsError =
+  ListGitSyncRunsErrors[keyof ListGitSyncRunsErrors];
+
+export type ListGitSyncRunsResponses = {
+  /**
+   * OK
+   */
+  200: RunList;
+};
+
+export type ListGitSyncRunsResponse =
+  ListGitSyncRunsResponses[keyof ListGitSyncRunsResponses];
+
+export type SyncGitSourceData = {
+  body?: never;
+  path: {
+    sourceId: string;
+  };
+  query?: never;
+  url: "/api/v1/git-sources/{sourceId}/sync";
+};
+
+export type SyncGitSourceErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type SyncGitSourceError = SyncGitSourceErrors[keyof SyncGitSourceErrors];
+
+export type SyncGitSourceResponses = {
+  /**
+   * Accepted
+   */
+  202: unknown;
+};
+
 export type ListInstancesData = {
   body?: never;
   path?: never;
@@ -2058,6 +2395,64 @@ export type ListFilesResponses = {
 };
 
 export type ListFilesResponse = ListFilesResponses[keyof ListFilesResponses];
+
+export type GetNamespaceGitData = {
+  body?: never;
+  path: {
+    namespace: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/git";
+};
+
+export type GetNamespaceGitErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetNamespaceGitError =
+  GetNamespaceGitErrors[keyof GetNamespaceGitErrors];
+
+export type GetNamespaceGitResponses = {
+  /**
+   * OK
+   */
+  200: NamespaceGit;
+};
+
+export type GetNamespaceGitResponse =
+  GetNamespaceGitResponses[keyof GetNamespaceGitResponses];
+
+export type PushNamespaceBranchData = {
+  body: PushNamespaceBranchRequest;
+  path: {
+    namespace: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/git/push";
+};
+
+export type PushNamespaceBranchErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type PushNamespaceBranchError =
+  PushNamespaceBranchErrors[keyof PushNamespaceBranchErrors];
+
+export type PushNamespaceBranchResponses = {
+  /**
+   * Created
+   */
+  201: PushResult;
+};
+
+export type PushNamespaceBranchResponse =
+  PushNamespaceBranchResponses[keyof PushNamespaceBranchResponses];
 
 export type RevertVersionData = {
   body: RevertRequest;
@@ -2970,6 +3365,22 @@ export type PutGlobalVariableResponses = {
 
 export type PutGlobalVariableResponse =
   PutGlobalVariableResponses[keyof PutGlobalVariableResponses];
+
+export type GitWebhookData = {
+  body?: never;
+  path: {
+    sourceId: string;
+  };
+  query?: never;
+  url: "/hooks/git/{sourceId}";
+};
+
+export type GitWebhookResponses = {
+  /**
+   * The call is valid.
+   */
+  202: unknown;
+};
 
 export type FireWebhookData = {
   body?: never;

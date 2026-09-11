@@ -140,6 +140,57 @@ components:
       required:
         - count
       type: object
+    CreateGitSourceRequest:
+      additionalProperties: true
+      properties:
+        auth_type:
+          enum:
+            - none
+            - https_token
+            - ssh_key
+          type: string
+        branch:
+          maxLength: 255
+          minLength: 1
+          type: string
+        credential_secret_key:
+          description: Global secret key with the token or the private key.
+          maxLength: 128
+          type: string
+        known_hosts:
+          maxLength: 65536
+          type: string
+        mappings:
+          items:
+            $ref: "#/components/schemas/MappingIO"
+          maxItems: 100
+          minItems: 1
+          type: array
+        name:
+          pattern: ^[a-z0-9][a-z0-9_-]{0,62}$
+          type: string
+        poll_interval:
+          description: Seconds between polls. Default 60.
+          format: int64
+          maximum: 86400
+          minimum: 15
+          type: integer
+        repo_url:
+          description: https or ssh URL.
+          maxLength: 2048
+          minLength: 1
+          type: string
+        webhook_secret_key:
+          description: Global secret key with the webhook secret.
+          maxLength: 128
+          type: string
+      required:
+        - name
+        - repo_url
+        - branch
+        - auth_type
+        - mappings
+      type: object
     CreateNamespaceRequest:
       additionalProperties: true
       properties:
@@ -773,6 +824,20 @@ components:
         - email
         - password
       type: object
+    MappingIO:
+      additionalProperties: true
+      properties:
+        namespace:
+          maxLength: 128
+          type: string
+        repo_path:
+          description: Directory in the repository. Empty is the repository root.
+          maxLength: 512
+          type: string
+      required:
+        - repo_path
+        - namespace
+      type: object
     Me:
       additionalProperties: true
       properties:
@@ -881,6 +946,40 @@ components:
         - description
         - implicit
       type: object
+    NamespaceGit:
+      additionalProperties: true
+      properties:
+        branch:
+          type: string
+        last_error:
+          type: string
+        last_sync_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        last_sync_status:
+          type: string
+        last_synced_sha:
+          type: string
+        repo_path:
+          type: string
+        repo_url:
+          type: string
+        source_id:
+          type: string
+        source_name:
+          type: string
+      required:
+        - source_id
+        - source_name
+        - repo_url
+        - branch
+        - repo_path
+        - last_synced_sha
+        - last_sync_status
+        - last_error
+      type: object
     NamespaceList:
       additionalProperties: true
       properties:
@@ -929,6 +1028,62 @@ components:
         - config
         - created_at
         - updated_at
+      type: object
+    PushChange:
+      additionalProperties: true
+      properties:
+        content:
+          description: put only. UTF-8 text content.
+          type: string
+        content_base64:
+          description: put only. Binary content as base64.
+          type: string
+        executable:
+          type: boolean
+        new_path:
+          description: rename only.
+          maxLength: 512
+          type: string
+        op:
+          enum:
+            - put
+            - delete
+            - rename
+          type: string
+        path:
+          maxLength: 512
+          type: string
+      required:
+        - op
+        - path
+      type: object
+    PushNamespaceBranchRequest:
+      additionalProperties: true
+      properties:
+        changes:
+          items:
+            $ref: "#/components/schemas/PushChange"
+          maxItems: 1000
+          minItems: 1
+          type: array
+        message:
+          maxLength: 2000
+          minLength: 1
+          type: string
+      required:
+        - message
+        - changes
+      type: object
+    PushResult:
+      additionalProperties: true
+      properties:
+        branch:
+          type: string
+        sha:
+          type: string
+      required:
+        - branch
+        - sha
       type: object
     ResetPasswordRequest:
       additionalProperties: true
@@ -1044,6 +1199,55 @@ components:
           type: string
       required:
         - path
+      type: object
+    RunList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/RunOut"
+          type: array
+      required:
+        - items
+      type: object
+    RunOut:
+      additionalProperties: true
+      properties:
+        ended_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        error:
+          type: string
+        id:
+          type: string
+        sha:
+          type: string
+        snapshots_created:
+          format: int64
+          type: integer
+        started_at:
+          format: date-time
+          type: string
+        status:
+          enum:
+            - running
+            - success
+            - failed
+          type: string
+        warnings:
+          items:
+            type: string
+          type: array
+      required:
+        - id
+        - started_at
+        - sha
+        - status
+        - error
+        - warnings
+        - snapshots_created
       type: object
     RunnerComplete:
       additionalProperties: true
@@ -1348,6 +1552,118 @@ components:
           type: array
       required:
         - items
+      type: object
+    SourceBody:
+      additionalProperties: true
+      properties:
+        auth_type:
+          enum:
+            - none
+            - https_token
+            - ssh_key
+          type: string
+        branch:
+          maxLength: 255
+          minLength: 1
+          type: string
+        credential_secret_key:
+          description: Global secret key with the token or the private key.
+          maxLength: 128
+          type: string
+        known_hosts:
+          maxLength: 65536
+          type: string
+        mappings:
+          items:
+            $ref: "#/components/schemas/MappingIO"
+          maxItems: 100
+          minItems: 1
+          type: array
+        poll_interval:
+          description: Seconds between polls. Default 60.
+          format: int64
+          maximum: 86400
+          minimum: 15
+          type: integer
+        repo_url:
+          description: https or ssh URL.
+          maxLength: 2048
+          minLength: 1
+          type: string
+        webhook_secret_key:
+          description: Global secret key with the webhook secret.
+          maxLength: 128
+          type: string
+      required:
+        - repo_url
+        - branch
+        - auth_type
+        - mappings
+      type: object
+    SourceList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/SourceOut"
+          type: array
+      required:
+        - items
+      type: object
+    SourceOut:
+      additionalProperties: true
+      properties:
+        auth_type:
+          type: string
+        branch:
+          type: string
+        credential_secret_key:
+          type: string
+        id:
+          type: string
+        known_hosts:
+          type: string
+        last_error:
+          type: string
+        last_sync_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        last_sync_status:
+          type: string
+        last_synced_sha:
+          type: string
+        mappings:
+          items:
+            $ref: "#/components/schemas/MappingIO"
+          type: array
+        name:
+          type: string
+        poll_interval:
+          format: int64
+          type: integer
+        repo_url:
+          type: string
+        webhook_secret_key:
+          type: string
+        webhook_url:
+          type: string
+      required:
+        - id
+        - name
+        - repo_url
+        - branch
+        - auth_type
+        - credential_secret_key
+        - known_hosts
+        - poll_interval
+        - webhook_secret_key
+        - webhook_url
+        - last_synced_sha
+        - last_sync_status
+        - last_error
+        - mappings
       type: object
     TaskRun:
       additionalProperties: true
@@ -2767,6 +3083,149 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Error
+  /api/v1/git-sources:
+    get:
+      operationId: listGitSources
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    post:
+      operationId: createGitSource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGitSourceRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceOut"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/git-sources/{sourceId}:
+    delete:
+      operationId: deleteGitSource
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    get:
+      operationId: getGitSource
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceOut"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    put:
+      operationId: updateGitSource
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SourceBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceOut"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/git-sources/{sourceId}/runs:
+    get:
+      operationId: listGitSyncRuns
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/git-sources/{sourceId}/sync:
+    post:
+      operationId: syncGitSource
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          description: Accepted
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
   /api/v1/instances:
     get:
       operationId: listInstances
@@ -3026,6 +3485,60 @@ paths:
               schema:
                 $ref: "#/components/schemas/FileList"
           description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/git:
+    get:
+      operationId: getNamespaceGit
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NamespaceGit"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/git/push:
+    post:
+      operationId: pushNamespaceBranch
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushNamespaceBranchRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushResult"
+          description: Created
         default:
           content:
             application/json:
@@ -3846,6 +4359,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Error
+  /hooks/git/{sourceId}:
+    post:
+      operationId: gitWebhook
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          content:
+            application/json: {}
+          description: The call is valid.
+      summary: Request a sync of a git source from a push webhook
   /hooks/{key}:
     post:
       operationId: fireWebhook

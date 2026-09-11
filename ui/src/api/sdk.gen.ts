@@ -25,6 +25,9 @@ import type {
   CheckSecretProviderData,
   CheckSecretProviderErrors,
   CheckSecretProviderResponses,
+  CreateGitSourceData,
+  CreateGitSourceErrors,
+  CreateGitSourceResponses,
   CreateNamespaceData,
   CreateNamespaceErrors,
   CreateNamespaceResponses,
@@ -37,6 +40,9 @@ import type {
   CreateUserData,
   CreateUserErrors,
   CreateUserResponses,
+  DeleteGitSourceData,
+  DeleteGitSourceErrors,
+  DeleteGitSourceResponses,
   DeleteGlobalSecretData,
   DeleteGlobalSecretErrors,
   DeleteGlobalSecretResponses,
@@ -84,12 +90,20 @@ import type {
   GetFlowSchemaData,
   GetFlowSchemaErrors,
   GetFlowSchemaResponses,
+  GetGitSourceData,
+  GetGitSourceErrors,
+  GetGitSourceResponses,
   GetMeData,
   GetMeErrors,
   GetMeResponses,
   GetNamespaceData,
   GetNamespaceErrors,
+  GetNamespaceGitData,
+  GetNamespaceGitErrors,
+  GetNamespaceGitResponses,
   GetNamespaceResponses,
+  GitWebhookData,
+  GitWebhookResponses,
   ListAuditEventsData,
   ListAuditEventsErrors,
   ListAuditEventsResponses,
@@ -111,6 +125,12 @@ import type {
   ListFlowsData,
   ListFlowsErrors,
   ListFlowsResponses,
+  ListGitSourcesData,
+  ListGitSourcesErrors,
+  ListGitSourcesResponses,
+  ListGitSyncRunsData,
+  ListGitSyncRunsErrors,
+  ListGitSyncRunsResponses,
   ListGlobalSecretsData,
   ListGlobalSecretsErrors,
   ListGlobalSecretsResponses,
@@ -150,6 +170,9 @@ import type {
   LogoutData,
   LogoutErrors,
   LogoutResponses,
+  PushNamespaceBranchData,
+  PushNamespaceBranchErrors,
+  PushNamespaceBranchResponses,
   PutGlobalSecretData,
   PutGlobalSecretErrors,
   PutGlobalSecretResponses,
@@ -212,12 +235,18 @@ import type {
   StreamExecutionEventsResponses,
   StreamExecutionLogsData,
   StreamExecutionLogsResponses,
+  SyncGitSourceData,
+  SyncGitSourceErrors,
+  SyncGitSourceResponses,
   TriggerFlowData,
   TriggerFlowErrors,
   TriggerFlowResponses,
   UpdateFlowData,
   UpdateFlowErrors,
   UpdateFlowResponses,
+  UpdateGitSourceData,
+  UpdateGitSourceErrors,
+  UpdateGitSourceResponses,
   UpdateMeData,
   UpdateMeErrors,
   UpdateMeResponses,
@@ -674,6 +703,99 @@ export const rotateWebhookKey = <ThrowOnError extends boolean = false>(
     ...options,
   });
 
+export const listGitSources = <ThrowOnError extends boolean = false>(
+  options?: Options<ListGitSourcesData, ThrowOnError>,
+): RequestResult<ListGitSourcesResponses, ListGitSourcesErrors, ThrowOnError> =>
+  (options?.client ?? client).get<
+    ListGitSourcesResponses,
+    ListGitSourcesErrors,
+    ThrowOnError
+  >({ url: "/api/v1/git-sources", ...options });
+
+export const createGitSource = <ThrowOnError extends boolean = false>(
+  options: Options<CreateGitSourceData, ThrowOnError>,
+): RequestResult<
+  CreateGitSourceResponses,
+  CreateGitSourceErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    CreateGitSourceResponses,
+    CreateGitSourceErrors,
+    ThrowOnError
+  >({
+    url: "/api/v1/git-sources",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const deleteGitSource = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteGitSourceData, ThrowOnError>,
+): RequestResult<
+  DeleteGitSourceResponses,
+  DeleteGitSourceErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).delete<
+    DeleteGitSourceResponses,
+    DeleteGitSourceErrors,
+    ThrowOnError
+  >({ url: "/api/v1/git-sources/{sourceId}", ...options });
+
+export const getGitSource = <ThrowOnError extends boolean = false>(
+  options: Options<GetGitSourceData, ThrowOnError>,
+): RequestResult<GetGitSourceResponses, GetGitSourceErrors, ThrowOnError> =>
+  (options.client ?? client).get<
+    GetGitSourceResponses,
+    GetGitSourceErrors,
+    ThrowOnError
+  >({ url: "/api/v1/git-sources/{sourceId}", ...options });
+
+export const updateGitSource = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateGitSourceData, ThrowOnError>,
+): RequestResult<
+  UpdateGitSourceResponses,
+  UpdateGitSourceErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).put<
+    UpdateGitSourceResponses,
+    UpdateGitSourceErrors,
+    ThrowOnError
+  >({
+    url: "/api/v1/git-sources/{sourceId}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const listGitSyncRuns = <ThrowOnError extends boolean = false>(
+  options: Options<ListGitSyncRunsData, ThrowOnError>,
+): RequestResult<
+  ListGitSyncRunsResponses,
+  ListGitSyncRunsErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).get<
+    ListGitSyncRunsResponses,
+    ListGitSyncRunsErrors,
+    ThrowOnError
+  >({ url: "/api/v1/git-sources/{sourceId}/runs", ...options });
+
+export const syncGitSource = <ThrowOnError extends boolean = false>(
+  options: Options<SyncGitSourceData, ThrowOnError>,
+): RequestResult<SyncGitSourceResponses, SyncGitSourceErrors, ThrowOnError> =>
+  (options.client ?? client).post<
+    SyncGitSourceResponses,
+    SyncGitSourceErrors,
+    ThrowOnError
+  >({ url: "/api/v1/git-sources/{sourceId}/sync", ...options });
+
 export const listInstances = <ThrowOnError extends boolean = false>(
   options?: Options<ListInstancesData, ThrowOnError>,
 ): RequestResult<ListInstancesResponses, ListInstancesErrors, ThrowOnError> =>
@@ -788,6 +910,39 @@ export const listFiles = <ThrowOnError extends boolean = false>(
     ListFilesErrors,
     ThrowOnError
   >({ url: "/api/v1/namespaces/{namespace}/files", ...options });
+
+export const getNamespaceGit = <ThrowOnError extends boolean = false>(
+  options: Options<GetNamespaceGitData, ThrowOnError>,
+): RequestResult<
+  GetNamespaceGitResponses,
+  GetNamespaceGitErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).get<
+    GetNamespaceGitResponses,
+    GetNamespaceGitErrors,
+    ThrowOnError
+  >({ url: "/api/v1/namespaces/{namespace}/git", ...options });
+
+export const pushNamespaceBranch = <ThrowOnError extends boolean = false>(
+  options: Options<PushNamespaceBranchData, ThrowOnError>,
+): RequestResult<
+  PushNamespaceBranchResponses,
+  PushNamespaceBranchErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    PushNamespaceBranchResponses,
+    PushNamespaceBranchErrors,
+    ThrowOnError
+  >({
+    url: "/api/v1/namespaces/{namespace}/git/push",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
 
 export const revertVersion = <ThrowOnError extends boolean = false>(
   options: Options<RevertVersionData, ThrowOnError>,
@@ -1257,6 +1412,17 @@ export const putGlobalVariable = <ThrowOnError extends boolean = false>(
       "Content-Type": "application/json",
       ...options.headers,
     },
+  });
+
+/**
+ * Request a sync of a git source from a push webhook
+ */
+export const gitWebhook = <ThrowOnError extends boolean = false>(
+  options: Options<GitWebhookData, ThrowOnError>,
+): RequestResult<GitWebhookResponses, unknown, ThrowOnError> =>
+  (options.client ?? client).post<GitWebhookResponses, unknown, ThrowOnError>({
+    url: "/hooks/git/{sourceId}",
+    ...options,
   });
 
 /**

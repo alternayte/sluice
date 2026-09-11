@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, CircleOff, Play } from "lucide-react";
+import { Check, CheckCircle2, CircleOff, Copy, KeyRound, Play } from "lucide-react";
 import { useState } from "react";
 import {
   diffFlowRevisionsOptions,
@@ -9,9 +9,11 @@ import {
   listExecutionsOptions,
   listFlowRevisionsOptions,
   listFlowsQueryKey,
+  rotateWebhookKeyMutation,
   updateFlowMutation,
 } from "@/api/@tanstack/react-query.gen";
-import type { FlowDetail, Issue, RevisionSummary } from "@/api/types.gen";
+import type { FlowDetail, Issue, RevisionSummary, WebhookKey } from "@/api/types.gen";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DataState } from "@/components/data-state";
 import { DiffView } from "@/components/diff-view";
 import { CodeEditor } from "@/components/editor/code-editor";
@@ -21,8 +23,9 @@ import { RunFlowDialog } from "@/components/run-dialogs";
 import { DisabledBadge, ValidBadge } from "@/components/state-badges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { Field, FormError } from "@/components/ui/field";
-import { Select } from "@/components/ui/input";
+import { Input, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
 import { Tabs } from "@/components/ui/tabs";
@@ -249,42 +252,129 @@ function Overview({ flow }: { flow: FlowDetail }) {
 }
 
 function Triggers({ flow }: { flow: FlowDetail }) {
+  const me = useCurrentUser();
+  const canRotate = can(me.role, "editor");
+  const [rotate, setRotate] = useState<string | null>(null);
   if (flow.triggers.length === 0) {
     return <p className="py-6 text-sm text-muted-foreground">This flow has no triggers.</p>;
   }
   return (
-    <Table>
-      <THead>
-        <Tr>
-          <Th>Key</Th>
-          <Th>Type</Th>
-          <Th>State</Th>
-          <Th>Config</Th>
-          <Th>Next fire time</Th>
-        </Tr>
-      </THead>
-      <TBody>
-        {flow.triggers.map((t) => (
-          <Tr key={t.key}>
-            <Td className="font-mono text-xs">{t.key}</Td>
-            <Td>{t.type.charAt(0).toUpperCase() + t.type.slice(1)}</Td>
-            <Td>
-              {t.active ? (
-                <Badge tone="success" icon={CheckCircle2}>
-                  Active
-                </Badge>
-              ) : (
-                <Badge tone="neutral" icon={CircleOff}>
-                  Inactive
-                </Badge>
-              )}
-            </Td>
-            <Td className="font-mono text-xs">{triggerSummary(t.type, t.config) || "—"}</Td>
-            <Td>{formatTime(t.next_fire_at)}</Td>
+    <>
+      <Table>
+        <THead>
+          <Tr>
+            <Th>Key</Th>
+            <Th>Type</Th>
+            <Th>State</Th>
+            <Th>Config</Th>
+            <Th>Next fire time</Th>
+            {canRotate && (
+              <Th>
+                <span className="sr-only">Actions</span>
+              </Th>
+            )}
           </Tr>
-        ))}
-      </TBody>
-    </Table>
+        </THead>
+        <TBody>
+          {flow.triggers.map((t) => (
+            <Tr key={t.key}>
+              <Td className="font-mono text-xs">{t.key}</Td>
+              <Td>{t.type.charAt(0).toUpperCase() + t.type.slice(1)}</Td>
+              <Td>
+                {t.active ? (
+                  <Badge tone="success" icon={CheckCircle2}>
+                    Active
+                  </Badge>
+                ) : (
+                  <Badge tone="neutral" icon={CircleOff}>
+                    Inactive
+                  </Badge>
+                )}
+              </Td>
+              <Td className="font-mono text-xs">{triggerSummary(t.type, t.config) || "—"}</Td>
+              <Td>{formatTime(t.next_fire_at)}</Td>
+              {canRotate && (
+                <Td className="text-right">
+                  {t.type === "webhook" && (
+                    <Button variant="secondary" size="sm" aria-label={`Rotate key of ${t.key}`} onClick={() => setRotate(t.key)}>
+                      <KeyRound className="h-4 w-4" aria-hidden />
+                      Rotate key
+                    </Button>
+                  )}
+                </Td>
+              )}
+            </Tr>
+          ))}
+        </TBody>
+      </Table>
+      {rotate && <RotateWebhookKey flow={flow} triggerKey={rotate} onClose={() => setRotate(null)} />}
+    </>
+  );
+}
+
+/** RotateWebhookKey confirms a key rotation, then shows the new webhook URL once (DI-28). */
+function RotateWebhookKey({ flow, triggerKey, onClose }: { flow: FlowDetail; triggerKey: string; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [created, setCreated] = useState<WebhookKey | null>(null);
+  const [copied, setCopied] = useState(false);
+  const mutation = useMutation({
+    ...rotateWebhookKeyMutation(),
+    onSuccess: (d) => {
+      setCreated(d);
+      void qc.invalidateQueries({ queryKey: getFlowQueryKey({ path: { namespace: flow.namespace, flowId: flow.flow_id } }) });
+    },
+  });
+
+  if (!created) {
+    return (
+      <ConfirmDialog
+        open
+        title="Rotate webhook key"
+        confirmLabel="Rotate key"
+        destructive
+        pending={mutation.isPending}
+        error={mutation.isError ? errorMessage(mutation.error) : undefined}
+        onConfirm={() =>
+          mutation.mutate({ path: { namespace: flow.namespace, flowId: flow.flow_id, triggerId: triggerKey } })
+        }
+        onClose={onClose}
+      >
+        <p>
+          Sluice makes a new key for the trigger <span className="font-mono">{triggerKey}</span>. The old key stops
+          working immediately. Callers of the old URL get 404.
+        </p>
+      </ConfirmDialog>
+    );
+  }
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(created.url);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <Dialog open onClose={onClose} title="New webhook URL">
+      <p className="text-sm">Copy this URL now. It is not shown again.</p>
+      <div className="flex gap-2">
+        <Input
+          aria-label="Webhook URL"
+          readOnly
+          value={created.url}
+          className="font-mono text-xs"
+          onFocus={(e) => e.currentTarget.select()}
+        />
+        <Button variant="secondary" onClick={() => void copy()}>
+          {copied ? <Check className="h-4 w-4" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
+          {copied ? "Copied" : "Copy"}
+        </Button>
+      </div>
+      <div className="flex justify-end">
+        <Button onClick={onClose}>Done</Button>
+      </div>
+    </Dialog>
   );
 }
 

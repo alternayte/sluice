@@ -4,6 +4,8 @@ This file records where the build stopped. `decisions.md` is the authoritative r
 
 ## State at the last commit
 
+- Status: BLOCKED on B-1 in `decisions.md` (the host disk is full and Docker Desktop hangs). Read the answer in the "Human answers" table before work continues.
+- Slice S6 is in progress. Done and committed: `internal/secret` (providers builtin, env, vault, azure_key_vault, kubernetes; AES-256-GCM keyring; secrets per scope; resolution; check; cache; rekey; `master_keys` readiness check), `internal/variable`, the `sluice secrets rekey` command, the secret resolver of the engine, and `TemplateError.Unwrap` (a `secret()` failure keeps its reason). Verified: unit tests, lint, SCN-AUTH-006, SCN-API-001, and the builtin, env and vault parts of SCN-SEC-001. Written but not run yet (they need Docker): the azure_key_vault part of SCN-SEC-001, `tests/e2e/secrets_test.go` (SCN-SEC-003, 004, 005, 006, 008, 009, 011, SCN-RUN-005) and `tests/e2e/templates_test.go` (SCN-EXE-012). Next S6 steps after these tests: the UI pages for secrets, variables and secret providers (REQ-UI-008), then SCN-SEC-002, SCN-SEC-007, SCN-UI-010 and SCN-AUTH-010 in Playwright. SCN-SEC-010 needs S8 (docker) and S11 (AI) as well.
 - Slices S0 to S5 and slice R are complete, except the open items below.
 - Session of 2026-09-11: SCN-CORE-007 fixed (the runner forwards SIGTERM and flushes for at most 5 s). New tests: SCN-CORE-004, SCN-CORE-008, SCN-EXE-010, SCN-EXE-014, SCN-RUN-006, SCN-NFR-002. Slice S5 added `internal/trigger` (scheduler, webhooks, flow triggers, upcoming schedules) with SCN-TRG-002 to SCN-TRG-007, SCN-FLOW-003, SCN-FLOW-005 and SCN-DEP-004.
 

@@ -16,18 +16,45 @@ import type {
   ChangePasswordData,
   ChangePasswordErrors,
   ChangePasswordResponses,
+  CheckGlobalSecretData,
+  CheckGlobalSecretErrors,
+  CheckGlobalSecretResponses,
+  CheckNamespaceSecretData,
+  CheckNamespaceSecretErrors,
+  CheckNamespaceSecretResponses,
+  CheckSecretProviderData,
+  CheckSecretProviderErrors,
+  CheckSecretProviderResponses,
   CreateNamespaceData,
   CreateNamespaceErrors,
   CreateNamespaceResponses,
+  CreateSecretProviderData,
+  CreateSecretProviderErrors,
+  CreateSecretProviderResponses,
   CreateTokenData,
   CreateTokenErrors,
   CreateTokenResponses,
   CreateUserData,
   CreateUserErrors,
   CreateUserResponses,
+  DeleteGlobalSecretData,
+  DeleteGlobalSecretErrors,
+  DeleteGlobalSecretResponses,
+  DeleteGlobalVariableData,
+  DeleteGlobalVariableErrors,
+  DeleteGlobalVariableResponses,
   DeleteNamespaceData,
   DeleteNamespaceErrors,
   DeleteNamespaceResponses,
+  DeleteNamespaceSecretData,
+  DeleteNamespaceSecretErrors,
+  DeleteNamespaceSecretResponses,
+  DeleteNamespaceVariableData,
+  DeleteNamespaceVariableErrors,
+  DeleteNamespaceVariableResponses,
+  DeleteSecretProviderData,
+  DeleteSecretProviderErrors,
+  DeleteSecretProviderResponses,
   DiffFlowRevisionsData,
   DiffFlowRevisionsErrors,
   DiffFlowRevisionsResponses,
@@ -84,12 +111,27 @@ import type {
   ListFlowsData,
   ListFlowsErrors,
   ListFlowsResponses,
+  ListGlobalSecretsData,
+  ListGlobalSecretsErrors,
+  ListGlobalSecretsResponses,
+  ListGlobalVariablesData,
+  ListGlobalVariablesErrors,
+  ListGlobalVariablesResponses,
   ListInstancesData,
   ListInstancesErrors,
   ListInstancesResponses,
   ListNamespacesData,
+  ListNamespaceSecretsData,
+  ListNamespaceSecretsErrors,
+  ListNamespaceSecretsResponses,
   ListNamespacesErrors,
   ListNamespacesResponses,
+  ListNamespaceVariablesData,
+  ListNamespaceVariablesErrors,
+  ListNamespaceVariablesResponses,
+  ListSecretProvidersData,
+  ListSecretProvidersErrors,
+  ListSecretProvidersResponses,
   ListTokensData,
   ListTokensErrors,
   ListTokensResponses,
@@ -108,6 +150,18 @@ import type {
   LogoutData,
   LogoutErrors,
   LogoutResponses,
+  PutGlobalSecretData,
+  PutGlobalSecretErrors,
+  PutGlobalSecretResponses,
+  PutGlobalVariableData,
+  PutGlobalVariableErrors,
+  PutGlobalVariableResponses,
+  PutNamespaceSecretData,
+  PutNamespaceSecretErrors,
+  PutNamespaceSecretResponses,
+  PutNamespaceVariableData,
+  PutNamespaceVariableErrors,
+  PutNamespaceVariableResponses,
   RerunExecutionData,
   RerunExecutionErrors,
   RerunExecutionResponses,
@@ -167,6 +221,9 @@ import type {
   UpdateMeData,
   UpdateMeErrors,
   UpdateMeResponses,
+  UpdateSecretProviderData,
+  UpdateSecretProviderErrors,
+  UpdateSecretProviderResponses,
   UpdateUserData,
   UpdateUserErrors,
   UpdateUserResponses,
@@ -764,6 +821,65 @@ export const runFile = <ThrowOnError extends boolean = false>(
     },
   });
 
+export const listNamespaceSecrets = <ThrowOnError extends boolean = false>(
+  options: Options<ListNamespaceSecretsData, ThrowOnError>,
+): RequestResult<
+  ListNamespaceSecretsResponses,
+  ListNamespaceSecretsErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).get<
+    ListNamespaceSecretsResponses,
+    ListNamespaceSecretsErrors,
+    ThrowOnError
+  >({ url: "/api/v1/namespaces/{namespace}/secrets", ...options });
+
+export const deleteNamespaceSecret = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteNamespaceSecretData, ThrowOnError>,
+): RequestResult<
+  DeleteNamespaceSecretResponses,
+  DeleteNamespaceSecretErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).delete<
+    DeleteNamespaceSecretResponses,
+    DeleteNamespaceSecretErrors,
+    ThrowOnError
+  >({ url: "/api/v1/namespaces/{namespace}/secrets/{key}", ...options });
+
+export const putNamespaceSecret = <ThrowOnError extends boolean = false>(
+  options: Options<PutNamespaceSecretData, ThrowOnError>,
+): RequestResult<
+  PutNamespaceSecretResponses,
+  PutNamespaceSecretErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).put<
+    PutNamespaceSecretResponses,
+    PutNamespaceSecretErrors,
+    ThrowOnError
+  >({
+    url: "/api/v1/namespaces/{namespace}/secrets/{key}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const checkNamespaceSecret = <ThrowOnError extends boolean = false>(
+  options: Options<CheckNamespaceSecretData, ThrowOnError>,
+): RequestResult<
+  CheckNamespaceSecretResponses,
+  CheckNamespaceSecretErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    CheckNamespaceSecretResponses,
+    CheckNamespaceSecretErrors,
+    ThrowOnError
+  >({ url: "/api/v1/namespaces/{namespace}/secrets/{key}/check", ...options });
+
 export const validateFile = <ThrowOnError extends boolean = false>(
   options: Options<ValidateFileData, ThrowOnError>,
 ): RequestResult<ValidateFileResponses, ValidateFileErrors, ThrowOnError> =>
@@ -773,6 +889,52 @@ export const validateFile = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     url: "/api/v1/namespaces/{namespace}/validate",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const listNamespaceVariables = <ThrowOnError extends boolean = false>(
+  options: Options<ListNamespaceVariablesData, ThrowOnError>,
+): RequestResult<
+  ListNamespaceVariablesResponses,
+  ListNamespaceVariablesErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).get<
+    ListNamespaceVariablesResponses,
+    ListNamespaceVariablesErrors,
+    ThrowOnError
+  >({ url: "/api/v1/namespaces/{namespace}/variables", ...options });
+
+export const deleteNamespaceVariable = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteNamespaceVariableData, ThrowOnError>,
+): RequestResult<
+  DeleteNamespaceVariableResponses,
+  DeleteNamespaceVariableErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).delete<
+    DeleteNamespaceVariableResponses,
+    DeleteNamespaceVariableErrors,
+    ThrowOnError
+  >({ url: "/api/v1/namespaces/{namespace}/variables/{key}", ...options });
+
+export const putNamespaceVariable = <ThrowOnError extends boolean = false>(
+  options: Options<PutNamespaceVariableData, ThrowOnError>,
+): RequestResult<
+  PutNamespaceVariableResponses,
+  PutNamespaceVariableErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).put<
+    PutNamespaceVariableResponses,
+    PutNamespaceVariableErrors,
+    ThrowOnError
+  >({
+    url: "/api/v1/namespaces/{namespace}/variables/{key}",
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -810,6 +972,151 @@ export const getFlowSchema = <ThrowOnError extends boolean = false>(
     GetFlowSchemaErrors,
     ThrowOnError
   >({ url: "/api/v1/schemas/flow.json", ...options });
+
+export const listSecretProviders = <ThrowOnError extends boolean = false>(
+  options?: Options<ListSecretProvidersData, ThrowOnError>,
+): RequestResult<
+  ListSecretProvidersResponses,
+  ListSecretProvidersErrors,
+  ThrowOnError
+> =>
+  (options?.client ?? client).get<
+    ListSecretProvidersResponses,
+    ListSecretProvidersErrors,
+    ThrowOnError
+  >({ url: "/api/v1/secret-providers", ...options });
+
+export const createSecretProvider = <ThrowOnError extends boolean = false>(
+  options: Options<CreateSecretProviderData, ThrowOnError>,
+): RequestResult<
+  CreateSecretProviderResponses,
+  CreateSecretProviderErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    CreateSecretProviderResponses,
+    CreateSecretProviderErrors,
+    ThrowOnError
+  >({
+    url: "/api/v1/secret-providers",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const deleteSecretProvider = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteSecretProviderData, ThrowOnError>,
+): RequestResult<
+  DeleteSecretProviderResponses,
+  DeleteSecretProviderErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).delete<
+    DeleteSecretProviderResponses,
+    DeleteSecretProviderErrors,
+    ThrowOnError
+  >({ url: "/api/v1/secret-providers/{name}", ...options });
+
+export const updateSecretProvider = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateSecretProviderData, ThrowOnError>,
+): RequestResult<
+  UpdateSecretProviderResponses,
+  UpdateSecretProviderErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).put<
+    UpdateSecretProviderResponses,
+    UpdateSecretProviderErrors,
+    ThrowOnError
+  >({
+    url: "/api/v1/secret-providers/{name}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const checkSecretProvider = <ThrowOnError extends boolean = false>(
+  options: Options<CheckSecretProviderData, ThrowOnError>,
+): RequestResult<
+  CheckSecretProviderResponses,
+  CheckSecretProviderErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    CheckSecretProviderResponses,
+    CheckSecretProviderErrors,
+    ThrowOnError
+  >({
+    url: "/api/v1/secret-providers/{name}/check",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const listGlobalSecrets = <ThrowOnError extends boolean = false>(
+  options?: Options<ListGlobalSecretsData, ThrowOnError>,
+): RequestResult<
+  ListGlobalSecretsResponses,
+  ListGlobalSecretsErrors,
+  ThrowOnError
+> =>
+  (options?.client ?? client).get<
+    ListGlobalSecretsResponses,
+    ListGlobalSecretsErrors,
+    ThrowOnError
+  >({ url: "/api/v1/secrets", ...options });
+
+export const deleteGlobalSecret = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteGlobalSecretData, ThrowOnError>,
+): RequestResult<
+  DeleteGlobalSecretResponses,
+  DeleteGlobalSecretErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).delete<
+    DeleteGlobalSecretResponses,
+    DeleteGlobalSecretErrors,
+    ThrowOnError
+  >({ url: "/api/v1/secrets/{key}", ...options });
+
+export const putGlobalSecret = <ThrowOnError extends boolean = false>(
+  options: Options<PutGlobalSecretData, ThrowOnError>,
+): RequestResult<
+  PutGlobalSecretResponses,
+  PutGlobalSecretErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).put<
+    PutGlobalSecretResponses,
+    PutGlobalSecretErrors,
+    ThrowOnError
+  >({
+    url: "/api/v1/secrets/{key}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const checkGlobalSecret = <ThrowOnError extends boolean = false>(
+  options: Options<CheckGlobalSecretData, ThrowOnError>,
+): RequestResult<
+  CheckGlobalSecretResponses,
+  CheckGlobalSecretErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    CheckGlobalSecretResponses,
+    CheckGlobalSecretErrors,
+    ThrowOnError
+  >({ url: "/api/v1/secrets/{key}/check", ...options });
 
 export const listTokens = <ThrowOnError extends boolean = false>(
   options?: Options<ListTokensData, ThrowOnError>,
@@ -899,6 +1206,52 @@ export const resetUserPassword = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     url: "/api/v1/users/{userId}/reset-password",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const listGlobalVariables = <ThrowOnError extends boolean = false>(
+  options?: Options<ListGlobalVariablesData, ThrowOnError>,
+): RequestResult<
+  ListGlobalVariablesResponses,
+  ListGlobalVariablesErrors,
+  ThrowOnError
+> =>
+  (options?.client ?? client).get<
+    ListGlobalVariablesResponses,
+    ListGlobalVariablesErrors,
+    ThrowOnError
+  >({ url: "/api/v1/variables", ...options });
+
+export const deleteGlobalVariable = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteGlobalVariableData, ThrowOnError>,
+): RequestResult<
+  DeleteGlobalVariableResponses,
+  DeleteGlobalVariableErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).delete<
+    DeleteGlobalVariableResponses,
+    DeleteGlobalVariableErrors,
+    ThrowOnError
+  >({ url: "/api/v1/variables/{key}", ...options });
+
+export const putGlobalVariable = <ThrowOnError extends boolean = false>(
+  options: Options<PutGlobalVariableData, ThrowOnError>,
+): RequestResult<
+  PutGlobalVariableResponses,
+  PutGlobalVariableErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).put<
+    PutGlobalVariableResponses,
+    PutGlobalVariableErrors,
+    ThrowOnError
+  >({
+    url: "/api/v1/variables/{key}",
     ...options,
     headers: {
       "Content-Type": "application/json",

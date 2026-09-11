@@ -30,8 +30,10 @@ import (
 	"github.com/alternayte/sluice/internal/platform/lease"
 	"github.com/alternayte/sluice/internal/platform/logging"
 	"github.com/alternayte/sluice/internal/platform/promx"
+	"github.com/alternayte/sluice/internal/secret"
 	"github.com/alternayte/sluice/internal/storage"
 	"github.com/alternayte/sluice/internal/trigger"
+	"github.com/alternayte/sluice/internal/variable"
 )
 
 func storageConfig(cfg *Config) storage.Config {
@@ -63,6 +65,8 @@ type Server struct {
 	Namespaces *namespace.Service
 	Engine     *execution.Engine
 	Triggers   *trigger.Service
+	Secrets    *secret.Service
+	Variables  *variable.Service
 
 	httpServer *http.Server
 	listener   net.Listener
@@ -142,6 +146,21 @@ func newServer(ctx context.Context, cfg *Config, log *slog.Logger, clk clock.Clo
 	s.Triggers = &trigger.Service{Pool: pool, Clock: clk, Audit: s.Audit, Log: log, Starter: triggerStarter{s.Engine},
 		Holder: id.String(), PublicURL: cfg.PublicURL}
 	s.Engine.EndHooks = append(s.Engine.EndHooks, flowTriggerHook(s.Triggers))
+	keys, err := masterKeyring(cfg)
+	if err != nil {
+		pool.Close()
+		return nil, err
+	}
+	s.Secrets = &secret.Service{Pool: pool, Clock: clk, Audit: s.Audit, Log: log, Keys: keys, CacheTTL: cfg.SecretCacheTTL,
+		Vault:         secret.VaultAuth{Addr: cfg.VaultAddr, Token: cfg.VaultToken, K8sRole: cfg.VaultK8sRole},
+		K8sKubeconfig: cfg.K8sKubeconfig, K8sNamespace: cfg.K8sNamespace}
+	if err := s.Secrets.EnsureDefaults(ctx); err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("secret providers: %w", err)
+	}
+	s.Health.Add("master_keys", s.Secrets.CheckKeys)
+	s.Engine.Secrets = secretResolver{s.Secrets}
+	s.Variables = &variable.Service{Pool: pool, Clock: clk, Audit: s.Audit}
 	created, err := s.Auth.Bootstrap(ctx, cfg.BootstrapAdminEmail, cfg.BootstrapAdminPassword)
 	if err != nil {
 		pool.Close()

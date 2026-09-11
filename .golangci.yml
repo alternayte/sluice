@@ -72,6 +72,16 @@ linters:
           deny:
             - pkg: github.com/alternayte/sluice/internal/trigger
               desc: a feature does not import another feature (SDD §4.4)
+        only-app-imports-secret:
+          files: ["**/internal/**", "!**/internal/secret/**", "!**/internal/app/**"]
+          deny:
+            - pkg: github.com/alternayte/sluice/internal/secret
+              desc: a feature does not import another feature (SDD §4.4)
+        only-app-imports-variable:
+          files: ["**/internal/**", "!**/internal/variable/**", "!**/internal/app/**"]
+          deny:
+            - pkg: github.com/alternayte/sluice/internal/variable
+              desc: a feature does not import another feature (SDD §4.4)
         only-execution-imports-executor:
           files: ["**/internal/**", "!**/internal/executor/**", "!**/internal/execution/**", "!**/internal/app/**"]
           deny:

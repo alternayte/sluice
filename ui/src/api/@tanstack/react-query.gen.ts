@@ -12,10 +12,19 @@ import { client } from "../client.gen";
 import {
   cancelExecution,
   changePassword,
+  checkGlobalSecret,
+  checkNamespaceSecret,
+  checkSecretProvider,
   createNamespace,
+  createSecretProvider,
   createToken,
   createUser,
+  deleteGlobalSecret,
+  deleteGlobalVariable,
   deleteNamespace,
+  deleteNamespaceSecret,
+  deleteNamespaceVariable,
+  deleteSecretProvider,
   diffFlowRevisions,
   diffVersions,
   downloadArtifact,
@@ -36,8 +45,13 @@ import {
   listFiles,
   listFlowRevisions,
   listFlows,
+  listGlobalSecrets,
+  listGlobalVariables,
   listInstances,
   listNamespaces,
+  listNamespaceSecrets,
+  listNamespaceVariables,
+  listSecretProviders,
   listTokens,
   listUpcomingSchedules,
   listUsers,
@@ -45,6 +59,10 @@ import {
   login,
   logout,
   type Options,
+  putGlobalSecret,
+  putGlobalVariable,
+  putNamespaceSecret,
+  putNamespaceVariable,
   rerunExecution,
   resetUserPassword,
   restartExecution,
@@ -64,6 +82,7 @@ import {
   triggerFlow,
   updateFlow,
   updateMe,
+  updateSecretProvider,
   updateUser,
   uploadFile,
   validateFile,
@@ -75,18 +94,45 @@ import type {
   ChangePasswordData,
   ChangePasswordError,
   ChangePasswordResponse,
+  CheckGlobalSecretData,
+  CheckGlobalSecretError,
+  CheckGlobalSecretResponse,
+  CheckNamespaceSecretData,
+  CheckNamespaceSecretError,
+  CheckNamespaceSecretResponse,
+  CheckSecretProviderData,
+  CheckSecretProviderError,
+  CheckSecretProviderResponse,
   CreateNamespaceData,
   CreateNamespaceError,
   CreateNamespaceResponse,
+  CreateSecretProviderData,
+  CreateSecretProviderError,
+  CreateSecretProviderResponse,
   CreateTokenData,
   CreateTokenError,
   CreateTokenResponse,
   CreateUserData,
   CreateUserError,
   CreateUserResponse,
+  DeleteGlobalSecretData,
+  DeleteGlobalSecretError,
+  DeleteGlobalSecretResponse,
+  DeleteGlobalVariableData,
+  DeleteGlobalVariableError,
+  DeleteGlobalVariableResponse,
   DeleteNamespaceData,
   DeleteNamespaceError,
   DeleteNamespaceResponse,
+  DeleteNamespaceSecretData,
+  DeleteNamespaceSecretError,
+  DeleteNamespaceSecretResponse,
+  DeleteNamespaceVariableData,
+  DeleteNamespaceVariableError,
+  DeleteNamespaceVariableResponse,
+  DeleteSecretProviderData,
+  DeleteSecretProviderError,
+  DeleteSecretProviderResponse,
   DiffFlowRevisionsData,
   DiffFlowRevisionsError,
   DiffFlowRevisionsResponse,
@@ -140,12 +186,27 @@ import type {
   ListFlowsData,
   ListFlowsError,
   ListFlowsResponse,
+  ListGlobalSecretsData,
+  ListGlobalSecretsError,
+  ListGlobalSecretsResponse,
+  ListGlobalVariablesData,
+  ListGlobalVariablesError,
+  ListGlobalVariablesResponse,
   ListInstancesData,
   ListInstancesError,
   ListInstancesResponse,
   ListNamespacesData,
+  ListNamespaceSecretsData,
+  ListNamespaceSecretsError,
+  ListNamespaceSecretsResponse,
   ListNamespacesError,
   ListNamespacesResponse,
+  ListNamespaceVariablesData,
+  ListNamespaceVariablesError,
+  ListNamespaceVariablesResponse,
+  ListSecretProvidersData,
+  ListSecretProvidersError,
+  ListSecretProvidersResponse,
   ListTokensData,
   ListTokensError,
   ListTokensResponse,
@@ -164,6 +225,18 @@ import type {
   LogoutData,
   LogoutError,
   LogoutResponse,
+  PutGlobalSecretData,
+  PutGlobalSecretError,
+  PutGlobalSecretResponse,
+  PutGlobalVariableData,
+  PutGlobalVariableError,
+  PutGlobalVariableResponse,
+  PutNamespaceSecretData,
+  PutNamespaceSecretError,
+  PutNamespaceSecretResponse,
+  PutNamespaceVariableData,
+  PutNamespaceVariableError,
+  PutNamespaceVariableResponse,
   RerunExecutionData,
   RerunExecutionError,
   RerunExecutionResponse,
@@ -219,6 +292,9 @@ import type {
   UpdateMeData,
   UpdateMeError,
   UpdateMeResponse,
+  UpdateSecretProviderData,
+  UpdateSecretProviderError,
+  UpdateSecretProviderResponse,
   UpdateUserData,
   UpdateUserError,
   UpdateUserResponse,
@@ -1518,6 +1594,103 @@ export const runFileMutation = (
   return mutationOptions;
 };
 
+export const listNamespaceSecretsQueryKey = (
+  options: Options<ListNamespaceSecretsData>,
+) => createQueryKey("listNamespaceSecrets", options);
+
+export const listNamespaceSecretsOptions = (
+  options: Options<ListNamespaceSecretsData>,
+) =>
+  queryOptions<
+    ListNamespaceSecretsResponse,
+    ListNamespaceSecretsError,
+    ListNamespaceSecretsResponse,
+    ReturnType<typeof listNamespaceSecretsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listNamespaceSecrets({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listNamespaceSecretsQueryKey(options),
+  });
+
+export const deleteNamespaceSecretMutation = (
+  options?: Partial<Options<DeleteNamespaceSecretData>>,
+): UseMutationOptions<
+  DeleteNamespaceSecretResponse,
+  DeleteNamespaceSecretError,
+  Options<DeleteNamespaceSecretData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteNamespaceSecretResponse,
+    DeleteNamespaceSecretError,
+    Options<DeleteNamespaceSecretData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteNamespaceSecret({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const putNamespaceSecretMutation = (
+  options?: Partial<Options<PutNamespaceSecretData>>,
+): UseMutationOptions<
+  PutNamespaceSecretResponse,
+  PutNamespaceSecretError,
+  Options<PutNamespaceSecretData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    PutNamespaceSecretResponse,
+    PutNamespaceSecretError,
+    Options<PutNamespaceSecretData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await putNamespaceSecret({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const checkNamespaceSecretMutation = (
+  options?: Partial<Options<CheckNamespaceSecretData>>,
+): UseMutationOptions<
+  CheckNamespaceSecretResponse,
+  CheckNamespaceSecretError,
+  Options<CheckNamespaceSecretData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CheckNamespaceSecretResponse,
+    CheckNamespaceSecretError,
+    Options<CheckNamespaceSecretData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await checkNamespaceSecret({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
 export const validateFileMutation = (
   options?: Partial<Options<ValidateFileData>>,
 ): UseMutationOptions<
@@ -1532,6 +1705,79 @@ export const validateFileMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await validateFile({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listNamespaceVariablesQueryKey = (
+  options: Options<ListNamespaceVariablesData>,
+) => createQueryKey("listNamespaceVariables", options);
+
+export const listNamespaceVariablesOptions = (
+  options: Options<ListNamespaceVariablesData>,
+) =>
+  queryOptions<
+    ListNamespaceVariablesResponse,
+    ListNamespaceVariablesError,
+    ListNamespaceVariablesResponse,
+    ReturnType<typeof listNamespaceVariablesQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listNamespaceVariables({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listNamespaceVariablesQueryKey(options),
+  });
+
+export const deleteNamespaceVariableMutation = (
+  options?: Partial<Options<DeleteNamespaceVariableData>>,
+): UseMutationOptions<
+  DeleteNamespaceVariableResponse,
+  DeleteNamespaceVariableError,
+  Options<DeleteNamespaceVariableData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteNamespaceVariableResponse,
+    DeleteNamespaceVariableError,
+    Options<DeleteNamespaceVariableData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteNamespaceVariable({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const putNamespaceVariableMutation = (
+  options?: Partial<Options<PutNamespaceVariableData>>,
+): UseMutationOptions<
+  PutNamespaceVariableResponse,
+  PutNamespaceVariableError,
+  Options<PutNamespaceVariableData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    PutNamespaceVariableResponse,
+    PutNamespaceVariableError,
+    Options<PutNamespaceVariableData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await putNamespaceVariable({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -1610,6 +1856,224 @@ export const getFlowSchemaOptions = (options?: Options<GetFlowSchemaData>) =>
     },
     queryKey: getFlowSchemaQueryKey(options),
   });
+
+export const listSecretProvidersQueryKey = (
+  options?: Options<ListSecretProvidersData>,
+) => createQueryKey("listSecretProviders", options);
+
+export const listSecretProvidersOptions = (
+  options?: Options<ListSecretProvidersData>,
+) =>
+  queryOptions<
+    ListSecretProvidersResponse,
+    ListSecretProvidersError,
+    ListSecretProvidersResponse,
+    ReturnType<typeof listSecretProvidersQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listSecretProviders({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listSecretProvidersQueryKey(options),
+  });
+
+export const createSecretProviderMutation = (
+  options?: Partial<Options<CreateSecretProviderData>>,
+): UseMutationOptions<
+  CreateSecretProviderResponse,
+  CreateSecretProviderError,
+  Options<CreateSecretProviderData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateSecretProviderResponse,
+    CreateSecretProviderError,
+    Options<CreateSecretProviderData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createSecretProvider({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const deleteSecretProviderMutation = (
+  options?: Partial<Options<DeleteSecretProviderData>>,
+): UseMutationOptions<
+  DeleteSecretProviderResponse,
+  DeleteSecretProviderError,
+  Options<DeleteSecretProviderData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteSecretProviderResponse,
+    DeleteSecretProviderError,
+    Options<DeleteSecretProviderData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteSecretProvider({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const updateSecretProviderMutation = (
+  options?: Partial<Options<UpdateSecretProviderData>>,
+): UseMutationOptions<
+  UpdateSecretProviderResponse,
+  UpdateSecretProviderError,
+  Options<UpdateSecretProviderData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UpdateSecretProviderResponse,
+    UpdateSecretProviderError,
+    Options<UpdateSecretProviderData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await updateSecretProvider({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const checkSecretProviderMutation = (
+  options?: Partial<Options<CheckSecretProviderData>>,
+): UseMutationOptions<
+  CheckSecretProviderResponse,
+  CheckSecretProviderError,
+  Options<CheckSecretProviderData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CheckSecretProviderResponse,
+    CheckSecretProviderError,
+    Options<CheckSecretProviderData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await checkSecretProvider({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listGlobalSecretsQueryKey = (
+  options?: Options<ListGlobalSecretsData>,
+) => createQueryKey("listGlobalSecrets", options);
+
+export const listGlobalSecretsOptions = (
+  options?: Options<ListGlobalSecretsData>,
+) =>
+  queryOptions<
+    ListGlobalSecretsResponse,
+    ListGlobalSecretsError,
+    ListGlobalSecretsResponse,
+    ReturnType<typeof listGlobalSecretsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listGlobalSecrets({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listGlobalSecretsQueryKey(options),
+  });
+
+export const deleteGlobalSecretMutation = (
+  options?: Partial<Options<DeleteGlobalSecretData>>,
+): UseMutationOptions<
+  DeleteGlobalSecretResponse,
+  DeleteGlobalSecretError,
+  Options<DeleteGlobalSecretData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteGlobalSecretResponse,
+    DeleteGlobalSecretError,
+    Options<DeleteGlobalSecretData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteGlobalSecret({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const putGlobalSecretMutation = (
+  options?: Partial<Options<PutGlobalSecretData>>,
+): UseMutationOptions<
+  PutGlobalSecretResponse,
+  PutGlobalSecretError,
+  Options<PutGlobalSecretData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    PutGlobalSecretResponse,
+    PutGlobalSecretError,
+    Options<PutGlobalSecretData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await putGlobalSecret({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const checkGlobalSecretMutation = (
+  options?: Partial<Options<CheckGlobalSecretData>>,
+): UseMutationOptions<
+  CheckGlobalSecretResponse,
+  CheckGlobalSecretError,
+  Options<CheckGlobalSecretData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CheckGlobalSecretResponse,
+    CheckGlobalSecretError,
+    Options<CheckGlobalSecretData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await checkGlobalSecret({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 export const listTokensQueryKey = (options?: Options<ListTokensData>) =>
   createQueryKey("listTokens", options);
@@ -1861,6 +2325,79 @@ export const resetUserPasswordMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await resetUserPassword({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listGlobalVariablesQueryKey = (
+  options?: Options<ListGlobalVariablesData>,
+) => createQueryKey("listGlobalVariables", options);
+
+export const listGlobalVariablesOptions = (
+  options?: Options<ListGlobalVariablesData>,
+) =>
+  queryOptions<
+    ListGlobalVariablesResponse,
+    ListGlobalVariablesError,
+    ListGlobalVariablesResponse,
+    ReturnType<typeof listGlobalVariablesQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listGlobalVariables({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listGlobalVariablesQueryKey(options),
+  });
+
+export const deleteGlobalVariableMutation = (
+  options?: Partial<Options<DeleteGlobalVariableData>>,
+): UseMutationOptions<
+  DeleteGlobalVariableResponse,
+  DeleteGlobalVariableError,
+  Options<DeleteGlobalVariableData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteGlobalVariableResponse,
+    DeleteGlobalVariableError,
+    Options<DeleteGlobalVariableData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteGlobalVariable({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const putGlobalVariableMutation = (
+  options?: Partial<Options<PutGlobalVariableData>>,
+): UseMutationOptions<
+  PutGlobalVariableResponse,
+  PutGlobalVariableError,
+  Options<PutGlobalVariableData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    PutGlobalVariableResponse,
+    PutGlobalVariableError,
+    Options<PutGlobalVariableData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await putGlobalVariable({
         ...options,
         ...fnOptions,
         throwOnError: true,

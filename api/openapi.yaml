@@ -106,6 +106,31 @@ components:
         - current_password
         - new_password
       type: object
+    CheckResult:
+      additionalProperties: true
+      properties:
+        message:
+          type: string
+        status:
+          enum:
+            - ok
+            - not_found
+            - access_denied
+            - provider_error
+          type: string
+      required:
+        - status
+      type: object
+    CheckSecretProviderRequest:
+      additionalProperties: true
+      properties:
+        ref:
+          maxLength: 512
+          minLength: 1
+          type: string
+      required:
+        - ref
+      type: object
     CountResult:
       additionalProperties: true
       properties:
@@ -126,6 +151,25 @@ components:
           type: string
       required:
         - name
+      type: object
+    CreateSecretProviderRequest:
+      additionalProperties: true
+      properties:
+        config:
+          additionalProperties: {}
+          type: object
+        name:
+          pattern: ^[a-z0-9][a-z0-9_-]{0,62}$
+          type: string
+        type:
+          enum:
+            - kubernetes
+            - azure_key_vault
+            - vault
+          type: string
+      required:
+        - name
+        - type
       type: object
     CreateTokenRequest:
       additionalProperties: true
@@ -847,6 +891,45 @@ components:
       required:
         - items
       type: object
+    ProviderList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/ProviderOut"
+          type: array
+      required:
+        - items
+      type: object
+    ProviderOut:
+      additionalProperties: true
+      properties:
+        config:
+          additionalProperties: {}
+          type: object
+        created_at:
+          format: date-time
+          type: string
+        name:
+          type: string
+        type:
+          enum:
+            - builtin
+            - env
+            - kubernetes
+            - azure_key_vault
+            - vault
+          type: string
+        updated_at:
+          format: date-time
+          type: string
+      required:
+        - name
+        - type
+        - config
+        - created_at
+        - updated_at
+      type: object
     ResetPasswordRequest:
       additionalProperties: true
       properties:
@@ -1147,6 +1230,83 @@ components:
         - message
         - changes
       type: object
+    SecretInfo:
+      additionalProperties: true
+      properties:
+        description:
+          type: string
+        inherited:
+          description: True when a parent namespace or the global scope defines the secret.
+          type: boolean
+        key:
+          type: string
+        last_resolved_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        provider:
+          type: string
+        provider_type:
+          enum:
+            - builtin
+            - env
+            - kubernetes
+            - azure_key_vault
+            - vault
+          type: string
+        ref:
+          description: Reference of an external secret. Builtin secrets have none.
+          type: string
+        scope:
+          description: global or the namespace name that defines the secret.
+          type: string
+        updated_at:
+          format: date-time
+          type: string
+        updated_by:
+          type: string
+      required:
+        - key
+        - scope
+        - provider
+        - provider_type
+        - description
+        - updated_by
+        - updated_at
+        - inherited
+      type: object
+    SecretList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/SecretInfo"
+          type: array
+      required:
+        - items
+      type: object
+    SecretPut:
+      additionalProperties: true
+      properties:
+        description:
+          maxLength: 500
+          type: string
+        provider:
+          description: Provider name. Default builtin, or the provider of the existing secret.
+          maxLength: 63
+          type: string
+        ref:
+          description: Reference of an external secret, for example path#field for vault.
+          maxLength: 512
+          type: string
+        value:
+          description: Value of a builtin secret. Write-only.
+          maxLength: 65536
+          minLength: 1
+          type: string
+          writeOnly: true
+      type: object
     Snapshot:
       additionalProperties: true
       properties:
@@ -1429,6 +1589,15 @@ components:
       required:
         - name
       type: object
+    UpdateSecretProviderRequest:
+      additionalProperties: true
+      properties:
+        config:
+          additionalProperties: {}
+          type: object
+      required:
+        - config
+      type: object
     UpdateUserRequest:
       additionalProperties: true
       properties:
@@ -1525,6 +1694,51 @@ components:
         - valid
         - kind
         - errors
+      type: object
+    VariableInfo:
+      additionalProperties: true
+      properties:
+        inherited:
+          description: True when a parent namespace or the global scope defines the variable.
+          type: boolean
+        key:
+          type: string
+        scope:
+          description: global or the namespace name that defines the variable.
+          type: string
+        updated_at:
+          format: date-time
+          type: string
+        updated_by:
+          type: string
+        value:
+          type: string
+      required:
+        - key
+        - value
+        - scope
+        - updated_by
+        - updated_at
+        - inherited
+      type: object
+    VariableList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/VariableInfo"
+          type: array
+      required:
+        - items
+      type: object
+    VariablePut:
+      additionalProperties: true
+      properties:
+        value:
+          maxLength: 65536
+          type: string
+      required:
+        - value
       type: object
     VersionDiff:
       additionalProperties: true
@@ -2878,6 +3092,107 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Error
+  /api/v1/namespaces/{namespace}/secrets:
+    get:
+      operationId: listNamespaceSecrets
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecretList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/secrets/{key}:
+    delete:
+      operationId: deleteNamespaceSecret
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    put:
+      operationId: putNamespaceSecret
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecretPut"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecretInfo"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/secrets/{key}/check:
+    post:
+      operationId: checkNamespaceSecret
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckResult"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
   /api/v1/namespaces/{namespace}/validate:
     post:
       operationId: validateFile
@@ -2901,6 +3216,77 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ValidateFileResult"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/variables:
+    get:
+      operationId: listNamespaceVariables
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VariableList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/variables/{key}:
+    delete:
+      operationId: deleteNamespaceVariable
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    put:
+      operationId: putNamespaceVariable
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VariablePut"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VariableInfo"
           description: OK
         default:
           content:
@@ -2982,6 +3368,184 @@ paths:
           content:
             application/json:
               schema: {}
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/secret-providers:
+    get:
+      operationId: listSecretProviders
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    post:
+      operationId: createSecretProvider
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSecretProviderRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderOut"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/secret-providers/{name}:
+    delete:
+      operationId: deleteSecretProvider
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            pattern: ^[a-z0-9][a-z0-9_-]{0,62}$
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    put:
+      operationId: updateSecretProvider
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSecretProviderRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderOut"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/secret-providers/{name}/check:
+    post:
+      operationId: checkSecretProvider
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckSecretProviderRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckResult"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/secrets:
+    get:
+      operationId: listGlobalSecrets
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecretList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/secrets/{key}:
+    delete:
+      operationId: deleteGlobalSecret
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    put:
+      operationId: putGlobalSecret
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecretPut"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecretInfo"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/secrets/{key}/check:
+    post:
+      operationId: checkGlobalSecret
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckResult"
           description: OK
         default:
           content:
@@ -3164,6 +3728,62 @@ paths:
       responses:
         "204":
           description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/variables:
+    get:
+      operationId: listGlobalVariables
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VariableList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/variables/{key}:
+    delete:
+      operationId: deleteGlobalVariable
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    put:
+      operationId: putGlobalVariable
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VariablePut"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VariableInfo"
+          description: OK
         default:
           content:
             application/json:

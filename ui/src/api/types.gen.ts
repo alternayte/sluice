@@ -48,6 +48,17 @@ export type ChangePasswordRequest = {
   [key: string]: unknown;
 };
 
+export type CheckResult = {
+  message?: string;
+  status: "ok" | "not_found" | "access_denied" | "provider_error";
+  [key: string]: unknown;
+};
+
+export type CheckSecretProviderRequest = {
+  ref: string;
+  [key: string]: unknown;
+};
+
 export type CountResult = {
   count: number;
   [key: string]: unknown;
@@ -56,6 +67,15 @@ export type CountResult = {
 export type CreateNamespaceRequest = {
   description?: string;
   name: string;
+  [key: string]: unknown;
+};
+
+export type CreateSecretProviderRequest = {
+  config?: {
+    [key: string]: unknown;
+  };
+  name: string;
+  type: "kubernetes" | "azure_key_vault" | "vault";
   [key: string]: unknown;
 };
 
@@ -378,6 +398,22 @@ export type NamespaceList = {
   [key: string]: unknown;
 };
 
+export type ProviderList = {
+  items: Array<ProviderOut>;
+  [key: string]: unknown;
+};
+
+export type ProviderOut = {
+  config: {
+    [key: string]: unknown;
+  };
+  created_at: string;
+  name: string;
+  type: "builtin" | "env" | "kubernetes" | "azure_key_vault" | "vault";
+  updated_at: string;
+  [key: string]: unknown;
+};
+
 export type ResetPasswordRequest = {
   password: string;
   [key: string]: unknown;
@@ -507,6 +543,47 @@ export type SaveChangesRequest = {
   [key: string]: unknown;
 };
 
+export type SecretInfo = {
+  description: string;
+  /**
+   * True when a parent namespace or the global scope defines the secret.
+   */
+  inherited: boolean;
+  key: string;
+  last_resolved_at?: string | null;
+  provider: string;
+  provider_type: "builtin" | "env" | "kubernetes" | "azure_key_vault" | "vault";
+  /**
+   * Reference of an external secret. Builtin secrets have none.
+   */
+  ref?: string;
+  /**
+   * global or the namespace name that defines the secret.
+   */
+  scope: string;
+  updated_at: string;
+  updated_by: string;
+  [key: string]: unknown;
+};
+
+export type SecretList = {
+  items: Array<SecretInfo>;
+  [key: string]: unknown;
+};
+
+export type SecretPut = {
+  description?: string;
+  /**
+   * Provider name. Default builtin, or the provider of the existing secret.
+   */
+  provider?: string;
+  /**
+   * Reference of an external secret, for example path#field for vault.
+   */
+  ref?: string;
+  [key: string]: unknown;
+};
+
 export type Snapshot = {
   author: string;
   created_at: string;
@@ -628,6 +705,13 @@ export type UpdateMeRequest = {
   [key: string]: unknown;
 };
 
+export type UpdateSecretProviderRequest = {
+  config: {
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+};
+
 export type UpdateUserRequest = {
   disabled?: boolean;
   name?: string;
@@ -667,6 +751,32 @@ export type ValidateFileResult = {
   [key: string]: unknown;
 };
 
+export type VariableInfo = {
+  /**
+   * True when a parent namespace or the global scope defines the variable.
+   */
+  inherited: boolean;
+  key: string;
+  /**
+   * global or the namespace name that defines the variable.
+   */
+  scope: string;
+  updated_at: string;
+  updated_by: string;
+  value: string;
+  [key: string]: unknown;
+};
+
+export type VariableList = {
+  items: Array<VariableInfo>;
+  [key: string]: unknown;
+};
+
+export type VariablePut = {
+  value: string;
+  [key: string]: unknown;
+};
+
 export type VersionDiff = {
   files: Array<FileDiff>;
   from: number;
@@ -677,6 +787,23 @@ export type VersionDiff = {
 export type WebhookKey = {
   key: string;
   url: string;
+  [key: string]: unknown;
+};
+
+export type SecretPutWritable = {
+  description?: string;
+  /**
+   * Provider name. Default builtin, or the provider of the existing secret.
+   */
+  provider?: string;
+  /**
+   * Reference of an external secret, for example path#field for vault.
+   */
+  ref?: string;
+  /**
+   * Value of a builtin secret. Write-only.
+   */
+  value?: string;
   [key: string]: unknown;
 };
 
@@ -1987,6 +2114,122 @@ export type RunFileResponses = {
 
 export type RunFileResponse = RunFileResponses[keyof RunFileResponses];
 
+export type ListNamespaceSecretsData = {
+  body?: never;
+  path: {
+    namespace: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/secrets";
+};
+
+export type ListNamespaceSecretsErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListNamespaceSecretsError =
+  ListNamespaceSecretsErrors[keyof ListNamespaceSecretsErrors];
+
+export type ListNamespaceSecretsResponses = {
+  /**
+   * OK
+   */
+  200: SecretList;
+};
+
+export type ListNamespaceSecretsResponse =
+  ListNamespaceSecretsResponses[keyof ListNamespaceSecretsResponses];
+
+export type DeleteNamespaceSecretData = {
+  body?: never;
+  path: {
+    namespace: string;
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/secrets/{key}";
+};
+
+export type DeleteNamespaceSecretErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteNamespaceSecretError =
+  DeleteNamespaceSecretErrors[keyof DeleteNamespaceSecretErrors];
+
+export type DeleteNamespaceSecretResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteNamespaceSecretResponse =
+  DeleteNamespaceSecretResponses[keyof DeleteNamespaceSecretResponses];
+
+export type PutNamespaceSecretData = {
+  body: SecretPutWritable;
+  path?: never;
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/secrets/{key}";
+};
+
+export type PutNamespaceSecretErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type PutNamespaceSecretError =
+  PutNamespaceSecretErrors[keyof PutNamespaceSecretErrors];
+
+export type PutNamespaceSecretResponses = {
+  /**
+   * OK
+   */
+  200: SecretInfo;
+};
+
+export type PutNamespaceSecretResponse =
+  PutNamespaceSecretResponses[keyof PutNamespaceSecretResponses];
+
+export type CheckNamespaceSecretData = {
+  body?: never;
+  path: {
+    namespace: string;
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/secrets/{key}/check";
+};
+
+export type CheckNamespaceSecretErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type CheckNamespaceSecretError =
+  CheckNamespaceSecretErrors[keyof CheckNamespaceSecretErrors];
+
+export type CheckNamespaceSecretResponses = {
+  /**
+   * OK
+   */
+  200: CheckResult;
+};
+
+export type CheckNamespaceSecretResponse =
+  CheckNamespaceSecretResponses[keyof CheckNamespaceSecretResponses];
+
 export type ValidateFileData = {
   body: ValidateFileRequest;
   path: {
@@ -2014,6 +2257,92 @@ export type ValidateFileResponses = {
 
 export type ValidateFileResponse =
   ValidateFileResponses[keyof ValidateFileResponses];
+
+export type ListNamespaceVariablesData = {
+  body?: never;
+  path: {
+    namespace: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/variables";
+};
+
+export type ListNamespaceVariablesErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListNamespaceVariablesError =
+  ListNamespaceVariablesErrors[keyof ListNamespaceVariablesErrors];
+
+export type ListNamespaceVariablesResponses = {
+  /**
+   * OK
+   */
+  200: VariableList;
+};
+
+export type ListNamespaceVariablesResponse =
+  ListNamespaceVariablesResponses[keyof ListNamespaceVariablesResponses];
+
+export type DeleteNamespaceVariableData = {
+  body?: never;
+  path: {
+    namespace: string;
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/variables/{key}";
+};
+
+export type DeleteNamespaceVariableErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteNamespaceVariableError =
+  DeleteNamespaceVariableErrors[keyof DeleteNamespaceVariableErrors];
+
+export type DeleteNamespaceVariableResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteNamespaceVariableResponse =
+  DeleteNamespaceVariableResponses[keyof DeleteNamespaceVariableResponses];
+
+export type PutNamespaceVariableData = {
+  body: VariablePut;
+  path?: never;
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/variables/{key}";
+};
+
+export type PutNamespaceVariableErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type PutNamespaceVariableError =
+  PutNamespaceVariableErrors[keyof PutNamespaceVariableErrors];
+
+export type PutNamespaceVariableResponses = {
+  /**
+   * OK
+   */
+  200: VariableInfo;
+};
+
+export type PutNamespaceVariableResponse =
+  PutNamespaceVariableResponses[keyof PutNamespaceVariableResponses];
 
 export type ListVersionsData = {
   body?: never;
@@ -2100,6 +2429,255 @@ export type GetFlowSchemaResponses = {
    */
   200: unknown;
 };
+
+export type ListSecretProvidersData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/secret-providers";
+};
+
+export type ListSecretProvidersErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListSecretProvidersError =
+  ListSecretProvidersErrors[keyof ListSecretProvidersErrors];
+
+export type ListSecretProvidersResponses = {
+  /**
+   * OK
+   */
+  200: ProviderList;
+};
+
+export type ListSecretProvidersResponse =
+  ListSecretProvidersResponses[keyof ListSecretProvidersResponses];
+
+export type CreateSecretProviderData = {
+  body: CreateSecretProviderRequest;
+  path?: never;
+  query?: never;
+  url: "/api/v1/secret-providers";
+};
+
+export type CreateSecretProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type CreateSecretProviderError =
+  CreateSecretProviderErrors[keyof CreateSecretProviderErrors];
+
+export type CreateSecretProviderResponses = {
+  /**
+   * Created
+   */
+  201: ProviderOut;
+};
+
+export type CreateSecretProviderResponse =
+  CreateSecretProviderResponses[keyof CreateSecretProviderResponses];
+
+export type DeleteSecretProviderData = {
+  body?: never;
+  path: {
+    name: string;
+  };
+  query?: never;
+  url: "/api/v1/secret-providers/{name}";
+};
+
+export type DeleteSecretProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteSecretProviderError =
+  DeleteSecretProviderErrors[keyof DeleteSecretProviderErrors];
+
+export type DeleteSecretProviderResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteSecretProviderResponse =
+  DeleteSecretProviderResponses[keyof DeleteSecretProviderResponses];
+
+export type UpdateSecretProviderData = {
+  body: UpdateSecretProviderRequest;
+  path?: never;
+  query?: never;
+  url: "/api/v1/secret-providers/{name}";
+};
+
+export type UpdateSecretProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type UpdateSecretProviderError =
+  UpdateSecretProviderErrors[keyof UpdateSecretProviderErrors];
+
+export type UpdateSecretProviderResponses = {
+  /**
+   * OK
+   */
+  200: ProviderOut;
+};
+
+export type UpdateSecretProviderResponse =
+  UpdateSecretProviderResponses[keyof UpdateSecretProviderResponses];
+
+export type CheckSecretProviderData = {
+  body: CheckSecretProviderRequest;
+  path?: never;
+  query?: never;
+  url: "/api/v1/secret-providers/{name}/check";
+};
+
+export type CheckSecretProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type CheckSecretProviderError =
+  CheckSecretProviderErrors[keyof CheckSecretProviderErrors];
+
+export type CheckSecretProviderResponses = {
+  /**
+   * OK
+   */
+  200: CheckResult;
+};
+
+export type CheckSecretProviderResponse =
+  CheckSecretProviderResponses[keyof CheckSecretProviderResponses];
+
+export type ListGlobalSecretsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/secrets";
+};
+
+export type ListGlobalSecretsErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListGlobalSecretsError =
+  ListGlobalSecretsErrors[keyof ListGlobalSecretsErrors];
+
+export type ListGlobalSecretsResponses = {
+  /**
+   * OK
+   */
+  200: SecretList;
+};
+
+export type ListGlobalSecretsResponse =
+  ListGlobalSecretsResponses[keyof ListGlobalSecretsResponses];
+
+export type DeleteGlobalSecretData = {
+  body?: never;
+  path: {
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/secrets/{key}";
+};
+
+export type DeleteGlobalSecretErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteGlobalSecretError =
+  DeleteGlobalSecretErrors[keyof DeleteGlobalSecretErrors];
+
+export type DeleteGlobalSecretResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteGlobalSecretResponse =
+  DeleteGlobalSecretResponses[keyof DeleteGlobalSecretResponses];
+
+export type PutGlobalSecretData = {
+  body: SecretPutWritable;
+  path?: never;
+  query?: never;
+  url: "/api/v1/secrets/{key}";
+};
+
+export type PutGlobalSecretErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type PutGlobalSecretError =
+  PutGlobalSecretErrors[keyof PutGlobalSecretErrors];
+
+export type PutGlobalSecretResponses = {
+  /**
+   * OK
+   */
+  200: SecretInfo;
+};
+
+export type PutGlobalSecretResponse =
+  PutGlobalSecretResponses[keyof PutGlobalSecretResponses];
+
+export type CheckGlobalSecretData = {
+  body?: never;
+  path: {
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/secrets/{key}/check";
+};
+
+export type CheckGlobalSecretErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type CheckGlobalSecretError =
+  CheckGlobalSecretErrors[keyof CheckGlobalSecretErrors];
+
+export type CheckGlobalSecretResponses = {
+  /**
+   * OK
+   */
+  200: CheckResult;
+};
+
+export type CheckGlobalSecretResponse =
+  CheckGlobalSecretResponses[keyof CheckGlobalSecretResponses];
 
 export type ListTokensData = {
   body?: never;
@@ -2295,6 +2873,89 @@ export type ResetUserPasswordResponses = {
 
 export type ResetUserPasswordResponse =
   ResetUserPasswordResponses[keyof ResetUserPasswordResponses];
+
+export type ListGlobalVariablesData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/variables";
+};
+
+export type ListGlobalVariablesErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListGlobalVariablesError =
+  ListGlobalVariablesErrors[keyof ListGlobalVariablesErrors];
+
+export type ListGlobalVariablesResponses = {
+  /**
+   * OK
+   */
+  200: VariableList;
+};
+
+export type ListGlobalVariablesResponse =
+  ListGlobalVariablesResponses[keyof ListGlobalVariablesResponses];
+
+export type DeleteGlobalVariableData = {
+  body?: never;
+  path: {
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/variables/{key}";
+};
+
+export type DeleteGlobalVariableErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteGlobalVariableError =
+  DeleteGlobalVariableErrors[keyof DeleteGlobalVariableErrors];
+
+export type DeleteGlobalVariableResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteGlobalVariableResponse =
+  DeleteGlobalVariableResponses[keyof DeleteGlobalVariableResponses];
+
+export type PutGlobalVariableData = {
+  body: VariablePut;
+  path?: never;
+  query?: never;
+  url: "/api/v1/variables/{key}";
+};
+
+export type PutGlobalVariableErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type PutGlobalVariableError =
+  PutGlobalVariableErrors[keyof PutGlobalVariableErrors];
+
+export type PutGlobalVariableResponses = {
+  /**
+   * OK
+   */
+  200: VariableInfo;
+};
+
+export type PutGlobalVariableResponse =
+  PutGlobalVariableResponses[keyof PutGlobalVariableResponses];
 
 export type FireWebhookData = {
   body?: never;

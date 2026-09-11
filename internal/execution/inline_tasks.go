@@ -172,7 +172,7 @@ func (e *Engine) runSubflow(ctx context.Context, p *Plan) {
 	parentExec := tr.ExecutionID
 	parentTask := tr.ID
 	err = pgx.BeginFunc(ctx, e.Pool, func(tx pgx.Tx) error {
-		cp := CreateParams{NamespaceID: ref.Flow.NamespaceID, FlowID: &ref.Flow.ID, RevisionID: &ref.Revision.ID, SnapshotID: ref.Revision.SnapshotID,
+		cp := CreateParams{NamespaceID: ref.Flow.NamespaceID, FlowID: &ref.Flow.ID, RevisionID: &ref.Revision.ID, SnapshotID: ref.SnapshotID,
 			Def: ref.Def, TriggerType: "subflow", Inputs: inputs, ChainDepth: depth, ParentExecID: &parentExec,
 			TriggerPayload: map[string]any{"parent_execution_id": parentExec.String(), "parent_task": tr.TaskKey}}
 		if wait {

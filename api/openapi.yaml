@@ -1,5 +1,78 @@
 components:
   schemas:
+    AIProvider:
+      additionalProperties: true
+      properties:
+        api_key_secret_key:
+          description: Global secret key that holds the API key.
+          type: string
+        auto_triage:
+          type: boolean
+        base_url:
+          description: Empty uses the default URL of the type.
+          type: string
+        configured:
+          type: boolean
+        model:
+          type: string
+        type:
+          enum:
+            - anthropic
+            - openai_compatible
+          type: string
+      required:
+        - configured
+        - auto_triage
+      type: object
+    AIProviderPut:
+      additionalProperties: true
+      properties:
+        api_key_secret_key:
+          pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+          type: string
+        auto_triage:
+          type: boolean
+        base_url:
+          maxLength: 512
+          type: string
+        model:
+          maxLength: 200
+          minLength: 1
+          type: string
+        type:
+          enum:
+            - anthropic
+            - openai_compatible
+          type: string
+      required:
+        - type
+        - model
+        - api_key_secret_key
+      type: object
+    AIStatus:
+      additionalProperties: true
+      properties:
+        auto_triage:
+          type: boolean
+        enabled:
+          type: boolean
+      required:
+        - enabled
+        - auto_triage
+      type: object
+    AITestResult:
+      additionalProperties: true
+      properties:
+        message:
+          type: string
+        status:
+          enum:
+            - ok
+            - failed
+          type: string
+      required:
+        - status
+      type: object
     Artifact:
       additionalProperties: true
       properties:
@@ -92,6 +165,64 @@ components:
       required:
         - items
       type: object
+    Block:
+      additionalProperties: true
+      properties:
+        input: {}
+        is_error:
+          type: boolean
+        text:
+          type: string
+        tool_name:
+          type: string
+        tool_use_id:
+          type: string
+        type:
+          type: string
+      required:
+        - type
+      type: object
+    BucketOut:
+      additionalProperties: true
+      properties:
+        cancelled:
+          format: int64
+          type: integer
+        failed:
+          format: int64
+          type: integer
+        p50_ms:
+          format: double
+          type:
+            - number
+            - "null"
+        p95_ms:
+          format: double
+          type:
+            - number
+            - "null"
+        skipped:
+          format: int64
+          type: integer
+        start:
+          format: date-time
+          type: string
+        success:
+          format: int64
+          type: integer
+        timed_out:
+          format: int64
+          type: integer
+      required:
+        - start
+        - success
+        - failed
+        - timed_out
+        - cancelled
+        - skipped
+        - p50_ms
+        - p95_ms
+      type: object
     ChangePasswordRequest:
       additionalProperties: true
       properties:
@@ -106,6 +237,81 @@ components:
         - current_password
         - new_password
       type: object
+    CheckResult:
+      additionalProperties: true
+      properties:
+        message:
+          type: string
+        status:
+          enum:
+            - ok
+            - not_found
+            - access_denied
+            - provider_error
+          type: string
+      required:
+        - status
+      type: object
+    CheckSecretProviderRequest:
+      additionalProperties: true
+      properties:
+        ref:
+          maxLength: 512
+          minLength: 1
+          type: string
+      required:
+        - ref
+      type: object
+    Conversation:
+      additionalProperties: true
+      properties:
+        created_at:
+          format: date-time
+          type: string
+        id:
+          type: string
+        title:
+          type: string
+      required:
+        - id
+        - title
+        - created_at
+      type: object
+    ConversationDetail:
+      additionalProperties: true
+      properties:
+        actions:
+          items:
+            $ref: "#/components/schemas/PendingAction"
+          type: array
+        created_at:
+          format: date-time
+          type: string
+        id:
+          type: string
+        messages:
+          items:
+            $ref: "#/components/schemas/StoredMessage"
+          type: array
+        title:
+          type: string
+      required:
+        - messages
+        - actions
+        - id
+        - title
+        - created_at
+      type: object
+    ConversationList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/Conversation"
+          type: array
+      required:
+        - items
+      type: object
     CountResult:
       additionalProperties: true
       properties:
@@ -114,6 +320,64 @@ components:
           type: integer
       required:
         - count
+      type: object
+    CreateAIConversationRequest:
+      additionalProperties: true
+      properties:
+        title:
+          maxLength: 200
+          type: string
+      type: object
+    CreateGitSourceRequest:
+      additionalProperties: true
+      properties:
+        auth_type:
+          enum:
+            - none
+            - https_token
+            - ssh_key
+          type: string
+        branch:
+          maxLength: 255
+          minLength: 1
+          type: string
+        credential_secret_key:
+          description: Global secret key with the token or the private key.
+          maxLength: 128
+          type: string
+        known_hosts:
+          maxLength: 65536
+          type: string
+        mappings:
+          items:
+            $ref: "#/components/schemas/MappingIO"
+          maxItems: 100
+          minItems: 1
+          type: array
+        name:
+          pattern: ^[a-z0-9][a-z0-9_-]{0,62}$
+          type: string
+        poll_interval:
+          description: Seconds between polls. Default 60.
+          format: int64
+          maximum: 86400
+          minimum: 15
+          type: integer
+        repo_url:
+          description: https or ssh URL.
+          maxLength: 2048
+          minLength: 1
+          type: string
+        webhook_secret_key:
+          description: Global secret key with the webhook secret.
+          maxLength: 128
+          type: string
+      required:
+        - name
+        - repo_url
+        - branch
+        - auth_type
+        - mappings
       type: object
     CreateNamespaceRequest:
       additionalProperties: true
@@ -126,6 +390,25 @@ components:
           type: string
       required:
         - name
+      type: object
+    CreateSecretProviderRequest:
+      additionalProperties: true
+      properties:
+        config:
+          additionalProperties: {}
+          type: object
+        name:
+          pattern: ^[a-z0-9][a-z0-9_-]{0,62}$
+          type: string
+        type:
+          enum:
+            - kubernetes
+            - azure_key_vault
+            - vault
+          type: string
+      required:
+        - name
+        - type
       type: object
     CreateTokenRequest:
       additionalProperties: true
@@ -188,6 +471,48 @@ components:
         - token
         - secret
       type: object
+    DashboardOut:
+      additionalProperties: true
+      properties:
+        bucket_seconds:
+          format: int64
+          type: integer
+        buckets:
+          items:
+            $ref: "#/components/schemas/BucketOut"
+          type: array
+        from:
+          format: date-time
+          type: string
+        kpis:
+          $ref: "#/components/schemas/KPIsOut"
+        range:
+          enum:
+            - 24h
+            - 7d
+            - 30d
+          type: string
+        recent_failures:
+          items:
+            $ref: "#/components/schemas/ExecutionOut"
+          type: array
+        running:
+          items:
+            $ref: "#/components/schemas/ExecutionOut"
+          type: array
+        to:
+          format: date-time
+          type: string
+      required:
+        - range
+        - from
+        - to
+        - bucket_seconds
+        - kpis
+        - buckets
+        - running
+        - recent_failures
+      type: object
     ErrorBody:
       additionalProperties: true
       properties:
@@ -207,6 +532,21 @@ components:
           $ref: "#/components/schemas/ErrorBody"
       required:
         - error
+      type: object
+    Evidence:
+      additionalProperties: true
+      properties:
+        line:
+          format: int64
+          type: integer
+        task:
+          type: string
+        text:
+          type: string
+      required:
+        - task
+        - line
+        - text
       type: object
     ExecutionDetail:
       additionalProperties: true
@@ -337,6 +677,52 @@ components:
           type: string
       required:
         - items
+      type: object
+    ExecutionOut:
+      additionalProperties: true
+      properties:
+        created_at:
+          format: date-time
+          type: string
+        duration_ms:
+          format: int64
+          type:
+            - integer
+            - "null"
+        ended_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        error:
+          type: string
+        flow_id:
+          type: string
+        id:
+          type: string
+        namespace:
+          type: string
+        started_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        state:
+          type: string
+        triage_summary:
+          type:
+            - string
+            - "null"
+        trigger_type:
+          type: string
+      required:
+        - id
+        - namespace
+        - flow_id
+        - state
+        - trigger_type
+        - created_at
+        - error
       type: object
     ExecutionRef:
       additionalProperties: true
@@ -561,6 +947,31 @@ components:
       required:
         - items
       type: object
+    FlowMetricsOut:
+      additionalProperties: true
+      properties:
+        names:
+          items:
+            type: string
+          type: array
+        series:
+          items:
+            $ref: "#/components/schemas/MetricSeriesOut"
+          type: array
+      required:
+        - names
+        - series
+      type: object
+    FlowStatsOut:
+      additionalProperties: true
+      properties:
+        recent:
+          items:
+            $ref: "#/components/schemas/ExecutionOut"
+          type: array
+      required:
+        - recent
+      type: object
     FlowSummary:
       additionalProperties: true
       properties:
@@ -596,6 +1007,72 @@ components:
         - disabled
         - description
         - error_count
+      type: object
+    Insight:
+      additionalProperties: true
+      properties:
+        confidence:
+          enum:
+            - ""
+            - low
+            - medium
+            - high
+          type: string
+        created_at:
+          format: date-time
+          type: string
+        error:
+          type: string
+        evidence:
+          items:
+            $ref: "#/components/schemas/Evidence"
+          type: array
+        execution_id:
+          type: string
+        id:
+          type: string
+        kind:
+          enum:
+            - triage
+          type: string
+        model:
+          type: string
+        probable_cause:
+          type: string
+        status:
+          enum:
+            - pending
+            - running
+            - done
+            - failed
+          type: string
+        suggested_fix:
+          type: string
+        summary:
+          type: string
+      required:
+        - id
+        - execution_id
+        - kind
+        - status
+        - summary
+        - probable_cause
+        - evidence
+        - suggested_fix
+        - confidence
+        - model
+        - error
+        - created_at
+      type: object
+    InsightList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/Insight"
+          type: array
+      required:
+        - items
       type: object
     Instance:
       additionalProperties: true
@@ -664,6 +1141,54 @@ components:
         - column
         - message
       type: object
+    KPIsOut:
+      additionalProperties: true
+      properties:
+        cancelled:
+          format: int64
+          type: integer
+        executions:
+          description: Executions that ended in the range.
+          format: int64
+          type: integer
+        failed:
+          format: int64
+          type: integer
+        median_duration_ms:
+          format: double
+          type:
+            - number
+            - "null"
+        running:
+          description: Executions that run now.
+          format: int64
+          type: integer
+        skipped:
+          format: int64
+          type: integer
+        succeeded:
+          format: int64
+          type: integer
+        success_rate:
+          description: SUCCESS / (SUCCESS + FAILED + TIMED_OUT) in the range.
+          format: double
+          type:
+            - number
+            - "null"
+        timed_out:
+          format: int64
+          type: integer
+      required:
+        - executions
+        - succeeded
+        - failed
+        - timed_out
+        - cancelled
+        - skipped
+        - running
+        - success_rate
+        - median_duration_ms
+      type: object
     LogEntry:
       additionalProperties: true
       properties:
@@ -729,6 +1254,20 @@ components:
         - email
         - password
       type: object
+    MappingIO:
+      additionalProperties: true
+      properties:
+        namespace:
+          maxLength: 128
+          type: string
+        repo_path:
+          description: Directory in the repository. Empty is the repository root.
+          maxLength: 512
+          type: string
+      required:
+        - repo_path
+        - namespace
+      type: object
     Me:
       additionalProperties: true
       properties:
@@ -759,6 +1298,16 @@ components:
         - role
         - must_change_password
         - auth_type
+      type: object
+    MessageIn:
+      additionalProperties: true
+      properties:
+        text:
+          maxLength: 20000
+          minLength: 1
+          type: string
+      required:
+        - text
       type: object
     MetricList:
       additionalProperties: true
@@ -800,6 +1349,36 @@ components:
         - tags
         - ts
       type: object
+    MetricPointOut:
+      additionalProperties: true
+      properties:
+        created_at:
+          format: date-time
+          type: string
+        execution_id:
+          type: string
+        value:
+          format: double
+          type: number
+      required:
+        - execution_id
+        - created_at
+        - value
+      type: object
+    MetricSeriesOut:
+      additionalProperties: true
+      properties:
+        group:
+          description: Value of the group-by tag. Empty when the tag is missing or no group-by is set.
+          type: string
+        points:
+          items:
+            $ref: "#/components/schemas/MetricPointOut"
+          type: array
+      required:
+        - group
+        - points
+      type: object
     Namespace:
       additionalProperties: true
       properties:
@@ -837,6 +1416,40 @@ components:
         - description
         - implicit
       type: object
+    NamespaceGit:
+      additionalProperties: true
+      properties:
+        branch:
+          type: string
+        last_error:
+          type: string
+        last_sync_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        last_sync_status:
+          type: string
+        last_synced_sha:
+          type: string
+        repo_path:
+          type: string
+        repo_url:
+          type: string
+        source_id:
+          type: string
+        source_name:
+          type: string
+      required:
+        - source_id
+        - source_name
+        - repo_url
+        - branch
+        - repo_path
+        - last_synced_sha
+        - last_sync_status
+        - last_error
+      type: object
     NamespaceList:
       additionalProperties: true
       properties:
@@ -846,6 +1459,128 @@ components:
           type: array
       required:
         - items
+      type: object
+    PendingAction:
+      additionalProperties: true
+      properties:
+        arguments: {}
+        created_at:
+          format: date-time
+          type: string
+        id:
+          type: string
+        status:
+          enum:
+            - pending
+            - confirmed
+            - rejected
+          type: string
+        tool:
+          type: string
+        tool_call_id:
+          type: string
+      required:
+        - id
+        - tool_call_id
+        - tool
+        - arguments
+        - status
+        - created_at
+      type: object
+    ProviderList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/ProviderOut"
+          type: array
+      required:
+        - items
+      type: object
+    ProviderOut:
+      additionalProperties: true
+      properties:
+        config:
+          additionalProperties: {}
+          type: object
+        created_at:
+          format: date-time
+          type: string
+        name:
+          type: string
+        type:
+          enum:
+            - builtin
+            - env
+            - kubernetes
+            - azure_key_vault
+            - vault
+          type: string
+        updated_at:
+          format: date-time
+          type: string
+      required:
+        - name
+        - type
+        - config
+        - created_at
+        - updated_at
+      type: object
+    PushChange:
+      additionalProperties: true
+      properties:
+        content:
+          description: put only. UTF-8 text content.
+          type: string
+        content_base64:
+          description: put only. Binary content as base64.
+          type: string
+        executable:
+          type: boolean
+        new_path:
+          description: rename only.
+          maxLength: 512
+          type: string
+        op:
+          enum:
+            - put
+            - delete
+            - rename
+          type: string
+        path:
+          maxLength: 512
+          type: string
+      required:
+        - op
+        - path
+      type: object
+    PushNamespaceBranchRequest:
+      additionalProperties: true
+      properties:
+        changes:
+          items:
+            $ref: "#/components/schemas/PushChange"
+          maxItems: 1000
+          minItems: 1
+          type: array
+        message:
+          maxLength: 2000
+          minLength: 1
+          type: string
+      required:
+        - message
+        - changes
+      type: object
+    PushResult:
+      additionalProperties: true
+      properties:
+        branch:
+          type: string
+        sha:
+          type: string
+      required:
+        - branch
+        - sha
       type: object
     ResetPasswordRequest:
       additionalProperties: true
@@ -961,6 +1696,55 @@ components:
           type: string
       required:
         - path
+      type: object
+    RunList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/RunOut"
+          type: array
+      required:
+        - items
+      type: object
+    RunOut:
+      additionalProperties: true
+      properties:
+        ended_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        error:
+          type: string
+        id:
+          type: string
+        sha:
+          type: string
+        snapshots_created:
+          format: int64
+          type: integer
+        started_at:
+          format: date-time
+          type: string
+        status:
+          enum:
+            - running
+            - success
+            - failed
+          type: string
+        warnings:
+          items:
+            type: string
+          type: array
+      required:
+        - id
+        - started_at
+        - sha
+        - status
+        - error
+        - warnings
+        - snapshots_created
       type: object
     RunnerComplete:
       additionalProperties: true
@@ -1147,6 +1931,83 @@ components:
         - message
         - changes
       type: object
+    SecretInfo:
+      additionalProperties: true
+      properties:
+        description:
+          type: string
+        inherited:
+          description: True when a parent namespace or the global scope defines the secret.
+          type: boolean
+        key:
+          type: string
+        last_resolved_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        provider:
+          type: string
+        provider_type:
+          enum:
+            - builtin
+            - env
+            - kubernetes
+            - azure_key_vault
+            - vault
+          type: string
+        ref:
+          description: Reference of an external secret. Builtin secrets have none.
+          type: string
+        scope:
+          description: global or the namespace name that defines the secret.
+          type: string
+        updated_at:
+          format: date-time
+          type: string
+        updated_by:
+          type: string
+      required:
+        - key
+        - scope
+        - provider
+        - provider_type
+        - description
+        - updated_by
+        - updated_at
+        - inherited
+      type: object
+    SecretList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/SecretInfo"
+          type: array
+      required:
+        - items
+      type: object
+    SecretPut:
+      additionalProperties: true
+      properties:
+        description:
+          maxLength: 500
+          type: string
+        provider:
+          description: Provider name. Default builtin, or the provider of the existing secret.
+          maxLength: 63
+          type: string
+        ref:
+          description: Reference of an external secret, for example path#field for vault.
+          maxLength: 512
+          type: string
+        value:
+          description: Value of a builtin secret. Write-only.
+          maxLength: 65536
+          minLength: 1
+          type: string
+          writeOnly: true
+      type: object
     Snapshot:
       additionalProperties: true
       properties:
@@ -1188,6 +2049,161 @@ components:
           type: array
       required:
         - items
+      type: object
+    SourceBody:
+      additionalProperties: true
+      properties:
+        auth_type:
+          enum:
+            - none
+            - https_token
+            - ssh_key
+          type: string
+        branch:
+          maxLength: 255
+          minLength: 1
+          type: string
+        credential_secret_key:
+          description: Global secret key with the token or the private key.
+          maxLength: 128
+          type: string
+        known_hosts:
+          maxLength: 65536
+          type: string
+        mappings:
+          items:
+            $ref: "#/components/schemas/MappingIO"
+          maxItems: 100
+          minItems: 1
+          type: array
+        poll_interval:
+          description: Seconds between polls. Default 60.
+          format: int64
+          maximum: 86400
+          minimum: 15
+          type: integer
+        repo_url:
+          description: https or ssh URL.
+          maxLength: 2048
+          minLength: 1
+          type: string
+        webhook_secret_key:
+          description: Global secret key with the webhook secret.
+          maxLength: 128
+          type: string
+      required:
+        - repo_url
+        - branch
+        - auth_type
+        - mappings
+      type: object
+    SourceList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/SourceOut"
+          type: array
+      required:
+        - items
+      type: object
+    SourceOut:
+      additionalProperties: true
+      properties:
+        auth_type:
+          type: string
+        branch:
+          type: string
+        credential_secret_key:
+          type: string
+        id:
+          type: string
+        known_hosts:
+          type: string
+        last_error:
+          type: string
+        last_sync_at:
+          format: date-time
+          type:
+            - string
+            - "null"
+        last_sync_status:
+          type: string
+        last_synced_sha:
+          type: string
+        mappings:
+          items:
+            $ref: "#/components/schemas/MappingIO"
+          type: array
+        name:
+          type: string
+        poll_interval:
+          format: int64
+          type: integer
+        repo_url:
+          type: string
+        webhook_secret_key:
+          type: string
+        webhook_url:
+          type: string
+      required:
+        - id
+        - name
+        - repo_url
+        - branch
+        - auth_type
+        - credential_secret_key
+        - known_hosts
+        - poll_interval
+        - webhook_secret_key
+        - webhook_url
+        - last_synced_sha
+        - last_sync_status
+        - last_error
+        - mappings
+      type: object
+    Status:
+      additionalProperties: true
+      properties:
+        driver:
+          enum:
+            - postgres
+            - fs
+            - s3
+            - azblob
+          type: string
+        error:
+          type: string
+        healthy:
+          description: The result of a put, get and delete round trip.
+          type: boolean
+      required:
+        - driver
+        - healthy
+      type: object
+    StoredMessage:
+      additionalProperties: true
+      properties:
+        content:
+          items:
+            $ref: "#/components/schemas/Block"
+          type: array
+        created_at:
+          format: date-time
+          type: string
+        id:
+          type: string
+        role:
+          enum:
+            - user
+            - assistant
+            - tool
+          type: string
+      required:
+        - id
+        - role
+        - content
+        - created_at
       type: object
     TaskRun:
       additionalProperties: true
@@ -1378,6 +2394,40 @@ components:
           maxProperties: 20
           type: object
       type: object
+    UpcomingList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/UpcomingSchedule"
+          type: array
+      required:
+        - items
+      type: object
+    UpcomingSchedule:
+      additionalProperties: true
+      properties:
+        cron:
+          type: string
+        flow_id:
+          type: string
+        namespace:
+          type: string
+        next_fire_at:
+          format: date-time
+          type: string
+        timezone:
+          type: string
+        trigger_id:
+          type: string
+      required:
+        - namespace
+        - flow_id
+        - trigger_id
+        - cron
+        - timezone
+        - next_fire_at
+      type: object
     UpdateFlowRequest:
       additionalProperties: true
       properties:
@@ -1394,6 +2444,15 @@ components:
           type: string
       required:
         - name
+      type: object
+    UpdateSecretProviderRequest:
+      additionalProperties: true
+      properties:
+        config:
+          additionalProperties: {}
+          type: object
+      required:
+        - config
       type: object
     UpdateUserRequest:
       additionalProperties: true
@@ -1492,6 +2551,51 @@ components:
         - kind
         - errors
       type: object
+    VariableInfo:
+      additionalProperties: true
+      properties:
+        inherited:
+          description: True when a parent namespace or the global scope defines the variable.
+          type: boolean
+        key:
+          type: string
+        scope:
+          description: global or the namespace name that defines the variable.
+          type: string
+        updated_at:
+          format: date-time
+          type: string
+        updated_by:
+          type: string
+        value:
+          type: string
+      required:
+        - key
+        - value
+        - scope
+        - updated_by
+        - updated_at
+        - inherited
+      type: object
+    VariableList:
+      additionalProperties: true
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/VariableInfo"
+          type: array
+      required:
+        - items
+      type: object
+    VariablePut:
+      additionalProperties: true
+      properties:
+        value:
+          maxLength: 65536
+          type: string
+      required:
+        - value
+      type: object
     VersionDiff:
       additionalProperties: true
       properties:
@@ -1509,6 +2613,17 @@ components:
         - from
         - to
         - files
+      type: object
+    WebhookKey:
+      additionalProperties: true
+      properties:
+        key:
+          type: string
+        url:
+          type: string
+      required:
+        - key
+        - url
       type: object
 info:
   title: Sluice API
@@ -1666,6 +2781,225 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RunnerSpec"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/ai/conversations:
+    get:
+      operationId: listAIConversations
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    post:
+      operationId: createAIConversation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAIConversationRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/ai/conversations/{conversationId}:
+    delete:
+      operationId: deleteAIConversation
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    get:
+      operationId: getAIConversation
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationDetail"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/ai/conversations/{conversationId}/actions/{actionId}/confirm:
+    post:
+      operationId: confirmAIAction
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            format: uuid
+            type: string
+        - in: path
+          name: actionId
+          required: true
+          schema:
+            format: uuid
+            type: string
+      responses:
+        "200":
+          content:
+            text/event-stream: {}
+          description: Events of the continued turn.
+  /api/v1/ai/conversations/{conversationId}/actions/{actionId}/reject:
+    post:
+      operationId: rejectAIAction
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            format: uuid
+            type: string
+        - in: path
+          name: actionId
+          required: true
+          schema:
+            format: uuid
+            type: string
+      responses:
+        "200":
+          content:
+            text/event-stream: {}
+          description: Events of the continued turn.
+  /api/v1/ai/conversations/{conversationId}/messages:
+    post:
+      operationId: sendAIMessage
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            format: uuid
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageIn"
+        required: true
+      responses:
+        "200":
+          content:
+            text/event-stream: {}
+          description: "Events of the turn: text, tool_call, tool_result, pending_action, error and done."
+  /api/v1/ai/provider:
+    delete:
+      operationId: deleteAIProvider
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    get:
+      operationId: getAIProvider
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIProvider"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    put:
+      operationId: putAIProvider
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AIProviderPut"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIProvider"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/ai/provider/test:
+    post:
+      operationId: testAIProvider
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AITestResult"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/ai/status:
+    get:
+      operationId: getAIStatus
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIStatus"
           description: OK
         default:
           content:
@@ -2048,6 +3382,49 @@ paths:
           content:
             text/event-stream: {}
           description: Event stream.
+  /api/v1/executions/{executionId}/insights:
+    get:
+      operationId: listExecutionInsights
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InsightList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    post:
+      operationId: requestTriage
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InsightList"
+          description: Accepted
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
   /api/v1/executions/{executionId}/logs:
     get:
       operationId: getExecutionLogs
@@ -2395,6 +3772,63 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Error
+  /api/v1/flows/{namespace}/{flowId}/metrics:
+    get:
+      operationId: getFlowMetrics
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: flowId
+          required: true
+          schema:
+            maxLength: 63
+            pattern: ^[a-z0-9][a-z0-9-]*$
+            type: string
+        - description: Metric name. Empty returns only the names.
+          explode: false
+          in: query
+          name: name
+          schema:
+            description: Metric name. Empty returns only the names.
+            maxLength: 100
+            type: string
+        - explode: false
+          in: query
+          name: agg
+          schema:
+            default: sum
+            enum:
+              - sum
+              - avg
+              - max
+            type: string
+        - description: Tag key. One series per tag value.
+          explode: false
+          in: query
+          name: group_by
+          schema:
+            description: Tag key. One series per tag value.
+            maxLength: 100
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlowMetricsOut"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
   /api/v1/flows/{namespace}/{flowId}/revisions:
     get:
       operationId: listFlowRevisions
@@ -2465,6 +3899,217 @@ paths:
               schema:
                 $ref: "#/components/schemas/Revision"
           description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/flows/{namespace}/{flowId}/stats:
+    get:
+      operationId: getFlowStats
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: flowId
+          required: true
+          schema:
+            maxLength: 63
+            pattern: ^[a-z0-9][a-z0-9-]*$
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlowStatsOut"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/flows/{namespace}/{flowId}/triggers/{triggerId}/webhook-key:
+    post:
+      operationId: rotateWebhookKey
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: flowId
+          required: true
+          schema:
+            maxLength: 63
+            pattern: ^[a-z0-9][a-z0-9-]*$
+            type: string
+        - in: path
+          name: triggerId
+          required: true
+          schema:
+            maxLength: 63
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookKey"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/git-sources:
+    get:
+      operationId: listGitSources
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    post:
+      operationId: createGitSource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGitSourceRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceOut"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/git-sources/{sourceId}:
+    delete:
+      operationId: deleteGitSource
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    get:
+      operationId: getGitSource
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceOut"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    put:
+      operationId: updateGitSource
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SourceBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceOut"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/git-sources/{sourceId}/runs:
+    get:
+      operationId: listGitSyncRuns
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/git-sources/{sourceId}/sync:
+    post:
+      operationId: syncGitSource
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          description: Accepted
         default:
           content:
             application/json:
@@ -2736,6 +4381,60 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Error
+  /api/v1/namespaces/{namespace}/git:
+    get:
+      operationId: getNamespaceGit
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NamespaceGit"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/git/push:
+    post:
+      operationId: pushNamespaceBranch
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushNamespaceBranchRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushResult"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
   /api/v1/namespaces/{namespace}/revert:
     post:
       operationId: revertVersion
@@ -2796,6 +4495,121 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Error
+  /api/v1/namespaces/{namespace}/secrets:
+    get:
+      operationId: listNamespaceSecrets
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecretList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/secrets/{key}:
+    delete:
+      operationId: deleteNamespaceSecret
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    put:
+      operationId: putNamespaceSecret
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecretPut"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecretInfo"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/secrets/{key}/check:
+    post:
+      operationId: checkNamespaceSecret
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckResult"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
   /api/v1/namespaces/{namespace}/validate:
     post:
       operationId: validateFile
@@ -2819,6 +4633,91 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ValidateFileResult"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/variables:
+    get:
+      operationId: listNamespaceVariables
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VariableList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/namespaces/{namespace}/variables/{key}:
+    delete:
+      operationId: deleteNamespaceVariable
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    put:
+      operationId: putNamespaceVariable
+      parameters:
+        - in: path
+          name: namespace
+          required: true
+          schema:
+            maxLength: 128
+            pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$
+            type: string
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VariablePut"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VariableInfo"
           description: OK
         default:
           content:
@@ -2859,6 +4758,39 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Error
+  /api/v1/schedules/upcoming:
+    get:
+      operationId: listUpcomingSchedules
+      parameters:
+        - description: Namespace and its children.
+          explode: false
+          in: query
+          name: namespace
+          schema:
+            description: Namespace and its children.
+            type: string
+        - explode: false
+          in: query
+          name: limit
+          schema:
+            default: 10
+            format: int64
+            maximum: 200
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpcomingList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
   /api/v1/schemas/flow.json:
     get:
       operationId: getFlowSchema
@@ -2867,6 +4799,255 @@ paths:
           content:
             application/json:
               schema: {}
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/secret-providers:
+    get:
+      operationId: listSecretProviders
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    post:
+      operationId: createSecretProvider
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSecretProviderRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderOut"
+          description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/secret-providers/{name}:
+    delete:
+      operationId: deleteSecretProvider
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            pattern: ^[a-z0-9][a-z0-9_-]{0,62}$
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    put:
+      operationId: updateSecretProvider
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            pattern: ^[a-z0-9][a-z0-9_-]{0,62}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSecretProviderRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderOut"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/secret-providers/{name}/check:
+    post:
+      operationId: checkSecretProvider
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            pattern: ^[a-z0-9][a-z0-9_-]{0,62}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckSecretProviderRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckResult"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/secrets:
+    get:
+      operationId: listGlobalSecrets
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecretList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/secrets/{key}:
+    delete:
+      operationId: deleteGlobalSecret
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    put:
+      operationId: putGlobalSecret
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecretPut"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecretInfo"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/secrets/{key}/check:
+    post:
+      operationId: checkGlobalSecret
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckResult"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/stats/dashboard:
+    get:
+      operationId: getDashboard
+      parameters:
+        - explode: false
+          in: query
+          name: range
+          schema:
+            default: 24h
+            enum:
+              - 24h
+              - 7d
+              - 30d
+            type: string
+        - description: Namespace and its children.
+          explode: false
+          in: query
+          name: namespace
+          schema:
+            description: Namespace and its children.
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardOut"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/storage:
+    get:
+      operationId: getStorageStatus
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
           description: OK
         default:
           content:
@@ -3055,3 +5236,96 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Error
+  /api/v1/variables:
+    get:
+      operationId: listGlobalVariables
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VariableList"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/variables/{key}:
+    delete:
+      operationId: deleteGlobalVariable
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    put:
+      operationId: putGlobalVariable
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            pattern: ^[A-Za-z_][A-Za-z0-9_]{0,127}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VariablePut"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VariableInfo"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /hooks/git/{sourceId}:
+    post:
+      operationId: gitWebhook
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          content:
+            application/json: {}
+          description: The call is valid.
+      summary: Request a sync of a git source from a push webhook
+  /hooks/{key}:
+    post:
+      operationId: fireWebhook
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          content:
+            application/json: {}
+          description: The execution was created.
+      summary: Start the flow of a webhook trigger

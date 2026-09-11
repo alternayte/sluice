@@ -17,8 +17,8 @@ async function createFileUI(page: Page, path: string) {
   await expect(page.getByRole("heading", { name: path, exact: true })).toBeVisible();
 }
 
-/** typeAndSave types content into the open file and saves it with a commit message. */
-async function typeAndSave(page: Page, path: string, content: string, message: string) {
+/** typeContent pastes content into the open file. The file stays staged until a save. */
+async function typeContent(page: Page, path: string, content: string) {
   const editor = page.getByRole("textbox", { name: `Content of ${path}` });
   await editor.click();
   // A paste puts the text in as it is. Typed new lines get automatic indentation from the editor.
@@ -29,50 +29,45 @@ async function typeAndSave(page: Page, path: string, content: string, message: s
   }, content);
   await expect(editor).toContainText(content.split("\n")[0]!);
   await expect(page.getByText("Unsaved changes")).toBeVisible();
-  await page.getByRole("button", { name: "Save", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Save file" });
-  await dialog.getByLabel("Commit message").fill(message);
-  await dialog.getByRole("button", { name: "Save" }).click();
-  await expect(dialog).toBeHidden();
-  await expect(page.getByText("Unsaved changes")).toBeHidden();
-  // The file list shows the new size after it loads the new version.
-  const bytes = Buffer.byteLength(content);
-  await expect(page.getByRole("row").filter({ hasText: path })).toContainText(`${bytes} B`);
 }
 
-// SCN-NS-002 stays open. The UI saves each new file at once with the message "Create <path>".
-// The scenario needs new files staged in the editor and saved together with one message (UI gap,
-// REQ-UI-007). This test checks the behaviour of today and has no scenario ID in its name.
-test("new file and save create versions with the author and the message", async ({ browser }) => {
+test("SCN-NS-002 an editor creates pipelines/load.py and sync.flow.yaml and saves them with one message as version 2", async ({
+  browser,
+}) => {
   const api = await adminAPI();
-  const ns = await seedNamespace(api, "ns002", {});
+  const ns = await seedNamespace(api, "ns002", { "README.md": "# ns002\n" });
   const { context, page, email } = await signInAs(browser, api, "editor");
-
   await page.goto(`/namespaces/${ns}`);
-  await expect(page.getByText("This namespace has no files.")).toBeVisible();
 
+  const load = 'print("load")\n';
+  const flow = "id: sync\ntasks:\n  - id: load\n    type: script\n    file: pipelines/load.py\n";
   await createFileUI(page, "pipelines/load.py");
-  await typeAndSave(page, "pipelines/load.py", 'print("load")\n', "Add load script");
+  await typeContent(page, "pipelines/load.py", load);
   await createFileUI(page, "sync.flow.yaml");
-  await typeAndSave(
-    page,
-    "sync.flow.yaml",
-    "id: sync\ntasks:\n  - id: load\n    type: script\n    file: pipelines/load.py\n",
-    "Add sync flow",
-  );
+  await typeContent(page, "sync.flow.yaml", flow);
+  // The first file keeps its staged content while the second file is open.
+  await expect(page.getByRole("status").filter({ hasText: "2 unsaved files" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Save changes" }).click();
+  const dialog = page.getByRole("dialog", { name: "Save changes" });
+  await expect(dialog.getByRole("list", { name: "Files to save" })).toContainText("pipelines/load.py");
+  await expect(dialog.getByRole("list", { name: "Files to save" })).toContainText("sync.flow.yaml");
+  await dialog.getByLabel("Commit message").fill("Add the load script and the sync flow");
+  await dialog.getByRole("button", { name: "Save" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText("unsaved file")).toHaveCount(0);
+  await expect(page.getByRole("row").filter({ hasText: "pipelines/load.py" })).toContainText(`${Buffer.byteLength(load)} B`);
+  await expect(page.getByRole("row").filter({ hasText: "sync.flow.yaml" })).toContainText(`${Buffer.byteLength(flow)} B`);
 
   await page.getByRole("tab", { name: "Versions" }).click();
   const v2 = versionRow(page, "v2");
   await expect(v2).toContainText(email);
-  await expect(v2).toContainText("Add load script");
-  const v4 = versionRow(page, "v4");
-  await expect(v4).toContainText(email);
-  await expect(v4).toContainText("Add sync flow");
-  await expect(v4).toContainText("Head");
-
-  await page.getByRole("tab", { name: "Files" }).click();
-  await expect(page.getByRole("button", { name: "pipelines/load.py", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "sync.flow.yaml", exact: true })).toBeVisible();
+  await expect(v2).toContainText("Add the load script and the sync flow");
+  await expect(v2).toContainText("Head");
+  await expect(versionRow(page, "v3")).toHaveCount(0);
+  const files = await api.get(`/api/v1/namespaces/${ns}/files`);
+  expect(((await files.json()) as { items: { path: string }[] }).items.map((f) => f.path).sort()).toEqual(["README.md", "pipelines/load.py", "sync.flow.yaml"]);
+  expect((await api.get(`/api/v1/flows/${ns}/sync`)).status()).toBe(200);
   await context.close();
   await api.dispose();
 });

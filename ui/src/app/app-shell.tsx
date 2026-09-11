@@ -3,6 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { LogOut, Menu, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { logout } from "@/api/sdk.gen";
+import { AssistantDrawer } from "@/features/ai";
 import { useTheme, themes } from "@/lib/theme";
 import { useCurrentUser } from "@/lib/auth";
 import { can, type Role } from "@/lib/roles";
@@ -15,12 +16,18 @@ export const navItems: NavItem[] = [
   { to: "/executions", label: "Executions", min: "viewer" },
   { to: "/flows", label: "Flows", min: "viewer" },
   { to: "/namespaces", label: "Namespaces", min: "viewer" },
+  { to: "/secrets", label: "Secrets", min: "viewer" },
+  { to: "/variables", label: "Variables", min: "viewer" },
 ];
 
 export const settingsItems: NavItem[] = [
   { to: "/settings/profile", label: "Profile", min: "viewer" },
   { to: "/settings/tokens", label: "API tokens", min: "viewer" },
   { to: "/settings/users", label: "Users", min: "admin" },
+  { to: "/settings/git", label: "Git sources", min: "admin" },
+  { to: "/settings/secret-providers", label: "Secret providers", min: "admin" },
+  { to: "/settings/storage", label: "Storage", min: "admin" },
+  { to: "/settings/ai", label: "AI provider", min: "admin" },
   { to: "/settings/instances", label: "Instances", min: "admin" },
   { to: "/settings/audit", label: "Audit log", min: "admin" },
 ];
@@ -63,7 +70,7 @@ function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => 
             onClick={onNavigate}
             activeOptions={{ exact: item.to === "/" }}
             className="rounded-[6px] px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-            activeProps={{ className: "bg-accent-soft !text-accent font-medium" }}
+            activeProps={{ className: "bg-accent-soft !text-accent-text font-medium" }}
           >
             {item.label}
           </Link>
@@ -151,6 +158,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
         <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
       </div>
+      <AssistantDrawer />
     </div>
   );
 }

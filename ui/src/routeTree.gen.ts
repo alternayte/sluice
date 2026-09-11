@@ -11,14 +11,20 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as SecretsRouteImport } from './routes/secrets'
+import { Route as VariablesRouteImport } from './routes/variables'
 import { Route as ExecutionsIndexRouteImport } from './routes/executions/index'
 import { Route as ExecutionsExecutionIdRouteImport } from './routes/executions/$executionId'
 import { Route as FlowsIndexRouteImport } from './routes/flows/index'
 import { Route as NamespacesIndexRouteImport } from './routes/namespaces/index'
 import { Route as NamespacesNamespaceRouteImport } from './routes/namespaces/$namespace'
+import { Route as SettingsAiRouteImport } from './routes/settings/ai'
 import { Route as SettingsAuditRouteImport } from './routes/settings/audit'
+import { Route as SettingsGitRouteImport } from './routes/settings/git'
 import { Route as SettingsInstancesRouteImport } from './routes/settings/instances'
 import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
+import { Route as SettingsSecretProvidersRouteImport } from './routes/settings/secret-providers'
+import { Route as SettingsStorageRouteImport } from './routes/settings/storage'
 import { Route as SettingsTokensRouteImport } from './routes/settings/tokens'
 import { Route as SettingsUsersRouteImport } from './routes/settings/users'
 import { Route as FlowsNamespaceFlowIdRouteImport } from './routes/flows/$namespace/$flowId'
@@ -31,6 +37,16 @@ const IndexRoute = IndexRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SecretsRoute = SecretsRouteImport.update({
+  id: '/secrets',
+  path: '/secrets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VariablesRoute = VariablesRouteImport.update({
+  id: '/variables',
+  path: '/variables',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExecutionsIndexRoute = ExecutionsIndexRouteImport.update({
@@ -58,9 +74,19 @@ const NamespacesNamespaceRoute = NamespacesNamespaceRouteImport.update({
   path: '/namespaces/$namespace',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsAiRoute = SettingsAiRouteImport.update({
+  id: '/settings/ai',
+  path: '/settings/ai',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsAuditRoute = SettingsAuditRouteImport.update({
   id: '/settings/audit',
   path: '/settings/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsGitRoute = SettingsGitRouteImport.update({
+  id: '/settings/git',
+  path: '/settings/git',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsInstancesRoute = SettingsInstancesRouteImport.update({
@@ -71,6 +97,16 @@ const SettingsInstancesRoute = SettingsInstancesRouteImport.update({
 const SettingsProfileRoute = SettingsProfileRouteImport.update({
   id: '/settings/profile',
   path: '/settings/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsSecretProvidersRoute = SettingsSecretProvidersRouteImport.update({
+  id: '/settings/secret-providers',
+  path: '/settings/secret-providers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsStorageRoute = SettingsStorageRouteImport.update({
+  id: '/settings/storage',
+  path: '/settings/storage',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsTokensRoute = SettingsTokensRouteImport.update({
@@ -92,11 +128,17 @@ const FlowsNamespaceFlowIdRoute = FlowsNamespaceFlowIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/secrets': typeof SecretsRoute
+  '/variables': typeof VariablesRoute
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/namespaces/$namespace': typeof NamespacesNamespaceRoute
+  '/settings/ai': typeof SettingsAiRoute
   '/settings/audit': typeof SettingsAuditRoute
+  '/settings/git': typeof SettingsGitRoute
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
+  '/settings/secret-providers': typeof SettingsSecretProvidersRoute
+  '/settings/storage': typeof SettingsStorageRoute
   '/settings/tokens': typeof SettingsTokensRoute
   '/settings/users': typeof SettingsUsersRoute
   '/executions/': typeof ExecutionsIndexRoute
@@ -107,11 +149,17 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/secrets': typeof SecretsRoute
+  '/variables': typeof VariablesRoute
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/namespaces/$namespace': typeof NamespacesNamespaceRoute
+  '/settings/ai': typeof SettingsAiRoute
   '/settings/audit': typeof SettingsAuditRoute
+  '/settings/git': typeof SettingsGitRoute
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
+  '/settings/secret-providers': typeof SettingsSecretProvidersRoute
+  '/settings/storage': typeof SettingsStorageRoute
   '/settings/tokens': typeof SettingsTokensRoute
   '/settings/users': typeof SettingsUsersRoute
   '/executions': typeof ExecutionsIndexRoute
@@ -123,11 +171,17 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/secrets': typeof SecretsRoute
+  '/variables': typeof VariablesRoute
   '/executions/$executionId': typeof ExecutionsExecutionIdRoute
   '/namespaces/$namespace': typeof NamespacesNamespaceRoute
+  '/settings/ai': typeof SettingsAiRoute
   '/settings/audit': typeof SettingsAuditRoute
+  '/settings/git': typeof SettingsGitRoute
   '/settings/instances': typeof SettingsInstancesRoute
   '/settings/profile': typeof SettingsProfileRoute
+  '/settings/secret-providers': typeof SettingsSecretProvidersRoute
+  '/settings/storage': typeof SettingsStorageRoute
   '/settings/tokens': typeof SettingsTokensRoute
   '/settings/users': typeof SettingsUsersRoute
   '/executions/': typeof ExecutionsIndexRoute
@@ -140,11 +194,17 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/secrets'
+    | '/variables'
     | '/executions/$executionId'
     | '/namespaces/$namespace'
+    | '/settings/ai'
     | '/settings/audit'
+    | '/settings/git'
     | '/settings/instances'
     | '/settings/profile'
+    | '/settings/secret-providers'
+    | '/settings/storage'
     | '/settings/tokens'
     | '/settings/users'
     | '/executions/'
@@ -155,11 +215,17 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/secrets'
+    | '/variables'
     | '/executions/$executionId'
     | '/namespaces/$namespace'
+    | '/settings/ai'
     | '/settings/audit'
+    | '/settings/git'
     | '/settings/instances'
     | '/settings/profile'
+    | '/settings/secret-providers'
+    | '/settings/storage'
     | '/settings/tokens'
     | '/settings/users'
     | '/executions'
@@ -170,11 +236,17 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/secrets'
+    | '/variables'
     | '/executions/$executionId'
     | '/namespaces/$namespace'
+    | '/settings/ai'
     | '/settings/audit'
+    | '/settings/git'
     | '/settings/instances'
     | '/settings/profile'
+    | '/settings/secret-providers'
+    | '/settings/storage'
     | '/settings/tokens'
     | '/settings/users'
     | '/executions/'
@@ -186,11 +258,17 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  SecretsRoute: typeof SecretsRoute
+  VariablesRoute: typeof VariablesRoute
   ExecutionsExecutionIdRoute: typeof ExecutionsExecutionIdRoute
   NamespacesNamespaceRoute: typeof NamespacesNamespaceRoute
+  SettingsAiRoute: typeof SettingsAiRoute
   SettingsAuditRoute: typeof SettingsAuditRoute
+  SettingsGitRoute: typeof SettingsGitRoute
   SettingsInstancesRoute: typeof SettingsInstancesRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
+  SettingsSecretProvidersRoute: typeof SettingsSecretProvidersRoute
+  SettingsStorageRoute: typeof SettingsStorageRoute
   SettingsTokensRoute: typeof SettingsTokensRoute
   SettingsUsersRoute: typeof SettingsUsersRoute
   ExecutionsIndexRoute: typeof ExecutionsIndexRoute
@@ -213,6 +291,20 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/secrets': {
+      id: '/secrets'
+      path: '/secrets'
+      fullPath: '/secrets'
+      preLoaderRoute: typeof SecretsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/variables': {
+      id: '/variables'
+      path: '/variables'
+      fullPath: '/variables'
+      preLoaderRoute: typeof VariablesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/executions/': {
@@ -250,11 +342,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NamespacesNamespaceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/ai': {
+      id: '/settings/ai'
+      path: '/settings/ai'
+      fullPath: '/settings/ai'
+      preLoaderRoute: typeof SettingsAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/audit': {
       id: '/settings/audit'
       path: '/settings/audit'
       fullPath: '/settings/audit'
       preLoaderRoute: typeof SettingsAuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/git': {
+      id: '/settings/git'
+      path: '/settings/git'
+      fullPath: '/settings/git'
+      preLoaderRoute: typeof SettingsGitRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/instances': {
@@ -269,6 +375,20 @@ declare module '@tanstack/react-router' {
       path: '/settings/profile'
       fullPath: '/settings/profile'
       preLoaderRoute: typeof SettingsProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/secret-providers': {
+      id: '/settings/secret-providers'
+      path: '/settings/secret-providers'
+      fullPath: '/settings/secret-providers'
+      preLoaderRoute: typeof SettingsSecretProvidersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/storage': {
+      id: '/settings/storage'
+      path: '/settings/storage'
+      fullPath: '/settings/storage'
+      preLoaderRoute: typeof SettingsStorageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/tokens': {
@@ -298,11 +418,17 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  SecretsRoute: SecretsRoute,
+  VariablesRoute: VariablesRoute,
   ExecutionsExecutionIdRoute: ExecutionsExecutionIdRoute,
   NamespacesNamespaceRoute: NamespacesNamespaceRoute,
+  SettingsAiRoute: SettingsAiRoute,
   SettingsAuditRoute: SettingsAuditRoute,
+  SettingsGitRoute: SettingsGitRoute,
   SettingsInstancesRoute: SettingsInstancesRoute,
   SettingsProfileRoute: SettingsProfileRoute,
+  SettingsSecretProvidersRoute: SettingsSecretProvidersRoute,
+  SettingsStorageRoute: SettingsStorageRoute,
   SettingsTokensRoute: SettingsTokensRoute,
   SettingsUsersRoute: SettingsUsersRoute,
   ExecutionsIndexRoute: ExecutionsIndexRoute,

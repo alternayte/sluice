@@ -36,6 +36,7 @@ func commands() []command {
 		{"migrate", "Apply database migrations and exit.", runMigrate},
 		{"user create", "Create a user in the database.", runUserCreate},
 		{"user reset-password", "Set a new password for a user.", runUserResetPassword},
+		{"secrets rekey", "Re-encrypt all builtin secrets with the active master key.", runSecretsRekey},
 		{"validate", "Validate a namespace directory offline.", runValidate},
 		{"openapi", "Print the OpenAPI document of the API.", runOpenAPI},
 		{"version", "Print version, commit and build date.", runVersion},

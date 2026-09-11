@@ -16,6 +16,7 @@ import { DataState } from "@/components/data-state";
 import { DiffView } from "@/components/diff-view";
 import { CodeEditor } from "@/components/editor/code-editor";
 import { CompactExecutionTable } from "@/components/execution-bits";
+import { FlowCharts } from "@/features/flows/FlowCharts";
 import { RunFlowDialog } from "@/components/run-dialogs";
 import { DisabledBadge, ValidBadge } from "@/components/state-badges";
 import { Badge } from "@/components/ui/badge";
@@ -105,7 +106,12 @@ export function FlowPage({
               value={tab}
               onChange={(t) => navigate({ search: t === "overview" ? {} : { tab: t } })}
             />
-            {tab === "overview" && <Overview flow={f} />}
+            {tab === "overview" && (
+              <>
+                <Overview flow={f} />
+                <FlowCharts namespace={namespace} flowId={flowId} />
+              </>
+            )}
             {tab === "executions" && <FlowExecutions namespace={namespace} flowId={flowId} />}
             {tab === "triggers" && <Triggers flow={f} />}
             {tab === "source" &&

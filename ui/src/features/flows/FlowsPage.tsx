@@ -68,7 +68,7 @@ export function FlowsPage({
                       <Link
                         to="/flows/$namespace/$flowId"
                         params={{ namespace: f.namespace, flowId: f.flow_id }}
-                        className="font-medium text-accent hover:underline"
+                        className="font-medium text-accent-text hover:underline"
                       >
                         {f.flow_id}
                       </Link>

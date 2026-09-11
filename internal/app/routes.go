@@ -1,17 +1,25 @@
 package app
 
 import (
+	"context"
 	"reflect"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
 
+	"github.com/alternayte/sluice/internal/ai"
 	"github.com/alternayte/sluice/internal/audit"
 	"github.com/alternayte/sluice/internal/auth"
 	"github.com/alternayte/sluice/internal/execution"
+	"github.com/alternayte/sluice/internal/gitsync"
 	"github.com/alternayte/sluice/internal/instance"
+	"github.com/alternayte/sluice/internal/metrics"
 	"github.com/alternayte/sluice/internal/namespace"
 	"github.com/alternayte/sluice/internal/platform/clock"
+	"github.com/alternayte/sluice/internal/secret"
+	"github.com/alternayte/sluice/internal/storage"
+	"github.com/alternayte/sluice/internal/trigger"
+	"github.com/alternayte/sluice/internal/variable"
 )
 
 // services holds what the routes call. `sluice openapi` passes the zero value:
@@ -23,6 +31,15 @@ type services struct {
 	Clock      clock.Clock
 	Namespaces *namespace.Service
 	Engine     *execution.Engine
+	Triggers   *trigger.Service
+	Secrets    *secret.Service
+	Variables  *variable.Service
+	Git        *gitsync.Service
+	Stats      *metrics.Service
+	AI         *ai.Service
+	// Store and StorageCheck serve the storage status. Route registration must not call them.
+	Store        func() storage.Store
+	StorageCheck func(context.Context) error
 }
 
 // registerRoutes registers every API operation on api, and the streamed routes on r.
@@ -36,9 +53,20 @@ func registerRoutes(api huma.API, r chi.Router, s services) {
 	namespace.Routes(api, r, s.Namespaces)
 	execution.Routes(api, r, s.Engine)
 	execution.RunnerRoutes(api, r, s.Engine)
+	trigger.Routes(api, r, s.Triggers)
+	secret.Routes(api, s.Secrets)
+	variable.Routes(api, s.Variables)
+	gitsync.Routes(api, r, s.Git)
+	metrics.Routes(api, s.Stats)
+	ai.Routes(api, r, s.AI)
+	storage.Routes(api, func() storage.Store { return s.Store() }, func(ctx context.Context) error { return s.StorageCheck(ctx) })
 }
 
 func (s *Server) services() services {
 	return services{Auth: s.Auth, Audit: s.Audit, Instances: s.Registry, Clock: s.Clock, Namespaces: s.Namespaces,
-		Engine: s.Engine}
+		Engine: s.Engine, Triggers: s.Triggers, Secrets: s.Secrets, Variables: s.Variables, Git: s.Git, Stats: s.Stats, AI: s.AI,
+		Store: func() storage.Store { return s.Store },
+		StorageCheck: func(ctx context.Context) error {
+			return storage.RoundTrip(ctx, s.Store, "health/"+s.Instance.ID.String())
+		}}
 }

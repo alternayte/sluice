@@ -139,9 +139,13 @@ type FlowRef struct {
 	Flow     FlowInfo
 	Revision executiondb.FlowRevision
 	Def      *Definition
+	// SnapshotID is the namespace head that a new execution pins (REQ-EXE-001, DI-41).
+	SnapshotID uuid.UUID
 }
 
-// LoadFlow loads a flow and builds its effective definition at the current revision.
+// LoadFlow loads a flow and builds its effective definition at the current revision. A new
+// execution pins the namespace head, so that a change of any file reaches it. The
+// revision snapshot is only the version where the flow file last changed.
 func (e *Engine) LoadFlow(ctx context.Context, ns, flowKey string) (*FlowRef, error) {
 	f, err := e.Namespaces.GetFlow(ctx, ns, flowKey)
 	if err != nil {
@@ -158,11 +162,20 @@ func (e *Engine) LoadFlow(ctx context.Context, ns, flowKey string) (*FlowRef, er
 	if err := json.Unmarshal(rev.Definition, &fl); err != nil {
 		return nil, ErrFlowInvalid
 	}
-	defaults, err := e.namespaceDefaults(ctx, rev.SnapshotID)
+	snapshotID := rev.SnapshotID
+	var head *uuid.UUID
+	if err := e.Pool.QueryRow(ctx, "SELECT head_snapshot_id FROM namespaces WHERE id = $1", f.NamespaceID).Scan(&head); err != nil {
+		return nil, err
+	}
+	if head != nil {
+		snapshotID = *head
+	}
+	defaults, err := e.namespaceDefaults(ctx, snapshotID)
 	if err != nil {
 		return nil, err
 	}
-	return &FlowRef{Flow: f, Revision: rev, Def: &Definition{Namespace: ns, FlowKey: flowKey, Flow: fl, Defaults: defaults}}, nil
+	return &FlowRef{Flow: f, Revision: rev, SnapshotID: snapshotID,
+		Def: &Definition{Namespace: ns, FlowKey: flowKey, Flow: fl, Defaults: defaults}}, nil
 }
 
 // namespaceDefaults parses namespace.yaml of a snapshot.
@@ -198,6 +211,9 @@ type TriggerParams struct {
 	ChainDepth     int
 	ParentExecID   *uuid.UUID
 	ParentTaskRun  *uuid.UUID
+	// InputTemplates are trigger inputs (§6.5). They render over TriggerPayload as
+	// `trigger` and override Inputs.
+	InputTemplates map[string]string
 }
 
 // InputErrors converts input errors to a validation error (REQ-FLOW-008).
@@ -213,33 +229,105 @@ func InputErrors(errs []flow.InputError) error {
 }
 
 // Trigger creates an execution of a flow at its current revision.
+//
+// The flow loads before the transaction starts: a load inside the transaction would need a
+// second pool connection, and concurrent triggers could then hold all connections and wait
+// for each other.
 func (e *Engine) Trigger(ctx context.Context, r TriggerParams) (uuid.UUID, error) {
-	if err := validateLabels(r.Labels); err != nil {
-		return uuid.Nil, err
-	}
-	ref, err := e.LoadFlow(ctx, r.Namespace, r.FlowKey)
+	p, err := e.prepareTrigger(ctx, r)
 	if err != nil {
-		return uuid.Nil, err
-	}
-	inputs, ierrs := flow.ResolveInputs(ref.Def.Flow.Inputs, r.Inputs)
-	if err := InputErrors(ierrs); err != nil {
 		return uuid.Nil, err
 	}
 	var id uuid.UUID
 	err = pgx.BeginFunc(ctx, e.Pool, func(tx pgx.Tx) error {
-		var state string
 		var err error
-		id, state, err = e.Create(ctx, tx, CreateParams{NamespaceID: ref.Flow.NamespaceID, FlowID: &ref.Flow.ID, RevisionID: &ref.Revision.ID,
-			SnapshotID: ref.Revision.SnapshotID, Def: ref.Def, TriggerType: r.TriggerType, TriggerID: r.TriggerID, ScheduledFor: r.ScheduledFor,
-			TriggerPayload: r.TriggerPayload, Inputs: inputs, Labels: r.Labels, ChainDepth: r.ChainDepth,
-			ParentExecID: r.ParentExecID, ParentTaskRun: r.ParentTaskRun})
-		if err != nil {
-			return err
-		}
-		return e.Audit.Record(ctx, tx, audit.Event{Action: "execution.trigger", TargetType: "execution", TargetID: id.String(),
-			Details: map[string]any{"flow": r.Namespace + "/" + r.FlowKey, "trigger_type": r.TriggerType, "state": state}})
+		id, err = e.createPrepared(ctx, tx, r, p)
+		return err
 	})
 	return id, err
+}
+
+// TriggerTx is Trigger in the transaction tx. The scheduler and flow triggers use it, so
+// that the execution and the trigger state change together.
+func (e *Engine) TriggerTx(ctx context.Context, tx pgx.Tx, r TriggerParams) (uuid.UUID, error) {
+	p, err := e.prepareTrigger(ctx, r)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return e.createPrepared(ctx, tx, r, p)
+}
+
+// preparedTrigger is a loaded flow with resolved inputs.
+type preparedTrigger struct {
+	ref    *FlowRef
+	inputs map[string]any
+}
+
+// prepareTrigger loads the flow and resolves the inputs of a trigger. It reads through the
+// pool and needs no transaction.
+func (e *Engine) prepareTrigger(ctx context.Context, r TriggerParams) (*preparedTrigger, error) {
+	if err := validateLabels(r.Labels); err != nil {
+		return nil, err
+	}
+	ref, err := e.LoadFlow(ctx, r.Namespace, r.FlowKey)
+	if err != nil {
+		return nil, err
+	}
+	given := r.Inputs
+	if len(r.InputTemplates) > 0 {
+		if given, err = renderTriggerInputs(ref.Def.Flow.Inputs, r.InputTemplates, r.TriggerPayload, r.Inputs); err != nil {
+			return nil, err
+		}
+	}
+	inputs, ierrs := flow.ResolveInputs(ref.Def.Flow.Inputs, given)
+	if err := InputErrors(ierrs); err != nil {
+		return nil, err
+	}
+	return &preparedTrigger{ref: ref, inputs: inputs}, nil
+}
+
+// createPrepared creates the execution of a prepared trigger in tx and audits it.
+func (e *Engine) createPrepared(ctx context.Context, tx pgx.Tx, r TriggerParams, p *preparedTrigger) (uuid.UUID, error) {
+	ref, inputs := p.ref, p.inputs
+	id, state, err := e.Create(ctx, tx, CreateParams{NamespaceID: ref.Flow.NamespaceID, FlowID: &ref.Flow.ID, RevisionID: &ref.Revision.ID,
+		SnapshotID: ref.SnapshotID, Def: ref.Def, TriggerType: r.TriggerType, TriggerID: r.TriggerID, ScheduledFor: r.ScheduledFor,
+		TriggerPayload: r.TriggerPayload, Inputs: inputs, Labels: r.Labels, ChainDepth: r.ChainDepth,
+		ParentExecID: r.ParentExecID, ParentTaskRun: r.ParentTaskRun})
+	if err != nil {
+		return uuid.Nil, err
+	}
+	err = e.Audit.Record(ctx, tx, audit.Event{Action: "execution.trigger", TargetType: "execution", TargetID: id.String(),
+		Details: map[string]any{"flow": r.Namespace + "/" + r.FlowKey, "trigger_type": r.TriggerType, "state": state}})
+	return id, err
+}
+
+// renderTriggerInputs renders trigger input templates over the trigger payload. A value
+// for an input that is not a string or select input is parsed as JSON when it can be.
+func renderTriggerInputs(defs []flow.Input, tmpl map[string]string, payload map[string]any, given map[string]any) (map[string]any, error) {
+	types := map[string]string{}
+	for _, d := range defs {
+		types[d.ID] = d.Type
+	}
+	out := map[string]any{}
+	for k, v := range given {
+		out[k] = v
+	}
+	c := &flow.Context{Trigger: payload}
+	for _, k := range sortedKeys(tmpl) {
+		s, err := flow.RenderString(tmpl[k], c)
+		if err != nil {
+			return nil, httpx.Validation(httpx.FieldError{Field: "inputs." + k, Message: err.Error()})
+		}
+		var v any = s
+		if t := types[k]; t != "" && t != "string" && t != "select" {
+			var j any
+			if json.Unmarshal([]byte(s), &j) == nil {
+				v = j
+			}
+		}
+		out[k] = v
+	}
+	return out, nil
 }
 
 // RunFile creates an execution with one script task for a file (REQ-NS-007).

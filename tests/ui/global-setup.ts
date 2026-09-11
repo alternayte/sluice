@@ -28,8 +28,18 @@ export default async function globalSetup() {
     "-e", "POSTGRES_PASSWORD=sluice", "-e", "POSTGRES_USER=sluice", "-e", "POSTGRES_DB=sluice",
     "postgres:17-alpine",
   ]).toString().trim();
-  const mapped = execFileSync("docker", ["port", container, "5432/tcp"]).toString().trim().split("\n")[0]!;
-  const pgPort = mapped.split(":").pop();
+  // A busy Docker engine can report the mapped port a little later than the start.
+  let pgPort = "";
+  for (let i = 0; i < 60 && !/^\d+$/.test(pgPort); i++) {
+    try {
+      const mapped = execFileSync("docker", ["port", container, "5432/tcp"]).toString().trim().split("\n")[0] ?? "";
+      pgPort = mapped.split(":").pop() ?? "";
+    } catch {
+      pgPort = "";
+    }
+    if (!/^\d+$/.test(pgPort)) await sleep(500);
+  }
+  if (!/^\d+$/.test(pgPort)) throw new Error(`no mapped port for the Postgres container ${container}`);
   for (let i = 0; i < 120; i++) {
     try {
       execFileSync("docker", ["exec", container, "pg_isready", "-U", "sluice", "-h", "127.0.0.1"], { stdio: "ignore" });
@@ -56,7 +66,11 @@ export default async function globalSetup() {
       SLUICE_BOOTSTRAP_ADMIN_EMAIL: adminEmail,
       SLUICE_BOOTSTRAP_ADMIN_PASSWORD: adminPassword,
       SLUICE_EXECUTORS: "process",
+      // A fixed test master key (32 bytes of 0x01) for builtin secrets.
+      SLUICE_MASTER_KEYS: `k1:${Buffer.alloc(32, 1).toString("base64")}`,
       SLUICE_LOG_FORMAT: "text",
+      // A value for the env secret provider check of SCN-UI-006.
+      SLUICE_SECRET_UI_CHECK: "ui-check-value",
     },
     stdio: ["ignore", out, out],
     detached: true,

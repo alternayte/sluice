@@ -144,7 +144,25 @@ func newDatabase(t testing.TB) string {
 // startServer starts `sluice server` and waits until /readyz is 200.
 func startServer(t testing.TB, env map[string]string) *Proc {
 	t.Helper()
-	port := freePort(t)
+	return startServerOnPort(t, freePort(t), env)
+}
+
+// startServerOnPort is startServer on a given loopback port.
+func startServerOnPort(t testing.TB, port int, env map[string]string) *Proc {
+	t.Helper()
+	return launch(t, port, env, true)
+}
+
+// startServerNoReady starts `sluice server` and waits until it answers /healthz. It does
+// not wait for /readyz, so that a test can check a failing readiness check.
+func startServerNoReady(t testing.TB, env map[string]string) *Proc {
+	t.Helper()
+	return launch(t, freePort(t), env, false)
+}
+
+// launch starts the server and waits until /readyz is 200, or /healthz is 200 when ready is false.
+func launch(t testing.TB, port int, env map[string]string, ready bool) *Proc {
+	t.Helper()
 	full := map[string]string{
 		"SLUICE_LISTEN_ADDR":    fmt.Sprintf("127.0.0.1:%d", port),
 		"SLUICE_PUBLIC_URL":     fmt.Sprintf("http://127.0.0.1:%d", port),
@@ -174,6 +192,10 @@ func startServer(t testing.TB, env map[string]string) *Proc {
 			t.Logf("server %s logs:\n%s", p.URL, lastLines(logs.String(), 200))
 		}
 	})
+	probe := "/readyz"
+	if !ready {
+		probe = "/healthz"
+	}
 	deadline := time.Now().Add(60 * time.Second)
 	for time.Now().Before(deadline) {
 		select {
@@ -182,7 +204,7 @@ func startServer(t testing.TB, env map[string]string) *Proc {
 			t.Fatalf("server exited during start: %v\n%s", err, logs.String())
 		default:
 		}
-		resp, err := http.Get(p.URL + "/readyz")
+		resp, err := http.Get(p.URL + probe)
 		if err == nil {
 			_, _ = io.Copy(io.Discard, resp.Body)
 			_ = resp.Body.Close()

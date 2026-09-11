@@ -68,7 +68,7 @@ export function NamespacesPage() {
                       <Link
                         to="/namespaces/$namespace"
                         params={{ namespace: item.name }}
-                        className="font-medium text-accent hover:underline"
+                        className="font-medium text-accent-text hover:underline"
                       >
                         {item.name}
                       </Link>

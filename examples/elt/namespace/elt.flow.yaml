@@ -1,0 +1,20 @@
+id: elt
+description: Load the source schema with dlt, then transform it with SQLMesh.
+labels: { team: data }
+env:
+  PG_HOST: ${{ vars.PG_HOST }}
+  PG_PORT: ${{ vars.PG_PORT }}
+  PG_DATABASE: ${{ vars.PG_DATABASE }}
+  PG_USER: ${{ vars.PG_USER }}
+  PG_PASSWORD: ${{ secret('ELT_PG_PASSWORD') }}
+timeout: 1h
+tasks:
+  - id: extract
+    type: script
+    file: pipelines/extract.py
+  - id: transform
+    type: script
+    file: transform.sh
+    depends_on: [extract]
+outputs:
+  rows: ${{ tasks.extract.outputs.rows }}

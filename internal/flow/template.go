@@ -51,9 +51,14 @@ type Template struct {
 type TemplateError struct {
 	Pos int
 	Msg string
+	// Err is the lookup error, for example a secret that no scope defines.
+	Err error
 }
 
 func (e *TemplateError) Error() string { return e.Msg }
+
+// Unwrap returns the lookup error, so that callers can find its type.
+func (e *TemplateError) Unwrap() error { return e.Err }
 
 var (
 	identRe  = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_-]*$`)
@@ -176,7 +181,7 @@ func (t *Template) Render(c *Context) (string, error) {
 		}
 		v, err := c.lookup(*s.ref)
 		if err != nil {
-			return "", &TemplateError{Pos: s.ref.Pos, Msg: err.Error()}
+			return "", &TemplateError{Pos: s.ref.Pos, Msg: err.Error(), Err: err}
 		}
 		b.WriteString(renderValue(v))
 	}

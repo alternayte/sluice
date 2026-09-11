@@ -4,6 +4,43 @@ export type ClientOptions = {
   baseUrl: `${string}://${string}` | (string & {});
 };
 
+export type AiProvider = {
+  /**
+   * Global secret key that holds the API key.
+   */
+  api_key_secret_key?: string;
+  auto_triage: boolean;
+  /**
+   * Empty uses the default URL of the type.
+   */
+  base_url?: string;
+  configured: boolean;
+  model?: string;
+  type?: "anthropic" | "openai_compatible";
+  [key: string]: unknown;
+};
+
+export type AiProviderPut = {
+  api_key_secret_key: string;
+  auto_triage?: boolean;
+  base_url?: string;
+  model: string;
+  type: "anthropic" | "openai_compatible";
+  [key: string]: unknown;
+};
+
+export type AiStatus = {
+  auto_triage: boolean;
+  enabled: boolean;
+  [key: string]: unknown;
+};
+
+export type AiTestResult = {
+  message?: string;
+  status: "ok" | "failed";
+  [key: string]: unknown;
+};
+
 export type Artifact = {
   content_type: string;
   created_at: string;
@@ -42,9 +79,63 @@ export type AuditList = {
   [key: string]: unknown;
 };
 
+export type Block = {
+  input?: unknown;
+  is_error?: boolean;
+  text?: string;
+  tool_name?: string;
+  tool_use_id?: string;
+  type: string;
+  [key: string]: unknown;
+};
+
+export type BucketOut = {
+  cancelled: number;
+  failed: number;
+  p50_ms: number | null;
+  p95_ms: number | null;
+  skipped: number;
+  start: string;
+  success: number;
+  timed_out: number;
+  [key: string]: unknown;
+};
+
 export type ChangePasswordRequest = {
   current_password: string;
   new_password: string;
+  [key: string]: unknown;
+};
+
+export type CheckResult = {
+  message?: string;
+  status: "ok" | "not_found" | "access_denied" | "provider_error";
+  [key: string]: unknown;
+};
+
+export type CheckSecretProviderRequest = {
+  ref: string;
+  [key: string]: unknown;
+};
+
+export type Conversation = {
+  created_at: string;
+  id: string;
+  title: string;
+  [key: string]: unknown;
+};
+
+export type ConversationDetail = {
+  actions: Array<PendingAction>;
+  created_at: string;
+  id: string;
+  messages: Array<StoredMessage>;
+  title: string;
+  [key: string]: unknown;
+};
+
+export type ConversationList = {
+  items: Array<Conversation>;
   [key: string]: unknown;
 };
 
@@ -53,9 +144,48 @@ export type CountResult = {
   [key: string]: unknown;
 };
 
+export type CreateAiConversationRequest = {
+  title?: string;
+  [key: string]: unknown;
+};
+
+export type CreateGitSourceRequest = {
+  auth_type: "none" | "https_token" | "ssh_key";
+  branch: string;
+  /**
+   * Global secret key with the token or the private key.
+   */
+  credential_secret_key?: string;
+  known_hosts?: string;
+  mappings: Array<MappingIo>;
+  name: string;
+  /**
+   * Seconds between polls. Default 60.
+   */
+  poll_interval?: number;
+  /**
+   * https or ssh URL.
+   */
+  repo_url: string;
+  /**
+   * Global secret key with the webhook secret.
+   */
+  webhook_secret_key?: string;
+  [key: string]: unknown;
+};
+
 export type CreateNamespaceRequest = {
   description?: string;
   name: string;
+  [key: string]: unknown;
+};
+
+export type CreateSecretProviderRequest = {
+  config?: {
+    [key: string]: unknown;
+  };
+  name: string;
+  type: "kubernetes" | "azure_key_vault" | "vault";
   [key: string]: unknown;
 };
 
@@ -83,6 +213,18 @@ export type CreatedToken = {
   [key: string]: unknown;
 };
 
+export type DashboardOut = {
+  bucket_seconds: number;
+  buckets: Array<BucketOut>;
+  from: string;
+  kpis: KpisOut;
+  range: "24h" | "7d" | "30d";
+  recent_failures: Array<ExecutionOut>;
+  running: Array<ExecutionOut>;
+  to: string;
+  [key: string]: unknown;
+};
+
 export type ErrorBody = {
   code: string;
   details?: unknown;
@@ -92,6 +234,13 @@ export type ErrorBody = {
 
 export type ErrorEnvelope = {
   error: ErrorBody;
+  [key: string]: unknown;
+};
+
+export type Evidence = {
+  line: number;
+  task: string;
+  text: string;
   [key: string]: unknown;
 };
 
@@ -147,6 +296,21 @@ export type ExecutionDetail = {
 export type ExecutionList = {
   items: Array<ExecutionSummary>;
   next_cursor?: string;
+  [key: string]: unknown;
+};
+
+export type ExecutionOut = {
+  created_at: string;
+  duration_ms?: number | null;
+  ended_at?: string | null;
+  error: string;
+  flow_id: string;
+  id: string;
+  namespace: string;
+  started_at?: string | null;
+  state: string;
+  triage_summary?: string | null;
+  trigger_type: string;
   [key: string]: unknown;
 };
 
@@ -257,6 +421,17 @@ export type FlowList = {
   [key: string]: unknown;
 };
 
+export type FlowMetricsOut = {
+  names: Array<string>;
+  series: Array<MetricSeriesOut>;
+  [key: string]: unknown;
+};
+
+export type FlowStatsOut = {
+  recent: Array<ExecutionOut>;
+  [key: string]: unknown;
+};
+
 export type FlowSummary = {
   description: string;
   disabled: boolean;
@@ -270,6 +445,27 @@ export type FlowSummary = {
   namespace: string;
   path: string;
   valid: boolean;
+  [key: string]: unknown;
+};
+
+export type Insight = {
+  confidence: "" | "low" | "medium" | "high";
+  created_at: string;
+  error: string;
+  evidence: Array<Evidence>;
+  execution_id: string;
+  id: string;
+  kind: "triage";
+  model: string;
+  probable_cause: string;
+  status: "pending" | "running" | "done" | "failed";
+  suggested_fix: string;
+  summary: string;
+  [key: string]: unknown;
+};
+
+export type InsightList = {
+  items: Array<Insight>;
   [key: string]: unknown;
 };
 
@@ -296,6 +492,28 @@ export type Issue = {
   line: number;
   message: string;
   path: string;
+  [key: string]: unknown;
+};
+
+export type KpisOut = {
+  cancelled: number;
+  /**
+   * Executions that ended in the range.
+   */
+  executions: number;
+  failed: number;
+  median_duration_ms: number | null;
+  /**
+   * Executions that run now.
+   */
+  running: number;
+  skipped: number;
+  succeeded: number;
+  /**
+   * SUCCESS / (SUCCESS + FAILED + TIMED_OUT) in the range.
+   */
+  success_rate: number | null;
+  timed_out: number;
   [key: string]: unknown;
 };
 
@@ -329,6 +547,15 @@ export type LoginRequest = {
   [key: string]: unknown;
 };
 
+export type MappingIo = {
+  namespace: string;
+  /**
+   * Directory in the repository. Empty is the repository root.
+   */
+  repo_path: string;
+  [key: string]: unknown;
+};
+
 export type Me = {
   auth_type: "session" | "token";
   email: string;
@@ -336,6 +563,11 @@ export type Me = {
   must_change_password: boolean;
   name: string;
   role: "viewer" | "operator" | "editor" | "admin";
+  [key: string]: unknown;
+};
+
+export type MessageIn = {
+  text: string;
   [key: string]: unknown;
 };
 
@@ -357,6 +589,22 @@ export type MetricPoint = {
   [key: string]: unknown;
 };
 
+export type MetricPointOut = {
+  created_at: string;
+  execution_id: string;
+  value: number;
+  [key: string]: unknown;
+};
+
+export type MetricSeriesOut = {
+  /**
+   * Value of the group-by tag. Empty when the tag is missing or no group-by is set.
+   */
+  group: string;
+  points: Array<MetricPointOut>;
+  [key: string]: unknown;
+};
+
 export type Namespace = {
   description: string;
   git_source_id?: string | null;
@@ -373,8 +621,78 @@ export type Namespace = {
   [key: string]: unknown;
 };
 
+export type NamespaceGit = {
+  branch: string;
+  last_error: string;
+  last_sync_at?: string | null;
+  last_sync_status: string;
+  last_synced_sha: string;
+  repo_path: string;
+  repo_url: string;
+  source_id: string;
+  source_name: string;
+  [key: string]: unknown;
+};
+
 export type NamespaceList = {
   items: Array<Namespace>;
+  [key: string]: unknown;
+};
+
+export type PendingAction = {
+  arguments: unknown;
+  created_at: string;
+  id: string;
+  status: "pending" | "confirmed" | "rejected";
+  tool: string;
+  tool_call_id: string;
+  [key: string]: unknown;
+};
+
+export type ProviderList = {
+  items: Array<ProviderOut>;
+  [key: string]: unknown;
+};
+
+export type ProviderOut = {
+  config: {
+    [key: string]: unknown;
+  };
+  created_at: string;
+  name: string;
+  type: "builtin" | "env" | "kubernetes" | "azure_key_vault" | "vault";
+  updated_at: string;
+  [key: string]: unknown;
+};
+
+export type PushChange = {
+  /**
+   * put only. UTF-8 text content.
+   */
+  content?: string;
+  /**
+   * put only. Binary content as base64.
+   */
+  content_base64?: string;
+  executable?: boolean;
+  /**
+   * rename only.
+   */
+  new_path?: string;
+  op: "put" | "delete" | "rename";
+  path: string;
+  [key: string]: unknown;
+};
+
+export type PushNamespaceBranchRequest = {
+  changes: Array<PushChange>;
+  message: string;
+  [key: string]: unknown;
+};
+
+export type PushResult = {
+  branch: string;
+  sha: string;
   [key: string]: unknown;
 };
 
@@ -424,6 +742,23 @@ export type RevisionSummary = {
 export type RunFileRequest = {
   args?: Array<string>;
   path: string;
+  [key: string]: unknown;
+};
+
+export type RunList = {
+  items: Array<RunOut>;
+  [key: string]: unknown;
+};
+
+export type RunOut = {
+  ended_at?: string | null;
+  error: string;
+  id: string;
+  sha: string;
+  snapshots_created: number;
+  started_at: string;
+  status: "running" | "success" | "failed";
+  warnings: Array<string>;
   [key: string]: unknown;
 };
 
@@ -507,6 +842,47 @@ export type SaveChangesRequest = {
   [key: string]: unknown;
 };
 
+export type SecretInfo = {
+  description: string;
+  /**
+   * True when a parent namespace or the global scope defines the secret.
+   */
+  inherited: boolean;
+  key: string;
+  last_resolved_at?: string | null;
+  provider: string;
+  provider_type: "builtin" | "env" | "kubernetes" | "azure_key_vault" | "vault";
+  /**
+   * Reference of an external secret. Builtin secrets have none.
+   */
+  ref?: string;
+  /**
+   * global or the namespace name that defines the secret.
+   */
+  scope: string;
+  updated_at: string;
+  updated_by: string;
+  [key: string]: unknown;
+};
+
+export type SecretList = {
+  items: Array<SecretInfo>;
+  [key: string]: unknown;
+};
+
+export type SecretPut = {
+  description?: string;
+  /**
+   * Provider name. Default builtin, or the provider of the existing secret.
+   */
+  provider?: string;
+  /**
+   * Reference of an external secret, for example path#field for vault.
+   */
+  ref?: string;
+  [key: string]: unknown;
+};
+
 export type Snapshot = {
   author: string;
   created_at: string;
@@ -521,6 +897,72 @@ export type Snapshot = {
 
 export type SnapshotList = {
   items: Array<Snapshot>;
+  [key: string]: unknown;
+};
+
+export type SourceBody = {
+  auth_type: "none" | "https_token" | "ssh_key";
+  branch: string;
+  /**
+   * Global secret key with the token or the private key.
+   */
+  credential_secret_key?: string;
+  known_hosts?: string;
+  mappings: Array<MappingIo>;
+  /**
+   * Seconds between polls. Default 60.
+   */
+  poll_interval?: number;
+  /**
+   * https or ssh URL.
+   */
+  repo_url: string;
+  /**
+   * Global secret key with the webhook secret.
+   */
+  webhook_secret_key?: string;
+  [key: string]: unknown;
+};
+
+export type SourceList = {
+  items: Array<SourceOut>;
+  [key: string]: unknown;
+};
+
+export type SourceOut = {
+  auth_type: string;
+  branch: string;
+  credential_secret_key: string;
+  id: string;
+  known_hosts: string;
+  last_error: string;
+  last_sync_at?: string | null;
+  last_sync_status: string;
+  last_synced_sha: string;
+  mappings: Array<MappingIo>;
+  name: string;
+  poll_interval: number;
+  repo_url: string;
+  webhook_secret_key: string;
+  webhook_url: string;
+  [key: string]: unknown;
+};
+
+export type Status = {
+  driver: "postgres" | "fs" | "s3" | "azblob";
+  error?: string;
+  /**
+   * The result of a put, get and delete round trip.
+   */
+  healthy: boolean;
+  [key: string]: unknown;
+};
+
+export type StoredMessage = {
+  content: Array<Block>;
+  created_at: string;
+  id: string;
+  role: "user" | "assistant" | "tool";
   [key: string]: unknown;
 };
 
@@ -603,6 +1045,21 @@ export type TriggerRequest = {
   [key: string]: unknown;
 };
 
+export type UpcomingList = {
+  items: Array<UpcomingSchedule>;
+  [key: string]: unknown;
+};
+
+export type UpcomingSchedule = {
+  cron: string;
+  flow_id: string;
+  namespace: string;
+  next_fire_at: string;
+  timezone: string;
+  trigger_id: string;
+  [key: string]: unknown;
+};
+
 export type UpdateFlowRequest = {
   disabled: boolean;
   [key: string]: unknown;
@@ -610,6 +1067,13 @@ export type UpdateFlowRequest = {
 
 export type UpdateMeRequest = {
   name: string;
+  [key: string]: unknown;
+};
+
+export type UpdateSecretProviderRequest = {
+  config: {
+    [key: string]: unknown;
+  };
   [key: string]: unknown;
 };
 
@@ -652,10 +1116,59 @@ export type ValidateFileResult = {
   [key: string]: unknown;
 };
 
+export type VariableInfo = {
+  /**
+   * True when a parent namespace or the global scope defines the variable.
+   */
+  inherited: boolean;
+  key: string;
+  /**
+   * global or the namespace name that defines the variable.
+   */
+  scope: string;
+  updated_at: string;
+  updated_by: string;
+  value: string;
+  [key: string]: unknown;
+};
+
+export type VariableList = {
+  items: Array<VariableInfo>;
+  [key: string]: unknown;
+};
+
+export type VariablePut = {
+  value: string;
+  [key: string]: unknown;
+};
+
 export type VersionDiff = {
   files: Array<FileDiff>;
   from: number;
   to: number;
+  [key: string]: unknown;
+};
+
+export type WebhookKey = {
+  key: string;
+  url: string;
+  [key: string]: unknown;
+};
+
+export type SecretPutWritable = {
+  description?: string;
+  /**
+   * Provider name. Default builtin, or the provider of the existing secret.
+   */
+  provider?: string;
+  /**
+   * Reference of an external secret, for example path#field for vault.
+   */
+  ref?: string;
+  /**
+   * Value of a builtin secret. Write-only.
+   */
+  value?: string;
   [key: string]: unknown;
 };
 
@@ -841,6 +1354,300 @@ export type RunnerGetSpecResponses = {
 
 export type RunnerGetSpecResponse =
   RunnerGetSpecResponses[keyof RunnerGetSpecResponses];
+
+export type ListAiConversationsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/conversations";
+};
+
+export type ListAiConversationsErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListAiConversationsError =
+  ListAiConversationsErrors[keyof ListAiConversationsErrors];
+
+export type ListAiConversationsResponses = {
+  /**
+   * OK
+   */
+  200: ConversationList;
+};
+
+export type ListAiConversationsResponse =
+  ListAiConversationsResponses[keyof ListAiConversationsResponses];
+
+export type CreateAiConversationData = {
+  body: CreateAiConversationRequest;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/conversations";
+};
+
+export type CreateAiConversationErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type CreateAiConversationError =
+  CreateAiConversationErrors[keyof CreateAiConversationErrors];
+
+export type CreateAiConversationResponses = {
+  /**
+   * Created
+   */
+  201: Conversation;
+};
+
+export type CreateAiConversationResponse =
+  CreateAiConversationResponses[keyof CreateAiConversationResponses];
+
+export type DeleteAiConversationData = {
+  body?: never;
+  path: {
+    conversationId: string;
+  };
+  query?: never;
+  url: "/api/v1/ai/conversations/{conversationId}";
+};
+
+export type DeleteAiConversationErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteAiConversationError =
+  DeleteAiConversationErrors[keyof DeleteAiConversationErrors];
+
+export type DeleteAiConversationResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteAiConversationResponse =
+  DeleteAiConversationResponses[keyof DeleteAiConversationResponses];
+
+export type GetAiConversationData = {
+  body?: never;
+  path: {
+    conversationId: string;
+  };
+  query?: never;
+  url: "/api/v1/ai/conversations/{conversationId}";
+};
+
+export type GetAiConversationErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetAiConversationError =
+  GetAiConversationErrors[keyof GetAiConversationErrors];
+
+export type GetAiConversationResponses = {
+  /**
+   * OK
+   */
+  200: ConversationDetail;
+};
+
+export type GetAiConversationResponse =
+  GetAiConversationResponses[keyof GetAiConversationResponses];
+
+export type ConfirmAiActionData = {
+  body?: never;
+  path: {
+    conversationId: string;
+    actionId: string;
+  };
+  query?: never;
+  url: "/api/v1/ai/conversations/{conversationId}/actions/{actionId}/confirm";
+};
+
+export type ConfirmAiActionResponses = {
+  /**
+   * Events of the continued turn.
+   */
+  200: unknown;
+};
+
+export type RejectAiActionData = {
+  body?: never;
+  path: {
+    conversationId: string;
+    actionId: string;
+  };
+  query?: never;
+  url: "/api/v1/ai/conversations/{conversationId}/actions/{actionId}/reject";
+};
+
+export type RejectAiActionResponses = {
+  /**
+   * Events of the continued turn.
+   */
+  200: unknown;
+};
+
+export type SendAiMessageData = {
+  body: MessageIn;
+  path: {
+    conversationId: string;
+  };
+  query?: never;
+  url: "/api/v1/ai/conversations/{conversationId}/messages";
+};
+
+export type SendAiMessageResponses = {
+  /**
+   * Events of the turn: text, tool_call, tool_result, pending_action, error and done.
+   */
+  200: unknown;
+};
+
+export type DeleteAiProviderData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/provider";
+};
+
+export type DeleteAiProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteAiProviderError =
+  DeleteAiProviderErrors[keyof DeleteAiProviderErrors];
+
+export type DeleteAiProviderResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteAiProviderResponse =
+  DeleteAiProviderResponses[keyof DeleteAiProviderResponses];
+
+export type GetAiProviderData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/provider";
+};
+
+export type GetAiProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetAiProviderError = GetAiProviderErrors[keyof GetAiProviderErrors];
+
+export type GetAiProviderResponses = {
+  /**
+   * OK
+   */
+  200: AiProvider;
+};
+
+export type GetAiProviderResponse =
+  GetAiProviderResponses[keyof GetAiProviderResponses];
+
+export type PutAiProviderData = {
+  body: AiProviderPut;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/provider";
+};
+
+export type PutAiProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type PutAiProviderError = PutAiProviderErrors[keyof PutAiProviderErrors];
+
+export type PutAiProviderResponses = {
+  /**
+   * OK
+   */
+  200: AiProvider;
+};
+
+export type PutAiProviderResponse =
+  PutAiProviderResponses[keyof PutAiProviderResponses];
+
+export type TestAiProviderData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/provider/test";
+};
+
+export type TestAiProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type TestAiProviderError =
+  TestAiProviderErrors[keyof TestAiProviderErrors];
+
+export type TestAiProviderResponses = {
+  /**
+   * OK
+   */
+  200: AiTestResult;
+};
+
+export type TestAiProviderResponse =
+  TestAiProviderResponses[keyof TestAiProviderResponses];
+
+export type GetAiStatusData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/ai/status";
+};
+
+export type GetAiStatusErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetAiStatusError = GetAiStatusErrors[keyof GetAiStatusErrors];
+
+export type GetAiStatusResponses = {
+  /**
+   * OK
+   */
+  200: AiStatus;
+};
+
+export type GetAiStatusResponse =
+  GetAiStatusResponses[keyof GetAiStatusResponses];
 
 export type ListAuditEventsData = {
   body?: never;
@@ -1217,6 +2024,63 @@ export type StreamExecutionEventsResponses = {
   200: unknown;
 };
 
+export type ListExecutionInsightsData = {
+  body?: never;
+  path: {
+    executionId: string;
+  };
+  query?: never;
+  url: "/api/v1/executions/{executionId}/insights";
+};
+
+export type ListExecutionInsightsErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListExecutionInsightsError =
+  ListExecutionInsightsErrors[keyof ListExecutionInsightsErrors];
+
+export type ListExecutionInsightsResponses = {
+  /**
+   * OK
+   */
+  200: InsightList;
+};
+
+export type ListExecutionInsightsResponse =
+  ListExecutionInsightsResponses[keyof ListExecutionInsightsResponses];
+
+export type RequestTriageData = {
+  body?: never;
+  path: {
+    executionId: string;
+  };
+  query?: never;
+  url: "/api/v1/executions/{executionId}/insights";
+};
+
+export type RequestTriageErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type RequestTriageError = RequestTriageErrors[keyof RequestTriageErrors];
+
+export type RequestTriageResponses = {
+  /**
+   * Accepted
+   */
+  202: InsightList;
+};
+
+export type RequestTriageResponse =
+  RequestTriageResponses[keyof RequestTriageResponses];
+
 export type GetExecutionLogsData = {
   body?: never;
   path: {
@@ -1539,6 +2403,46 @@ export type TriggerFlowResponses = {
 export type TriggerFlowResponse =
   TriggerFlowResponses[keyof TriggerFlowResponses];
 
+export type GetFlowMetricsData = {
+  body?: never;
+  path: {
+    namespace: string;
+    flowId: string;
+  };
+  query?: {
+    /**
+     * Metric name. Empty returns only the names.
+     */
+    name?: string;
+    agg?: "sum" | "avg" | "max";
+    /**
+     * Tag key. One series per tag value.
+     */
+    group_by?: string;
+  };
+  url: "/api/v1/flows/{namespace}/{flowId}/metrics";
+};
+
+export type GetFlowMetricsErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetFlowMetricsError =
+  GetFlowMetricsErrors[keyof GetFlowMetricsErrors];
+
+export type GetFlowMetricsResponses = {
+  /**
+   * OK
+   */
+  200: FlowMetricsOut;
+};
+
+export type GetFlowMetricsResponse =
+  GetFlowMetricsResponses[keyof GetFlowMetricsResponses];
+
 export type ListFlowRevisionsData = {
   body?: never;
   path: {
@@ -1601,6 +2505,260 @@ export type GetFlowRevisionResponses = {
 
 export type GetFlowRevisionResponse =
   GetFlowRevisionResponses[keyof GetFlowRevisionResponses];
+
+export type GetFlowStatsData = {
+  body?: never;
+  path: {
+    namespace: string;
+    flowId: string;
+  };
+  query?: never;
+  url: "/api/v1/flows/{namespace}/{flowId}/stats";
+};
+
+export type GetFlowStatsErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetFlowStatsError = GetFlowStatsErrors[keyof GetFlowStatsErrors];
+
+export type GetFlowStatsResponses = {
+  /**
+   * OK
+   */
+  200: FlowStatsOut;
+};
+
+export type GetFlowStatsResponse =
+  GetFlowStatsResponses[keyof GetFlowStatsResponses];
+
+export type RotateWebhookKeyData = {
+  body?: never;
+  path: {
+    namespace: string;
+    flowId: string;
+    triggerId: string;
+  };
+  query?: never;
+  url: "/api/v1/flows/{namespace}/{flowId}/triggers/{triggerId}/webhook-key";
+};
+
+export type RotateWebhookKeyErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type RotateWebhookKeyError =
+  RotateWebhookKeyErrors[keyof RotateWebhookKeyErrors];
+
+export type RotateWebhookKeyResponses = {
+  /**
+   * OK
+   */
+  200: WebhookKey;
+};
+
+export type RotateWebhookKeyResponse =
+  RotateWebhookKeyResponses[keyof RotateWebhookKeyResponses];
+
+export type ListGitSourcesData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/git-sources";
+};
+
+export type ListGitSourcesErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListGitSourcesError =
+  ListGitSourcesErrors[keyof ListGitSourcesErrors];
+
+export type ListGitSourcesResponses = {
+  /**
+   * OK
+   */
+  200: SourceList;
+};
+
+export type ListGitSourcesResponse =
+  ListGitSourcesResponses[keyof ListGitSourcesResponses];
+
+export type CreateGitSourceData = {
+  body: CreateGitSourceRequest;
+  path?: never;
+  query?: never;
+  url: "/api/v1/git-sources";
+};
+
+export type CreateGitSourceErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type CreateGitSourceError =
+  CreateGitSourceErrors[keyof CreateGitSourceErrors];
+
+export type CreateGitSourceResponses = {
+  /**
+   * Created
+   */
+  201: SourceOut;
+};
+
+export type CreateGitSourceResponse =
+  CreateGitSourceResponses[keyof CreateGitSourceResponses];
+
+export type DeleteGitSourceData = {
+  body?: never;
+  path: {
+    sourceId: string;
+  };
+  query?: never;
+  url: "/api/v1/git-sources/{sourceId}";
+};
+
+export type DeleteGitSourceErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteGitSourceError =
+  DeleteGitSourceErrors[keyof DeleteGitSourceErrors];
+
+export type DeleteGitSourceResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteGitSourceResponse =
+  DeleteGitSourceResponses[keyof DeleteGitSourceResponses];
+
+export type GetGitSourceData = {
+  body?: never;
+  path: {
+    sourceId: string;
+  };
+  query?: never;
+  url: "/api/v1/git-sources/{sourceId}";
+};
+
+export type GetGitSourceErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetGitSourceError = GetGitSourceErrors[keyof GetGitSourceErrors];
+
+export type GetGitSourceResponses = {
+  /**
+   * OK
+   */
+  200: SourceOut;
+};
+
+export type GetGitSourceResponse =
+  GetGitSourceResponses[keyof GetGitSourceResponses];
+
+export type UpdateGitSourceData = {
+  body: SourceBody;
+  path: {
+    sourceId: string;
+  };
+  query?: never;
+  url: "/api/v1/git-sources/{sourceId}";
+};
+
+export type UpdateGitSourceErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type UpdateGitSourceError =
+  UpdateGitSourceErrors[keyof UpdateGitSourceErrors];
+
+export type UpdateGitSourceResponses = {
+  /**
+   * OK
+   */
+  200: SourceOut;
+};
+
+export type UpdateGitSourceResponse =
+  UpdateGitSourceResponses[keyof UpdateGitSourceResponses];
+
+export type ListGitSyncRunsData = {
+  body?: never;
+  path: {
+    sourceId: string;
+  };
+  query?: never;
+  url: "/api/v1/git-sources/{sourceId}/runs";
+};
+
+export type ListGitSyncRunsErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListGitSyncRunsError =
+  ListGitSyncRunsErrors[keyof ListGitSyncRunsErrors];
+
+export type ListGitSyncRunsResponses = {
+  /**
+   * OK
+   */
+  200: RunList;
+};
+
+export type ListGitSyncRunsResponse =
+  ListGitSyncRunsResponses[keyof ListGitSyncRunsResponses];
+
+export type SyncGitSourceData = {
+  body?: never;
+  path: {
+    sourceId: string;
+  };
+  query?: never;
+  url: "/api/v1/git-sources/{sourceId}/sync";
+};
+
+export type SyncGitSourceErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type SyncGitSourceError = SyncGitSourceErrors[keyof SyncGitSourceErrors];
+
+export type SyncGitSourceResponses = {
+  /**
+   * Accepted
+   */
+  202: unknown;
+};
 
 export type ListInstancesData = {
   body?: never;
@@ -1880,6 +3038,64 @@ export type ListFilesResponses = {
 
 export type ListFilesResponse = ListFilesResponses[keyof ListFilesResponses];
 
+export type GetNamespaceGitData = {
+  body?: never;
+  path: {
+    namespace: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/git";
+};
+
+export type GetNamespaceGitErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetNamespaceGitError =
+  GetNamespaceGitErrors[keyof GetNamespaceGitErrors];
+
+export type GetNamespaceGitResponses = {
+  /**
+   * OK
+   */
+  200: NamespaceGit;
+};
+
+export type GetNamespaceGitResponse =
+  GetNamespaceGitResponses[keyof GetNamespaceGitResponses];
+
+export type PushNamespaceBranchData = {
+  body: PushNamespaceBranchRequest;
+  path: {
+    namespace: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/git/push";
+};
+
+export type PushNamespaceBranchErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type PushNamespaceBranchError =
+  PushNamespaceBranchErrors[keyof PushNamespaceBranchErrors];
+
+export type PushNamespaceBranchResponses = {
+  /**
+   * Created
+   */
+  201: PushResult;
+};
+
+export type PushNamespaceBranchResponse =
+  PushNamespaceBranchResponses[keyof PushNamespaceBranchResponses];
+
 export type RevertVersionData = {
   body: RevertRequest;
   path: {
@@ -1935,6 +3151,125 @@ export type RunFileResponses = {
 
 export type RunFileResponse = RunFileResponses[keyof RunFileResponses];
 
+export type ListNamespaceSecretsData = {
+  body?: never;
+  path: {
+    namespace: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/secrets";
+};
+
+export type ListNamespaceSecretsErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListNamespaceSecretsError =
+  ListNamespaceSecretsErrors[keyof ListNamespaceSecretsErrors];
+
+export type ListNamespaceSecretsResponses = {
+  /**
+   * OK
+   */
+  200: SecretList;
+};
+
+export type ListNamespaceSecretsResponse =
+  ListNamespaceSecretsResponses[keyof ListNamespaceSecretsResponses];
+
+export type DeleteNamespaceSecretData = {
+  body?: never;
+  path: {
+    namespace: string;
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/secrets/{key}";
+};
+
+export type DeleteNamespaceSecretErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteNamespaceSecretError =
+  DeleteNamespaceSecretErrors[keyof DeleteNamespaceSecretErrors];
+
+export type DeleteNamespaceSecretResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteNamespaceSecretResponse =
+  DeleteNamespaceSecretResponses[keyof DeleteNamespaceSecretResponses];
+
+export type PutNamespaceSecretData = {
+  body: SecretPutWritable;
+  path: {
+    namespace: string;
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/secrets/{key}";
+};
+
+export type PutNamespaceSecretErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type PutNamespaceSecretError =
+  PutNamespaceSecretErrors[keyof PutNamespaceSecretErrors];
+
+export type PutNamespaceSecretResponses = {
+  /**
+   * OK
+   */
+  200: SecretInfo;
+};
+
+export type PutNamespaceSecretResponse =
+  PutNamespaceSecretResponses[keyof PutNamespaceSecretResponses];
+
+export type CheckNamespaceSecretData = {
+  body?: never;
+  path: {
+    namespace: string;
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/secrets/{key}/check";
+};
+
+export type CheckNamespaceSecretErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type CheckNamespaceSecretError =
+  CheckNamespaceSecretErrors[keyof CheckNamespaceSecretErrors];
+
+export type CheckNamespaceSecretResponses = {
+  /**
+   * OK
+   */
+  200: CheckResult;
+};
+
+export type CheckNamespaceSecretResponse =
+  CheckNamespaceSecretResponses[keyof CheckNamespaceSecretResponses];
+
 export type ValidateFileData = {
   body: ValidateFileRequest;
   path: {
@@ -1962,6 +3297,95 @@ export type ValidateFileResponses = {
 
 export type ValidateFileResponse =
   ValidateFileResponses[keyof ValidateFileResponses];
+
+export type ListNamespaceVariablesData = {
+  body?: never;
+  path: {
+    namespace: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/variables";
+};
+
+export type ListNamespaceVariablesErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListNamespaceVariablesError =
+  ListNamespaceVariablesErrors[keyof ListNamespaceVariablesErrors];
+
+export type ListNamespaceVariablesResponses = {
+  /**
+   * OK
+   */
+  200: VariableList;
+};
+
+export type ListNamespaceVariablesResponse =
+  ListNamespaceVariablesResponses[keyof ListNamespaceVariablesResponses];
+
+export type DeleteNamespaceVariableData = {
+  body?: never;
+  path: {
+    namespace: string;
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/variables/{key}";
+};
+
+export type DeleteNamespaceVariableErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteNamespaceVariableError =
+  DeleteNamespaceVariableErrors[keyof DeleteNamespaceVariableErrors];
+
+export type DeleteNamespaceVariableResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteNamespaceVariableResponse =
+  DeleteNamespaceVariableResponses[keyof DeleteNamespaceVariableResponses];
+
+export type PutNamespaceVariableData = {
+  body: VariablePut;
+  path: {
+    namespace: string;
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/namespaces/{namespace}/variables/{key}";
+};
+
+export type PutNamespaceVariableErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type PutNamespaceVariableError =
+  PutNamespaceVariableErrors[keyof PutNamespaceVariableErrors];
+
+export type PutNamespaceVariableResponses = {
+  /**
+   * OK
+   */
+  200: VariableInfo;
+};
+
+export type PutNamespaceVariableResponse =
+  PutNamespaceVariableResponses[keyof PutNamespaceVariableResponses];
 
 export type ListVersionsData = {
   body?: never;
@@ -1993,6 +3417,39 @@ export type ListVersionsResponses = {
 export type ListVersionsResponse =
   ListVersionsResponses[keyof ListVersionsResponses];
 
+export type ListUpcomingSchedulesData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Namespace and its children.
+     */
+    namespace?: string;
+    limit?: number;
+  };
+  url: "/api/v1/schedules/upcoming";
+};
+
+export type ListUpcomingSchedulesErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListUpcomingSchedulesError =
+  ListUpcomingSchedulesErrors[keyof ListUpcomingSchedulesErrors];
+
+export type ListUpcomingSchedulesResponses = {
+  /**
+   * OK
+   */
+  200: UpcomingList;
+};
+
+export type ListUpcomingSchedulesResponse =
+  ListUpcomingSchedulesResponses[keyof ListUpcomingSchedulesResponses];
+
 export type GetFlowSchemaData = {
   body?: never;
   path?: never;
@@ -2015,6 +3472,320 @@ export type GetFlowSchemaResponses = {
    */
   200: unknown;
 };
+
+export type ListSecretProvidersData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/secret-providers";
+};
+
+export type ListSecretProvidersErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListSecretProvidersError =
+  ListSecretProvidersErrors[keyof ListSecretProvidersErrors];
+
+export type ListSecretProvidersResponses = {
+  /**
+   * OK
+   */
+  200: ProviderList;
+};
+
+export type ListSecretProvidersResponse =
+  ListSecretProvidersResponses[keyof ListSecretProvidersResponses];
+
+export type CreateSecretProviderData = {
+  body: CreateSecretProviderRequest;
+  path?: never;
+  query?: never;
+  url: "/api/v1/secret-providers";
+};
+
+export type CreateSecretProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type CreateSecretProviderError =
+  CreateSecretProviderErrors[keyof CreateSecretProviderErrors];
+
+export type CreateSecretProviderResponses = {
+  /**
+   * Created
+   */
+  201: ProviderOut;
+};
+
+export type CreateSecretProviderResponse =
+  CreateSecretProviderResponses[keyof CreateSecretProviderResponses];
+
+export type DeleteSecretProviderData = {
+  body?: never;
+  path: {
+    name: string;
+  };
+  query?: never;
+  url: "/api/v1/secret-providers/{name}";
+};
+
+export type DeleteSecretProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteSecretProviderError =
+  DeleteSecretProviderErrors[keyof DeleteSecretProviderErrors];
+
+export type DeleteSecretProviderResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteSecretProviderResponse =
+  DeleteSecretProviderResponses[keyof DeleteSecretProviderResponses];
+
+export type UpdateSecretProviderData = {
+  body: UpdateSecretProviderRequest;
+  path: {
+    name: string;
+  };
+  query?: never;
+  url: "/api/v1/secret-providers/{name}";
+};
+
+export type UpdateSecretProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type UpdateSecretProviderError =
+  UpdateSecretProviderErrors[keyof UpdateSecretProviderErrors];
+
+export type UpdateSecretProviderResponses = {
+  /**
+   * OK
+   */
+  200: ProviderOut;
+};
+
+export type UpdateSecretProviderResponse =
+  UpdateSecretProviderResponses[keyof UpdateSecretProviderResponses];
+
+export type CheckSecretProviderData = {
+  body: CheckSecretProviderRequest;
+  path: {
+    name: string;
+  };
+  query?: never;
+  url: "/api/v1/secret-providers/{name}/check";
+};
+
+export type CheckSecretProviderErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type CheckSecretProviderError =
+  CheckSecretProviderErrors[keyof CheckSecretProviderErrors];
+
+export type CheckSecretProviderResponses = {
+  /**
+   * OK
+   */
+  200: CheckResult;
+};
+
+export type CheckSecretProviderResponse =
+  CheckSecretProviderResponses[keyof CheckSecretProviderResponses];
+
+export type ListGlobalSecretsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/secrets";
+};
+
+export type ListGlobalSecretsErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListGlobalSecretsError =
+  ListGlobalSecretsErrors[keyof ListGlobalSecretsErrors];
+
+export type ListGlobalSecretsResponses = {
+  /**
+   * OK
+   */
+  200: SecretList;
+};
+
+export type ListGlobalSecretsResponse =
+  ListGlobalSecretsResponses[keyof ListGlobalSecretsResponses];
+
+export type DeleteGlobalSecretData = {
+  body?: never;
+  path: {
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/secrets/{key}";
+};
+
+export type DeleteGlobalSecretErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteGlobalSecretError =
+  DeleteGlobalSecretErrors[keyof DeleteGlobalSecretErrors];
+
+export type DeleteGlobalSecretResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteGlobalSecretResponse =
+  DeleteGlobalSecretResponses[keyof DeleteGlobalSecretResponses];
+
+export type PutGlobalSecretData = {
+  body: SecretPutWritable;
+  path: {
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/secrets/{key}";
+};
+
+export type PutGlobalSecretErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type PutGlobalSecretError =
+  PutGlobalSecretErrors[keyof PutGlobalSecretErrors];
+
+export type PutGlobalSecretResponses = {
+  /**
+   * OK
+   */
+  200: SecretInfo;
+};
+
+export type PutGlobalSecretResponse =
+  PutGlobalSecretResponses[keyof PutGlobalSecretResponses];
+
+export type CheckGlobalSecretData = {
+  body?: never;
+  path: {
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/secrets/{key}/check";
+};
+
+export type CheckGlobalSecretErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type CheckGlobalSecretError =
+  CheckGlobalSecretErrors[keyof CheckGlobalSecretErrors];
+
+export type CheckGlobalSecretResponses = {
+  /**
+   * OK
+   */
+  200: CheckResult;
+};
+
+export type CheckGlobalSecretResponse =
+  CheckGlobalSecretResponses[keyof CheckGlobalSecretResponses];
+
+export type GetDashboardData = {
+  body?: never;
+  path?: never;
+  query?: {
+    range?: "24h" | "7d" | "30d";
+    /**
+     * Namespace and its children.
+     */
+    namespace?: string;
+  };
+  url: "/api/v1/stats/dashboard";
+};
+
+export type GetDashboardErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetDashboardError = GetDashboardErrors[keyof GetDashboardErrors];
+
+export type GetDashboardResponses = {
+  /**
+   * OK
+   */
+  200: DashboardOut;
+};
+
+export type GetDashboardResponse =
+  GetDashboardResponses[keyof GetDashboardResponses];
+
+export type GetStorageStatusData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/storage";
+};
+
+export type GetStorageStatusErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type GetStorageStatusError =
+  GetStorageStatusErrors[keyof GetStorageStatusErrors];
+
+export type GetStorageStatusResponses = {
+  /**
+   * OK
+   */
+  200: Status;
+};
+
+export type GetStorageStatusResponse =
+  GetStorageStatusResponses[keyof GetStorageStatusResponses];
 
 export type ListTokensData = {
   body?: never;
@@ -2210,3 +3981,120 @@ export type ResetUserPasswordResponses = {
 
 export type ResetUserPasswordResponse =
   ResetUserPasswordResponses[keyof ResetUserPasswordResponses];
+
+export type ListGlobalVariablesData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/variables";
+};
+
+export type ListGlobalVariablesErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ListGlobalVariablesError =
+  ListGlobalVariablesErrors[keyof ListGlobalVariablesErrors];
+
+export type ListGlobalVariablesResponses = {
+  /**
+   * OK
+   */
+  200: VariableList;
+};
+
+export type ListGlobalVariablesResponse =
+  ListGlobalVariablesResponses[keyof ListGlobalVariablesResponses];
+
+export type DeleteGlobalVariableData = {
+  body?: never;
+  path: {
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/variables/{key}";
+};
+
+export type DeleteGlobalVariableErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type DeleteGlobalVariableError =
+  DeleteGlobalVariableErrors[keyof DeleteGlobalVariableErrors];
+
+export type DeleteGlobalVariableResponses = {
+  /**
+   * No Content
+   */
+  204: void;
+};
+
+export type DeleteGlobalVariableResponse =
+  DeleteGlobalVariableResponses[keyof DeleteGlobalVariableResponses];
+
+export type PutGlobalVariableData = {
+  body: VariablePut;
+  path: {
+    key: string;
+  };
+  query?: never;
+  url: "/api/v1/variables/{key}";
+};
+
+export type PutGlobalVariableErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type PutGlobalVariableError =
+  PutGlobalVariableErrors[keyof PutGlobalVariableErrors];
+
+export type PutGlobalVariableResponses = {
+  /**
+   * OK
+   */
+  200: VariableInfo;
+};
+
+export type PutGlobalVariableResponse =
+  PutGlobalVariableResponses[keyof PutGlobalVariableResponses];
+
+export type GitWebhookData = {
+  body?: never;
+  path: {
+    sourceId: string;
+  };
+  query?: never;
+  url: "/hooks/git/{sourceId}";
+};
+
+export type GitWebhookResponses = {
+  /**
+   * The call is valid.
+   */
+  202: unknown;
+};
+
+export type FireWebhookData = {
+  body?: never;
+  path: {
+    key: string;
+  };
+  query?: never;
+  url: "/hooks/{key}";
+};
+
+export type FireWebhookResponses = {
+  /**
+   * The execution was created.
+   */
+  202: unknown;
+};

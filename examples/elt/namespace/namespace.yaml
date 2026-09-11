@@ -1,0 +1,1 @@
+description: Example ELT project. dlt loads the Postgres schema source into the schema raw, and SQLMesh builds the schema analytics.

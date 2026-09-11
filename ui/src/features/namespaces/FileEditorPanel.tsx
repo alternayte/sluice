@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Play, Save, Trash2 } from "lucide-react";
+import { GitBranch, Pencil, Play, Save, Trash2 } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
-import { saveChangesMutation } from "@/api/@tanstack/react-query.gen";
+import { pushNamespaceBranchMutation, saveChangesMutation } from "@/api/@tanstack/react-query.gen";
 import { validateFile } from "@/api/sdk.gen";
 import type { SaveChangesRequest } from "@/api/types.gen";
 import { ApiError, rawFetch } from "@/api-client";
@@ -39,21 +39,38 @@ export function useSaveChanges(namespace: string) {
   };
 }
 
+/** fileContentKey is the query key of the head content of a file. */
+export const fileContentKey = (namespace: string, path: string) => ["namespace", namespace, "file", path];
+
 export function FileEditorPanel({
   namespace,
   path,
   baseVersion,
   canEdit,
+  gitPush = false,
   onSelect,
+  draft,
+  onDraft,
+  isNew = false,
+  onDiscard,
 }: {
   namespace: string;
   path: string;
   baseVersion?: number;
   canEdit: boolean;
+  /** gitPush makes the editor editable for a git namespace: changes go to a new branch (REQ-GIT-005). */
+  gitPush?: boolean;
   onSelect: (path: string | undefined) => void;
+  /** draft is the staged content of the file. The parent keeps it, so that drafts of several files are saved together. */
+  draft?: string;
+  /** onDraft stages new content, or clears the draft with null. */
+  onDraft: (content: string | null) => void;
+  /** isNew marks a staged file that no version has yet. */
+  isNew?: boolean;
+  onDiscard?: () => void;
 }) {
   const qc = useQueryClient();
-  const contentKey = ["namespace", namespace, "file", path];
+  const contentKey = fileContentKey(namespace, path);
   const content = useQuery({
     queryKey: contentKey,
     queryFn: async () => {
@@ -62,13 +79,13 @@ export function FileEditorPanel({
       );
       return res.text();
     },
+    enabled: !isNew,
   });
-  const [draft, setDraft] = useState<string | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
-  const [dialog, setDialog] = useState<"save" | "rename" | "delete" | "run" | null>(null);
+  const [dialog, setDialog] = useState<"save" | "rename" | "delete" | "run" | "push" | null>(null);
   const del = useSaveChanges(namespace);
   const me = useCurrentUser();
-  const canRun = can(me.role, "operator") && runnableFile(path);
+  const canRun = !isNew && can(me.role, "operator") && runnableFile(path);
   const validated = isValidatedPath(path);
 
   const validate = useCallback(
@@ -83,11 +100,9 @@ export function FileEditorPanel({
     [namespace, path],
   );
 
-  return (
-    <DataState query={content}>
-      {(saved) => {
+  const body = (saved: string) => {
         const value = draft ?? saved;
-        const dirty = draft !== null && draft !== saved;
+        const dirty = isNew || (draft !== undefined && draft !== saved);
         return (
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -97,7 +112,7 @@ export function FileEditorPanel({
                 </h2>
                 {dirty && <Badge tone="warning">Unsaved changes</Badge>}
               </div>
-              {(canEdit || canRun) && (
+              {(canEdit || canRun || gitPush) && (
                 <div className="flex flex-wrap gap-2">
                   {canRun && (
                     <Button size="sm" variant="secondary" onClick={() => setDialog("run")}>
@@ -105,16 +120,31 @@ export function FileEditorPanel({
                       Run
                     </Button>
                   )}
+                  {gitPush && (
+                    <Button size="sm" disabled={!dirty} onClick={() => setDialog("push")}>
+                      <GitBranch className="h-3.5 w-3.5" aria-hidden />
+                      Push to branch
+                    </Button>
+                  )}
                   {canEdit && (
                     <>
-                      <Button size="sm" variant="ghost" onClick={() => setDialog("rename")}>
-                        <Pencil className="h-3.5 w-3.5" aria-hidden />
-                        Rename
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setDialog("delete")}>
-                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                        Delete
-                      </Button>
+                      {isNew ? (
+                        <Button size="sm" variant="ghost" onClick={onDiscard}>
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                          Discard
+                        </Button>
+                      ) : (
+                        <>
+                          <Button size="sm" variant="ghost" onClick={() => setDialog("rename")}>
+                            <Pencil className="h-3.5 w-3.5" aria-hidden />
+                            Rename
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setDialog("delete")}>
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                            Delete
+                          </Button>
+                        </>
+                      )}
                       <Button size="sm" disabled={!dirty} onClick={() => setDialog("save")}>
                         <Save className="h-3.5 w-3.5" aria-hidden />
                         Save
@@ -129,8 +159,8 @@ export function FileEditorPanel({
               value={value}
               path={path}
               label={`Content of ${path}`}
-              readOnly={!canEdit}
-              onChange={setDraft}
+              readOnly={!canEdit && !gitPush}
+              onChange={(text) => onDraft(!isNew && text === saved ? null : text)}
               validate={validated ? validate : undefined}
               onIssues={setIssues}
             />
@@ -157,19 +187,23 @@ export function FileEditorPanel({
                 namespace={namespace}
                 path={path}
                 content={value}
+                isNew={isNew}
                 baseVersion={baseVersion}
                 onClose={() => setDialog(null)}
                 onSaved={() => {
                   qc.setQueryData(contentKey, value);
-                  setDraft(null);
+                  onDraft(null);
                   setDialog(null);
                 }}
                 onReload={() => {
-                  setDraft(null);
+                  onDraft(null);
                   setDialog(null);
                   invalidateNamespace(qc, namespace);
                 }}
               />
+            )}
+            {dialog === "push" && (
+              <PushDialog namespace={namespace} path={path} content={value} onClose={() => setDialog(null)} onPushed={() => onDraft(null)} />
             )}
             {dialog === "run" && (
               <RunFileDialog namespace={namespace} path={path} onClose={() => setDialog(null)} />
@@ -210,15 +244,16 @@ export function FileEditorPanel({
             )}
           </div>
         );
-      }}
-    </DataState>
-  );
+  };
+
+  return isNew ? body("") : <DataState query={content}>{body}</DataState>;
 }
 
 function SaveDialog({
   namespace,
   path,
   content,
+  isNew,
   baseVersion,
   onClose,
   onSaved,
@@ -227,12 +262,13 @@ function SaveDialog({
   namespace: string;
   path: string;
   content: string;
+  isNew: boolean;
   baseVersion?: number;
   onClose: () => void;
   onSaved: () => void;
   onReload: () => void;
 }) {
-  const [message, setMessage] = useState(`Update ${path}`);
+  const [message, setMessage] = useState(`${isNew ? "Create" : "Update"} ${path}`);
   const save = useSaveChanges(namespace);
   const conflict = save.error instanceof ApiError && save.error.code === "version_conflict";
 
@@ -266,6 +302,61 @@ function SaveDialog({
           </Button>
         </div>
       </form>
+    </Dialog>
+  );
+}
+
+/** PushDialog commits the edited file to a new branch of the git source (REQ-GIT-005). */
+function PushDialog({
+  namespace,
+  path,
+  content,
+  onClose,
+  onPushed,
+}: {
+  namespace: string;
+  path: string;
+  content: string;
+  onClose: () => void;
+  onPushed: () => void;
+}) {
+  const [message, setMessage] = useState(`Update ${path}`);
+  const push = useMutation({ ...pushNamespaceBranchMutation(), onSuccess: onPushed });
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    push.mutate({ path: { namespace }, body: { message: message.trim(), changes: [{ op: "put", path, content }] } });
+  };
+  return (
+    <Dialog open onClose={onClose} title="Push to branch">
+      {push.data ? (
+        <div className="flex flex-col gap-4">
+          <p role="status" className="text-sm">
+            Pushed to branch <span className="font-mono">{push.data.branch}</span>. The namespace changes when the branch is merged
+            and synced.
+          </p>
+          <div className="flex justify-end">
+            <Button onClick={onClose}>Done</Button>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          <p className="text-sm text-muted-foreground">
+            The change goes to a new branch from the last synced commit. The tracked branch does not change.
+          </p>
+          <Field id="push-message" label="Commit message">
+            <Input value={message} onChange={(e) => setMessage(e.target.value)} required maxLength={2000} autoFocus />
+          </Field>
+          {push.isError && <FormError>{errorMessage(push.error)}</FormError>}
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={push.isPending || message.trim() === ""}>
+              Push
+            </Button>
+          </div>
+        </form>
+      )}
     </Dialog>
   );
 }

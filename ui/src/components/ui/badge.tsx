@@ -12,11 +12,19 @@ const tones: Record<Tone, string> = {
   accent: "text-accent",
 };
 
-/** Badge always pairs the state color with a text label and an optional icon. */
+/**
+ * Badge pairs a state icon in the state color with a text label. The label uses the text
+ * color, because the state colors do not reach the AA contrast for small text (REQ-UI-011).
+ */
 export function Badge({ tone = "neutral", icon: Icon, children }: { tone?: Tone; icon?: LucideIcon; children: ReactNode }) {
   return (
-    <span className={cn("inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap", tones[tone])}>
-      {Icon && <Icon className="h-3.5 w-3.5" aria-hidden />}
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap",
+        tone === "neutral" ? "text-muted-foreground" : "text-foreground",
+      )}
+    >
+      {Icon && <Icon className={cn("h-3.5 w-3.5", tones[tone])} aria-hidden />}
       <span>{children}</span>
     </span>
   );

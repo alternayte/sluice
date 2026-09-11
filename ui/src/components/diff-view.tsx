@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 const lineClass: Record<DiffLineKind, string> = {
   add: "bg-state-success/15",
   remove: "bg-state-failed/15",
-  hunk: "text-accent",
+  hunk: "text-accent-text",
   meta: "text-muted-foreground",
   context: "",
 };

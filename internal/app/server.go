@@ -17,11 +17,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/alternayte/sluice/internal/ai"
 	"github.com/alternayte/sluice/internal/audit"
 	"github.com/alternayte/sluice/internal/auth"
 	"github.com/alternayte/sluice/internal/execution"
 	"github.com/alternayte/sluice/internal/executor"
+	"github.com/alternayte/sluice/internal/gitsync"
 	"github.com/alternayte/sluice/internal/instance"
+	"github.com/alternayte/sluice/internal/metrics"
 	"github.com/alternayte/sluice/internal/namespace"
 	"github.com/alternayte/sluice/internal/platform/clock"
 	"github.com/alternayte/sluice/internal/platform/db"
@@ -30,7 +33,10 @@ import (
 	"github.com/alternayte/sluice/internal/platform/lease"
 	"github.com/alternayte/sluice/internal/platform/logging"
 	"github.com/alternayte/sluice/internal/platform/promx"
+	"github.com/alternayte/sluice/internal/secret"
 	"github.com/alternayte/sluice/internal/storage"
+	"github.com/alternayte/sluice/internal/trigger"
+	"github.com/alternayte/sluice/internal/variable"
 )
 
 func storageConfig(cfg *Config) storage.Config {
@@ -61,6 +67,12 @@ type Server struct {
 	GC         *storage.GC
 	Namespaces *namespace.Service
 	Engine     *execution.Engine
+	Triggers   *trigger.Service
+	Secrets    *secret.Service
+	Variables  *variable.Service
+	Git        *gitsync.Service
+	Stats      *metrics.Service
+	AI         *ai.Service
 
 	httpServer *http.Server
 	listener   net.Listener
@@ -69,6 +81,11 @@ type Server struct {
 
 // NewServer opens the database, applies migrations and builds all components.
 func NewServer(ctx context.Context, cfg *Config, log *slog.Logger) (*Server, error) {
+	return newServer(ctx, cfg, log, clock.Real{})
+}
+
+// newServer is NewServer with a clock. Fake-clock tests use it.
+func newServer(ctx context.Context, cfg *Config, log *slog.Logger, clk clock.Clock) (*Server, error) {
 	pool, err := db.Open(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return nil, err
@@ -83,7 +100,6 @@ func NewServer(ctx context.Context, cfg *Config, log *slog.Logger) (*Server, err
 	}
 	hostname, _ := os.Hostname()
 	id, _ := uuid.NewV7()
-	clk := clock.Real{}
 	s := &Server{
 		Cfg:   cfg,
 		Log:   log,
@@ -94,7 +110,7 @@ func NewServer(ctx context.Context, cfg *Config, log *slog.Logger) (*Server, err
 			Hostname:  hostname,
 			Version:   Version,
 			Pools:     cfg.Pools,
-			Executors: enabledExecutors(cfg),
+			Executors: enabledExecutors(ctx, cfg),
 			StartedAt: clk.Now(),
 		},
 		Health:   &health.Checker{},
@@ -131,8 +147,49 @@ func NewServer(ctx context.Context, cfg *Config, log *slog.Logger) (*Server, err
 			s.Engine.Executors[t] = &executor.InlineExecutor{Run: s.Engine.RunInline}
 		case executor.Process:
 			s.Engine.Executors[t] = &executor.ProcessExecutor{Log: log, Output: os.Stderr}
+		case executor.Docker:
+			dc, err := executor.NewDockerClient()
+			if err != nil {
+				pool.Close()
+				return nil, fmt.Errorf("docker executor: %w", err)
+			}
+			de := &executor.DockerExecutor{Client: dc, RunnerImage: cfg.RunnerImage, Keep: cfg.DockerKeepContainers, Log: log}
+			de.Sweep(ctx)
+			s.Engine.Executors[t] = de
+		case executor.Kubernetes:
+			kc, err := executor.NewKubeClient(cfg.K8sKubeconfig)
+			if err != nil {
+				pool.Close()
+				return nil, fmt.Errorf("kubernetes executor: %w", err)
+			}
+			s.Engine.Executors[t] = &executor.KubernetesExecutor{Client: kc, Namespace: k8sNamespace(cfg), RunnerImage: cfg.RunnerImage,
+				JobTTL: cfg.K8sJobTTL, Log: log}
 		}
 	}
+	s.Triggers = &trigger.Service{Pool: pool, Clock: clk, Audit: s.Audit, Log: log, Starter: triggerStarter{s.Engine},
+		Holder: id.String(), PublicURL: cfg.PublicURL}
+	s.Engine.EndHooks = append(s.Engine.EndHooks, flowTriggerHook(s.Triggers))
+	keys, err := masterKeyring(cfg)
+	if err != nil {
+		pool.Close()
+		return nil, err
+	}
+	s.Secrets = &secret.Service{Pool: pool, Clock: clk, Audit: s.Audit, Log: log, Keys: keys, CacheTTL: cfg.SecretCacheTTL,
+		Vault:         secret.VaultAuth{Addr: cfg.VaultAddr, Token: cfg.VaultToken, K8sRole: cfg.VaultK8sRole},
+		K8sKubeconfig: cfg.K8sKubeconfig, K8sNamespace: cfg.K8sNamespace}
+	if err := s.Secrets.EnsureDefaults(ctx); err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("secret providers: %w", err)
+	}
+	s.Health.Add("master_keys", s.Secrets.CheckKeys)
+	s.Engine.Secrets = secretResolver{s.Secrets}
+	s.Variables = &variable.Service{Pool: pool, Clock: clk, Audit: s.Audit}
+	s.Git = &gitsync.Service{Pool: pool, Clock: clk, Audit: s.Audit, Log: log, Namespaces: gitNamespaces{s.Namespaces},
+		Secrets: globalSecrets{s.Secrets}, Holder: id.String(), PublicURL: cfg.PublicURL, MaxFileBytes: int64(cfg.MaxFileBytes)}
+	s.Stats = &metrics.Service{Pool: pool, Clock: clk}
+	s.AI = &ai.Service{Pool: pool, Clock: clk, Audit: s.Audit, Log: log, Secrets: globalSecrets{s.Secrets},
+		MaxContextChars: cfg.AIMaxContextChars, Data: aiData{ns: s.Namespaces, e: s.Engine, git: s.Git}, Version: Version}
+	s.Engine.EndHooks = append(s.Engine.EndHooks, aiTriageHook(s.AI))
 	created, err := s.Auth.Bootstrap(ctx, cfg.BootstrapAdminEmail, cfg.BootstrapAdminPassword)
 	if err != nil {
 		pool.Close()
@@ -153,12 +210,20 @@ func newAuthService(cfg *Config, pool *pgxpool.Pool, clk clock.Clock, aw *audit.
 		SecureCookie: cfg.SecureCookies(), PublicOrigin: origin}
 }
 
-func enabledExecutors(cfg *Config) []string {
+// enabledExecutors returns the executors of this instance (REQ-EXR-002). With auto, inline
+// and process are always on and docker is on when the Docker API answers.
+func enabledExecutors(ctx context.Context, cfg *Config) []string {
 	out := []string{"inline"}
 	for _, e := range cfg.Executors {
 		switch e {
 		case "auto":
 			out = append(out, "process")
+			if executor.DockerAvailable(ctx) {
+				out = append(out, "docker")
+			}
+			if executor.KubernetesAvailable(ctx, cfg.K8sKubeconfig, k8sNamespace(cfg)) {
+				out = append(out, "kubernetes")
+			}
 		case "inline":
 		default:
 			out = append(out, e)
@@ -248,8 +313,19 @@ func (s *Server) Run(ctx context.Context) error {
 	bg, stopBG := context.WithCancel(context.WithoutCancel(ctx))
 	s.goBG(func() { s.Registry.Run(bg, s.Instance) })
 	s.goBG(func() { s.Engine.Run(bg) })
+	s.goBG(func() { s.AI.RunTriage(bg) })
 	maintenance := &lease.Leader{Store: s.Leases, Name: lease.Maintenance, Log: s.Log, Work: s.leaderWork}
 	s.goBG(func() { maintenance.Run(bg) })
+	scheduler := &lease.Leader{Store: s.Leases, Name: lease.Scheduler, Log: s.Log, Work: s.schedulerWork}
+	s.goBG(func() { scheduler.Run(bg) })
+	gitLeader := &lease.Leader{Store: s.Leases, Name: lease.GitSync, Log: s.Log, Work: s.gitSyncWork}
+	s.goBG(func() { gitLeader.Run(bg) })
+	if _, ok := s.Engine.Executors[executor.Kubernetes]; ok {
+		for _, p := range s.Cfg.Pools {
+			reconciler := &lease.Leader{Store: s.Leases, Name: lease.K8sReconcile(p), Log: s.Log, Work: s.k8sReconcileWork(p)}
+			s.goBG(func() { reconciler.Run(bg) })
+		}
+	}
 
 	errc := make(chan error, 1)
 	go func() { errc <- s.httpServer.Serve(ln) }()
@@ -313,6 +389,67 @@ func (s *Server) leaderWork(ctx context.Context) {
 	}()
 	s.maintenance(ctx)
 	wg.Wait()
+}
+
+// schedulerWork fires due schedules each second while this instance holds the scheduler lease.
+func (s *Server) schedulerWork(ctx context.Context) {
+	t := time.NewTicker(time.Second)
+	defer t.Stop()
+	for {
+		if err := s.Triggers.Tick(ctx); err != nil && ctx.Err() == nil {
+			s.Log.Warn("scheduler tick", "err", err)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+	}
+}
+
+// k8sReconcileInterval is the pass interval of the k8s-reconcile:<pool> leader (REQ-EXR-006).
+const k8sReconcileInterval = 60 * time.Second
+
+// k8sReconcileWork returns the work of the k8s-reconcile:<pool> leader: one pass every 60 s.
+func (s *Server) k8sReconcileWork(pool string) func(ctx context.Context) {
+	return func(ctx context.Context) {
+		t := time.NewTicker(k8sReconcileInterval)
+		defer t.Stop()
+		for {
+			if err := s.Engine.ReconcileKubernetes(ctx, pool, s.Cfg.K8sPendingTimeout); err != nil && ctx.Err() == nil {
+				s.Log.Warn("kubernetes reconcile", "pool", pool, "err", err)
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+			}
+		}
+	}
+}
+
+// k8sNamespace returns the namespace of task Jobs: SLUICE_K8S_NAMESPACE, or default.
+func k8sNamespace(cfg *Config) string {
+	if cfg.K8sNamespace != "" {
+		return cfg.K8sNamespace
+	}
+	return "default"
+}
+
+// gitSyncWork syncs due git sources each second while this instance holds the git-sync lease.
+func (s *Server) gitSyncWork(ctx context.Context) {
+	t := time.NewTicker(time.Second)
+	defer t.Stop()
+	for {
+		if err := s.Git.Tick(ctx); err != nil && ctx.Err() == nil {
+			s.Log.Warn("git sync tick", "err", err)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+	}
 }
 
 // maintenance runs cleanup while this instance holds the maintenance lease.

@@ -22,6 +22,8 @@ export default defineConfig({
     emptyOutDir: true,
     manifest: true,
     assetsDir: "assets",
+    // No data: URIs: the CSP default-src 'self' (SI-12) blocks them, for example for fonts (DI-32).
+    assetsInlineLimit: 0,
   },
   server: {
     proxy: {

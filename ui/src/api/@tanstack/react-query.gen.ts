@@ -12,43 +12,86 @@ import { client } from "../client.gen";
 import {
   cancelExecution,
   changePassword,
+  checkGlobalSecret,
+  checkNamespaceSecret,
+  checkSecretProvider,
+  createAiConversation,
+  createGitSource,
   createNamespace,
+  createSecretProvider,
   createToken,
   createUser,
+  deleteAiConversation,
+  deleteAiProvider,
+  deleteGitSource,
+  deleteGlobalSecret,
+  deleteGlobalVariable,
   deleteNamespace,
+  deleteNamespaceSecret,
+  deleteNamespaceVariable,
+  deleteSecretProvider,
   diffFlowRevisions,
   diffVersions,
   downloadArtifact,
   downloadExecutionLogs,
+  fireWebhook,
+  getAiConversation,
+  getAiProvider,
+  getAiStatus,
+  getDashboard,
   getExecution,
   getExecutionLogs,
   getFile,
   getFlow,
+  getFlowMetrics,
   getFlowRevision,
   getFlowSchema,
+  getFlowStats,
+  getGitSource,
   getMe,
   getNamespace,
+  getNamespaceGit,
+  getStorageStatus,
+  gitWebhook,
+  listAiConversations,
   listAuditEvents,
   listExecutionArtifacts,
+  listExecutionInsights,
   listExecutionMetrics,
   listExecutions,
   listFiles,
   listFlowRevisions,
   listFlows,
+  listGitSources,
+  listGitSyncRuns,
+  listGlobalSecrets,
+  listGlobalVariables,
   listInstances,
   listNamespaces,
+  listNamespaceSecrets,
+  listNamespaceVariables,
+  listSecretProviders,
   listTokens,
+  listUpcomingSchedules,
   listUsers,
   listVersions,
   login,
   logout,
   type Options,
+  pushNamespaceBranch,
+  putAiProvider,
+  putGlobalSecret,
+  putGlobalVariable,
+  putNamespaceSecret,
+  putNamespaceVariable,
+  requestTriage,
   rerunExecution,
   resetUserPassword,
   restartExecution,
   revertVersion,
   revokeOtherSessions,
   revokeToken,
+  rotateWebhookKey,
   runFile,
   runnerComplete,
   runnerGetBundle,
@@ -58,9 +101,13 @@ import {
   runnerPostLogs,
   runnerPutArtifact,
   saveChanges,
+  syncGitSource,
+  testAiProvider,
   triggerFlow,
   updateFlow,
+  updateGitSource,
   updateMe,
+  updateSecretProvider,
   updateUser,
   uploadFile,
   validateFile,
@@ -72,18 +119,60 @@ import type {
   ChangePasswordData,
   ChangePasswordError,
   ChangePasswordResponse,
+  CheckGlobalSecretData,
+  CheckGlobalSecretError,
+  CheckGlobalSecretResponse,
+  CheckNamespaceSecretData,
+  CheckNamespaceSecretError,
+  CheckNamespaceSecretResponse,
+  CheckSecretProviderData,
+  CheckSecretProviderError,
+  CheckSecretProviderResponse,
+  CreateAiConversationData,
+  CreateAiConversationError,
+  CreateAiConversationResponse,
+  CreateGitSourceData,
+  CreateGitSourceError,
+  CreateGitSourceResponse,
   CreateNamespaceData,
   CreateNamespaceError,
   CreateNamespaceResponse,
+  CreateSecretProviderData,
+  CreateSecretProviderError,
+  CreateSecretProviderResponse,
   CreateTokenData,
   CreateTokenError,
   CreateTokenResponse,
   CreateUserData,
   CreateUserError,
   CreateUserResponse,
+  DeleteAiConversationData,
+  DeleteAiConversationError,
+  DeleteAiConversationResponse,
+  DeleteAiProviderData,
+  DeleteAiProviderError,
+  DeleteAiProviderResponse,
+  DeleteGitSourceData,
+  DeleteGitSourceError,
+  DeleteGitSourceResponse,
+  DeleteGlobalSecretData,
+  DeleteGlobalSecretError,
+  DeleteGlobalSecretResponse,
+  DeleteGlobalVariableData,
+  DeleteGlobalVariableError,
+  DeleteGlobalVariableResponse,
   DeleteNamespaceData,
   DeleteNamespaceError,
   DeleteNamespaceResponse,
+  DeleteNamespaceSecretData,
+  DeleteNamespaceSecretError,
+  DeleteNamespaceSecretResponse,
+  DeleteNamespaceVariableData,
+  DeleteNamespaceVariableError,
+  DeleteNamespaceVariableResponse,
+  DeleteSecretProviderData,
+  DeleteSecretProviderError,
+  DeleteSecretProviderResponse,
   DiffFlowRevisionsData,
   DiffFlowRevisionsError,
   DiffFlowRevisionsResponse,
@@ -93,6 +182,19 @@ import type {
   DownloadArtifactData,
   DownloadArtifactResponse,
   DownloadExecutionLogsData,
+  FireWebhookData,
+  GetAiConversationData,
+  GetAiConversationError,
+  GetAiConversationResponse,
+  GetAiProviderData,
+  GetAiProviderError,
+  GetAiProviderResponse,
+  GetAiStatusData,
+  GetAiStatusError,
+  GetAiStatusResponse,
+  GetDashboardData,
+  GetDashboardError,
+  GetDashboardResponse,
   GetExecutionData,
   GetExecutionError,
   GetExecutionLogsData,
@@ -103,24 +205,46 @@ import type {
   GetFileResponse,
   GetFlowData,
   GetFlowError,
+  GetFlowMetricsData,
+  GetFlowMetricsError,
+  GetFlowMetricsResponse,
   GetFlowResponse,
   GetFlowRevisionData,
   GetFlowRevisionError,
   GetFlowRevisionResponse,
   GetFlowSchemaData,
   GetFlowSchemaError,
+  GetFlowStatsData,
+  GetFlowStatsError,
+  GetFlowStatsResponse,
+  GetGitSourceData,
+  GetGitSourceError,
+  GetGitSourceResponse,
   GetMeData,
   GetMeError,
   GetMeResponse,
   GetNamespaceData,
   GetNamespaceError,
+  GetNamespaceGitData,
+  GetNamespaceGitError,
+  GetNamespaceGitResponse,
   GetNamespaceResponse,
+  GetStorageStatusData,
+  GetStorageStatusError,
+  GetStorageStatusResponse,
+  GitWebhookData,
+  ListAiConversationsData,
+  ListAiConversationsError,
+  ListAiConversationsResponse,
   ListAuditEventsData,
   ListAuditEventsError,
   ListAuditEventsResponse,
   ListExecutionArtifactsData,
   ListExecutionArtifactsError,
   ListExecutionArtifactsResponse,
+  ListExecutionInsightsData,
+  ListExecutionInsightsError,
+  ListExecutionInsightsResponse,
   ListExecutionMetricsData,
   ListExecutionMetricsError,
   ListExecutionMetricsResponse,
@@ -136,15 +260,39 @@ import type {
   ListFlowsData,
   ListFlowsError,
   ListFlowsResponse,
+  ListGitSourcesData,
+  ListGitSourcesError,
+  ListGitSourcesResponse,
+  ListGitSyncRunsData,
+  ListGitSyncRunsError,
+  ListGitSyncRunsResponse,
+  ListGlobalSecretsData,
+  ListGlobalSecretsError,
+  ListGlobalSecretsResponse,
+  ListGlobalVariablesData,
+  ListGlobalVariablesError,
+  ListGlobalVariablesResponse,
   ListInstancesData,
   ListInstancesError,
   ListInstancesResponse,
   ListNamespacesData,
+  ListNamespaceSecretsData,
+  ListNamespaceSecretsError,
+  ListNamespaceSecretsResponse,
   ListNamespacesError,
   ListNamespacesResponse,
+  ListNamespaceVariablesData,
+  ListNamespaceVariablesError,
+  ListNamespaceVariablesResponse,
+  ListSecretProvidersData,
+  ListSecretProvidersError,
+  ListSecretProvidersResponse,
   ListTokensData,
   ListTokensError,
   ListTokensResponse,
+  ListUpcomingSchedulesData,
+  ListUpcomingSchedulesError,
+  ListUpcomingSchedulesResponse,
   ListUsersData,
   ListUsersError,
   ListUsersResponse,
@@ -157,6 +305,27 @@ import type {
   LogoutData,
   LogoutError,
   LogoutResponse,
+  PushNamespaceBranchData,
+  PushNamespaceBranchError,
+  PushNamespaceBranchResponse,
+  PutAiProviderData,
+  PutAiProviderError,
+  PutAiProviderResponse,
+  PutGlobalSecretData,
+  PutGlobalSecretError,
+  PutGlobalSecretResponse,
+  PutGlobalVariableData,
+  PutGlobalVariableError,
+  PutGlobalVariableResponse,
+  PutNamespaceSecretData,
+  PutNamespaceSecretError,
+  PutNamespaceSecretResponse,
+  PutNamespaceVariableData,
+  PutNamespaceVariableError,
+  PutNamespaceVariableResponse,
+  RequestTriageData,
+  RequestTriageError,
+  RequestTriageResponse,
   RerunExecutionData,
   RerunExecutionError,
   RerunExecutionResponse,
@@ -175,6 +344,9 @@ import type {
   RevokeTokenData,
   RevokeTokenError,
   RevokeTokenResponse,
+  RotateWebhookKeyData,
+  RotateWebhookKeyError,
+  RotateWebhookKeyResponse,
   RunFileData,
   RunFileError,
   RunFileResponse,
@@ -200,15 +372,26 @@ import type {
   SaveChangesData,
   SaveChangesError,
   SaveChangesResponse,
+  SyncGitSourceData,
+  SyncGitSourceError,
+  TestAiProviderData,
+  TestAiProviderError,
+  TestAiProviderResponse,
   TriggerFlowData,
   TriggerFlowError,
   TriggerFlowResponse,
   UpdateFlowData,
   UpdateFlowError,
   UpdateFlowResponse,
+  UpdateGitSourceData,
+  UpdateGitSourceError,
+  UpdateGitSourceResponse,
   UpdateMeData,
   UpdateMeError,
   UpdateMeResponse,
+  UpdateSecretProviderData,
+  UpdateSecretProviderError,
+  UpdateSecretProviderResponse,
   UpdateUserData,
   UpdateUserError,
   UpdateUserResponse,
@@ -421,6 +604,220 @@ export const runnerGetSpecOptions = (options: Options<RunnerGetSpecData>) =>
       return data;
     },
     queryKey: runnerGetSpecQueryKey(options),
+  });
+
+export const listAiConversationsQueryKey = (
+  options?: Options<ListAiConversationsData>,
+) => createQueryKey("listAiConversations", options);
+
+export const listAiConversationsOptions = (
+  options?: Options<ListAiConversationsData>,
+) =>
+  queryOptions<
+    ListAiConversationsResponse,
+    ListAiConversationsError,
+    ListAiConversationsResponse,
+    ReturnType<typeof listAiConversationsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listAiConversations({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listAiConversationsQueryKey(options),
+  });
+
+export const createAiConversationMutation = (
+  options?: Partial<Options<CreateAiConversationData>>,
+): UseMutationOptions<
+  CreateAiConversationResponse,
+  CreateAiConversationError,
+  Options<CreateAiConversationData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateAiConversationResponse,
+    CreateAiConversationError,
+    Options<CreateAiConversationData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createAiConversation({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const deleteAiConversationMutation = (
+  options?: Partial<Options<DeleteAiConversationData>>,
+): UseMutationOptions<
+  DeleteAiConversationResponse,
+  DeleteAiConversationError,
+  Options<DeleteAiConversationData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteAiConversationResponse,
+    DeleteAiConversationError,
+    Options<DeleteAiConversationData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteAiConversation({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getAiConversationQueryKey = (
+  options: Options<GetAiConversationData>,
+) => createQueryKey("getAiConversation", options);
+
+export const getAiConversationOptions = (
+  options: Options<GetAiConversationData>,
+) =>
+  queryOptions<
+    GetAiConversationResponse,
+    GetAiConversationError,
+    GetAiConversationResponse,
+    ReturnType<typeof getAiConversationQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getAiConversation({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getAiConversationQueryKey(options),
+  });
+
+export const deleteAiProviderMutation = (
+  options?: Partial<Options<DeleteAiProviderData>>,
+): UseMutationOptions<
+  DeleteAiProviderResponse,
+  DeleteAiProviderError,
+  Options<DeleteAiProviderData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteAiProviderResponse,
+    DeleteAiProviderError,
+    Options<DeleteAiProviderData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteAiProvider({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getAiProviderQueryKey = (options?: Options<GetAiProviderData>) =>
+  createQueryKey("getAiProvider", options);
+
+export const getAiProviderOptions = (options?: Options<GetAiProviderData>) =>
+  queryOptions<
+    GetAiProviderResponse,
+    GetAiProviderError,
+    GetAiProviderResponse,
+    ReturnType<typeof getAiProviderQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getAiProvider({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getAiProviderQueryKey(options),
+  });
+
+export const putAiProviderMutation = (
+  options?: Partial<Options<PutAiProviderData>>,
+): UseMutationOptions<
+  PutAiProviderResponse,
+  PutAiProviderError,
+  Options<PutAiProviderData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    PutAiProviderResponse,
+    PutAiProviderError,
+    Options<PutAiProviderData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await putAiProvider({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const testAiProviderMutation = (
+  options?: Partial<Options<TestAiProviderData>>,
+): UseMutationOptions<
+  TestAiProviderResponse,
+  TestAiProviderError,
+  Options<TestAiProviderData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    TestAiProviderResponse,
+    TestAiProviderError,
+    Options<TestAiProviderData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await testAiProvider({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getAiStatusQueryKey = (options?: Options<GetAiStatusData>) =>
+  createQueryKey("getAiStatus", options);
+
+export const getAiStatusOptions = (options?: Options<GetAiStatusData>) =>
+  queryOptions<
+    GetAiStatusResponse,
+    GetAiStatusError,
+    GetAiStatusResponse,
+    ReturnType<typeof getAiStatusQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getAiStatus({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getAiStatusQueryKey(options),
   });
 
 export const listAuditEventsQueryKey = (
@@ -832,6 +1229,55 @@ export const cancelExecutionMutation = (
   return mutationOptions;
 };
 
+export const listExecutionInsightsQueryKey = (
+  options: Options<ListExecutionInsightsData>,
+) => createQueryKey("listExecutionInsights", options);
+
+export const listExecutionInsightsOptions = (
+  options: Options<ListExecutionInsightsData>,
+) =>
+  queryOptions<
+    ListExecutionInsightsResponse,
+    ListExecutionInsightsError,
+    ListExecutionInsightsResponse,
+    ReturnType<typeof listExecutionInsightsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listExecutionInsights({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listExecutionInsightsQueryKey(options),
+  });
+
+export const requestTriageMutation = (
+  options?: Partial<Options<RequestTriageData>>,
+): UseMutationOptions<
+  RequestTriageResponse,
+  RequestTriageError,
+  Options<RequestTriageData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RequestTriageResponse,
+    RequestTriageError,
+    Options<RequestTriageData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await requestTriage({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
 export const getExecutionLogsQueryKey = (
   options: Options<GetExecutionLogsData>,
 ) => createQueryKey("getExecutionLogs", options);
@@ -1168,6 +1614,28 @@ export const triggerFlowMutation = (
   return mutationOptions;
 };
 
+export const getFlowMetricsQueryKey = (options: Options<GetFlowMetricsData>) =>
+  createQueryKey("getFlowMetrics", options);
+
+export const getFlowMetricsOptions = (options: Options<GetFlowMetricsData>) =>
+  queryOptions<
+    GetFlowMetricsResponse,
+    GetFlowMetricsError,
+    GetFlowMetricsResponse,
+    ReturnType<typeof getFlowMetricsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getFlowMetrics({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getFlowMetricsQueryKey(options),
+  });
+
 export const listFlowRevisionsQueryKey = (
   options: Options<ListFlowRevisionsData>,
 ) => createQueryKey("listFlowRevisions", options);
@@ -1215,6 +1683,215 @@ export const getFlowRevisionOptions = (options: Options<GetFlowRevisionData>) =>
     },
     queryKey: getFlowRevisionQueryKey(options),
   });
+
+export const getFlowStatsQueryKey = (options: Options<GetFlowStatsData>) =>
+  createQueryKey("getFlowStats", options);
+
+export const getFlowStatsOptions = (options: Options<GetFlowStatsData>) =>
+  queryOptions<
+    GetFlowStatsResponse,
+    GetFlowStatsError,
+    GetFlowStatsResponse,
+    ReturnType<typeof getFlowStatsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getFlowStats({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getFlowStatsQueryKey(options),
+  });
+
+export const rotateWebhookKeyMutation = (
+  options?: Partial<Options<RotateWebhookKeyData>>,
+): UseMutationOptions<
+  RotateWebhookKeyResponse,
+  RotateWebhookKeyError,
+  Options<RotateWebhookKeyData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RotateWebhookKeyResponse,
+    RotateWebhookKeyError,
+    Options<RotateWebhookKeyData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await rotateWebhookKey({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listGitSourcesQueryKey = (options?: Options<ListGitSourcesData>) =>
+  createQueryKey("listGitSources", options);
+
+export const listGitSourcesOptions = (options?: Options<ListGitSourcesData>) =>
+  queryOptions<
+    ListGitSourcesResponse,
+    ListGitSourcesError,
+    ListGitSourcesResponse,
+    ReturnType<typeof listGitSourcesQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listGitSources({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listGitSourcesQueryKey(options),
+  });
+
+export const createGitSourceMutation = (
+  options?: Partial<Options<CreateGitSourceData>>,
+): UseMutationOptions<
+  CreateGitSourceResponse,
+  CreateGitSourceError,
+  Options<CreateGitSourceData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateGitSourceResponse,
+    CreateGitSourceError,
+    Options<CreateGitSourceData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createGitSource({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const deleteGitSourceMutation = (
+  options?: Partial<Options<DeleteGitSourceData>>,
+): UseMutationOptions<
+  DeleteGitSourceResponse,
+  DeleteGitSourceError,
+  Options<DeleteGitSourceData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteGitSourceResponse,
+    DeleteGitSourceError,
+    Options<DeleteGitSourceData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteGitSource({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getGitSourceQueryKey = (options: Options<GetGitSourceData>) =>
+  createQueryKey("getGitSource", options);
+
+export const getGitSourceOptions = (options: Options<GetGitSourceData>) =>
+  queryOptions<
+    GetGitSourceResponse,
+    GetGitSourceError,
+    GetGitSourceResponse,
+    ReturnType<typeof getGitSourceQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getGitSource({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getGitSourceQueryKey(options),
+  });
+
+export const updateGitSourceMutation = (
+  options?: Partial<Options<UpdateGitSourceData>>,
+): UseMutationOptions<
+  UpdateGitSourceResponse,
+  UpdateGitSourceError,
+  Options<UpdateGitSourceData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UpdateGitSourceResponse,
+    UpdateGitSourceError,
+    Options<UpdateGitSourceData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await updateGitSource({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listGitSyncRunsQueryKey = (
+  options: Options<ListGitSyncRunsData>,
+) => createQueryKey("listGitSyncRuns", options);
+
+export const listGitSyncRunsOptions = (options: Options<ListGitSyncRunsData>) =>
+  queryOptions<
+    ListGitSyncRunsResponse,
+    ListGitSyncRunsError,
+    ListGitSyncRunsResponse,
+    ReturnType<typeof listGitSyncRunsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listGitSyncRuns({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listGitSyncRunsQueryKey(options),
+  });
+
+export const syncGitSourceMutation = (
+  options?: Partial<Options<SyncGitSourceData>>,
+): UseMutationOptions<
+  unknown,
+  SyncGitSourceError,
+  Options<SyncGitSourceData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    unknown,
+    SyncGitSourceError,
+    Options<SyncGitSourceData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await syncGitSource({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 export const listInstancesQueryKey = (options?: Options<ListInstancesData>) =>
   createQueryKey("listInstances", options);
@@ -1440,6 +2117,53 @@ export const listFilesOptions = (options: Options<ListFilesData>) =>
     queryKey: listFilesQueryKey(options),
   });
 
+export const getNamespaceGitQueryKey = (
+  options: Options<GetNamespaceGitData>,
+) => createQueryKey("getNamespaceGit", options);
+
+export const getNamespaceGitOptions = (options: Options<GetNamespaceGitData>) =>
+  queryOptions<
+    GetNamespaceGitResponse,
+    GetNamespaceGitError,
+    GetNamespaceGitResponse,
+    ReturnType<typeof getNamespaceGitQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getNamespaceGit({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getNamespaceGitQueryKey(options),
+  });
+
+export const pushNamespaceBranchMutation = (
+  options?: Partial<Options<PushNamespaceBranchData>>,
+): UseMutationOptions<
+  PushNamespaceBranchResponse,
+  PushNamespaceBranchError,
+  Options<PushNamespaceBranchData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    PushNamespaceBranchResponse,
+    PushNamespaceBranchError,
+    Options<PushNamespaceBranchData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await pushNamespaceBranch({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
 export const revertVersionMutation = (
   options?: Partial<Options<RevertVersionData>>,
 ): UseMutationOptions<
@@ -1484,6 +2208,103 @@ export const runFileMutation = (
   return mutationOptions;
 };
 
+export const listNamespaceSecretsQueryKey = (
+  options: Options<ListNamespaceSecretsData>,
+) => createQueryKey("listNamespaceSecrets", options);
+
+export const listNamespaceSecretsOptions = (
+  options: Options<ListNamespaceSecretsData>,
+) =>
+  queryOptions<
+    ListNamespaceSecretsResponse,
+    ListNamespaceSecretsError,
+    ListNamespaceSecretsResponse,
+    ReturnType<typeof listNamespaceSecretsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listNamespaceSecrets({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listNamespaceSecretsQueryKey(options),
+  });
+
+export const deleteNamespaceSecretMutation = (
+  options?: Partial<Options<DeleteNamespaceSecretData>>,
+): UseMutationOptions<
+  DeleteNamespaceSecretResponse,
+  DeleteNamespaceSecretError,
+  Options<DeleteNamespaceSecretData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteNamespaceSecretResponse,
+    DeleteNamespaceSecretError,
+    Options<DeleteNamespaceSecretData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteNamespaceSecret({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const putNamespaceSecretMutation = (
+  options?: Partial<Options<PutNamespaceSecretData>>,
+): UseMutationOptions<
+  PutNamespaceSecretResponse,
+  PutNamespaceSecretError,
+  Options<PutNamespaceSecretData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    PutNamespaceSecretResponse,
+    PutNamespaceSecretError,
+    Options<PutNamespaceSecretData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await putNamespaceSecret({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const checkNamespaceSecretMutation = (
+  options?: Partial<Options<CheckNamespaceSecretData>>,
+): UseMutationOptions<
+  CheckNamespaceSecretResponse,
+  CheckNamespaceSecretError,
+  Options<CheckNamespaceSecretData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CheckNamespaceSecretResponse,
+    CheckNamespaceSecretError,
+    Options<CheckNamespaceSecretData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await checkNamespaceSecret({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
 export const validateFileMutation = (
   options?: Partial<Options<ValidateFileData>>,
 ): UseMutationOptions<
@@ -1498,6 +2319,79 @@ export const validateFileMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await validateFile({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listNamespaceVariablesQueryKey = (
+  options: Options<ListNamespaceVariablesData>,
+) => createQueryKey("listNamespaceVariables", options);
+
+export const listNamespaceVariablesOptions = (
+  options: Options<ListNamespaceVariablesData>,
+) =>
+  queryOptions<
+    ListNamespaceVariablesResponse,
+    ListNamespaceVariablesError,
+    ListNamespaceVariablesResponse,
+    ReturnType<typeof listNamespaceVariablesQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listNamespaceVariables({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listNamespaceVariablesQueryKey(options),
+  });
+
+export const deleteNamespaceVariableMutation = (
+  options?: Partial<Options<DeleteNamespaceVariableData>>,
+): UseMutationOptions<
+  DeleteNamespaceVariableResponse,
+  DeleteNamespaceVariableError,
+  Options<DeleteNamespaceVariableData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteNamespaceVariableResponse,
+    DeleteNamespaceVariableError,
+    Options<DeleteNamespaceVariableData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteNamespaceVariable({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const putNamespaceVariableMutation = (
+  options?: Partial<Options<PutNamespaceVariableData>>,
+): UseMutationOptions<
+  PutNamespaceVariableResponse,
+  PutNamespaceVariableError,
+  Options<PutNamespaceVariableData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    PutNamespaceVariableResponse,
+    PutNamespaceVariableError,
+    Options<PutNamespaceVariableData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await putNamespaceVariable({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -1530,6 +2424,31 @@ export const listVersionsOptions = (options: Options<ListVersionsData>) =>
     queryKey: listVersionsQueryKey(options),
   });
 
+export const listUpcomingSchedulesQueryKey = (
+  options?: Options<ListUpcomingSchedulesData>,
+) => createQueryKey("listUpcomingSchedules", options);
+
+export const listUpcomingSchedulesOptions = (
+  options?: Options<ListUpcomingSchedulesData>,
+) =>
+  queryOptions<
+    ListUpcomingSchedulesResponse,
+    ListUpcomingSchedulesError,
+    ListUpcomingSchedulesResponse,
+    ReturnType<typeof listUpcomingSchedulesQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listUpcomingSchedules({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listUpcomingSchedulesQueryKey(options),
+  });
+
 export const getFlowSchemaQueryKey = (options?: Options<GetFlowSchemaData>) =>
   createQueryKey("getFlowSchema", options);
 
@@ -1550,6 +2469,271 @@ export const getFlowSchemaOptions = (options?: Options<GetFlowSchemaData>) =>
       return data;
     },
     queryKey: getFlowSchemaQueryKey(options),
+  });
+
+export const listSecretProvidersQueryKey = (
+  options?: Options<ListSecretProvidersData>,
+) => createQueryKey("listSecretProviders", options);
+
+export const listSecretProvidersOptions = (
+  options?: Options<ListSecretProvidersData>,
+) =>
+  queryOptions<
+    ListSecretProvidersResponse,
+    ListSecretProvidersError,
+    ListSecretProvidersResponse,
+    ReturnType<typeof listSecretProvidersQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listSecretProviders({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listSecretProvidersQueryKey(options),
+  });
+
+export const createSecretProviderMutation = (
+  options?: Partial<Options<CreateSecretProviderData>>,
+): UseMutationOptions<
+  CreateSecretProviderResponse,
+  CreateSecretProviderError,
+  Options<CreateSecretProviderData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateSecretProviderResponse,
+    CreateSecretProviderError,
+    Options<CreateSecretProviderData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createSecretProvider({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const deleteSecretProviderMutation = (
+  options?: Partial<Options<DeleteSecretProviderData>>,
+): UseMutationOptions<
+  DeleteSecretProviderResponse,
+  DeleteSecretProviderError,
+  Options<DeleteSecretProviderData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteSecretProviderResponse,
+    DeleteSecretProviderError,
+    Options<DeleteSecretProviderData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteSecretProvider({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const updateSecretProviderMutation = (
+  options?: Partial<Options<UpdateSecretProviderData>>,
+): UseMutationOptions<
+  UpdateSecretProviderResponse,
+  UpdateSecretProviderError,
+  Options<UpdateSecretProviderData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UpdateSecretProviderResponse,
+    UpdateSecretProviderError,
+    Options<UpdateSecretProviderData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await updateSecretProvider({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const checkSecretProviderMutation = (
+  options?: Partial<Options<CheckSecretProviderData>>,
+): UseMutationOptions<
+  CheckSecretProviderResponse,
+  CheckSecretProviderError,
+  Options<CheckSecretProviderData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CheckSecretProviderResponse,
+    CheckSecretProviderError,
+    Options<CheckSecretProviderData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await checkSecretProvider({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listGlobalSecretsQueryKey = (
+  options?: Options<ListGlobalSecretsData>,
+) => createQueryKey("listGlobalSecrets", options);
+
+export const listGlobalSecretsOptions = (
+  options?: Options<ListGlobalSecretsData>,
+) =>
+  queryOptions<
+    ListGlobalSecretsResponse,
+    ListGlobalSecretsError,
+    ListGlobalSecretsResponse,
+    ReturnType<typeof listGlobalSecretsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listGlobalSecrets({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listGlobalSecretsQueryKey(options),
+  });
+
+export const deleteGlobalSecretMutation = (
+  options?: Partial<Options<DeleteGlobalSecretData>>,
+): UseMutationOptions<
+  DeleteGlobalSecretResponse,
+  DeleteGlobalSecretError,
+  Options<DeleteGlobalSecretData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteGlobalSecretResponse,
+    DeleteGlobalSecretError,
+    Options<DeleteGlobalSecretData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteGlobalSecret({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const putGlobalSecretMutation = (
+  options?: Partial<Options<PutGlobalSecretData>>,
+): UseMutationOptions<
+  PutGlobalSecretResponse,
+  PutGlobalSecretError,
+  Options<PutGlobalSecretData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    PutGlobalSecretResponse,
+    PutGlobalSecretError,
+    Options<PutGlobalSecretData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await putGlobalSecret({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const checkGlobalSecretMutation = (
+  options?: Partial<Options<CheckGlobalSecretData>>,
+): UseMutationOptions<
+  CheckGlobalSecretResponse,
+  CheckGlobalSecretError,
+  Options<CheckGlobalSecretData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CheckGlobalSecretResponse,
+    CheckGlobalSecretError,
+    Options<CheckGlobalSecretData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await checkGlobalSecret({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getDashboardQueryKey = (options?: Options<GetDashboardData>) =>
+  createQueryKey("getDashboard", options);
+
+export const getDashboardOptions = (options?: Options<GetDashboardData>) =>
+  queryOptions<
+    GetDashboardResponse,
+    GetDashboardError,
+    GetDashboardResponse,
+    ReturnType<typeof getDashboardQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getDashboard({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getDashboardQueryKey(options),
+  });
+
+export const getStorageStatusQueryKey = (
+  options?: Options<GetStorageStatusData>,
+) => createQueryKey("getStorageStatus", options);
+
+export const getStorageStatusOptions = (
+  options?: Options<GetStorageStatusData>,
+) =>
+  queryOptions<
+    GetStorageStatusResponse,
+    GetStorageStatusError,
+    GetStorageStatusResponse,
+    ReturnType<typeof getStorageStatusQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getStorageStatus({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getStorageStatusQueryKey(options),
   });
 
 export const listTokensQueryKey = (options?: Options<ListTokensData>) =>
@@ -1802,6 +2986,125 @@ export const resetUserPasswordMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await resetUserPassword({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listGlobalVariablesQueryKey = (
+  options?: Options<ListGlobalVariablesData>,
+) => createQueryKey("listGlobalVariables", options);
+
+export const listGlobalVariablesOptions = (
+  options?: Options<ListGlobalVariablesData>,
+) =>
+  queryOptions<
+    ListGlobalVariablesResponse,
+    ListGlobalVariablesError,
+    ListGlobalVariablesResponse,
+    ReturnType<typeof listGlobalVariablesQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listGlobalVariables({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listGlobalVariablesQueryKey(options),
+  });
+
+export const deleteGlobalVariableMutation = (
+  options?: Partial<Options<DeleteGlobalVariableData>>,
+): UseMutationOptions<
+  DeleteGlobalVariableResponse,
+  DeleteGlobalVariableError,
+  Options<DeleteGlobalVariableData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteGlobalVariableResponse,
+    DeleteGlobalVariableError,
+    Options<DeleteGlobalVariableData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteGlobalVariable({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const putGlobalVariableMutation = (
+  options?: Partial<Options<PutGlobalVariableData>>,
+): UseMutationOptions<
+  PutGlobalVariableResponse,
+  PutGlobalVariableError,
+  Options<PutGlobalVariableData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    PutGlobalVariableResponse,
+    PutGlobalVariableError,
+    Options<PutGlobalVariableData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await putGlobalVariable({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Request a sync of a git source from a push webhook
+ */
+export const gitWebhookMutation = (
+  options?: Partial<Options<GitWebhookData>>,
+): UseMutationOptions<unknown, DefaultError, Options<GitWebhookData>> => {
+  const mutationOptions: UseMutationOptions<
+    unknown,
+    DefaultError,
+    Options<GitWebhookData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await gitWebhook({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Start the flow of a webhook trigger
+ */
+export const fireWebhookMutation = (
+  options?: Partial<Options<FireWebhookData>>,
+): UseMutationOptions<unknown, DefaultError, Options<FireWebhookData>> => {
+  const mutationOptions: UseMutationOptions<
+    unknown,
+    DefaultError,
+    Options<FireWebhookData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await fireWebhook({
         ...options,
         ...fnOptions,
         throwOnError: true,

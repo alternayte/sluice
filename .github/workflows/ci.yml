@@ -115,6 +115,7 @@ jobs:
           name: e2e-reports
           path: |
             build/reports/junit
+            build/reports/playwright-server.log
             tests/ui/test-results
           if-no-files-found: ignore
 

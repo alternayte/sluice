@@ -55,7 +55,8 @@ func MinIO(t testing.TB) *MinIOServer {
 
 // StartMinIO starts a new MinIO container. The caller terminates it.
 func StartMinIO(ctx context.Context) (*MinIOServer, error) {
-	c, err := minio.Run(ctx, "minio/minio:latest", minio.WithUsername("sluiceminio"), minio.WithPassword("sluiceminio-secret"))
+	// Docker Hub no longer serves minio/minio. quay.io is the other official registry of MinIO.
+	c, err := minio.Run(ctx, "quay.io/minio/minio:latest", minio.WithUsername("sluiceminio"), minio.WithPassword("sluiceminio-secret"))
 	if err != nil {
 		return nil, err
 	}

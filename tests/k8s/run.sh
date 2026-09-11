@@ -17,9 +17,22 @@ for img in sluice:dev sluice-uv:dev; do
 done
 
 kind create cluster --name "$cluster" --wait 180s
-if [ "${SLUICE_KIND_KEEP:-}" != "1" ]; then
-  trap 'kind delete cluster --name "$cluster"' EXIT
-fi
+
+# At exit, save the logs of all server pods (current and previous containers) as test
+# evidence, then delete the cluster unless SLUICE_KIND_KEEP=1.
+finish() {
+  local log="$root/build/reports/k8s-server.log"
+  {
+    kubectl --context "$ctx" -n sluice logs -l app.kubernetes.io/instance=sluice --all-containers --prefix --tail=-1 || true
+    echo "==== previous containers"
+    kubectl --context "$ctx" -n sluice logs -l app.kubernetes.io/instance=sluice --all-containers --prefix --tail=-1 --previous || true
+  } > "$log" 2>&1
+  echo "server logs: $log"
+  if [ "${SLUICE_KIND_KEEP:-}" != "1" ]; then
+    kind delete cluster --name "$cluster"
+  fi
+}
+trap finish EXIT
 kind load docker-image sluice:dev sluice-uv:dev --name "$cluster"
 
 k() { kubectl --context "$ctx" -n "$ns" "$@"; }

@@ -45,9 +45,24 @@ You need Docker and [just](https://just.systems).
 
 | Document | What it holds |
 |---|---|
+| [docs/getting-started.md](docs/getting-started.md) | The full walkthrough: start Sluice, write a flow, run it and read the execution. |
+| [docs/flows.md](docs/flows.md) | How to write flows: tasks, inputs, templates, outputs, metrics, retries and concurrency. |
+| [docs/triggers.md](docs/triggers.md) | Schedules, webhooks and flow triggers. |
+| [docs/executors.md](docs/executors.md) | The process, docker and kubernetes executors, pools and the runner. |
+| [docs/secrets-and-variables.md](docs/secrets-and-variables.md) | Secrets, providers, variables, scopes and masking. |
+| [docs/git-sync.md](docs/git-sync.md) | Git sources, mappings, sync and push to a branch. |
 | [docs/ai.md](docs/ai.md) | The assistant, flow authoring, failure triage and the MCP server. |
+| [docs/deployment.md](docs/deployment.md) | Single container, compose, Kubernetes with Helm, storage and the CLI. |
+| [docs/architecture.md](docs/architecture.md) | The components, the execution lifecycle, snapshots and leases. |
+| [docs/api.md](docs/api.md) | The HTTP API, authentication, errors, pagination and event streams. |
+| [docs/operations/runbook.md](docs/operations/runbook.md) | Health, logs, backups, upgrades and common errors. |
+| [docs/operations/metrics.md](docs/operations/metrics.md) | Every metric of `/metrics` and the dashboard figures. |
+| [docs/operations/security.md](docs/operations/security.md) | Authentication, roles, secret handling and hardening. |
 | [docs/reference/flow.md](docs/reference/flow.md) | The flow file reference. |
 | [docs/reference/env.md](docs/reference/env.md) | Every environment variable. |
 | [examples/elt](examples/elt/README.md) | An ELT example with dlt and SQLMesh, with demo data. |
-| [deploy/helm/sluice](deploy/helm/sluice) | The Helm chart for Kubernetes. |
 | [docs/sluice-sdd.md](docs/sluice-sdd.md) | The design: requirements, scenarios and decisions. |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to build, test and submit a change. |
+| [TESTING.md](TESTING.md) | The test layers, the local substitutes and the definition of done. |
+| [SECURITY.md](SECURITY.md) | How to report a security defect. |
+| [CHANGELOG.md](CHANGELOG.md) | What changed. |

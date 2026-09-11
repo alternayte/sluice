@@ -174,8 +174,10 @@ func TestSCN_RUN_007_RuntimeTools(t *testing.T) {
 // works in both (REQ-DEP-001).
 func TestSCN_DEP_001_Images(t *testing.T) {
 	root := repoRoot()
+	buildDate := time.Now().UTC().Format(time.RFC3339)
 	for target, tag := range map[string]string{"sluice": imageSluice, "sluice-uv": imageSluiceUV} {
-		cmd := exec.Command("docker", "build", "-f", "deploy/docker/Dockerfile", "--target", target, "-t", tag, ".")
+		cmd := exec.Command("docker", "build", "-f", "deploy/docker/Dockerfile", "--target", target,
+			"--build-arg", "BUILD_DATE="+buildDate, "-t", tag, ".")
 		cmd.Dir = root
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("build %s: %v\n%s", target, err, lastLines(string(out), 40))
@@ -183,7 +185,8 @@ func TestSCN_DEP_001_Images(t *testing.T) {
 		if user := docker(t, "image", "inspect", "-f", "{{.Config.User}}", tag); !strings.HasPrefix(user, "65532") {
 			t.Fatalf("%s runs as %q, want the non-root user 65532", tag, user)
 		}
-		if out := docker(t, "run", "--rm", tag, "version"); !strings.Contains(out, "version:") || !strings.Contains(out, "commit:") {
+		if out := docker(t, "run", "--rm", tag, "version"); !strings.Contains(out, "version:") || !strings.Contains(out, "commit:") ||
+			!strings.Contains(out, "build_date: "+buildDate) {
 			t.Fatalf("%s version: %q", tag, out)
 		}
 	}

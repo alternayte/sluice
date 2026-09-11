@@ -87,8 +87,8 @@ build-go:
     CGO_ENABLED=0 go build -trimpath -ldflags '{{ldflags}}' -o bin/sluice ./cmd/sluice
 
 build-images:
-    docker build -f deploy/docker/Dockerfile --target sluice --build-arg VERSION={{version}} --build-arg COMMIT={{commit}} -t sluice:dev .
-    docker build -f deploy/docker/Dockerfile --target sluice-uv --build-arg VERSION={{version}} --build-arg COMMIT={{commit}} -t sluice-uv:dev .
+    docker build -f deploy/docker/Dockerfile --target sluice --build-arg VERSION={{version}} --build-arg COMMIT={{commit}} --build-arg BUILD_DATE={{build_date}} -t sluice:dev .
+    docker build -f deploy/docker/Dockerfile --target sluice-uv --build-arg VERSION={{version}} --build-arg COMMIT={{commit}} --build-arg BUILD_DATE={{build_date}} -t sluice-uv:dev .
 
 e2e:
     mkdir -p {{junit}}

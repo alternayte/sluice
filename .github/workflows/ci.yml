@@ -127,4 +127,18 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Build the container image.
-        run: docker build -f deploy/docker/Dockerfile --target sluice .
+        run: |
+          docker build -f deploy/docker/Dockerfile --target sluice \
+            --build-arg VERSION="$(git describe --tags --always --dirty)" \
+            --build-arg COMMIT="${{ github.sha }}" \
+            --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -t sluice:ci .
+
+      - name: Check the version, the commit and the build date of the image.
+        run: |
+          out=$(docker run --rm sluice:ci version)
+          echo "$out"
+          if grep -q unknown <<<"$out"; then
+            echo "the image has no version, commit or build date" >&2
+            exit 1
+          fi

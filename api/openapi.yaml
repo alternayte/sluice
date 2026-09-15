@@ -1874,6 +1874,10 @@ components:
           type: object
         execution_id:
           type: string
+        files:
+          additionalProperties:
+            type: string
+          type: object
         flow_id:
           type: string
         limits:

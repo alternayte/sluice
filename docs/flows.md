@@ -214,7 +214,7 @@ The environment of a task comes from three maps. A later map overrides an earlie
 2. Flow `env`.
 3. Task `env`.
 
-Env values are templates, and they are the only task fields where `secret()` is allowed. Sluice also sets these variables for every task that runs on an executor. The test SCN-RUN-009 proves this.
+Env values are templates, and `secret()` is allowed in them. Sluice also sets these variables for every task that runs on an executor. The test SCN-RUN-009 proves this.
 
 | Variable | Value |
 |---|---|
@@ -225,6 +225,30 @@ Env values are templates, and they are the only task fields where `secret()` is 
 | `SLUICE_FLOW_ID` | ID of the flow. |
 | `SLUICE_OUTPUTS` | Path of the outputs file. See [Outputs, metrics and artifacts](#outputs-metrics-and-artifacts). |
 | `SLUICE_WORKDIR` | Directory that holds the namespace files. |
+
+## Files
+
+A `script` or `command` task can have a `files` map. Each key is a path relative to the namespace root. Each value is a template. Before the task starts, Sluice renders each value and writes it to that path in the workdir. The file replaces a namespace file at the same path. Sluice creates the parent directories. The file mode is `0600`.
+
+`secret()` is allowed in the values. The keys cannot hold templates.
+
+```yaml
+tasks:
+  - id: dbt_run
+    type: command
+    command: [dbt, run, --profiles-dir, .]
+    files:
+      profiles.yml: |
+        warehouse:
+          target: prod
+          outputs:
+            prod:
+              type: postgres
+              host: ${{ vars.DB_HOST }}
+              password: ${{ secret('DB_PASSWORD') }}
+```
+
+A key that is not a valid relative path fails validation with `invalid_path`.
 
 ## Templates
 
@@ -245,8 +269,8 @@ A template is `${{ expr }}` in a string. Write `$${{` for a literal `${{`. An ex
 Rules:
 
 - A string value renders as it is. Other JSON values render as compact JSON, for example `42`, `true` or `{"a":1}`.
-- Templates are allowed in `env`, `args`, `command`, the `http` fields, `subflow.inputs`, trigger `inputs` and flow `outputs`.
-- `secret()` is allowed only in `env` values and in the `http` fields `url`, `headers` and `body`. Elsewhere, validation reports `secret_not_allowed`.
+- Templates are allowed in `env`, `files` values, `args`, `command`, the `http` fields, `subflow.inputs`, trigger `inputs` and flow `outputs`.
+- `secret()` is allowed only in `env` values, `files` values and in the `http` fields `url`, `headers` and `body`. Elsewhere, validation reports `secret_not_allowed`.
 - `tasks.X.outputs` is valid only when X is a dependency of the task, directly or through other tasks. Validation reports `output_reference_not_dependency` otherwise. Flow `env` cannot read task outputs. Flow `outputs` can read the outputs of any task.
 - `vars` precedence, from highest to lowest: flow `variables`, the namespace, each parent namespace, global.
 
@@ -375,7 +399,7 @@ The command prints one line for each flow file and for `namespace.yaml`. For an 
 
 ```text
 invalid bad.flow.yaml
-  bad.flow.yaml:5:23 secret_not_allowed tasks[0].command[1]: secret() is allowed only in env values and http url, headers and body
+  bad.flow.yaml:5:23 secret_not_allowed tasks[0].command[1]: secret() is allowed only in env values, files values and http url, headers and body
   bad.flow.yaml:6:42 unknown_dependency tasks[1].depends_on[0]: task "b" depends on unknown task "c"
 ```
 

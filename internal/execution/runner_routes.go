@@ -38,6 +38,7 @@ type RunnerSpec struct {
 	Command        []string          `json:"command"`
 	Workdir        string            `json:"workdir"`
 	Env            map[string]string `json:"env"`
+	Files          map[string]string `json:"files,omitempty"`
 	Runtime        string            `json:"runtime,omitempty"`
 	TimeoutSeconds int               `json:"timeout_seconds"`
 	MaskValues     []string          `json:"mask_values"`
@@ -176,7 +177,7 @@ func RunnerRoutes(api huma.API, r chi.Router, e *Engine) {
 				return nil, err
 			}
 			return &struct{ Body RunnerSpec }{Body: RunnerSpec{TaskRunID: s.TaskRunID, ExecutionID: s.ExecutionID, Namespace: s.Namespace,
-				FlowID: s.FlowID, TaskID: s.TaskID, Attempt: s.Attempt, Command: s.Command, Workdir: s.Workdir, Env: s.Env, Runtime: s.Runtime,
+				FlowID: s.FlowID, TaskID: s.TaskID, Attempt: s.Attempt, Command: s.Command, Workdir: s.Workdir, Env: s.Env, Files: s.Files, Runtime: s.Runtime,
 				TimeoutSeconds: s.TimeoutSeconds, MaskValues: s.MaskValues, BundleHash: s.BundleHash, Limits: RunnerLimits(s.Limits)}}, nil
 		})
 

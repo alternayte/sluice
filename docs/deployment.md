@@ -20,7 +20,16 @@ Two images build from `deploy/docker/Dockerfile` (REQ-DEP-001). Both hold the bi
 | `sluice` | Distroless static image. The binary only. No shell. | The server when all tasks run on docker or kubernetes. The source of the runner binary. |
 | `sluice-uv` | Debian slim with `bash`, `git`, `uv`, a uv-managed Python 3.12 and `bun`. | The server when tasks run on the process executor. A task image for Python, bash and bun. |
 
-Build both images with the justfile:
+Each release pushes both images to GitHub Container Registry for `linux/amd64` and `linux/arm64`:
+
+| Image | Tags |
+|---|---|
+| `ghcr.io/alternayte/sluice` | `<version>`, `<major>.<minor>`, `latest` |
+| `ghcr.io/alternayte/sluice-uv` | `<version>`, `<major>.<minor>`, `latest` |
+
+The GitHub release also holds the `sluice` binary for Linux and macOS on amd64 and arm64, with a `checksums.txt` file.
+
+To build the images yourself, use the justfile:
 
 ```sh
 just build-images
@@ -188,7 +197,7 @@ The test `SCN-DEP-002` installs the chart into kind with 2 replicas. The namespa
 | Value | Default | Sets |
 |---|---|---|
 | `replicas` | `2` | Number of server pods. |
-| `image.repository` | `sluice` | Server image. |
+| `image.repository` | `ghcr.io/alternayte/sluice` | Server image. |
 | `image.tag` | `""` | Empty uses the chart `appVersion`. |
 | `image.pullPolicy` | `IfNotPresent` | Pull policy of the server image. |
 | `runnerImage` | `""` | `SLUICE_RUNNER_IMAGE`. Empty uses the server image. |

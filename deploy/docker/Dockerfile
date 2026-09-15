@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1
-FROM oven/bun:1 AS ui
+FROM --platform=$BUILDPLATFORM oven/bun:1 AS ui
 WORKDIR /src/ui
 COPY ui/package.json ui/bun.lock ./
 RUN bun install --frozen-lockfile
 COPY ui/ ./
 RUN bun run build
 
-FROM golang:1.26 AS go
+FROM --platform=$BUILDPLATFORM golang:1.26 AS go
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
@@ -15,7 +15,9 @@ COPY --from=ui /src/ui/dist ./ui/dist
 ARG VERSION=dev
 ARG COMMIT=unknown
 ARG BUILD_DATE=unknown
-RUN CGO_ENABLED=0 go build -trimpath \
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -trimpath \
     -ldflags "-s -w -X github.com/alternayte/sluice/internal/app.Version=${VERSION} -X github.com/alternayte/sluice/internal/app.Commit=${COMMIT} -X github.com/alternayte/sluice/internal/app.BuildDate=${BUILD_DATE}" \
     -o /out/sluice ./cmd/sluice
 

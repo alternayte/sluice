@@ -64,6 +64,7 @@ type Plan struct {
 	Def        *Definition
 	Cfg        TaskConfig
 	Env        map[string]string
+	Files      map[string]string
 	Command    []string
 	Runtime    string
 	MaskValues []string
@@ -255,6 +256,16 @@ func (e *Engine) BuildPlan(ctx context.Context, tr executiondb.TaskRun) (*Plan, 
 		}
 		p.Env[k] = v
 	}
+	if len(t.Files) > 0 {
+		p.Files = map[string]string{}
+		for _, k := range sortedKeys(t.Files) {
+			v, err := render("files."+k, t.Files[k], true)
+			if err != nil {
+				return nil, err
+			}
+			p.Files[k] = v
+		}
+	}
 	switch t.Type {
 	case "script":
 		args := make([]string, 0, len(t.Args))
@@ -322,7 +333,7 @@ func (e *Engine) RunnerSpec(ctx context.Context, tr executiondb.TaskRun) (*runne
 		return nil, err
 	}
 	return &runnerproto.Spec{TaskRunID: tr.ID.String(), ExecutionID: tr.ExecutionID.String(), Namespace: p.Def.Namespace, FlowID: p.Def.FlowKey,
-		TaskID: tr.TaskKey, Attempt: int(tr.Attempt), Command: p.Command, Workdir: p.Cfg.Task.Workdir, Env: p.Env, Runtime: p.Runtime,
+		TaskID: tr.TaskKey, Attempt: int(tr.Attempt), Command: p.Command, Workdir: p.Cfg.Task.Workdir, Env: p.Env, Files: p.Files, Runtime: p.Runtime,
 		TimeoutSeconds: int(p.Cfg.Timeout.Seconds()), MaskValues: nonNilStrings(p.MaskValues), BundleHash: sn.ManifestHash,
 		Limits: runnerproto.Limits{MaxArtifactBytes: e.Cfg.MaxArtifactBytes, MaxBundleBytes: e.Cfg.MaxBundleBytes}}, nil
 }

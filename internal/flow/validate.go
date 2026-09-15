@@ -141,8 +141,8 @@ func (v *validation) inputs() {
 
 // fieldRule lists the task fields that belong to one task type.
 var typeFields = map[string][]string{
-	"script":  {"file", "runtime", "args"},
-	"command": {"command", "workdir"},
+	"script":  {"file", "runtime", "args", "files"},
+	"command": {"command", "workdir", "files"},
 	"http":    {"method", "url", "headers", "body", "expect_status"},
 	"subflow": {"flow", "inputs", "wait"},
 }
@@ -159,6 +159,7 @@ func taskFieldSet(t Task) map[string]bool {
 	mark("args", len(t.Args) > 0)
 	mark("command", len(t.Command) > 0)
 	mark("workdir", t.Workdir != "")
+	mark("files", len(t.Files) > 0)
 	mark("method", t.Method != "")
 	mark("url", t.URL != "")
 	mark("headers", len(t.Headers) > 0)
@@ -226,6 +227,13 @@ func (v *validation) tasks() map[string]int {
 				v.add(CodeMissingField, p, "subflow task %q needs flow", t.ID)
 			} else if _, _, ok := ParseFlowRef(t.Flow); !ok {
 				v.add(CodeInvalidReference, JoinPath(p, "flow"), "flow must be <namespace>/<flow_id>, got %q", t.Flow)
+			}
+		}
+		for _, k := range sortedFileKeys(t.Files) {
+			if err := ValidPath(k); err != nil {
+				v.add(CodeInvalidPath, JoinPath(JoinPath(p, "files"), k), "files: %v", err)
+			} else if strings.Contains(k, "${{") {
+				v.add(CodeTemplateNotAllowed, JoinPath(JoinPath(p, "files"), k), "templates are not allowed in file paths")
 			}
 		}
 		if t.Type == "http" || t.Type == "subflow" {
@@ -536,6 +544,9 @@ func (v *validation) templates(idx map[string]int) {
 		for k, val := range t.Env {
 			sites = append(sites, templateSite{path: JoinPath(JoinPath(p, "env"), k), value: val, allowSecret: true, task: t})
 		}
+		for k, val := range t.Files {
+			sites = append(sites, templateSite{path: JoinPath(JoinPath(p, "files"), k), value: val, allowSecret: true, task: t})
+		}
 		for j, a := range t.Args {
 			sites = append(sites, templateSite{path: IndexPath(JoinPath(p, "args"), j), value: a, task: t})
 		}
@@ -580,7 +591,7 @@ func (v *validation) templates(idx map[string]int) {
 			switch r.Kind {
 			case RefSecret:
 				if !s.allowSecret {
-					v.add(CodeSecretNotAllowed, s.path, "secret() is allowed only in env values and http url, headers and body")
+					v.add(CodeSecretNotAllowed, s.path, "secret() is allowed only in env values, files values and http url, headers and body")
 				}
 			case RefInputs:
 				if !inputs[r.Key()] {
@@ -600,4 +611,13 @@ func (v *validation) templates(idx map[string]int) {
 			}
 		}
 	}
+}
+
+func sortedFileKeys(m map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }

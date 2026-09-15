@@ -820,6 +820,9 @@ export type RunnerSpec = {
     [key: string]: string;
   };
   execution_id: string;
+  files?: {
+    [key: string]: string;
+  };
   flow_id: string;
   limits: RunnerLimits;
   mask_values: Array<string>;

@@ -1,19 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FilePlus, Save, Upload } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent } from "react";
 import { listFilesOptions } from "@/api/@tanstack/react-query.gen";
 import { ApiError, rawFetch } from "@/api-client";
 import { DataState } from "@/components/data-state";
 import { FileEditorPanel, fileContentKey, useSaveChanges } from "@/features/namespaces/FileEditorPanel";
+import { FileTree } from "@/features/namespaces/FileTree";
 import { invalidateNamespace } from "@/features/namespaces/namespace-source";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, FormError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
 import { errorMessage } from "@/lib/errors";
-import { cn, formatBytes } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 /**
  * NamespaceTree is the file list and the editor of a namespace. New files and edits stay
@@ -40,6 +39,8 @@ export function NamespaceTree({
   /** staged maps a path to its unsaved content. created lists the staged paths that no version has. */
   const [staged, setStaged] = useState<Record<string, string>>({});
   const [created, setCreated] = useState<string[]>([]);
+  const [folder, setFolder] = useState(() => (selected?.includes("/") ? selected.slice(0, selected.lastIndexOf("/")) : ""));
+  const split = useSplit();
   const files = useQuery(listFilesOptions({ path: { namespace } }));
   const upload = useMutation({
     mutationFn: async (file: File) => {
@@ -71,8 +72,8 @@ export function NamespaceTree({
         const newPaths = created.filter((p) => !existing.has(p));
         const isNew = (p: string) => newPaths.includes(p);
         return (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-            <section aria-label="Files" className="flex min-w-0 flex-col gap-2">
+          <div ref={split.container} style={split.style} className="flex flex-col gap-4 lg:flex-row lg:gap-0">
+            <section aria-label="File browser" className="flex min-w-0 shrink-0 flex-col gap-2 lg:w-[var(--tree-width)]">
               {canEdit && (
                 <div className="flex flex-col gap-2">
                   <div className="flex flex-wrap gap-2">
@@ -117,45 +118,39 @@ export function NamespaceTree({
               {list.items.length === 0 && newPaths.length === 0 ? (
                 <p className="py-6 text-sm text-muted-foreground">This namespace has no files.</p>
               ) : (
-                <Table>
-                  <THead>
-                    <Tr>
-                      <Th>Path</Th>
-                      <Th className="text-right">Size</Th>
-                    </Tr>
-                  </THead>
-                  <TBody>
-                    {[...list.items.map((f) => ({ path: f.path, size: f.size as number | undefined })), ...newPaths.map((p) => ({ path: p, size: undefined }))]
-                      .sort((a, b) => a.path.localeCompare(b.path))
-                      .map((f) => (
-                        <Tr key={f.path} className={cn(f.path === selected && "bg-accent-soft")}>
-                          <Td className="max-w-64">
-                            <div className="flex min-w-0 items-center gap-1.5">
-                              <button
-                                type="button"
-                                aria-current={f.path === selected ? "true" : undefined}
-                                onClick={() => onSelect(f.path)}
-                                className="block min-w-0 truncate text-left font-mono text-xs hover:underline"
-                                title={f.path}
-                              >
-                                {f.path}
-                              </button>
-                              {isNew(f.path) && <Badge tone="accent">New</Badge>}
-                              {!isNew(f.path) && staged[f.path] !== undefined && (
-                                <span className="text-xs text-muted-foreground" title="Unsaved changes">
-                                  ●<span className="sr-only">Unsaved changes</span>
-                                </span>
-                              )}
-                            </div>
-                          </Td>
-                          <Td className="text-right text-xs text-muted-foreground">{f.size === undefined ? "—" : formatBytes(f.size)}</Td>
-                        </Tr>
-                      ))}
-                  </TBody>
-                </Table>
+                <div className="max-h-80 min-h-0 flex-1 overflow-auto rounded-[8px] border bg-panel lg:max-h-none">
+                  <FileTree
+                    namespace={namespace}
+                    files={[
+                      ...list.items.map((f) => ({ path: f.path, size: f.size, dirty: staged[f.path] !== undefined })),
+                      ...newPaths.map((p) => ({ path: p, isNew: true })),
+                    ]}
+                    selected={selected}
+                    onSelect={onSelect}
+                    onFolder={setFolder}
+                  />
+                </div>
               )}
             </section>
-            <section aria-label="Editor" className="min-w-0">
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize file browser"
+              aria-valuemin={split.min}
+              aria-valuemax={split.max}
+              aria-valuenow={split.width}
+              tabIndex={0}
+              onPointerDown={split.onPointerDown}
+              onPointerMove={split.onPointerMove}
+              onPointerUp={split.onPointerUp}
+              onKeyDown={split.onKeyDown}
+              onDoubleClick={split.reset}
+              title="Drag to resize. Double-click to reset."
+              className="group hidden w-4 shrink-0 cursor-col-resize touch-none justify-center outline-none lg:flex"
+            >
+              <div className="h-full w-px bg-border group-hover:w-0.5 group-hover:bg-accent group-focus-visible:w-0.5 group-focus-visible:bg-accent" />
+            </div>
+            <section aria-label="Editor" className="flex h-[75vh] min-h-96 min-w-0 flex-1 flex-col lg:h-auto lg:min-h-0">
               {selected && (existing.has(selected) || isNew(selected)) ? (
                 <FileEditorPanel
                   key={selected}
@@ -177,11 +172,14 @@ export function NamespaceTree({
                   }}
                 />
               ) : (
-                <p className="rounded-[8px] border bg-panel p-4 text-sm text-muted-foreground">Select a file to open it.</p>
+                <p className="flex flex-1 items-center justify-center rounded-[8px] border bg-panel p-4 text-sm text-muted-foreground">
+                  Select a file to open it.
+                </p>
               )}
             </section>
             {newOpen && (
               <NewFileDialog
+                folder={folder}
                 exists={(p) => existing.has(p) || newPaths.includes(p)}
                 onClose={() => setNewOpen(false)}
                 onCreate={(p) => {
@@ -212,9 +210,125 @@ export function NamespaceTree({
   );
 }
 
+const splitMin = 224;
+const splitMax = 576;
+const splitDefault = 288;
+/** editorMin is the smallest editor width that the splitter leaves. */
+const editorMin = 420;
+const splitStorageKey = "sluice-file-tree-width";
+/** pageBottom is the bottom padding of the main element at lg (md:p-6). */
+const pageBottom = 24;
+
+/**
+ * useSplit keeps the width of the file browser and, at lg and wider, sets the height of the
+ * layout so that it fills the window below its top. The file browser and the editor scroll
+ * inside that height, so the page does not scroll.
+ */
+function useSplit() {
+  const [el, container] = useState<HTMLDivElement | null>(null);
+  const [width, setWidthState] = useState(() => {
+    try {
+      const v = Number(localStorage.getItem(splitStorageKey));
+      return Number.isFinite(v) && v >= splitMin ? v : splitDefault;
+    } catch {
+      return splitDefault;
+    }
+  });
+  const [height, setHeight] = useState<number | undefined>(undefined);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const drag = useRef<{ x: number; w: number } | null>(null);
+
+  const max = containerWidth > 0 ? Math.max(splitMin, Math.min(splitMax, containerWidth - editorMin)) : splitMax;
+  const clamp = useCallback((w: number) => Math.round(Math.min(max, Math.max(splitMin, w))), [max]);
+
+  const setWidth = (w: number) => {
+    const v = clamp(w);
+    setWidthState(v);
+    try {
+      localStorage.setItem(splitStorageKey, String(v));
+    } catch {
+      // Storage is not available. The width lasts for this page load.
+    }
+  };
+
+  // The layout mounts after the file list loads, so the effect runs when the element exists.
+  useLayoutEffect(() => {
+    if (!el) return;
+    const lg = window.matchMedia("(min-width: 1024px)");
+    const measure = () => {
+      setContainerWidth(el.clientWidth);
+      if (!lg.matches) {
+        setHeight(undefined);
+        return;
+      }
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      setHeight(Math.max(480, Math.floor(window.innerHeight - top - pageBottom)));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    if (el.parentElement) ro.observe(el.parentElement);
+    window.addEventListener("resize", measure);
+    lg.addEventListener("change", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+      lg.removeEventListener("change", measure);
+    };
+  }, [el]);
+
+  // Keep the width inside the limits when the window gets narrower.
+  useEffect(() => {
+    if (containerWidth > 0) setWidthState((w) => clamp(w));
+  }, [containerWidth, clamp]);
+
+  return {
+    container,
+    width,
+    min: splitMin,
+    max,
+    style: { "--tree-width": `${width}px`, height } as CSSProperties,
+    onPointerDown: (e: PointerEvent<HTMLDivElement>) => {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      drag.current = { x: e.clientX, w: width };
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    },
+    onPointerMove: (e: PointerEvent<HTMLDivElement>) => {
+      if (drag.current) setWidth(drag.current.w + e.clientX - drag.current.x);
+    },
+    onPointerUp: (e: PointerEvent<HTMLDivElement>) => {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+      drag.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    },
+    onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+      const step = e.shiftKey ? 64 : 16;
+      if (e.key === "ArrowLeft") setWidth(width - step);
+      else if (e.key === "ArrowRight") setWidth(width + step);
+      else if (e.key === "Home") setWidth(splitMin);
+      else if (e.key === "End") setWidth(max);
+      else return;
+      e.preventDefault();
+    },
+    reset: () => setWidth(splitDefault),
+  };
+}
+
 /** NewFileDialog stages an empty file. The server checks the path when the file is saved. */
-function NewFileDialog({ exists, onClose, onCreate }: { exists: (path: string) => boolean; onClose: () => void; onCreate: (path: string) => void }) {
-  const [path, setPath] = useState("");
+function NewFileDialog({
+  folder,
+  exists,
+  onClose,
+  onCreate,
+}: {
+  folder: string;
+  exists: (path: string) => boolean;
+  onClose: () => void;
+  onCreate: (path: string) => void;
+}) {
+  const [path, setPath] = useState(folder ? `${folder}/` : "");
   const trimmed = path.trim().replace(/^\/+/, "");
   const taken = trimmed !== "" && exists(trimmed);
   const submit = (e: FormEvent) => {

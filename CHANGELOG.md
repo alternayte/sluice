@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-15
+
+### Changed
+
+- The namespace file browser is a tree with folders, file icons and keyboard navigation. It keeps the open folders per namespace. The New file dialog starts with the current folder.
+- The file browser column is resizable from 224 px to 576 px, and the browser keeps the width.
+
+### Fixed
+
+- The namespace editor fills the window height. The file browser, the editor and the validation errors scroll inside it, so the editor no longer leaves empty space below it.
+
 ## [0.1.1] - 2026-09-15
 
 ### Changed
@@ -113,6 +124,7 @@ The first version of Sluice. It is one Go binary with an embedded React UI, and 
 - A CI workflow with the jobs `check`, `e2e` and `image`.
 - A release workflow. A `v*.*.*` tag attaches the binaries for Linux and macOS to a GitHub release, and pushes the `sluice` and `sluice-uv` images to `ghcr.io/alternayte` for amd64 and arm64.
 
-[Unreleased]: https://github.com/alternayte/sluice/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/alternayte/sluice/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/alternayte/sluice/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/alternayte/sluice/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/alternayte/sluice/releases/tag/v0.1.0

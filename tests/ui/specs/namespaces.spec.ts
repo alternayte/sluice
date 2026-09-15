@@ -13,7 +13,7 @@ async function createFileUI(page: Page, path: string) {
   await dialog.getByLabel("Path").fill(path);
   await dialog.getByRole("button", { name: "Create" }).click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole("button", { name: path, exact: true })).toBeVisible();
+  await expect(page.getByRole("treeitem", { name: path, exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: path, exact: true })).toBeVisible();
 }
 
@@ -56,8 +56,8 @@ test("SCN-NS-002 an editor creates pipelines/load.py and sync.flow.yaml and save
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect(dialog).toBeHidden();
   await expect(page.getByText("unsaved file")).toHaveCount(0);
-  await expect(page.getByRole("row").filter({ hasText: "pipelines/load.py" })).toContainText(`${Buffer.byteLength(load)} B`);
-  await expect(page.getByRole("row").filter({ hasText: "sync.flow.yaml" })).toContainText(`${Buffer.byteLength(flow)} B`);
+  await expect(page.getByRole("treeitem", { name: "pipelines/load.py", exact: true })).toContainText(`${Buffer.byteLength(load)} B`);
+  await expect(page.getByRole("treeitem", { name: "sync.flow.yaml", exact: true })).toContainText(`${Buffer.byteLength(flow)} B`);
 
   await page.getByRole("tab", { name: "Versions" }).click();
   const v2 = versionRow(page, "v2");
@@ -100,9 +100,9 @@ test("SCN-NS-003 diff between versions 1 and 3, and revert to version 1 creates 
   await expect(page.getByText("The versions have the same files.")).toBeVisible();
 
   await page.getByRole("tab", { name: "Files" }).click();
-  await page.getByRole("button", { name: "a.txt", exact: true }).click();
+  await page.getByRole("treeitem", { name: "a.txt", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Content of a.txt" })).toHaveText("alpha");
-  await expect(page.getByRole("button", { name: "b.txt", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("treeitem", { name: "b.txt", exact: true })).toHaveCount(0);
   await context.close();
   await api.dispose();
 });

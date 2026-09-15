@@ -90,7 +90,9 @@ test("SCN-RUN-008 live tail, archive after completion, search, task filter and d
   const downloadEvent = page.waitForEvent("download");
   await page.getByRole("link", { name: "Download" }).click();
   const download = await downloadEvent;
-  const lines = readFileSync(await download.path(), "utf8").trimEnd().split("\n");
+  const lines = readFileSync(await download.path(), "utf8")
+    .trimEnd()
+    .split("\n");
   expect(lines).toHaveLength(stored.length);
   lines.forEach((line, i) => {
     const l = stored[i]!;

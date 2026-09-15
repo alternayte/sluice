@@ -106,7 +106,15 @@ describe("gantt geometry", () => {
     const { rows, start, end } = ganttLayout(
       [
         { id: "1", task_key: "a", attempt: 1, state: "SUCCESS", queued_at: t(0), started_at: t(10), ended_at: t(30) },
-        { id: "2", task_key: "b", attempt: 2, state: "FAILED", started_at: t(30), ended_at: t(40), reused_from_id: "x" },
+        {
+          id: "2",
+          task_key: "b",
+          attempt: 2,
+          state: "FAILED",
+          started_at: t(30),
+          ended_at: t(40),
+          reused_from_id: "x",
+        },
       ],
       0,
     );

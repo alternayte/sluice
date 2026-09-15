@@ -14,7 +14,10 @@ let info: FixtureInfo;
 test.beforeAll(async ({}, testInfo) => {
   testInfo.setTimeout(180_000);
   const repoRoot = path.resolve(uiTestsDir, "../..");
-  const child = spawn("go", ["run", "./tests/fixtures/gitserver"], { cwd: repoRoot, stdio: ["ignore", "pipe", "inherit"] });
+  const child = spawn("go", ["run", "./tests/fixtures/gitserver"], {
+    cwd: repoRoot,
+    stdio: ["ignore", "pipe", "inherit"],
+  });
   fixture = child;
   info = await new Promise<FixtureInfo>((resolve, reject) => {
     const rl = readline.createInterface({ input: child.stdout! });
@@ -58,7 +61,11 @@ test("SCN-UI-006 instances show pools and executors, storage shows driver and he
   // Git source: create through the form with a token from a global secret, then wait for the first sync.
   const repo = `set-${uniq()}`;
   const { http_url } = await control<{ http_url: string }>("POST", `/repos/${repo}`);
-  await control("POST", `/repos/${repo}/commits`, { branch: "main", message: "first", files: [{ Path: "a.py", Content: "print(1)\n" }] });
+  await control("POST", `/repos/${repo}/commits`, {
+    branch: "main",
+    message: "first",
+    files: [{ Path: "a.py", Content: "print(1)\n" }],
+  });
   const api = await adminAPI();
   const key = `GIT_SET_${uniq()}`;
   expect((await api.put(`/api/v1/secrets/${key}`, { data: { value: info.token } })).status()).toBe(200);

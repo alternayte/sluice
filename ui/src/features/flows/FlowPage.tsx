@@ -296,7 +296,12 @@ function Triggers({ flow }: { flow: FlowDetail }) {
               {canRotate && (
                 <Td className="text-right">
                   {t.type === "webhook" && (
-                    <Button variant="secondary" size="sm" aria-label={`Rotate key of ${t.key}`} onClick={() => setRotate(t.key)}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      aria-label={`Rotate key of ${t.key}`}
+                      onClick={() => setRotate(t.key)}
+                    >
                       <KeyRound className="h-4 w-4" aria-hidden />
                       Rotate key
                     </Button>
@@ -313,7 +318,15 @@ function Triggers({ flow }: { flow: FlowDetail }) {
 }
 
 /** RotateWebhookKey confirms a key rotation, then shows the new webhook URL once (DI-28). */
-function RotateWebhookKey({ flow, triggerKey, onClose }: { flow: FlowDetail; triggerKey: string; onClose: () => void }) {
+function RotateWebhookKey({
+  flow,
+  triggerKey,
+  onClose,
+}: {
+  flow: FlowDetail;
+  triggerKey: string;
+  onClose: () => void;
+}) {
   const qc = useQueryClient();
   const [created, setCreated] = useState<WebhookKey | null>(null);
   const [copied, setCopied] = useState(false);
@@ -321,7 +334,9 @@ function RotateWebhookKey({ flow, triggerKey, onClose }: { flow: FlowDetail; tri
     ...rotateWebhookKeyMutation(),
     onSuccess: (d) => {
       setCreated(d);
-      void qc.invalidateQueries({ queryKey: getFlowQueryKey({ path: { namespace: flow.namespace, flowId: flow.flow_id } }) });
+      void qc.invalidateQueries({
+        queryKey: getFlowQueryKey({ path: { namespace: flow.namespace, flowId: flow.flow_id } }),
+      });
     },
   });
 
@@ -379,7 +394,8 @@ function RotateWebhookKey({ flow, triggerKey, onClose }: { flow: FlowDetail; tri
 }
 
 function revisionLabel(r: RevisionSummary): string {
-  const v = r.snapshot_version != null ? `v${r.snapshot_version}` : r.git_sha ? r.git_sha.slice(0, 12) : r.id.slice(0, 8);
+  const v =
+    r.snapshot_version != null ? `v${r.snapshot_version}` : r.git_sha ? r.git_sha.slice(0, 12) : r.id.slice(0, 8);
   return `${v}, ${formatTime(r.created_at)}`;
 }
 

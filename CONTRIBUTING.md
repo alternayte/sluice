@@ -136,6 +136,7 @@ The migrations must work through a transaction-mode pooler (C-06). Do not use se
 |---|---|---|
 | Go format | gofmt, through golangci-lint | `golangci-lint run ./...` |
 | Go lint | golangci-lint with depguard, bodyclose, misspell, nilerr, unconvert | `just lint` |
+| UI format | Prettier, `.prettierrc.json` with a width of 120 columns. `just lint` runs the check. | `cd ui && bun run format` |
 | UI lint | ESLint, `ui/eslint.config.js` | `cd ui && bun run lint` |
 | UI types | TypeScript | `cd ui && bunx tsc --noEmit` |
 | Helm chart | helm lint | `just lint` |

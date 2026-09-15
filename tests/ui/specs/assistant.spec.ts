@@ -2,12 +2,26 @@ import { spawn, type ChildProcess } from "node:child_process";
 import path from "node:path";
 import readline from "node:readline";
 import { expect, test, type APIRequestContext, type Locator, type Page } from "@playwright/test";
-import { adminAPI, adminEmail, adminPassword, loginUI, seedNamespace, triggerFlowAPI, uniq, waitExecutionState } from "../helpers/app";
+import {
+  adminAPI,
+  adminEmail,
+  adminPassword,
+  loginUI,
+  seedNamespace,
+  triggerFlowAPI,
+  uniq,
+  waitExecutionState,
+} from "../helpers/app";
 import { uiTestsDir } from "../helpers/constants";
 
 type LLMInfo = { control: string; anthropic_url: string };
 type GitInfo = { control: string; http_base: string; token: string };
-type Reply = { status?: number; text?: string; tool_calls?: { id: string; name: string; input: string }[]; json?: string };
+type Reply = {
+  status?: number;
+  text?: string;
+  tool_calls?: { id: string; name: string; input: string }[];
+  json?: string;
+};
 
 const children: ChildProcess[] = [];
 let llm: LLMInfo;
@@ -16,7 +30,10 @@ let api: APIRequestContext;
 
 /** startFixture runs a Go fixture program (SDD §10.4) and reads the JSON line with its URLs. */
 function startFixture<T>(pkg: string): Promise<T> {
-  const child = spawn("go", ["run", pkg], { cwd: path.resolve(uiTestsDir, "../.."), stdio: ["ignore", "pipe", "inherit"] });
+  const child = spawn("go", ["run", pkg], {
+    cwd: path.resolve(uiTestsDir, "../.."),
+    stdio: ["ignore", "pipe", "inherit"],
+  });
   children.push(child);
   return new Promise<T>((resolve, reject) => {
     readline.createInterface({ input: child.stdout! }).once("line", (line) => resolve(JSON.parse(line) as T));
@@ -45,7 +62,9 @@ async function recorded(): Promise<string[]> {
   return reqs.map((r) => JSON.stringify(r.body));
 }
 
-const call = (id: string, name: string, input: unknown): Reply => ({ tool_calls: [{ id, name, input: JSON.stringify(input) }] });
+const call = (id: string, name: string, input: unknown): Reply => ({
+  tool_calls: [{ id, name, input: JSON.stringify(input) }],
+});
 
 async function openAssistant(page: Page): Promise<Locator> {
   await page.getByRole("button", { name: "Assistant" }).click();
@@ -76,7 +95,10 @@ test.describe.configure({ mode: "serial" });
 
 test.beforeAll(async ({}, testInfo) => {
   testInfo.setTimeout(240_000);
-  [llm, git] = await Promise.all([startFixture<LLMInfo>("./tests/fixtures/llmserver"), startFixture<GitInfo>("./tests/fixtures/gitserver")]);
+  [llm, git] = await Promise.all([
+    startFixture<LLMInfo>("./tests/fixtures/llmserver"),
+    startFixture<GitInfo>("./tests/fixtures/gitserver"),
+  ]);
   api = await adminAPI();
   const put = await api.put("/api/v1/secrets/LLM_UI_KEY", { data: { value: "llm-ui-key-value" } });
   expect(put.status(), await put.text()).toBe(200);
@@ -90,7 +112,9 @@ test.afterAll(async () => {
 
 test("SCN-AI-001 without a provider the UI hides AI actions", async ({ page }) => {
   expect((await api.delete("/api/v1/ai/provider")).status()).toBe(204);
-  const ns = await seedNamespace(api, "noai", { "bad.flow.yaml": 'id: bad\ntasks:\n  - {id: t, type: command, command: ["false"]}\n' });
+  const ns = await seedNamespace(api, "noai", {
+    "bad.flow.yaml": 'id: bad\ntasks:\n  - {id: t, type: command, command: ["false"]}\n',
+  });
   const ex = await waitExecutionState(api, (await triggerFlowAPI(api, ns, "bad")).id, ["FAILED"]);
 
   await loginUI(page, adminEmail, adminPassword);
@@ -123,7 +147,8 @@ test("SCN-AI-004 the panel shows the get_execution and get_logs calls and the an
   page,
 }) => {
   const ns = await seedNamespace(api, "ai004", {
-    "bad.flow.yaml": "id: bad\ntasks:\n  - {id: t, type: command, command: [\"sh\", \"-c\", \"echo 'ERROR: disk full'; exit 1\"]}\n",
+    "bad.flow.yaml":
+      'id: bad\ntasks:\n  - {id: t, type: command, command: ["sh", "-c", "echo \'ERROR: disk full\'; exit 1"]}\n',
   });
   const ex = await waitExecutionState(api, (await triggerFlowAPI(api, ns, "bad")).id, ["FAILED"]);
   await script([
@@ -154,7 +179,10 @@ test("SCN-AI-005 a trigger_execution call waits for confirm or reject, reject do
 }) => {
   test.setTimeout(120_000);
   const ns = await seedNamespace(api, "ai005", { "job.flow.yaml": okFlow });
-  await script([call("t1", "trigger_execution", { namespace: ns, flow_id: "job" }), { text: "I did not run the job." }]);
+  await script([
+    call("t1", "trigger_execution", { namespace: ns, flow_id: "job" }),
+    { text: "I did not run the job." },
+  ]);
 
   await loginUI(page, adminEmail, adminPassword);
   const panel = await openAssistant(page);
@@ -178,7 +206,8 @@ test("SCN-AI-005 a trigger_execution call waits for confirm or reject, reject do
   await expect.poll(() => executionCount(ns, "job")).toBe(1);
 
   const audit = await api.get("/api/v1/audit?action=ai.action.confirmed");
-  const events = ((await audit.json()) as { items: { action: string; actor_label: string; target_id: string }[] }).items;
+  const events = ((await audit.json()) as { items: { action: string; actor_label: string; target_id: string }[] })
+    .items;
   expect(events[0]).toMatchObject({ action: "ai.action.confirmed", target_id: "trigger_execution" });
   expect(events[0]!.actor_label).toContain(adminEmail);
 });
@@ -188,7 +217,11 @@ test("SCN-AI-006 an invalid proposal returns errors, a valid proposal shows the 
 }) => {
   test.setTimeout(180_000);
   const ns = await seedNamespace(api, "ai006", { "job.flow.yaml": okFlow });
-  const change = (content: string, namespace = ns) => ({ namespace, message: "Add the gen flow", files: [{ path: "gen.flow.yaml", content }] });
+  const change = (content: string, namespace = ns) => ({
+    namespace,
+    message: "Add the gen flow",
+    files: [{ path: "gen.flow.yaml", content }],
+  });
   await script([
     call("p1", "propose_change", change(genInvalid)),
     call("p2", "propose_change", change(genValid)),
@@ -215,19 +248,35 @@ test("SCN-AI-006 an invalid proposal returns errors, a valid proposal shows the 
   // Apply on a git namespace pushes a branch.
   const repo = `ai-${uniq()}`;
   const { http_url } = (await control(git.control, "POST", `/repos/${repo}`)) as { http_url: string };
-  await control(git.control, "POST", `/repos/${repo}/commits`, { branch: "main", message: "first", files: [{ Path: "job.flow.yaml", Content: okFlow }] });
+  await control(git.control, "POST", `/repos/${repo}/commits`, {
+    branch: "main",
+    message: "first",
+    files: [{ Path: "job.flow.yaml", Content: okFlow }],
+  });
   const key = `GIT_AI_${uniq()}`;
   expect((await api.put(`/api/v1/secrets/${key}`, { data: { value: git.token } })).status()).toBe(200);
   const gitNs = `gitai-${uniq()}`;
   const created = await api.post("/api/v1/git-sources", {
-    data: { name: `ai-${uniq()}`, repo_url: http_url, branch: "main", auth_type: "https_token", credential_secret_key: key, mappings: [{ repo_path: "", namespace: gitNs }] },
+    data: {
+      name: `ai-${uniq()}`,
+      repo_url: http_url,
+      branch: "main",
+      auth_type: "https_token",
+      credential_secret_key: key,
+      mappings: [{ repo_path: "", namespace: gitNs }],
+    },
   });
   expect(created.status(), await created.text()).toBe(201);
   const sourceId = ((await created.json()) as { id: string }).id;
   await expect
-    .poll(async () => ((await (await api.get(`/api/v1/git-sources/${sourceId}/runs`)).json()) as { items: { status: string }[] }).items[0]?.status, {
-      timeout: 30_000,
-    })
+    .poll(
+      async () =>
+        ((await (await api.get(`/api/v1/git-sources/${sourceId}/runs`)).json()) as { items: { status: string }[] })
+          .items[0]?.status,
+      {
+        timeout: 30_000,
+      },
+    )
     .toBe("success");
 
   await script([call("g1", "apply_change", change(genValid, gitNs)), { text: "The branch is pushed." }]);

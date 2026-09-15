@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
-import { listExecutionInsightsOptions, listExecutionInsightsQueryKey, requestTriageMutation } from "@/api/@tanstack/react-query.gen";
+import {
+  listExecutionInsightsOptions,
+  listExecutionInsightsQueryKey,
+  requestTriageMutation,
+} from "@/api/@tanstack/react-query.gen";
 import type { ExecutionDetail, Insight } from "@/api/types.gen";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,7 +42,11 @@ export function InsightPanel({ execution }: { execution: ExecutionDetail }) {
           Failure triage
         </h2>
         {can(me.role, "operator") && (
-          <Button variant="secondary" disabled={request.isPending || active(latest)} onClick={() => request.mutate(path)}>
+          <Button
+            variant="secondary"
+            disabled={request.isPending || active(latest)}
+            onClick={() => request.mutate(path)}
+          >
             <Sparkles className="h-4 w-4" aria-hidden />
             {latest ? "Triage again" : "Triage"}
           </Button>
@@ -46,7 +54,9 @@ export function InsightPanel({ execution }: { execution: ExecutionDetail }) {
       </div>
       {request.isError && <FormError>{errorMessage(request.error)}</FormError>}
       {insights.isError && <FormError>{errorMessage(insights.error)}</FormError>}
-      {!latest && !insights.isPending && <p className="text-sm text-muted-foreground">No triage exists for this execution.</p>}
+      {!latest && !insights.isPending && (
+        <p className="text-sm text-muted-foreground">No triage exists for this execution.</p>
+      )}
       {latest && <InsightView insight={latest} />}
     </section>
   );
@@ -75,7 +85,11 @@ function InsightView({ insight: i }: { insight: Insight }) {
       <dd className="break-words whitespace-pre-wrap">{i.suggested_fix}</dd>
       <dt className="text-muted-foreground">Confidence</dt>
       <dd>
-        {i.confidence ? <Badge tone={confidenceTone[i.confidence as keyof typeof confidenceTone] ?? "neutral"}>{i.confidence}</Badge> : "—"}
+        {i.confidence ? (
+          <Badge tone={confidenceTone[i.confidence as keyof typeof confidenceTone] ?? "neutral"}>{i.confidence}</Badge>
+        ) : (
+          "—"
+        )}
       </dd>
       <dt className="text-muted-foreground">Evidence</dt>
       <dd className="min-w-0">

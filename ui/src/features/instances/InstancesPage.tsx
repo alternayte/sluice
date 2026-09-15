@@ -11,7 +11,10 @@ export function InstancesPage() {
   const instances = useQuery({ ...listInstancesOptions(), refetchInterval: 10_000 });
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Instances" description="Server instances in this cluster. The list refreshes every 10 seconds." />
+      <PageHeader
+        title="Instances"
+        description="Server instances in this cluster. The list refreshes every 10 seconds."
+      />
       <DataState query={instances} empty={(d) => d.items.length === 0} emptyText="No instances are registered.">
         {(d) => (
           <Table>
@@ -34,9 +37,13 @@ export function InstancesPage() {
                   <Td>{i.executors.join(", ") || "—"}</Td>
                   <Td>
                     {i.online ? (
-                      <Badge tone="success" icon={CircleCheck}>Online</Badge>
+                      <Badge tone="success" icon={CircleCheck}>
+                        Online
+                      </Badge>
                     ) : (
-                      <Badge tone="neutral" icon={CircleOff}>Offline</Badge>
+                      <Badge tone="neutral" icon={CircleOff}>
+                        Offline
+                      </Badge>
                     )}
                   </Td>
                   <Td>{formatTime(i.heartbeat_at)}</Td>

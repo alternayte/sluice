@@ -21,13 +21,7 @@ function toIso(v: string | undefined): string | undefined {
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 }
 
-export function AuditPage({
-  search,
-  onApply,
-}: {
-  search: AuditSearch;
-  onApply: (s: AuditSearch) => void;
-}) {
+export function AuditPage({ search, onApply }: { search: AuditSearch; onApply: (s: AuditSearch) => void }) {
   const events = useInfiniteQuery({
     ...listAuditEventsInfiniteOptions({
       query: {

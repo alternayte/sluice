@@ -1,0 +1,5 @@
+ui/src/api/
+ui/src/routeTree.gen.ts
+ui/dist/
+node_modules/
+tests/ui/test-results/

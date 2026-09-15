@@ -27,9 +27,7 @@ function readStored(): Theme {
 
 function apply(theme: Theme) {
   const root = document.documentElement;
-  const dark =
-    theme === "dark" ||
-    (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   root.classList.toggle("dark", dark);
   root.classList.toggle("light", !dark);
 }

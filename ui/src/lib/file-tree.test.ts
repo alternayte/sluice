@@ -25,7 +25,9 @@ describe("buildTree", () => {
   });
 
   it("marks a folder dirty when a file below it has unsaved changes", () => {
-    const dirty = Object.fromEntries(tree.filter((n) => n.kind === "dir").map((n) => [n.path, n.kind === "dir" && n.dirty]));
+    const dirty = Object.fromEntries(
+      tree.filter((n) => n.kind === "dir").map((n) => [n.path, n.kind === "dir" && n.dirty]),
+    );
     expect(dirty).toEqual({ flows: false, scripts: true });
   });
 

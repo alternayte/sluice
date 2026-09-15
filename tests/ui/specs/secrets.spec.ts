@@ -41,7 +41,9 @@ function row(page: Page, key: string) {
 
 type AuditEvent = { action: string; actor_label: string; target_id: string };
 
-test("SCN-SEC-002 an editor creates and updates a builtin namespace secret and never sees the value", async ({ browser }) => {
+test("SCN-SEC-002 an editor creates and updates a builtin namespace secret and never sees the value", async ({
+  browser,
+}) => {
   const api = await adminAPI();
   const ns = await seedNamespace(api, "sec002", {});
   const { page, email } = await signInAs(browser, api, "editor");
@@ -84,7 +86,9 @@ test("SCN-SEC-002 an editor creates and updates a builtin namespace secret and n
   expect(JSON.stringify(events)).not.toContain("secret-value");
 });
 
-test("SCN-SEC-007 variables at global and namespace scope show inherited values and a flow logs them", async ({ browser }) => {
+test("SCN-SEC-007 variables at global and namespace scope show inherited values and a flow logs them", async ({
+  browser,
+}) => {
   const api = await adminAPI();
   const parent = await seedNamespace(api, "sec007", {});
   const child = await childNamespace(api, parent);
@@ -93,7 +97,9 @@ test("SCN-SEC-007 variables at global and namespace scope show inherited values 
   await saveFilesAPI(
     api,
     child,
-    { "v.flow.yaml": `id: v\ntasks:\n  - {id: t, type: command, command: ["echo", "vars \${{ vars.${greeting} }} \${{ vars.${target} }}"]}\n` },
+    {
+      "v.flow.yaml": `id: v\ntasks:\n  - {id: t, type: command, command: ["echo", "vars \${{ vars.${greeting} }} \${{ vars.${target} }}"]}\n`,
+    },
     "Flow",
   );
   const { page } = await signInAs(browser, api, "admin");
@@ -121,8 +127,15 @@ test("SCN-UI-010 an invalid flow shows an error marker within 1 s and the secret
   const api = await adminAPI();
   const parent = await seedNamespace(api, "ui010", {});
   const child = await childNamespace(api, parent);
-  await saveFilesAPI(api, child, { "f.flow.yaml": "id: f\ntasks:\n  - {id: t, type: command, command: [\"true\"]}\n" }, "Flow");
-  const put = await api.put(`/api/v1/namespaces/${parent}/secrets/SHARED_TOKEN`, { data: { value: "shared-token-value" } });
+  await saveFilesAPI(
+    api,
+    child,
+    { "f.flow.yaml": 'id: f\ntasks:\n  - {id: t, type: command, command: ["true"]}\n' },
+    "Flow",
+  );
+  const put = await api.put(`/api/v1/namespaces/${parent}/secrets/SHARED_TOKEN`, {
+    data: { value: "shared-token-value" },
+  });
   expect(put.status(), await put.text()).toBe(200);
   const { page } = await signInAs(browser, api, "editor");
 
@@ -131,7 +144,7 @@ test("SCN-UI-010 an invalid flow shows an error marker within 1 s and the secret
   const editor = page.getByRole("textbox", { name: "Content of f.flow.yaml" });
   await editor.click();
   await page.keyboard.press("ControlOrMeta+End");
-  await page.keyboard.type("\n  - {id: u, type: command, depends_on: [missing], command: [\"true\"]}");
+  await page.keyboard.type('\n  - {id: u, type: command, depends_on: [missing], command: ["true"]}');
   const typed = Date.now();
   await expect(page.locator(".cm-lint-marker-error").first()).toBeVisible({ timeout: 1000 });
   expect(Date.now() - typed).toBeLessThan(1000);
@@ -141,7 +154,9 @@ test("SCN-UI-010 an invalid flow shows an error marker within 1 s and the secret
   await expect(page.locator("body")).not.toContainText("shared-token-value");
 });
 
-test("SCN-AUTH-010 the audit page shows a token creation and a secret update with the actor and filters them", async ({ browser }) => {
+test("SCN-AUTH-010 the audit page shows a token creation and a secret update with the actor and filters them", async ({
+  browser,
+}) => {
   const api = await adminAPI();
   const { page, email } = await signInAs(browser, api, "admin");
   const key = `AUDIT_${uniq()}`;
@@ -155,7 +170,9 @@ test("SCN-AUTH-010 the audit page shows a token creation and a secret update wit
 
   await page.goto("/secrets");
   await addSecret(page, key, "audit-value-1");
-  await row(page, key).getByRole("button", { name: `Edit ${key}` }).click();
+  await row(page, key)
+    .getByRole("button", { name: `Edit ${key}` })
+    .click();
   const edit = page.getByRole("dialog", { name: "Edit secret" });
   await edit.getByLabel("Value").fill("audit-value-2");
   await edit.getByRole("button", { name: "Save" }).click();

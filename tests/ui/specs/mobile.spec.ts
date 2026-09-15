@@ -1,5 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
-import { adminAPI, adminEmail, adminPassword, loginUI, seedNamespace, triggerFlowAPI, waitExecutionState } from "../helpers/app";
+import {
+  adminAPI,
+  adminEmail,
+  adminPassword,
+  loginUI,
+  seedNamespace,
+  triggerFlowAPI,
+  waitExecutionState,
+} from "../helpers/app";
 
 test.use({ viewport: { width: 390, height: 844 } });
 
@@ -11,7 +19,7 @@ test("SCN-UI-009 at 390 px the dashboard, executions and execution detail have n
   page,
 }) => {
   const api = await adminAPI();
-  const script = 'for i in $(seq 1 200); do echo "line $i $(printf \'x%.0s\' $(seq 1 300))"; done\n';
+  const script = "for i in $(seq 1 200); do echo \"line $i $(printf 'x%.0s' $(seq 1 300))\"; done\n";
   const ns = await seedNamespace(api, "ui009", {
     "long.sh": script,
     "long.flow.yaml": "id: long\ntasks:\n  - {id: t, type: script, file: long.sh}\n",

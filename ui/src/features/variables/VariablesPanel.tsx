@@ -81,7 +81,11 @@ export function VariablesPanel({ namespace }: { namespace?: string }) {
                     {v.value}
                   </Td>
                   <Td>
-                    {v.inherited ? <Badge icon={CornerLeftUp}>Inherited from {v.scope}</Badge> : <span className="text-sm">{v.scope}</span>}
+                    {v.inherited ? (
+                      <Badge icon={CornerLeftUp}>Inherited from {v.scope}</Badge>
+                    ) : (
+                      <span className="text-sm">{v.scope}</span>
+                    )}
                   </Td>
                   <Td>
                     {formatTime(v.updated_at)}
@@ -105,9 +109,17 @@ export function VariablesPanel({ namespace }: { namespace?: string }) {
           </Table>
         )}
       </DataState>
-      <Dialog open={editing !== null} onClose={() => setEditing(null)} title={editing === "new" ? "Add variable" : "Edit variable"}>
+      <Dialog
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title={editing === "new" ? "Add variable" : "Edit variable"}
+      >
         {editing !== null && (
-          <VariableForm namespace={namespace} variable={editing === "new" ? undefined : editing} onDone={() => setEditing(null)} />
+          <VariableForm
+            namespace={namespace}
+            variable={editing === "new" ? undefined : editing}
+            onDone={() => setEditing(null)}
+          />
         )}
       </Dialog>
       <Dialog open={deleting !== null} onClose={() => setDeleting(null)} title="Delete variable">
@@ -117,7 +129,15 @@ export function VariablesPanel({ namespace }: { namespace?: string }) {
   );
 }
 
-function VariableForm({ namespace, variable, onDone }: { namespace?: string; variable?: VariableInfo; onDone: () => void }) {
+function VariableForm({
+  namespace,
+  variable,
+  onDone,
+}: {
+  namespace?: string;
+  variable?: VariableInfo;
+  onDone: () => void;
+}) {
   const qc = useQueryClient();
   const [key, setKey] = useState(variable?.key ?? "");
   const [value, setValue] = useState(variable?.value ?? "");
@@ -136,7 +156,12 @@ function VariableForm({ namespace, variable, onDone }: { namespace?: string; var
   };
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
-      <Field id="variable-key" label="Key" hint="Letters, digits and underscores. Flows read it as vars.KEY." error={fields.key}>
+      <Field
+        id="variable-key"
+        label="Key"
+        hint="Letters, digits and underscores. Flows read it as vars.KEY."
+        error={fields.key}
+      >
         <Input
           required
           disabled={variable !== undefined}
@@ -163,7 +188,15 @@ function VariableForm({ namespace, variable, onDone }: { namespace?: string; var
   );
 }
 
-function VariableDelete({ namespace, variable, onDone }: { namespace?: string; variable: VariableInfo; onDone: () => void }) {
+function VariableDelete({
+  namespace,
+  variable,
+  onDone,
+}: {
+  namespace?: string;
+  variable: VariableInfo;
+  onDone: () => void;
+}) {
   const qc = useQueryClient();
   const onSuccess = () => {
     void invalidateVariables(qc);

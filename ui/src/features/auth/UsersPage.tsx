@@ -85,7 +85,9 @@ export function UsersPage() {
                         className="h-7 w-32 text-xs"
                         value={u.role}
                         disabled={update.isPending}
-                        onChange={(e) => update.mutate({ path: { userId: u.id }, body: { role: e.target.value as Role } })}
+                        onChange={(e) =>
+                          update.mutate({ path: { userId: u.id }, body: { role: e.target.value as Role } })
+                        }
                       >
                         {roles.map((r) => (
                           <option key={r} value={r}>
@@ -96,13 +98,19 @@ export function UsersPage() {
                     </Td>
                     <Td>
                       {u.disabled ? (
-                        <Badge tone="failed" icon={Ban}>Disabled</Badge>
+                        <Badge tone="failed" icon={Ban}>
+                          Disabled
+                        </Badge>
                       ) : (
-                        <Badge tone="success" icon={CheckCircle2}>Enabled</Badge>
+                        <Badge tone="success" icon={CheckCircle2}>
+                          Enabled
+                        </Badge>
                       )}
                       {u.must_change_password && (
                         <span className="ml-2">
-                          <Badge tone="warning" icon={KeyRound}>Temporary password</Badge>
+                          <Badge tone="warning" icon={KeyRound}>
+                            Temporary password
+                          </Badge>
                         </span>
                       )}
                     </Td>
@@ -181,7 +189,14 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
         hint="At least 10 characters. The user must change it at first sign-in."
         error={fields.password}
       >
-        <Input type="text" autoComplete="off" required minLength={10} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <Input
+          type="text"
+          autoComplete="off"
+          required
+          minLength={10}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
       </Field>
       {mutation.isError && <FormError>{errorMessage(mutation.error)}</FormError>}
       <div className="flex justify-end gap-2">
@@ -217,7 +232,14 @@ function ResetPasswordForm({ user, onDone }: { user: User; onDone: () => void })
         next sign-in.
       </p>
       <Field id="reset-password" label="Temporary password" error={fieldErrors(mutation.error).password}>
-        <Input type="text" autoComplete="off" required minLength={10} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <Input
+          type="text"
+          autoComplete="off"
+          required
+          minLength={10}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
       </Field>
       {mutation.isError && <FormError>{errorMessage(mutation.error)}</FormError>}
       <div className="flex justify-end gap-2">

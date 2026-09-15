@@ -19,7 +19,10 @@ export const Route = createFileRoute("/namespaces/$namespace")({
         namespace={namespace}
         search={search}
         navigate={navigate}
-        scopePanels={{ variables: <VariablesPanel namespace={namespace} />, secrets: <SecretsPanel namespace={namespace} /> }}
+        scopePanels={{
+          variables: <VariablesPanel namespace={namespace} />,
+          secrets: <SecretsPanel namespace={namespace} />,
+        }}
       />
     );
   },

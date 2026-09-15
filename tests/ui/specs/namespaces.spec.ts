@@ -56,8 +56,12 @@ test("SCN-NS-002 an editor creates pipelines/load.py and sync.flow.yaml and save
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect(dialog).toBeHidden();
   await expect(page.getByText("unsaved file")).toHaveCount(0);
-  await expect(page.getByRole("treeitem", { name: "pipelines/load.py", exact: true })).toContainText(`${Buffer.byteLength(load)} B`);
-  await expect(page.getByRole("treeitem", { name: "sync.flow.yaml", exact: true })).toContainText(`${Buffer.byteLength(flow)} B`);
+  await expect(page.getByRole("treeitem", { name: "pipelines/load.py", exact: true })).toContainText(
+    `${Buffer.byteLength(load)} B`,
+  );
+  await expect(page.getByRole("treeitem", { name: "sync.flow.yaml", exact: true })).toContainText(
+    `${Buffer.byteLength(flow)} B`,
+  );
 
   await page.getByRole("tab", { name: "Versions" }).click();
   const v2 = versionRow(page, "v2");
@@ -66,7 +70,11 @@ test("SCN-NS-002 an editor creates pipelines/load.py and sync.flow.yaml and save
   await expect(v2).toContainText("Head");
   await expect(versionRow(page, "v3")).toHaveCount(0);
   const files = await api.get(`/api/v1/namespaces/${ns}/files`);
-  expect(((await files.json()) as { items: { path: string }[] }).items.map((f) => f.path).sort()).toEqual(["README.md", "pipelines/load.py", "sync.flow.yaml"]);
+  expect(((await files.json()) as { items: { path: string }[] }).items.map((f) => f.path).sort()).toEqual([
+    "README.md",
+    "pipelines/load.py",
+    "sync.flow.yaml",
+  ]);
   expect((await api.get(`/api/v1/flows/${ns}/sync`)).status()).toBe(200);
   await context.close();
   await api.dispose();

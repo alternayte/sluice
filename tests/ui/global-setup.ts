@@ -24,10 +24,21 @@ function sleep(ms: number) {
 /** Starts Postgres in Docker and the sluice binary, then waits for /readyz. */
 export default async function globalSetup() {
   const container = execFileSync("docker", [
-    "run", "-d", "--rm", "-p", "127.0.0.1::5432",
-    "-e", "POSTGRES_PASSWORD=sluice", "-e", "POSTGRES_USER=sluice", "-e", "POSTGRES_DB=sluice",
+    "run",
+    "-d",
+    "--rm",
+    "-p",
+    "127.0.0.1::5432",
+    "-e",
+    "POSTGRES_PASSWORD=sluice",
+    "-e",
+    "POSTGRES_USER=sluice",
+    "-e",
+    "POSTGRES_DB=sluice",
     "postgres:17-alpine",
-  ]).toString().trim();
+  ])
+    .toString()
+    .trim();
   // A busy Docker engine can report the mapped port a little later than the start.
   let pgPort = "";
   for (let i = 0; i < 60 && !/^\d+$/.test(pgPort); i++) {

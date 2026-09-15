@@ -50,3 +50,37 @@ func TestTriggerInputReferences(t *testing.T) {
 		}
 	}
 }
+
+// TestTaskFiles checks the files map: secret() is allowed in values, keys must be
+// relative paths without templates, and http tasks cannot have files.
+func TestTaskFiles(t *testing.T) {
+	const head = "id: f\ntasks:\n  - id: a\n    type: command\n    command: [\"cat\", \"conf/app.ini\"]\n    files:\n      "
+	cases := map[string]string{
+		`conf/app.ini: "token=${{ secret('K') }}"`: "",
+		`"../x": "v"`:               CodeInvalidPath,
+		`"/etc/x": "v"`:             CodeInvalidPath,
+		`"${{ vars.p }}": "v"`:      CodeTemplateNotAllowed,
+		`a.txt: "${{ inputs.no }}"`: CodeUnknownInput,
+	}
+	for entry, code := range cases {
+		res := ValidateNamespace(map[string][]byte{"f.flow.yaml": []byte(head + entry + "\n")})
+		pf := res.Flows[0]
+		if code == "" {
+			if !pf.Valid() {
+				t.Errorf("%s: want valid, got %v", entry, pf.Issues)
+			}
+			continue
+		}
+		found := false
+		for _, is := range pf.Issues {
+			found = found || is.Code == code
+		}
+		if !found {
+			t.Errorf("%s: want %s, got %v", entry, code, pf.Issues)
+		}
+	}
+	res := ValidateNamespace(map[string][]byte{"f.flow.yaml": []byte("id: f\ntasks:\n  - id: a\n    type: http\n    url: http://x\n    files:\n      a.txt: v\n")})
+	if res.Flows[0].Valid() {
+		t.Error("http task with files: want invalid")
+	}
+}

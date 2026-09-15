@@ -259,9 +259,10 @@ tasks:
 `secret()` is valid only in these fields:
 
 - `env` values of the flow and of a task;
+- `files` values of a `script` or `command` task;
 - `url`, `headers` and `body` of an `http` task.
 
-Everywhere else, for example in `args`, `command`, `subflow.inputs`, trigger `inputs` or flow `outputs`, validation fails with the code `secret_not_allowed` and the message `secret() is allowed only in env values and http url, headers and body`. Pass the secret through `env` and read the environment variable in the script. The test `SCN-FLOW-002` proves the error for `secret()` in `args`.
+Everywhere else, for example in `args`, `command`, `subflow.inputs`, trigger `inputs` or flow `outputs`, validation fails with the code `secret_not_allowed` and the message `secret() is allowed only in env values, files values and http url, headers and body`. Pass the secret through `env` and read the environment variable in the script. The test `SCN-FLOW-002` proves the error for `secret()` in `args`.
 
 ### Resolution at dispatch
 

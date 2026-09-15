@@ -51,6 +51,8 @@ type Spec struct {
 	Command     []string          `json:"command"`
 	Workdir     string            `json:"workdir"`
 	Env         map[string]string `json:"env"`
+	// Files maps a path relative to the workdir to rendered file content.
+	Files map[string]string `json:"files,omitempty"`
 	// Runtime is the tool that must exist on PATH (uv, bash, bun, node) or "".
 	Runtime        string   `json:"runtime,omitempty"`
 	TimeoutSeconds int      `json:"timeout_seconds"`

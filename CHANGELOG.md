@@ -2,9 +2,11 @@
 
 All notable changes to Sluice are in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Sluice has no release yet.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Sluice uses [Semantic Versioning](https://semver.org/). Before 1.0.0, a minor version can break compatibility.
 
 ## [Unreleased]
+
+## [0.1.0] - 2026-09-15
 
 ### Added
 
@@ -12,6 +14,7 @@ The first version of Sluice. It is one Go binary with an embedded React UI, and 
 
 #### Flows and validation
 
+- A task `files` map for `script` and `command` tasks. Sluice renders each value as a template and writes it to its path in the workdir before the task starts. `secret()` is allowed in the values.
 - Flows in YAML: a DAG of tasks with inputs, outputs, retries, timeouts and concurrency.
 - Task types `script`, `command`, `http` and `subflow`, and a direct run of script files.
 - Structural and semantic validation, a flow JSON schema, templates and `sluice validate`.
@@ -75,6 +78,7 @@ The first version of Sluice. It is one Go binary with an embedded React UI, and 
 - A namespace editor that stages files and saves them as one version (DI-42).
 - A generated API client with TanStack Query.
 - A UI size check, accessibility checks and support for mobile width.
+- Icons in the side nav. The side nav collapses to icons only, shows a tooltip on hover and keeps the state in the browser.
 
 #### AI and MCP
 
@@ -100,3 +104,7 @@ The first version of Sluice. It is one Go binary with an embedded React UI, and 
 - sqlc with one generated package per feature.
 - `just` recipes for setup, development, generation, lint, tests, build and trace.
 - A CI workflow with the jobs `check`, `e2e` and `image`.
+- A release workflow. A `v*.*.*` tag attaches the binaries for Linux and macOS to a GitHub release, and pushes the `sluice` and `sluice-uv` images to `ghcr.io/alternayte` for amd64 and arm64.
+
+[Unreleased]: https://github.com/alternayte/sluice/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/alternayte/sluice/releases/tag/v0.1.0

@@ -375,6 +375,13 @@
           "$ref": "#/$defs/Executor",
           "description": "Executor. Not allowed on http and subflow tasks."
         },
+        "files": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "script and command: file templates. The key is a path relative to the namespace root. Sluice writes the rendered value to that path in the workdir before the task starts, and replaces a namespace file at the same path. secret() is allowed."
+        },
         "file": {
           "type": "string",
           "description": "script: file path relative to the namespace root. Required for script."

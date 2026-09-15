@@ -128,6 +128,10 @@ func (r *run) execute(ctx context.Context) int {
 		r.sys("[sluice] bundle: %v", err)
 		return r.complete(ctx, 1, "bundle: "+err.Error(), runnerapiReasonExecutor)
 	}
+	if err := writeFiles(workdir, r.spec.Files); err != nil {
+		r.sys("[sluice] files: %v", r.masker.String(err.Error()))
+		return r.complete(ctx, 1, "files: "+err.Error(), runnerapiReasonExecutor)
+	}
 	outFile, err := os.CreateTemp("", "sluice-outputs-*.jsonl")
 	if err != nil {
 		return r.complete(ctx, 1, "create outputs file: "+err.Error(), runnerapiReasonExecutor)
@@ -363,6 +367,27 @@ func (r *run) fetchBundle(ctx context.Context, workdir string) error {
 		return err
 	}
 	return snapshot.ExtractBundle(f, workdir, r.spec.Limits.MaxBundleBytes)
+}
+
+// writeFiles writes the rendered files of the task into the workdir. A file of the
+// bundle at the same path is replaced. The mode is 0600 because content can hold secrets.
+func writeFiles(workdir string, files map[string]string) error {
+	for p, content := range files {
+		if err := flow.ValidPath(p); err != nil {
+			return fmt.Errorf("%s: %w", p, err)
+		}
+		dst := filepath.Join(workdir, filepath.FromSlash(p))
+		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+			return fmt.Errorf("%s: %w", p, err)
+		}
+		if st, err := os.Lstat(dst); err == nil && !st.Mode().IsRegular() {
+			return fmt.Errorf("%s: path exists and is not a regular file", p)
+		}
+		if err := os.WriteFile(dst, []byte(content), 0o600); err != nil {
+			return fmt.Errorf("%s: %w", p, err)
+		}
+	}
+	return nil
 }
 
 // readLines calls fn for each line. Lines above 16 KiB are cut with a marker.

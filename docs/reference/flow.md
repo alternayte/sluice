@@ -123,6 +123,7 @@ A flow file matches `*.flow.yaml` or `*.flow.yml`. `namespace.yaml` at the names
 | `retry` | Retry | Retry policy. Overrides the flow retry. |
 | `env` | map of string | Environment templates. Override flow env by key. |
 | `executor` | Executor | Executor. Not allowed on http and subflow tasks. |
+| `files` | map of string | script and command: file templates. The key is a path relative to the namespace root. Sluice writes the rendered value to that path in the workdir before the task starts, and replaces a namespace file at the same path. secret() is allowed. |
 | `file` | string | script: file path relative to the namespace root. Required for script. |
 | `runtime` | string | script: runtime. Default from the extension (.py, .sh, .ts, .js). |
 | `args` | list of string | script: argument templates. |

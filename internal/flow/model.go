@@ -111,6 +111,7 @@ type Task struct {
 	Retry     *Retry            `yaml:"retry,omitempty" json:"retry,omitempty" jsonschema_description:"Retry policy. Overrides the flow retry."`
 	Env       map[string]string `yaml:"env,omitempty" json:"env,omitempty" jsonschema_description:"Environment templates. Override flow env by key."`
 	Executor  *Executor         `yaml:"executor,omitempty" json:"executor,omitempty" jsonschema_description:"Executor. Not allowed on http and subflow tasks."`
+	Files     map[string]string `yaml:"files,omitempty" json:"files,omitempty" jsonschema:"maxProperties=100" jsonschema_description:"script and command: file templates. The key is a path relative to the namespace root. Sluice writes the rendered value to that path in the workdir before the task starts, and replaces a namespace file at the same path. secret() is allowed."`
 
 	// script
 	File    string   `yaml:"file,omitempty" json:"file,omitempty" jsonschema_description:"script: file path relative to the namespace root. Required for script."`

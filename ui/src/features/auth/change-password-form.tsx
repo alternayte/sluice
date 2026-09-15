@@ -7,7 +7,13 @@ import { Input } from "@/components/ui/input";
 import { errorMessage, fieldErrors } from "@/lib/errors";
 
 /** ChangePasswordForm posts to /api/v1/auth/password. */
-export function ChangePasswordForm({ onSuccess, submitLabel = "Change password" }: { onSuccess?: () => void; submitLabel?: string }) {
+export function ChangePasswordForm({
+  onSuccess,
+  submitLabel = "Change password",
+}: {
+  onSuccess?: () => void;
+  submitLabel?: string;
+}) {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -41,13 +47,32 @@ export function ChangePasswordForm({ onSuccess, submitLabel = "Change password" 
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       <Field id="pw-current" label="Current password" error={fields.current_password}>
-        <Input type="password" autoComplete="current-password" required value={current} onChange={(e) => setCurrent(e.target.value)} />
+        <Input
+          type="password"
+          autoComplete="current-password"
+          required
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+        />
       </Field>
       <Field id="pw-new" label="New password" hint="Use at least 10 characters." error={fields.new_password}>
-        <Input type="password" autoComplete="new-password" required minLength={10} value={next} onChange={(e) => setNext(e.target.value)} />
+        <Input
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={10}
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+        />
       </Field>
       <Field id="pw-confirm" label="Confirm new password" error={mismatch ? "The passwords do not match." : undefined}>
-        <Input type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        <Input
+          type="password"
+          autoComplete="new-password"
+          required
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+        />
       </Field>
       {mutation.isError && <FormError>{errorMessage(mutation.error)}</FormError>}
       {done && <p className="text-sm text-state-success">Password changed. Other sessions are signed out.</p>}

@@ -36,9 +36,13 @@ function compact(v: unknown): string {
 }
 
 /** proposalDiffs returns the file diffs of a propose_change result, or undefined. */
-function proposalDiffs(text: string): { path: string; diff: string; issues: { message: string; line: number }[] }[] | undefined {
+function proposalDiffs(
+  text: string,
+): { path: string; diff: string; issues: { message: string; line: number }[] }[] | undefined {
   try {
-    const v = JSON.parse(text) as { files?: { path: string; diff: string; issues?: { message: string; line: number }[] }[] };
+    const v = JSON.parse(text) as {
+      files?: { path: string; diff: string; issues?: { message: string; line: number }[] }[];
+    };
     return v.files?.map((f) => ({ path: f.path, diff: f.diff, issues: f.issues ?? [] }));
   } catch {
     return undefined;
@@ -112,17 +116,30 @@ function SavedMessage({ m }: { m: StoredMessage }) {
             </p>
           );
         }
-        if (b.type === "tool_use") return <ToolCall key={i} name={b.tool_name ?? ""} input={b.input} mutating={false} />;
-        if (b.type === "tool_result") return <ToolResult key={i} name={b.tool_name ?? ""} isError={!!b.is_error} text={b.text ?? ""} />;
+        if (b.type === "tool_use")
+          return <ToolCall key={i} name={b.tool_name ?? ""} input={b.input} mutating={false} />;
+        if (b.type === "tool_result")
+          return <ToolResult key={i} name={b.tool_name ?? ""} isError={!!b.is_error} text={b.text ?? ""} />;
         return null;
       })}
     </li>
   );
 }
 
-function ActionCard({ action, busy, onDecide }: { action: PendingAction; busy: boolean; onDecide: (confirm: boolean) => void }) {
+function ActionCard({
+  action,
+  busy,
+  onDecide,
+}: {
+  action: PendingAction;
+  busy: boolean;
+  onDecide: (confirm: boolean) => void;
+}) {
   return (
-    <li className="flex flex-col gap-2 rounded-[8px] border border-accent p-3 text-sm" aria-label={`Action ${action.tool}`}>
+    <li
+      className="flex flex-col gap-2 rounded-[8px] border border-accent p-3 text-sm"
+      aria-label={`Action ${action.tool}`}
+    >
       <span className="font-medium">The assistant wants to run {action.tool}.</span>
       <code className="block font-mono text-xs break-all">{compact(action.arguments)}</code>
       <div className="flex gap-2">
@@ -169,7 +186,10 @@ function Panel({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const list = useQuery(listAiConversationsOptions());
-  const detail = useQuery({ ...getAiConversationOptions({ path: { conversationId: convId ?? "" } }), enabled: !!convId });
+  const detail = useQuery({
+    ...getAiConversationOptions({ path: { conversationId: convId ?? "" } }),
+    enabled: !!convId,
+  });
   const create = useMutation(createAiConversationMutation());
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -186,13 +206,26 @@ function Panel({ onClose }: { onClose: () => void }) {
       switch (ev.event) {
         case "text": {
           const last = items[items.length - 1];
-          if (last?.kind === "text") return [...items.slice(0, -1), { kind: "text", text: last.text + String(d.delta ?? "") }];
+          if (last?.kind === "text")
+            return [...items.slice(0, -1), { kind: "text", text: last.text + String(d.delta ?? "") }];
           return [...items, { kind: "text", text: String(d.delta ?? "") }];
         }
         case "tool_call":
-          return [...items, { kind: "tool_call", id: String(d.id), name: String(d.name), input: d.input, mutating: !!d.mutating }];
+          return [
+            ...items,
+            { kind: "tool_call", id: String(d.id), name: String(d.name), input: d.input, mutating: !!d.mutating },
+          ];
         case "tool_result":
-          return [...items, { kind: "tool_result", id: String(d.id), name: String(d.name), isError: !!d.is_error, text: String(d.text ?? "") }];
+          return [
+            ...items,
+            {
+              kind: "tool_result",
+              id: String(d.id),
+              name: String(d.name),
+              isError: !!d.is_error,
+              text: String(d.text ?? ""),
+            },
+          ];
         case "pending_action":
           return [...items, { kind: "action", action: d as unknown as PendingAction }];
         case "error":
@@ -252,14 +285,23 @@ function Panel({ onClose }: { onClose: () => void }) {
   const decide = (action: PendingAction, confirm: boolean) => {
     if (!convId) return;
     const verb = confirm ? "confirm" : "reject";
-    void run(convId, `/api/v1/ai/conversations/${encodeURIComponent(convId)}/actions/${encodeURIComponent(action.id)}/${verb}`, undefined);
+    void run(
+      convId,
+      `/api/v1/ai/conversations/${encodeURIComponent(convId)}/actions/${encodeURIComponent(action.id)}/${verb}`,
+      undefined,
+    );
   };
 
   const pending = (detail.data?.actions ?? []).filter((a) => a.status === "pending");
-  const liveActions = new Set(live.filter((i) => i.kind === "action").map((i) => (i as { action: PendingAction }).action.id));
+  const liveActions = new Set(
+    live.filter((i) => i.kind === "action").map((i) => (i as { action: PendingAction }).action.id),
+  );
 
   return (
-    <aside aria-label="Assistant" className="fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l bg-panel shadow-lg">
+    <aside
+      aria-label="Assistant"
+      className="fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l bg-panel shadow-lg"
+    >
       <div className="flex items-center gap-2 border-b p-3">
         <h2 className="flex items-center gap-2 text-base font-semibold">
           <Bot className="h-4 w-4" aria-hidden />
@@ -315,7 +357,9 @@ function Panel({ onClose }: { onClose: () => void }) {
       )}
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
         <ol aria-label="Conversation messages" className="flex flex-col gap-3">
-          {detail.data?.messages.map((m) => <SavedMessage key={m.id} m={m} />)}
+          {detail.data?.messages.map((m) => (
+            <SavedMessage key={m.id} m={m} />
+          ))}
           {pending
             .filter((a) => !liveActions.has(a.id))
             .map((a) => (

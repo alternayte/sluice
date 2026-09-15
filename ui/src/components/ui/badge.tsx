@@ -16,7 +16,15 @@ const tones: Record<Tone, string> = {
  * Badge pairs a state icon in the state color with a text label. The label uses the text
  * color, because the state colors do not reach the AA contrast for small text (REQ-UI-011).
  */
-export function Badge({ tone = "neutral", icon: Icon, children }: { tone?: Tone; icon?: LucideIcon; children: ReactNode }) {
+export function Badge({
+  tone = "neutral",
+  icon: Icon,
+  children,
+}: {
+  tone?: Tone;
+  icon?: LucideIcon;
+  children: ReactNode;
+}) {
   return (
     <span
       className={cn(

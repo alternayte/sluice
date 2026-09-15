@@ -335,11 +335,7 @@ export type Options<
 export const runnerPutArtifact = <ThrowOnError extends boolean = false>(
   options: Options<RunnerPutArtifactData, ThrowOnError>,
 ): RequestResult<RunnerPutArtifactResponses, unknown, ThrowOnError> =>
-  (options.client ?? client).put<
-    RunnerPutArtifactResponses,
-    unknown,
-    ThrowOnError
-  >({
+  (options.client ?? client).put<RunnerPutArtifactResponses, unknown, ThrowOnError>({
     bodySerializer: null,
     url: "/api/runner/v1/task-runs/{taskRunId}/artifacts/{name}",
     ...options,
@@ -352,20 +348,15 @@ export const runnerPutArtifact = <ThrowOnError extends boolean = false>(
 export const runnerGetBundle = <ThrowOnError extends boolean = false>(
   options: Options<RunnerGetBundleData, ThrowOnError>,
 ): RequestResult<RunnerGetBundleResponses, unknown, ThrowOnError> =>
-  (options.client ?? client).get<
-    RunnerGetBundleResponses,
-    unknown,
-    ThrowOnError
-  >({ url: "/api/runner/v1/task-runs/{taskRunId}/bundle", ...options });
+  (options.client ?? client).get<RunnerGetBundleResponses, unknown, ThrowOnError>({
+    url: "/api/runner/v1/task-runs/{taskRunId}/bundle",
+    ...options,
+  });
 
 export const runnerComplete = <ThrowOnError extends boolean = false>(
   options: Options<RunnerCompleteData, ThrowOnError>,
 ): RequestResult<RunnerCompleteResponses, RunnerCompleteErrors, ThrowOnError> =>
-  (options.client ?? client).post<
-    RunnerCompleteResponses,
-    RunnerCompleteErrors,
-    ThrowOnError
-  >({
+  (options.client ?? client).post<RunnerCompleteResponses, RunnerCompleteErrors, ThrowOnError>({
     url: "/api/runner/v1/task-runs/{taskRunId}/complete",
     ...options,
     headers: {
@@ -376,16 +367,8 @@ export const runnerComplete = <ThrowOnError extends boolean = false>(
 
 export const runnerPostEvents = <ThrowOnError extends boolean = false>(
   options: Options<RunnerPostEventsData, ThrowOnError>,
-): RequestResult<
-  RunnerPostEventsResponses,
-  RunnerPostEventsErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).post<
-    RunnerPostEventsResponses,
-    RunnerPostEventsErrors,
-    ThrowOnError
-  >({
+): RequestResult<RunnerPostEventsResponses, RunnerPostEventsErrors, ThrowOnError> =>
+  (options.client ?? client).post<RunnerPostEventsResponses, RunnerPostEventsErrors, ThrowOnError>({
     url: "/api/runner/v1/task-runs/{taskRunId}/events",
     ...options,
     headers: {
@@ -396,25 +379,16 @@ export const runnerPostEvents = <ThrowOnError extends boolean = false>(
 
 export const runnerHeartbeat = <ThrowOnError extends boolean = false>(
   options: Options<RunnerHeartbeatData, ThrowOnError>,
-): RequestResult<
-  RunnerHeartbeatResponses,
-  RunnerHeartbeatErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).post<
-    RunnerHeartbeatResponses,
-    RunnerHeartbeatErrors,
-    ThrowOnError
-  >({ url: "/api/runner/v1/task-runs/{taskRunId}/heartbeat", ...options });
+): RequestResult<RunnerHeartbeatResponses, RunnerHeartbeatErrors, ThrowOnError> =>
+  (options.client ?? client).post<RunnerHeartbeatResponses, RunnerHeartbeatErrors, ThrowOnError>({
+    url: "/api/runner/v1/task-runs/{taskRunId}/heartbeat",
+    ...options,
+  });
 
 export const runnerPostLogs = <ThrowOnError extends boolean = false>(
   options: Options<RunnerPostLogsData, ThrowOnError>,
 ): RequestResult<RunnerPostLogsResponses, RunnerPostLogsErrors, ThrowOnError> =>
-  (options.client ?? client).post<
-    RunnerPostLogsResponses,
-    RunnerPostLogsErrors,
-    ThrowOnError
-  >({
+  (options.client ?? client).post<RunnerPostLogsResponses, RunnerPostLogsErrors, ThrowOnError>({
     url: "/api/runner/v1/task-runs/{taskRunId}/logs",
     ...options,
     headers: {
@@ -426,37 +400,23 @@ export const runnerPostLogs = <ThrowOnError extends boolean = false>(
 export const runnerGetSpec = <ThrowOnError extends boolean = false>(
   options: Options<RunnerGetSpecData, ThrowOnError>,
 ): RequestResult<RunnerGetSpecResponses, RunnerGetSpecErrors, ThrowOnError> =>
-  (options.client ?? client).get<
-    RunnerGetSpecResponses,
-    RunnerGetSpecErrors,
-    ThrowOnError
-  >({ url: "/api/runner/v1/task-runs/{taskRunId}/spec", ...options });
+  (options.client ?? client).get<RunnerGetSpecResponses, RunnerGetSpecErrors, ThrowOnError>({
+    url: "/api/runner/v1/task-runs/{taskRunId}/spec",
+    ...options,
+  });
 
 export const listAiConversations = <ThrowOnError extends boolean = false>(
   options?: Options<ListAiConversationsData, ThrowOnError>,
-): RequestResult<
-  ListAiConversationsResponses,
-  ListAiConversationsErrors,
-  ThrowOnError
-> =>
-  (options?.client ?? client).get<
-    ListAiConversationsResponses,
-    ListAiConversationsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/ai/conversations", ...options });
+): RequestResult<ListAiConversationsResponses, ListAiConversationsErrors, ThrowOnError> =>
+  (options?.client ?? client).get<ListAiConversationsResponses, ListAiConversationsErrors, ThrowOnError>({
+    url: "/api/v1/ai/conversations",
+    ...options,
+  });
 
 export const createAiConversation = <ThrowOnError extends boolean = false>(
   options: Options<CreateAiConversationData, ThrowOnError>,
-): RequestResult<
-  CreateAiConversationResponses,
-  CreateAiConversationErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).post<
-    CreateAiConversationResponses,
-    CreateAiConversationErrors,
-    ThrowOnError
-  >({
+): RequestResult<CreateAiConversationResponses, CreateAiConversationErrors, ThrowOnError> =>
+  (options.client ?? client).post<CreateAiConversationResponses, CreateAiConversationErrors, ThrowOnError>({
     url: "/api/v1/ai/conversations",
     ...options,
     headers: {
@@ -467,38 +427,24 @@ export const createAiConversation = <ThrowOnError extends boolean = false>(
 
 export const deleteAiConversation = <ThrowOnError extends boolean = false>(
   options: Options<DeleteAiConversationData, ThrowOnError>,
-): RequestResult<
-  DeleteAiConversationResponses,
-  DeleteAiConversationErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).delete<
-    DeleteAiConversationResponses,
-    DeleteAiConversationErrors,
-    ThrowOnError
-  >({ url: "/api/v1/ai/conversations/{conversationId}", ...options });
+): RequestResult<DeleteAiConversationResponses, DeleteAiConversationErrors, ThrowOnError> =>
+  (options.client ?? client).delete<DeleteAiConversationResponses, DeleteAiConversationErrors, ThrowOnError>({
+    url: "/api/v1/ai/conversations/{conversationId}",
+    ...options,
+  });
 
 export const getAiConversation = <ThrowOnError extends boolean = false>(
   options: Options<GetAiConversationData, ThrowOnError>,
-): RequestResult<
-  GetAiConversationResponses,
-  GetAiConversationErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).get<
-    GetAiConversationResponses,
-    GetAiConversationErrors,
-    ThrowOnError
-  >({ url: "/api/v1/ai/conversations/{conversationId}", ...options });
+): RequestResult<GetAiConversationResponses, GetAiConversationErrors, ThrowOnError> =>
+  (options.client ?? client).get<GetAiConversationResponses, GetAiConversationErrors, ThrowOnError>({
+    url: "/api/v1/ai/conversations/{conversationId}",
+    ...options,
+  });
 
 export const confirmAiAction = <ThrowOnError extends boolean = false>(
   options: Options<ConfirmAiActionData, ThrowOnError, unknown>,
 ): Promise<ServerSentEventsResult<ConfirmAiActionResponses>> =>
-  (options.client ?? client).sse.post<
-    ConfirmAiActionResponses,
-    unknown,
-    ThrowOnError
-  >({
+  (options.client ?? client).sse.post<ConfirmAiActionResponses, unknown, ThrowOnError>({
     url: "/api/v1/ai/conversations/{conversationId}/actions/{actionId}/confirm",
     ...options,
   });
@@ -506,11 +452,7 @@ export const confirmAiAction = <ThrowOnError extends boolean = false>(
 export const rejectAiAction = <ThrowOnError extends boolean = false>(
   options: Options<RejectAiActionData, ThrowOnError, unknown>,
 ): Promise<ServerSentEventsResult<RejectAiActionResponses>> =>
-  (options.client ?? client).sse.post<
-    RejectAiActionResponses,
-    unknown,
-    ThrowOnError
-  >({
+  (options.client ?? client).sse.post<RejectAiActionResponses, unknown, ThrowOnError>({
     url: "/api/v1/ai/conversations/{conversationId}/actions/{actionId}/reject",
     ...options,
   });
@@ -518,11 +460,7 @@ export const rejectAiAction = <ThrowOnError extends boolean = false>(
 export const sendAiMessage = <ThrowOnError extends boolean = false>(
   options: Options<SendAiMessageData, ThrowOnError, unknown>,
 ): Promise<ServerSentEventsResult<SendAiMessageResponses>> =>
-  (options.client ?? client).sse.post<
-    SendAiMessageResponses,
-    unknown,
-    ThrowOnError
-  >({
+  (options.client ?? client).sse.post<SendAiMessageResponses, unknown, ThrowOnError>({
     url: "/api/v1/ai/conversations/{conversationId}/messages",
     ...options,
     headers: {
@@ -533,34 +471,24 @@ export const sendAiMessage = <ThrowOnError extends boolean = false>(
 
 export const deleteAiProvider = <ThrowOnError extends boolean = false>(
   options?: Options<DeleteAiProviderData, ThrowOnError>,
-): RequestResult<
-  DeleteAiProviderResponses,
-  DeleteAiProviderErrors,
-  ThrowOnError
-> =>
-  (options?.client ?? client).delete<
-    DeleteAiProviderResponses,
-    DeleteAiProviderErrors,
-    ThrowOnError
-  >({ url: "/api/v1/ai/provider", ...options });
+): RequestResult<DeleteAiProviderResponses, DeleteAiProviderErrors, ThrowOnError> =>
+  (options?.client ?? client).delete<DeleteAiProviderResponses, DeleteAiProviderErrors, ThrowOnError>({
+    url: "/api/v1/ai/provider",
+    ...options,
+  });
 
 export const getAiProvider = <ThrowOnError extends boolean = false>(
   options?: Options<GetAiProviderData, ThrowOnError>,
 ): RequestResult<GetAiProviderResponses, GetAiProviderErrors, ThrowOnError> =>
-  (options?.client ?? client).get<
-    GetAiProviderResponses,
-    GetAiProviderErrors,
-    ThrowOnError
-  >({ url: "/api/v1/ai/provider", ...options });
+  (options?.client ?? client).get<GetAiProviderResponses, GetAiProviderErrors, ThrowOnError>({
+    url: "/api/v1/ai/provider",
+    ...options,
+  });
 
 export const putAiProvider = <ThrowOnError extends boolean = false>(
   options: Options<PutAiProviderData, ThrowOnError>,
 ): RequestResult<PutAiProviderResponses, PutAiProviderErrors, ThrowOnError> =>
-  (options.client ?? client).put<
-    PutAiProviderResponses,
-    PutAiProviderErrors,
-    ThrowOnError
-  >({
+  (options.client ?? client).put<PutAiProviderResponses, PutAiProviderErrors, ThrowOnError>({
     url: "/api/v1/ai/provider",
     ...options,
     headers: {
@@ -572,33 +500,26 @@ export const putAiProvider = <ThrowOnError extends boolean = false>(
 export const testAiProvider = <ThrowOnError extends boolean = false>(
   options?: Options<TestAiProviderData, ThrowOnError>,
 ): RequestResult<TestAiProviderResponses, TestAiProviderErrors, ThrowOnError> =>
-  (options?.client ?? client).post<
-    TestAiProviderResponses,
-    TestAiProviderErrors,
-    ThrowOnError
-  >({ url: "/api/v1/ai/provider/test", ...options });
+  (options?.client ?? client).post<TestAiProviderResponses, TestAiProviderErrors, ThrowOnError>({
+    url: "/api/v1/ai/provider/test",
+    ...options,
+  });
 
 export const getAiStatus = <ThrowOnError extends boolean = false>(
   options?: Options<GetAiStatusData, ThrowOnError>,
 ): RequestResult<GetAiStatusResponses, GetAiStatusErrors, ThrowOnError> =>
-  (options?.client ?? client).get<
-    GetAiStatusResponses,
-    GetAiStatusErrors,
-    ThrowOnError
-  >({ url: "/api/v1/ai/status", ...options });
+  (options?.client ?? client).get<GetAiStatusResponses, GetAiStatusErrors, ThrowOnError>({
+    url: "/api/v1/ai/status",
+    ...options,
+  });
 
 export const listAuditEvents = <ThrowOnError extends boolean = false>(
   options?: Options<ListAuditEventsData, ThrowOnError>,
-): RequestResult<
-  ListAuditEventsResponses,
-  ListAuditEventsErrors,
-  ThrowOnError
-> =>
-  (options?.client ?? client).get<
-    ListAuditEventsResponses,
-    ListAuditEventsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/audit", ...options });
+): RequestResult<ListAuditEventsResponses, ListAuditEventsErrors, ThrowOnError> =>
+  (options?.client ?? client).get<ListAuditEventsResponses, ListAuditEventsErrors, ThrowOnError>({
+    url: "/api/v1/audit",
+    ...options,
+  });
 
 export const login = <ThrowOnError extends boolean = false>(
   options: Options<LoginData, ThrowOnError>,
@@ -615,26 +536,20 @@ export const login = <ThrowOnError extends boolean = false>(
 export const logout = <ThrowOnError extends boolean = false>(
   options?: Options<LogoutData, ThrowOnError>,
 ): RequestResult<LogoutResponses, LogoutErrors, ThrowOnError> =>
-  (options?.client ?? client).post<LogoutResponses, LogoutErrors, ThrowOnError>(
-    { url: "/api/v1/auth/logout", ...options },
-  );
+  (options?.client ?? client).post<LogoutResponses, LogoutErrors, ThrowOnError>({
+    url: "/api/v1/auth/logout",
+    ...options,
+  });
 
 export const getMe = <ThrowOnError extends boolean = false>(
   options?: Options<GetMeData, ThrowOnError>,
 ): RequestResult<GetMeResponses, GetMeErrors, ThrowOnError> =>
-  (options?.client ?? client).get<GetMeResponses, GetMeErrors, ThrowOnError>({
-    url: "/api/v1/auth/me",
-    ...options,
-  });
+  (options?.client ?? client).get<GetMeResponses, GetMeErrors, ThrowOnError>({ url: "/api/v1/auth/me", ...options });
 
 export const updateMe = <ThrowOnError extends boolean = false>(
   options: Options<UpdateMeData, ThrowOnError>,
 ): RequestResult<UpdateMeResponses, UpdateMeErrors, ThrowOnError> =>
-  (options.client ?? client).patch<
-    UpdateMeResponses,
-    UpdateMeErrors,
-    ThrowOnError
-  >({
+  (options.client ?? client).patch<UpdateMeResponses, UpdateMeErrors, ThrowOnError>({
     url: "/api/v1/auth/me",
     ...options,
     headers: {
@@ -646,11 +561,7 @@ export const updateMe = <ThrowOnError extends boolean = false>(
 export const changePassword = <ThrowOnError extends boolean = false>(
   options: Options<ChangePasswordData, ThrowOnError>,
 ): RequestResult<ChangePasswordResponses, ChangePasswordErrors, ThrowOnError> =>
-  (options.client ?? client).post<
-    ChangePasswordResponses,
-    ChangePasswordErrors,
-    ThrowOnError
-  >({
+  (options.client ?? client).post<ChangePasswordResponses, ChangePasswordErrors, ThrowOnError>({
     url: "/api/v1/auth/password",
     ...options,
     headers: {
@@ -661,194 +572,144 @@ export const changePassword = <ThrowOnError extends boolean = false>(
 
 export const revokeOtherSessions = <ThrowOnError extends boolean = false>(
   options?: Options<RevokeOtherSessionsData, ThrowOnError>,
-): RequestResult<
-  RevokeOtherSessionsResponses,
-  RevokeOtherSessionsErrors,
-  ThrowOnError
-> =>
-  (options?.client ?? client).post<
-    RevokeOtherSessionsResponses,
-    RevokeOtherSessionsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/auth/sessions/revoke-others", ...options });
+): RequestResult<RevokeOtherSessionsResponses, RevokeOtherSessionsErrors, ThrowOnError> =>
+  (options?.client ?? client).post<RevokeOtherSessionsResponses, RevokeOtherSessionsErrors, ThrowOnError>({
+    url: "/api/v1/auth/sessions/revoke-others",
+    ...options,
+  });
 
 export const listExecutions = <ThrowOnError extends boolean = false>(
   options?: Options<ListExecutionsData, ThrowOnError>,
 ): RequestResult<ListExecutionsResponses, ListExecutionsErrors, ThrowOnError> =>
-  (options?.client ?? client).get<
-    ListExecutionsResponses,
-    ListExecutionsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/executions", ...options });
+  (options?.client ?? client).get<ListExecutionsResponses, ListExecutionsErrors, ThrowOnError>({
+    url: "/api/v1/executions",
+    ...options,
+  });
 
 export const getExecution = <ThrowOnError extends boolean = false>(
   options: Options<GetExecutionData, ThrowOnError>,
 ): RequestResult<GetExecutionResponses, GetExecutionErrors, ThrowOnError> =>
-  (options.client ?? client).get<
-    GetExecutionResponses,
-    GetExecutionErrors,
-    ThrowOnError
-  >({ url: "/api/v1/executions/{executionId}", ...options });
+  (options.client ?? client).get<GetExecutionResponses, GetExecutionErrors, ThrowOnError>({
+    url: "/api/v1/executions/{executionId}",
+    ...options,
+  });
 
 export const listExecutionArtifacts = <ThrowOnError extends boolean = false>(
   options: Options<ListExecutionArtifactsData, ThrowOnError>,
-): RequestResult<
-  ListExecutionArtifactsResponses,
-  ListExecutionArtifactsErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).get<
-    ListExecutionArtifactsResponses,
-    ListExecutionArtifactsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/executions/{executionId}/artifacts", ...options });
+): RequestResult<ListExecutionArtifactsResponses, ListExecutionArtifactsErrors, ThrowOnError> =>
+  (options.client ?? client).get<ListExecutionArtifactsResponses, ListExecutionArtifactsErrors, ThrowOnError>({
+    url: "/api/v1/executions/{executionId}/artifacts",
+    ...options,
+  });
 
 export const downloadArtifact = <ThrowOnError extends boolean = false>(
   options: Options<DownloadArtifactData, ThrowOnError>,
 ): RequestResult<DownloadArtifactResponses, unknown, ThrowOnError> =>
-  (options.client ?? client).get<
-    DownloadArtifactResponses,
-    unknown,
-    ThrowOnError
-  >({
+  (options.client ?? client).get<DownloadArtifactResponses, unknown, ThrowOnError>({
     url: "/api/v1/executions/{executionId}/artifacts/{artifactId}",
     ...options,
   });
 
 export const cancelExecution = <ThrowOnError extends boolean = false>(
   options: Options<CancelExecutionData, ThrowOnError>,
-): RequestResult<
-  CancelExecutionResponses,
-  CancelExecutionErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).post<
-    CancelExecutionResponses,
-    CancelExecutionErrors,
-    ThrowOnError
-  >({ url: "/api/v1/executions/{executionId}/cancel", ...options });
+): RequestResult<CancelExecutionResponses, CancelExecutionErrors, ThrowOnError> =>
+  (options.client ?? client).post<CancelExecutionResponses, CancelExecutionErrors, ThrowOnError>({
+    url: "/api/v1/executions/{executionId}/cancel",
+    ...options,
+  });
 
 export const streamExecutionEvents = <ThrowOnError extends boolean = false>(
   options: Options<StreamExecutionEventsData, ThrowOnError, unknown>,
 ): Promise<ServerSentEventsResult<StreamExecutionEventsResponses>> =>
-  (options.client ?? client).sse.get<
-    StreamExecutionEventsResponses,
-    unknown,
-    ThrowOnError
-  >({ url: "/api/v1/executions/{executionId}/events", ...options });
+  (options.client ?? client).sse.get<StreamExecutionEventsResponses, unknown, ThrowOnError>({
+    url: "/api/v1/executions/{executionId}/events",
+    ...options,
+  });
 
 export const listExecutionInsights = <ThrowOnError extends boolean = false>(
   options: Options<ListExecutionInsightsData, ThrowOnError>,
-): RequestResult<
-  ListExecutionInsightsResponses,
-  ListExecutionInsightsErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).get<
-    ListExecutionInsightsResponses,
-    ListExecutionInsightsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/executions/{executionId}/insights", ...options });
+): RequestResult<ListExecutionInsightsResponses, ListExecutionInsightsErrors, ThrowOnError> =>
+  (options.client ?? client).get<ListExecutionInsightsResponses, ListExecutionInsightsErrors, ThrowOnError>({
+    url: "/api/v1/executions/{executionId}/insights",
+    ...options,
+  });
 
 export const requestTriage = <ThrowOnError extends boolean = false>(
   options: Options<RequestTriageData, ThrowOnError>,
 ): RequestResult<RequestTriageResponses, RequestTriageErrors, ThrowOnError> =>
-  (options.client ?? client).post<
-    RequestTriageResponses,
-    RequestTriageErrors,
-    ThrowOnError
-  >({ url: "/api/v1/executions/{executionId}/insights", ...options });
+  (options.client ?? client).post<RequestTriageResponses, RequestTriageErrors, ThrowOnError>({
+    url: "/api/v1/executions/{executionId}/insights",
+    ...options,
+  });
 
 export const getExecutionLogs = <ThrowOnError extends boolean = false>(
   options: Options<GetExecutionLogsData, ThrowOnError>,
-): RequestResult<
-  GetExecutionLogsResponses,
-  GetExecutionLogsErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).get<
-    GetExecutionLogsResponses,
-    GetExecutionLogsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/executions/{executionId}/logs", ...options });
+): RequestResult<GetExecutionLogsResponses, GetExecutionLogsErrors, ThrowOnError> =>
+  (options.client ?? client).get<GetExecutionLogsResponses, GetExecutionLogsErrors, ThrowOnError>({
+    url: "/api/v1/executions/{executionId}/logs",
+    ...options,
+  });
 
 export const downloadExecutionLogs = <ThrowOnError extends boolean = false>(
   options: Options<DownloadExecutionLogsData, ThrowOnError>,
 ): RequestResult<DownloadExecutionLogsResponses, unknown, ThrowOnError> =>
-  (options.client ?? client).get<
-    DownloadExecutionLogsResponses,
-    unknown,
-    ThrowOnError
-  >({ url: "/api/v1/executions/{executionId}/logs/download", ...options });
+  (options.client ?? client).get<DownloadExecutionLogsResponses, unknown, ThrowOnError>({
+    url: "/api/v1/executions/{executionId}/logs/download",
+    ...options,
+  });
 
 export const streamExecutionLogs = <ThrowOnError extends boolean = false>(
   options: Options<StreamExecutionLogsData, ThrowOnError, unknown>,
 ): Promise<ServerSentEventsResult<StreamExecutionLogsResponses>> =>
-  (options.client ?? client).sse.get<
-    StreamExecutionLogsResponses,
-    unknown,
-    ThrowOnError
-  >({ url: "/api/v1/executions/{executionId}/logs/stream", ...options });
+  (options.client ?? client).sse.get<StreamExecutionLogsResponses, unknown, ThrowOnError>({
+    url: "/api/v1/executions/{executionId}/logs/stream",
+    ...options,
+  });
 
 export const listExecutionMetrics = <ThrowOnError extends boolean = false>(
   options: Options<ListExecutionMetricsData, ThrowOnError>,
-): RequestResult<
-  ListExecutionMetricsResponses,
-  ListExecutionMetricsErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).get<
-    ListExecutionMetricsResponses,
-    ListExecutionMetricsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/executions/{executionId}/metrics", ...options });
+): RequestResult<ListExecutionMetricsResponses, ListExecutionMetricsErrors, ThrowOnError> =>
+  (options.client ?? client).get<ListExecutionMetricsResponses, ListExecutionMetricsErrors, ThrowOnError>({
+    url: "/api/v1/executions/{executionId}/metrics",
+    ...options,
+  });
 
 export const rerunExecution = <ThrowOnError extends boolean = false>(
   options: Options<RerunExecutionData, ThrowOnError>,
 ): RequestResult<RerunExecutionResponses, RerunExecutionErrors, ThrowOnError> =>
-  (options.client ?? client).post<
-    RerunExecutionResponses,
-    RerunExecutionErrors,
-    ThrowOnError
-  >({ url: "/api/v1/executions/{executionId}/rerun", ...options });
+  (options.client ?? client).post<RerunExecutionResponses, RerunExecutionErrors, ThrowOnError>({
+    url: "/api/v1/executions/{executionId}/rerun",
+    ...options,
+  });
 
 export const restartExecution = <ThrowOnError extends boolean = false>(
   options: Options<RestartExecutionData, ThrowOnError>,
-): RequestResult<
-  RestartExecutionResponses,
-  RestartExecutionErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).post<
-    RestartExecutionResponses,
-    RestartExecutionErrors,
-    ThrowOnError
-  >({ url: "/api/v1/executions/{executionId}/restart", ...options });
+): RequestResult<RestartExecutionResponses, RestartExecutionErrors, ThrowOnError> =>
+  (options.client ?? client).post<RestartExecutionResponses, RestartExecutionErrors, ThrowOnError>({
+    url: "/api/v1/executions/{executionId}/restart",
+    ...options,
+  });
 
 export const listFlows = <ThrowOnError extends boolean = false>(
   options?: Options<ListFlowsData, ThrowOnError>,
 ): RequestResult<ListFlowsResponses, ListFlowsErrors, ThrowOnError> =>
-  (options?.client ?? client).get<
-    ListFlowsResponses,
-    ListFlowsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/flows", ...options });
+  (options?.client ?? client).get<ListFlowsResponses, ListFlowsErrors, ThrowOnError>({
+    url: "/api/v1/flows",
+    ...options,
+  });
 
 export const getFlow = <ThrowOnError extends boolean = false>(
   options: Options<GetFlowData, ThrowOnError>,
 ): RequestResult<GetFlowResponses, GetFlowErrors, ThrowOnError> =>
-  (options.client ?? client).get<GetFlowResponses, GetFlowErrors, ThrowOnError>(
-    { url: "/api/v1/flows/{namespace}/{flowId}", ...options },
-  );
+  (options.client ?? client).get<GetFlowResponses, GetFlowErrors, ThrowOnError>({
+    url: "/api/v1/flows/{namespace}/{flowId}",
+    ...options,
+  });
 
 export const updateFlow = <ThrowOnError extends boolean = false>(
   options: Options<UpdateFlowData, ThrowOnError>,
 ): RequestResult<UpdateFlowResponses, UpdateFlowErrors, ThrowOnError> =>
-  (options.client ?? client).patch<
-    UpdateFlowResponses,
-    UpdateFlowErrors,
-    ThrowOnError
-  >({
+  (options.client ?? client).patch<UpdateFlowResponses, UpdateFlowErrors, ThrowOnError>({
     url: "/api/v1/flows/{namespace}/{flowId}",
     ...options,
     headers: {
@@ -859,25 +720,16 @@ export const updateFlow = <ThrowOnError extends boolean = false>(
 
 export const diffFlowRevisions = <ThrowOnError extends boolean = false>(
   options: Options<DiffFlowRevisionsData, ThrowOnError>,
-): RequestResult<
-  DiffFlowRevisionsResponses,
-  DiffFlowRevisionsErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).get<
-    DiffFlowRevisionsResponses,
-    DiffFlowRevisionsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/flows/{namespace}/{flowId}/diff", ...options });
+): RequestResult<DiffFlowRevisionsResponses, DiffFlowRevisionsErrors, ThrowOnError> =>
+  (options.client ?? client).get<DiffFlowRevisionsResponses, DiffFlowRevisionsErrors, ThrowOnError>({
+    url: "/api/v1/flows/{namespace}/{flowId}/diff",
+    ...options,
+  });
 
 export const triggerFlow = <ThrowOnError extends boolean = false>(
   options: Options<TriggerFlowData, ThrowOnError>,
 ): RequestResult<TriggerFlowResponses, TriggerFlowErrors, ThrowOnError> =>
-  (options.client ?? client).post<
-    TriggerFlowResponses,
-    TriggerFlowErrors,
-    ThrowOnError
-  >({
+  (options.client ?? client).post<TriggerFlowResponses, TriggerFlowErrors, ThrowOnError>({
     url: "/api/v1/flows/{namespace}/{flowId}/executions",
     ...options,
     headers: {
@@ -889,37 +741,23 @@ export const triggerFlow = <ThrowOnError extends boolean = false>(
 export const getFlowMetrics = <ThrowOnError extends boolean = false>(
   options: Options<GetFlowMetricsData, ThrowOnError>,
 ): RequestResult<GetFlowMetricsResponses, GetFlowMetricsErrors, ThrowOnError> =>
-  (options.client ?? client).get<
-    GetFlowMetricsResponses,
-    GetFlowMetricsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/flows/{namespace}/{flowId}/metrics", ...options });
+  (options.client ?? client).get<GetFlowMetricsResponses, GetFlowMetricsErrors, ThrowOnError>({
+    url: "/api/v1/flows/{namespace}/{flowId}/metrics",
+    ...options,
+  });
 
 export const listFlowRevisions = <ThrowOnError extends boolean = false>(
   options: Options<ListFlowRevisionsData, ThrowOnError>,
-): RequestResult<
-  ListFlowRevisionsResponses,
-  ListFlowRevisionsErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).get<
-    ListFlowRevisionsResponses,
-    ListFlowRevisionsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/flows/{namespace}/{flowId}/revisions", ...options });
+): RequestResult<ListFlowRevisionsResponses, ListFlowRevisionsErrors, ThrowOnError> =>
+  (options.client ?? client).get<ListFlowRevisionsResponses, ListFlowRevisionsErrors, ThrowOnError>({
+    url: "/api/v1/flows/{namespace}/{flowId}/revisions",
+    ...options,
+  });
 
 export const getFlowRevision = <ThrowOnError extends boolean = false>(
   options: Options<GetFlowRevisionData, ThrowOnError>,
-): RequestResult<
-  GetFlowRevisionResponses,
-  GetFlowRevisionErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).get<
-    GetFlowRevisionResponses,
-    GetFlowRevisionErrors,
-    ThrowOnError
-  >({
+): RequestResult<GetFlowRevisionResponses, GetFlowRevisionErrors, ThrowOnError> =>
+  (options.client ?? client).get<GetFlowRevisionResponses, GetFlowRevisionErrors, ThrowOnError>({
     url: "/api/v1/flows/{namespace}/{flowId}/revisions/{revisionId}",
     ...options,
   });
@@ -927,24 +765,15 @@ export const getFlowRevision = <ThrowOnError extends boolean = false>(
 export const getFlowStats = <ThrowOnError extends boolean = false>(
   options: Options<GetFlowStatsData, ThrowOnError>,
 ): RequestResult<GetFlowStatsResponses, GetFlowStatsErrors, ThrowOnError> =>
-  (options.client ?? client).get<
-    GetFlowStatsResponses,
-    GetFlowStatsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/flows/{namespace}/{flowId}/stats", ...options });
+  (options.client ?? client).get<GetFlowStatsResponses, GetFlowStatsErrors, ThrowOnError>({
+    url: "/api/v1/flows/{namespace}/{flowId}/stats",
+    ...options,
+  });
 
 export const rotateWebhookKey = <ThrowOnError extends boolean = false>(
   options: Options<RotateWebhookKeyData, ThrowOnError>,
-): RequestResult<
-  RotateWebhookKeyResponses,
-  RotateWebhookKeyErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).post<
-    RotateWebhookKeyResponses,
-    RotateWebhookKeyErrors,
-    ThrowOnError
-  >({
+): RequestResult<RotateWebhookKeyResponses, RotateWebhookKeyErrors, ThrowOnError> =>
+  (options.client ?? client).post<RotateWebhookKeyResponses, RotateWebhookKeyErrors, ThrowOnError>({
     url: "/api/v1/flows/{namespace}/{flowId}/triggers/{triggerId}/webhook-key",
     ...options,
   });
@@ -952,24 +781,15 @@ export const rotateWebhookKey = <ThrowOnError extends boolean = false>(
 export const listGitSources = <ThrowOnError extends boolean = false>(
   options?: Options<ListGitSourcesData, ThrowOnError>,
 ): RequestResult<ListGitSourcesResponses, ListGitSourcesErrors, ThrowOnError> =>
-  (options?.client ?? client).get<
-    ListGitSourcesResponses,
-    ListGitSourcesErrors,
-    ThrowOnError
-  >({ url: "/api/v1/git-sources", ...options });
+  (options?.client ?? client).get<ListGitSourcesResponses, ListGitSourcesErrors, ThrowOnError>({
+    url: "/api/v1/git-sources",
+    ...options,
+  });
 
 export const createGitSource = <ThrowOnError extends boolean = false>(
   options: Options<CreateGitSourceData, ThrowOnError>,
-): RequestResult<
-  CreateGitSourceResponses,
-  CreateGitSourceErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).post<
-    CreateGitSourceResponses,
-    CreateGitSourceErrors,
-    ThrowOnError
-  >({
+): RequestResult<CreateGitSourceResponses, CreateGitSourceErrors, ThrowOnError> =>
+  (options.client ?? client).post<CreateGitSourceResponses, CreateGitSourceErrors, ThrowOnError>({
     url: "/api/v1/git-sources",
     ...options,
     headers: {
@@ -980,38 +800,24 @@ export const createGitSource = <ThrowOnError extends boolean = false>(
 
 export const deleteGitSource = <ThrowOnError extends boolean = false>(
   options: Options<DeleteGitSourceData, ThrowOnError>,
-): RequestResult<
-  DeleteGitSourceResponses,
-  DeleteGitSourceErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).delete<
-    DeleteGitSourceResponses,
-    DeleteGitSourceErrors,
-    ThrowOnError
-  >({ url: "/api/v1/git-sources/{sourceId}", ...options });
+): RequestResult<DeleteGitSourceResponses, DeleteGitSourceErrors, ThrowOnError> =>
+  (options.client ?? client).delete<DeleteGitSourceResponses, DeleteGitSourceErrors, ThrowOnError>({
+    url: "/api/v1/git-sources/{sourceId}",
+    ...options,
+  });
 
 export const getGitSource = <ThrowOnError extends boolean = false>(
   options: Options<GetGitSourceData, ThrowOnError>,
 ): RequestResult<GetGitSourceResponses, GetGitSourceErrors, ThrowOnError> =>
-  (options.client ?? client).get<
-    GetGitSourceResponses,
-    GetGitSourceErrors,
-    ThrowOnError
-  >({ url: "/api/v1/git-sources/{sourceId}", ...options });
+  (options.client ?? client).get<GetGitSourceResponses, GetGitSourceErrors, ThrowOnError>({
+    url: "/api/v1/git-sources/{sourceId}",
+    ...options,
+  });
 
 export const updateGitSource = <ThrowOnError extends boolean = false>(
   options: Options<UpdateGitSourceData, ThrowOnError>,
-): RequestResult<
-  UpdateGitSourceResponses,
-  UpdateGitSourceErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).put<
-    UpdateGitSourceResponses,
-    UpdateGitSourceErrors,
-    ThrowOnError
-  >({
+): RequestResult<UpdateGitSourceResponses, UpdateGitSourceErrors, ThrowOnError> =>
+  (options.client ?? client).put<UpdateGitSourceResponses, UpdateGitSourceErrors, ThrowOnError>({
     url: "/api/v1/git-sources/{sourceId}",
     ...options,
     headers: {
@@ -1022,56 +828,40 @@ export const updateGitSource = <ThrowOnError extends boolean = false>(
 
 export const listGitSyncRuns = <ThrowOnError extends boolean = false>(
   options: Options<ListGitSyncRunsData, ThrowOnError>,
-): RequestResult<
-  ListGitSyncRunsResponses,
-  ListGitSyncRunsErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).get<
-    ListGitSyncRunsResponses,
-    ListGitSyncRunsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/git-sources/{sourceId}/runs", ...options });
+): RequestResult<ListGitSyncRunsResponses, ListGitSyncRunsErrors, ThrowOnError> =>
+  (options.client ?? client).get<ListGitSyncRunsResponses, ListGitSyncRunsErrors, ThrowOnError>({
+    url: "/api/v1/git-sources/{sourceId}/runs",
+    ...options,
+  });
 
 export const syncGitSource = <ThrowOnError extends boolean = false>(
   options: Options<SyncGitSourceData, ThrowOnError>,
 ): RequestResult<SyncGitSourceResponses, SyncGitSourceErrors, ThrowOnError> =>
-  (options.client ?? client).post<
-    SyncGitSourceResponses,
-    SyncGitSourceErrors,
-    ThrowOnError
-  >({ url: "/api/v1/git-sources/{sourceId}/sync", ...options });
+  (options.client ?? client).post<SyncGitSourceResponses, SyncGitSourceErrors, ThrowOnError>({
+    url: "/api/v1/git-sources/{sourceId}/sync",
+    ...options,
+  });
 
 export const listInstances = <ThrowOnError extends boolean = false>(
   options?: Options<ListInstancesData, ThrowOnError>,
 ): RequestResult<ListInstancesResponses, ListInstancesErrors, ThrowOnError> =>
-  (options?.client ?? client).get<
-    ListInstancesResponses,
-    ListInstancesErrors,
-    ThrowOnError
-  >({ url: "/api/v1/instances", ...options });
+  (options?.client ?? client).get<ListInstancesResponses, ListInstancesErrors, ThrowOnError>({
+    url: "/api/v1/instances",
+    ...options,
+  });
 
 export const listNamespaces = <ThrowOnError extends boolean = false>(
   options?: Options<ListNamespacesData, ThrowOnError>,
 ): RequestResult<ListNamespacesResponses, ListNamespacesErrors, ThrowOnError> =>
-  (options?.client ?? client).get<
-    ListNamespacesResponses,
-    ListNamespacesErrors,
-    ThrowOnError
-  >({ url: "/api/v1/namespaces", ...options });
+  (options?.client ?? client).get<ListNamespacesResponses, ListNamespacesErrors, ThrowOnError>({
+    url: "/api/v1/namespaces",
+    ...options,
+  });
 
 export const createNamespace = <ThrowOnError extends boolean = false>(
   options: Options<CreateNamespaceData, ThrowOnError>,
-): RequestResult<
-  CreateNamespaceResponses,
-  CreateNamespaceErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).post<
-    CreateNamespaceResponses,
-    CreateNamespaceErrors,
-    ThrowOnError
-  >({
+): RequestResult<CreateNamespaceResponses, CreateNamespaceErrors, ThrowOnError> =>
+  (options.client ?? client).post<CreateNamespaceResponses, CreateNamespaceErrors, ThrowOnError>({
     url: "/api/v1/namespaces",
     ...options,
     headers: {
@@ -1082,34 +872,24 @@ export const createNamespace = <ThrowOnError extends boolean = false>(
 
 export const deleteNamespace = <ThrowOnError extends boolean = false>(
   options: Options<DeleteNamespaceData, ThrowOnError>,
-): RequestResult<
-  DeleteNamespaceResponses,
-  DeleteNamespaceErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).delete<
-    DeleteNamespaceResponses,
-    DeleteNamespaceErrors,
-    ThrowOnError
-  >({ url: "/api/v1/namespaces/{namespace}", ...options });
+): RequestResult<DeleteNamespaceResponses, DeleteNamespaceErrors, ThrowOnError> =>
+  (options.client ?? client).delete<DeleteNamespaceResponses, DeleteNamespaceErrors, ThrowOnError>({
+    url: "/api/v1/namespaces/{namespace}",
+    ...options,
+  });
 
 export const getNamespace = <ThrowOnError extends boolean = false>(
   options: Options<GetNamespaceData, ThrowOnError>,
 ): RequestResult<GetNamespaceResponses, GetNamespaceErrors, ThrowOnError> =>
-  (options.client ?? client).get<
-    GetNamespaceResponses,
-    GetNamespaceErrors,
-    ThrowOnError
-  >({ url: "/api/v1/namespaces/{namespace}", ...options });
+  (options.client ?? client).get<GetNamespaceResponses, GetNamespaceErrors, ThrowOnError>({
+    url: "/api/v1/namespaces/{namespace}",
+    ...options,
+  });
 
 export const saveChanges = <ThrowOnError extends boolean = false>(
   options: Options<SaveChangesData, ThrowOnError>,
 ): RequestResult<SaveChangesResponses, SaveChangesErrors, ThrowOnError> =>
-  (options.client ?? client).post<
-    SaveChangesResponses,
-    SaveChangesErrors,
-    ThrowOnError
-  >({
+  (options.client ?? client).post<SaveChangesResponses, SaveChangesErrors, ThrowOnError>({
     url: "/api/v1/namespaces/{namespace}/changes",
     ...options,
     headers: {
@@ -1121,11 +901,10 @@ export const saveChanges = <ThrowOnError extends boolean = false>(
 export const diffVersions = <ThrowOnError extends boolean = false>(
   options: Options<DiffVersionsData, ThrowOnError>,
 ): RequestResult<DiffVersionsResponses, DiffVersionsErrors, ThrowOnError> =>
-  (options.client ?? client).get<
-    DiffVersionsResponses,
-    DiffVersionsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/namespaces/{namespace}/diff", ...options });
+  (options.client ?? client).get<DiffVersionsResponses, DiffVersionsErrors, ThrowOnError>({
+    url: "/api/v1/namespaces/{namespace}/diff",
+    ...options,
+  });
 
 export const getFile = <ThrowOnError extends boolean = false>(
   options: Options<GetFileData, ThrowOnError>,
@@ -1151,37 +930,23 @@ export const uploadFile = <ThrowOnError extends boolean = false>(
 export const listFiles = <ThrowOnError extends boolean = false>(
   options: Options<ListFilesData, ThrowOnError>,
 ): RequestResult<ListFilesResponses, ListFilesErrors, ThrowOnError> =>
-  (options.client ?? client).get<
-    ListFilesResponses,
-    ListFilesErrors,
-    ThrowOnError
-  >({ url: "/api/v1/namespaces/{namespace}/files", ...options });
+  (options.client ?? client).get<ListFilesResponses, ListFilesErrors, ThrowOnError>({
+    url: "/api/v1/namespaces/{namespace}/files",
+    ...options,
+  });
 
 export const getNamespaceGit = <ThrowOnError extends boolean = false>(
   options: Options<GetNamespaceGitData, ThrowOnError>,
-): RequestResult<
-  GetNamespaceGitResponses,
-  GetNamespaceGitErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).get<
-    GetNamespaceGitResponses,
-    GetNamespaceGitErrors,
-    ThrowOnError
-  >({ url: "/api/v1/namespaces/{namespace}/git", ...options });
+): RequestResult<GetNamespaceGitResponses, GetNamespaceGitErrors, ThrowOnError> =>
+  (options.client ?? client).get<GetNamespaceGitResponses, GetNamespaceGitErrors, ThrowOnError>({
+    url: "/api/v1/namespaces/{namespace}/git",
+    ...options,
+  });
 
 export const pushNamespaceBranch = <ThrowOnError extends boolean = false>(
   options: Options<PushNamespaceBranchData, ThrowOnError>,
-): RequestResult<
-  PushNamespaceBranchResponses,
-  PushNamespaceBranchErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).post<
-    PushNamespaceBranchResponses,
-    PushNamespaceBranchErrors,
-    ThrowOnError
-  >({
+): RequestResult<PushNamespaceBranchResponses, PushNamespaceBranchErrors, ThrowOnError> =>
+  (options.client ?? client).post<PushNamespaceBranchResponses, PushNamespaceBranchErrors, ThrowOnError>({
     url: "/api/v1/namespaces/{namespace}/git/push",
     ...options,
     headers: {
@@ -1193,11 +958,7 @@ export const pushNamespaceBranch = <ThrowOnError extends boolean = false>(
 export const revertVersion = <ThrowOnError extends boolean = false>(
   options: Options<RevertVersionData, ThrowOnError>,
 ): RequestResult<RevertVersionResponses, RevertVersionErrors, ThrowOnError> =>
-  (options.client ?? client).post<
-    RevertVersionResponses,
-    RevertVersionErrors,
-    ThrowOnError
-  >({
+  (options.client ?? client).post<RevertVersionResponses, RevertVersionErrors, ThrowOnError>({
     url: "/api/v1/namespaces/{namespace}/revert",
     ...options,
     headers: {
@@ -1209,11 +970,7 @@ export const revertVersion = <ThrowOnError extends boolean = false>(
 export const runFile = <ThrowOnError extends boolean = false>(
   options: Options<RunFileData, ThrowOnError>,
 ): RequestResult<RunFileResponses, RunFileErrors, ThrowOnError> =>
-  (options.client ?? client).post<
-    RunFileResponses,
-    RunFileErrors,
-    ThrowOnError
-  >({
+  (options.client ?? client).post<RunFileResponses, RunFileErrors, ThrowOnError>({
     url: "/api/v1/namespaces/{namespace}/run",
     ...options,
     headers: {
@@ -1224,42 +981,24 @@ export const runFile = <ThrowOnError extends boolean = false>(
 
 export const listNamespaceSecrets = <ThrowOnError extends boolean = false>(
   options: Options<ListNamespaceSecretsData, ThrowOnError>,
-): RequestResult<
-  ListNamespaceSecretsResponses,
-  ListNamespaceSecretsErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).get<
-    ListNamespaceSecretsResponses,
-    ListNamespaceSecretsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/namespaces/{namespace}/secrets", ...options });
+): RequestResult<ListNamespaceSecretsResponses, ListNamespaceSecretsErrors, ThrowOnError> =>
+  (options.client ?? client).get<ListNamespaceSecretsResponses, ListNamespaceSecretsErrors, ThrowOnError>({
+    url: "/api/v1/namespaces/{namespace}/secrets",
+    ...options,
+  });
 
 export const deleteNamespaceSecret = <ThrowOnError extends boolean = false>(
   options: Options<DeleteNamespaceSecretData, ThrowOnError>,
-): RequestResult<
-  DeleteNamespaceSecretResponses,
-  DeleteNamespaceSecretErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).delete<
-    DeleteNamespaceSecretResponses,
-    DeleteNamespaceSecretErrors,
-    ThrowOnError
-  >({ url: "/api/v1/namespaces/{namespace}/secrets/{key}", ...options });
+): RequestResult<DeleteNamespaceSecretResponses, DeleteNamespaceSecretErrors, ThrowOnError> =>
+  (options.client ?? client).delete<DeleteNamespaceSecretResponses, DeleteNamespaceSecretErrors, ThrowOnError>({
+    url: "/api/v1/namespaces/{namespace}/secrets/{key}",
+    ...options,
+  });
 
 export const putNamespaceSecret = <ThrowOnError extends boolean = false>(
   options: Options<PutNamespaceSecretData, ThrowOnError>,
-): RequestResult<
-  PutNamespaceSecretResponses,
-  PutNamespaceSecretErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).put<
-    PutNamespaceSecretResponses,
-    PutNamespaceSecretErrors,
-    ThrowOnError
-  >({
+): RequestResult<PutNamespaceSecretResponses, PutNamespaceSecretErrors, ThrowOnError> =>
+  (options.client ?? client).put<PutNamespaceSecretResponses, PutNamespaceSecretErrors, ThrowOnError>({
     url: "/api/v1/namespaces/{namespace}/secrets/{key}",
     ...options,
     headers: {
@@ -1270,25 +1009,16 @@ export const putNamespaceSecret = <ThrowOnError extends boolean = false>(
 
 export const checkNamespaceSecret = <ThrowOnError extends boolean = false>(
   options: Options<CheckNamespaceSecretData, ThrowOnError>,
-): RequestResult<
-  CheckNamespaceSecretResponses,
-  CheckNamespaceSecretErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).post<
-    CheckNamespaceSecretResponses,
-    CheckNamespaceSecretErrors,
-    ThrowOnError
-  >({ url: "/api/v1/namespaces/{namespace}/secrets/{key}/check", ...options });
+): RequestResult<CheckNamespaceSecretResponses, CheckNamespaceSecretErrors, ThrowOnError> =>
+  (options.client ?? client).post<CheckNamespaceSecretResponses, CheckNamespaceSecretErrors, ThrowOnError>({
+    url: "/api/v1/namespaces/{namespace}/secrets/{key}/check",
+    ...options,
+  });
 
 export const validateFile = <ThrowOnError extends boolean = false>(
   options: Options<ValidateFileData, ThrowOnError>,
 ): RequestResult<ValidateFileResponses, ValidateFileErrors, ThrowOnError> =>
-  (options.client ?? client).post<
-    ValidateFileResponses,
-    ValidateFileErrors,
-    ThrowOnError
-  >({
+  (options.client ?? client).post<ValidateFileResponses, ValidateFileErrors, ThrowOnError>({
     url: "/api/v1/namespaces/{namespace}/validate",
     ...options,
     headers: {
@@ -1299,42 +1029,24 @@ export const validateFile = <ThrowOnError extends boolean = false>(
 
 export const listNamespaceVariables = <ThrowOnError extends boolean = false>(
   options: Options<ListNamespaceVariablesData, ThrowOnError>,
-): RequestResult<
-  ListNamespaceVariablesResponses,
-  ListNamespaceVariablesErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).get<
-    ListNamespaceVariablesResponses,
-    ListNamespaceVariablesErrors,
-    ThrowOnError
-  >({ url: "/api/v1/namespaces/{namespace}/variables", ...options });
+): RequestResult<ListNamespaceVariablesResponses, ListNamespaceVariablesErrors, ThrowOnError> =>
+  (options.client ?? client).get<ListNamespaceVariablesResponses, ListNamespaceVariablesErrors, ThrowOnError>({
+    url: "/api/v1/namespaces/{namespace}/variables",
+    ...options,
+  });
 
 export const deleteNamespaceVariable = <ThrowOnError extends boolean = false>(
   options: Options<DeleteNamespaceVariableData, ThrowOnError>,
-): RequestResult<
-  DeleteNamespaceVariableResponses,
-  DeleteNamespaceVariableErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).delete<
-    DeleteNamespaceVariableResponses,
-    DeleteNamespaceVariableErrors,
-    ThrowOnError
-  >({ url: "/api/v1/namespaces/{namespace}/variables/{key}", ...options });
+): RequestResult<DeleteNamespaceVariableResponses, DeleteNamespaceVariableErrors, ThrowOnError> =>
+  (options.client ?? client).delete<DeleteNamespaceVariableResponses, DeleteNamespaceVariableErrors, ThrowOnError>({
+    url: "/api/v1/namespaces/{namespace}/variables/{key}",
+    ...options,
+  });
 
 export const putNamespaceVariable = <ThrowOnError extends boolean = false>(
   options: Options<PutNamespaceVariableData, ThrowOnError>,
-): RequestResult<
-  PutNamespaceVariableResponses,
-  PutNamespaceVariableErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).put<
-    PutNamespaceVariableResponses,
-    PutNamespaceVariableErrors,
-    ThrowOnError
-  >({
+): RequestResult<PutNamespaceVariableResponses, PutNamespaceVariableErrors, ThrowOnError> =>
+  (options.client ?? client).put<PutNamespaceVariableResponses, PutNamespaceVariableErrors, ThrowOnError>({
     url: "/api/v1/namespaces/{namespace}/variables/{key}",
     ...options,
     headers: {
@@ -1346,59 +1058,39 @@ export const putNamespaceVariable = <ThrowOnError extends boolean = false>(
 export const listVersions = <ThrowOnError extends boolean = false>(
   options: Options<ListVersionsData, ThrowOnError>,
 ): RequestResult<ListVersionsResponses, ListVersionsErrors, ThrowOnError> =>
-  (options.client ?? client).get<
-    ListVersionsResponses,
-    ListVersionsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/namespaces/{namespace}/versions", ...options });
+  (options.client ?? client).get<ListVersionsResponses, ListVersionsErrors, ThrowOnError>({
+    url: "/api/v1/namespaces/{namespace}/versions",
+    ...options,
+  });
 
 export const listUpcomingSchedules = <ThrowOnError extends boolean = false>(
   options?: Options<ListUpcomingSchedulesData, ThrowOnError>,
-): RequestResult<
-  ListUpcomingSchedulesResponses,
-  ListUpcomingSchedulesErrors,
-  ThrowOnError
-> =>
-  (options?.client ?? client).get<
-    ListUpcomingSchedulesResponses,
-    ListUpcomingSchedulesErrors,
-    ThrowOnError
-  >({ url: "/api/v1/schedules/upcoming", ...options });
+): RequestResult<ListUpcomingSchedulesResponses, ListUpcomingSchedulesErrors, ThrowOnError> =>
+  (options?.client ?? client).get<ListUpcomingSchedulesResponses, ListUpcomingSchedulesErrors, ThrowOnError>({
+    url: "/api/v1/schedules/upcoming",
+    ...options,
+  });
 
 export const getFlowSchema = <ThrowOnError extends boolean = false>(
   options?: Options<GetFlowSchemaData, ThrowOnError>,
 ): RequestResult<GetFlowSchemaResponses, GetFlowSchemaErrors, ThrowOnError> =>
-  (options?.client ?? client).get<
-    GetFlowSchemaResponses,
-    GetFlowSchemaErrors,
-    ThrowOnError
-  >({ url: "/api/v1/schemas/flow.json", ...options });
+  (options?.client ?? client).get<GetFlowSchemaResponses, GetFlowSchemaErrors, ThrowOnError>({
+    url: "/api/v1/schemas/flow.json",
+    ...options,
+  });
 
 export const listSecretProviders = <ThrowOnError extends boolean = false>(
   options?: Options<ListSecretProvidersData, ThrowOnError>,
-): RequestResult<
-  ListSecretProvidersResponses,
-  ListSecretProvidersErrors,
-  ThrowOnError
-> =>
-  (options?.client ?? client).get<
-    ListSecretProvidersResponses,
-    ListSecretProvidersErrors,
-    ThrowOnError
-  >({ url: "/api/v1/secret-providers", ...options });
+): RequestResult<ListSecretProvidersResponses, ListSecretProvidersErrors, ThrowOnError> =>
+  (options?.client ?? client).get<ListSecretProvidersResponses, ListSecretProvidersErrors, ThrowOnError>({
+    url: "/api/v1/secret-providers",
+    ...options,
+  });
 
 export const createSecretProvider = <ThrowOnError extends boolean = false>(
   options: Options<CreateSecretProviderData, ThrowOnError>,
-): RequestResult<
-  CreateSecretProviderResponses,
-  CreateSecretProviderErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).post<
-    CreateSecretProviderResponses,
-    CreateSecretProviderErrors,
-    ThrowOnError
-  >({
+): RequestResult<CreateSecretProviderResponses, CreateSecretProviderErrors, ThrowOnError> =>
+  (options.client ?? client).post<CreateSecretProviderResponses, CreateSecretProviderErrors, ThrowOnError>({
     url: "/api/v1/secret-providers",
     ...options,
     headers: {
@@ -1409,29 +1101,16 @@ export const createSecretProvider = <ThrowOnError extends boolean = false>(
 
 export const deleteSecretProvider = <ThrowOnError extends boolean = false>(
   options: Options<DeleteSecretProviderData, ThrowOnError>,
-): RequestResult<
-  DeleteSecretProviderResponses,
-  DeleteSecretProviderErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).delete<
-    DeleteSecretProviderResponses,
-    DeleteSecretProviderErrors,
-    ThrowOnError
-  >({ url: "/api/v1/secret-providers/{name}", ...options });
+): RequestResult<DeleteSecretProviderResponses, DeleteSecretProviderErrors, ThrowOnError> =>
+  (options.client ?? client).delete<DeleteSecretProviderResponses, DeleteSecretProviderErrors, ThrowOnError>({
+    url: "/api/v1/secret-providers/{name}",
+    ...options,
+  });
 
 export const updateSecretProvider = <ThrowOnError extends boolean = false>(
   options: Options<UpdateSecretProviderData, ThrowOnError>,
-): RequestResult<
-  UpdateSecretProviderResponses,
-  UpdateSecretProviderErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).put<
-    UpdateSecretProviderResponses,
-    UpdateSecretProviderErrors,
-    ThrowOnError
-  >({
+): RequestResult<UpdateSecretProviderResponses, UpdateSecretProviderErrors, ThrowOnError> =>
+  (options.client ?? client).put<UpdateSecretProviderResponses, UpdateSecretProviderErrors, ThrowOnError>({
     url: "/api/v1/secret-providers/{name}",
     ...options,
     headers: {
@@ -1442,16 +1121,8 @@ export const updateSecretProvider = <ThrowOnError extends boolean = false>(
 
 export const checkSecretProvider = <ThrowOnError extends boolean = false>(
   options: Options<CheckSecretProviderData, ThrowOnError>,
-): RequestResult<
-  CheckSecretProviderResponses,
-  CheckSecretProviderErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).post<
-    CheckSecretProviderResponses,
-    CheckSecretProviderErrors,
-    ThrowOnError
-  >({
+): RequestResult<CheckSecretProviderResponses, CheckSecretProviderErrors, ThrowOnError> =>
+  (options.client ?? client).post<CheckSecretProviderResponses, CheckSecretProviderErrors, ThrowOnError>({
     url: "/api/v1/secret-providers/{name}/check",
     ...options,
     headers: {
@@ -1462,42 +1133,24 @@ export const checkSecretProvider = <ThrowOnError extends boolean = false>(
 
 export const listGlobalSecrets = <ThrowOnError extends boolean = false>(
   options?: Options<ListGlobalSecretsData, ThrowOnError>,
-): RequestResult<
-  ListGlobalSecretsResponses,
-  ListGlobalSecretsErrors,
-  ThrowOnError
-> =>
-  (options?.client ?? client).get<
-    ListGlobalSecretsResponses,
-    ListGlobalSecretsErrors,
-    ThrowOnError
-  >({ url: "/api/v1/secrets", ...options });
+): RequestResult<ListGlobalSecretsResponses, ListGlobalSecretsErrors, ThrowOnError> =>
+  (options?.client ?? client).get<ListGlobalSecretsResponses, ListGlobalSecretsErrors, ThrowOnError>({
+    url: "/api/v1/secrets",
+    ...options,
+  });
 
 export const deleteGlobalSecret = <ThrowOnError extends boolean = false>(
   options: Options<DeleteGlobalSecretData, ThrowOnError>,
-): RequestResult<
-  DeleteGlobalSecretResponses,
-  DeleteGlobalSecretErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).delete<
-    DeleteGlobalSecretResponses,
-    DeleteGlobalSecretErrors,
-    ThrowOnError
-  >({ url: "/api/v1/secrets/{key}", ...options });
+): RequestResult<DeleteGlobalSecretResponses, DeleteGlobalSecretErrors, ThrowOnError> =>
+  (options.client ?? client).delete<DeleteGlobalSecretResponses, DeleteGlobalSecretErrors, ThrowOnError>({
+    url: "/api/v1/secrets/{key}",
+    ...options,
+  });
 
 export const putGlobalSecret = <ThrowOnError extends boolean = false>(
   options: Options<PutGlobalSecretData, ThrowOnError>,
-): RequestResult<
-  PutGlobalSecretResponses,
-  PutGlobalSecretErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).put<
-    PutGlobalSecretResponses,
-    PutGlobalSecretErrors,
-    ThrowOnError
-  >({
+): RequestResult<PutGlobalSecretResponses, PutGlobalSecretErrors, ThrowOnError> =>
+  (options.client ?? client).put<PutGlobalSecretResponses, PutGlobalSecretErrors, ThrowOnError>({
     url: "/api/v1/secrets/{key}",
     ...options,
     headers: {
@@ -1508,56 +1161,40 @@ export const putGlobalSecret = <ThrowOnError extends boolean = false>(
 
 export const checkGlobalSecret = <ThrowOnError extends boolean = false>(
   options: Options<CheckGlobalSecretData, ThrowOnError>,
-): RequestResult<
-  CheckGlobalSecretResponses,
-  CheckGlobalSecretErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).post<
-    CheckGlobalSecretResponses,
-    CheckGlobalSecretErrors,
-    ThrowOnError
-  >({ url: "/api/v1/secrets/{key}/check", ...options });
+): RequestResult<CheckGlobalSecretResponses, CheckGlobalSecretErrors, ThrowOnError> =>
+  (options.client ?? client).post<CheckGlobalSecretResponses, CheckGlobalSecretErrors, ThrowOnError>({
+    url: "/api/v1/secrets/{key}/check",
+    ...options,
+  });
 
 export const getDashboard = <ThrowOnError extends boolean = false>(
   options?: Options<GetDashboardData, ThrowOnError>,
 ): RequestResult<GetDashboardResponses, GetDashboardErrors, ThrowOnError> =>
-  (options?.client ?? client).get<
-    GetDashboardResponses,
-    GetDashboardErrors,
-    ThrowOnError
-  >({ url: "/api/v1/stats/dashboard", ...options });
+  (options?.client ?? client).get<GetDashboardResponses, GetDashboardErrors, ThrowOnError>({
+    url: "/api/v1/stats/dashboard",
+    ...options,
+  });
 
 export const getStorageStatus = <ThrowOnError extends boolean = false>(
   options?: Options<GetStorageStatusData, ThrowOnError>,
-): RequestResult<
-  GetStorageStatusResponses,
-  GetStorageStatusErrors,
-  ThrowOnError
-> =>
-  (options?.client ?? client).get<
-    GetStorageStatusResponses,
-    GetStorageStatusErrors,
-    ThrowOnError
-  >({ url: "/api/v1/storage", ...options });
+): RequestResult<GetStorageStatusResponses, GetStorageStatusErrors, ThrowOnError> =>
+  (options?.client ?? client).get<GetStorageStatusResponses, GetStorageStatusErrors, ThrowOnError>({
+    url: "/api/v1/storage",
+    ...options,
+  });
 
 export const listTokens = <ThrowOnError extends boolean = false>(
   options?: Options<ListTokensData, ThrowOnError>,
 ): RequestResult<ListTokensResponses, ListTokensErrors, ThrowOnError> =>
-  (options?.client ?? client).get<
-    ListTokensResponses,
-    ListTokensErrors,
-    ThrowOnError
-  >({ url: "/api/v1/tokens", ...options });
+  (options?.client ?? client).get<ListTokensResponses, ListTokensErrors, ThrowOnError>({
+    url: "/api/v1/tokens",
+    ...options,
+  });
 
 export const createToken = <ThrowOnError extends boolean = false>(
   options: Options<CreateTokenData, ThrowOnError>,
 ): RequestResult<CreateTokenResponses, CreateTokenErrors, ThrowOnError> =>
-  (options.client ?? client).post<
-    CreateTokenResponses,
-    CreateTokenErrors,
-    ThrowOnError
-  >({
+  (options.client ?? client).post<CreateTokenResponses, CreateTokenErrors, ThrowOnError>({
     url: "/api/v1/tokens",
     ...options,
     headers: {
@@ -1569,29 +1206,23 @@ export const createToken = <ThrowOnError extends boolean = false>(
 export const revokeToken = <ThrowOnError extends boolean = false>(
   options: Options<RevokeTokenData, ThrowOnError>,
 ): RequestResult<RevokeTokenResponses, RevokeTokenErrors, ThrowOnError> =>
-  (options.client ?? client).delete<
-    RevokeTokenResponses,
-    RevokeTokenErrors,
-    ThrowOnError
-  >({ url: "/api/v1/tokens/{tokenId}", ...options });
+  (options.client ?? client).delete<RevokeTokenResponses, RevokeTokenErrors, ThrowOnError>({
+    url: "/api/v1/tokens/{tokenId}",
+    ...options,
+  });
 
 export const listUsers = <ThrowOnError extends boolean = false>(
   options?: Options<ListUsersData, ThrowOnError>,
 ): RequestResult<ListUsersResponses, ListUsersErrors, ThrowOnError> =>
-  (options?.client ?? client).get<
-    ListUsersResponses,
-    ListUsersErrors,
-    ThrowOnError
-  >({ url: "/api/v1/users", ...options });
+  (options?.client ?? client).get<ListUsersResponses, ListUsersErrors, ThrowOnError>({
+    url: "/api/v1/users",
+    ...options,
+  });
 
 export const createUser = <ThrowOnError extends boolean = false>(
   options: Options<CreateUserData, ThrowOnError>,
 ): RequestResult<CreateUserResponses, CreateUserErrors, ThrowOnError> =>
-  (options.client ?? client).post<
-    CreateUserResponses,
-    CreateUserErrors,
-    ThrowOnError
-  >({
+  (options.client ?? client).post<CreateUserResponses, CreateUserErrors, ThrowOnError>({
     url: "/api/v1/users",
     ...options,
     headers: {
@@ -1603,11 +1234,7 @@ export const createUser = <ThrowOnError extends boolean = false>(
 export const updateUser = <ThrowOnError extends boolean = false>(
   options: Options<UpdateUserData, ThrowOnError>,
 ): RequestResult<UpdateUserResponses, UpdateUserErrors, ThrowOnError> =>
-  (options.client ?? client).patch<
-    UpdateUserResponses,
-    UpdateUserErrors,
-    ThrowOnError
-  >({
+  (options.client ?? client).patch<UpdateUserResponses, UpdateUserErrors, ThrowOnError>({
     url: "/api/v1/users/{userId}",
     ...options,
     headers: {
@@ -1618,16 +1245,8 @@ export const updateUser = <ThrowOnError extends boolean = false>(
 
 export const resetUserPassword = <ThrowOnError extends boolean = false>(
   options: Options<ResetUserPasswordData, ThrowOnError>,
-): RequestResult<
-  ResetUserPasswordResponses,
-  ResetUserPasswordErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).post<
-    ResetUserPasswordResponses,
-    ResetUserPasswordErrors,
-    ThrowOnError
-  >({
+): RequestResult<ResetUserPasswordResponses, ResetUserPasswordErrors, ThrowOnError> =>
+  (options.client ?? client).post<ResetUserPasswordResponses, ResetUserPasswordErrors, ThrowOnError>({
     url: "/api/v1/users/{userId}/reset-password",
     ...options,
     headers: {
@@ -1638,42 +1257,24 @@ export const resetUserPassword = <ThrowOnError extends boolean = false>(
 
 export const listGlobalVariables = <ThrowOnError extends boolean = false>(
   options?: Options<ListGlobalVariablesData, ThrowOnError>,
-): RequestResult<
-  ListGlobalVariablesResponses,
-  ListGlobalVariablesErrors,
-  ThrowOnError
-> =>
-  (options?.client ?? client).get<
-    ListGlobalVariablesResponses,
-    ListGlobalVariablesErrors,
-    ThrowOnError
-  >({ url: "/api/v1/variables", ...options });
+): RequestResult<ListGlobalVariablesResponses, ListGlobalVariablesErrors, ThrowOnError> =>
+  (options?.client ?? client).get<ListGlobalVariablesResponses, ListGlobalVariablesErrors, ThrowOnError>({
+    url: "/api/v1/variables",
+    ...options,
+  });
 
 export const deleteGlobalVariable = <ThrowOnError extends boolean = false>(
   options: Options<DeleteGlobalVariableData, ThrowOnError>,
-): RequestResult<
-  DeleteGlobalVariableResponses,
-  DeleteGlobalVariableErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).delete<
-    DeleteGlobalVariableResponses,
-    DeleteGlobalVariableErrors,
-    ThrowOnError
-  >({ url: "/api/v1/variables/{key}", ...options });
+): RequestResult<DeleteGlobalVariableResponses, DeleteGlobalVariableErrors, ThrowOnError> =>
+  (options.client ?? client).delete<DeleteGlobalVariableResponses, DeleteGlobalVariableErrors, ThrowOnError>({
+    url: "/api/v1/variables/{key}",
+    ...options,
+  });
 
 export const putGlobalVariable = <ThrowOnError extends boolean = false>(
   options: Options<PutGlobalVariableData, ThrowOnError>,
-): RequestResult<
-  PutGlobalVariableResponses,
-  PutGlobalVariableErrors,
-  ThrowOnError
-> =>
-  (options.client ?? client).put<
-    PutGlobalVariableResponses,
-    PutGlobalVariableErrors,
-    ThrowOnError
-  >({
+): RequestResult<PutGlobalVariableResponses, PutGlobalVariableErrors, ThrowOnError> =>
+  (options.client ?? client).put<PutGlobalVariableResponses, PutGlobalVariableErrors, ThrowOnError>({
     url: "/api/v1/variables/{key}",
     ...options,
     headers: {
@@ -1699,7 +1300,4 @@ export const gitWebhook = <ThrowOnError extends boolean = false>(
 export const fireWebhook = <ThrowOnError extends boolean = false>(
   options: Options<FireWebhookData, ThrowOnError>,
 ): RequestResult<FireWebhookResponses, unknown, ThrowOnError> =>
-  (options.client ?? client).post<FireWebhookResponses, unknown, ThrowOnError>({
-    url: "/hooks/{key}",
-    ...options,
-  });
+  (options.client ?? client).post<FireWebhookResponses, unknown, ThrowOnError>({ url: "/hooks/{key}", ...options });

@@ -403,16 +403,8 @@ import type {
 
 export const runnerPutArtifactMutation = (
   options?: Partial<Options<RunnerPutArtifactData>>,
-): UseMutationOptions<
-  RunnerPutArtifactResponse,
-  DefaultError,
-  Options<RunnerPutArtifactData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    RunnerPutArtifactResponse,
-    DefaultError,
-    Options<RunnerPutArtifactData>
-  > = {
+): UseMutationOptions<RunnerPutArtifactResponse, DefaultError, Options<RunnerPutArtifactData>> => {
+  const mutationOptions: UseMutationOptions<RunnerPutArtifactResponse, DefaultError, Options<RunnerPutArtifactData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await runnerPutArtifact({
         ...options,
@@ -441,8 +433,7 @@ const createQueryKey = <TOptions extends Options>(
 ): [QueryKey<TOptions>[0]] => {
   const params: QueryKey<TOptions>[0] = {
     _id: id,
-    baseUrl:
-      options?.baseUrl || (options?.client ?? client).getConfig().baseUrl,
+    baseUrl: options?.baseUrl || (options?.client ?? client).getConfig().baseUrl,
   } as QueryKey<TOptions>[0];
   if (infinite) {
     params._infinite = infinite;
@@ -465,9 +456,8 @@ const createQueryKey = <TOptions extends Options>(
   return [params];
 };
 
-export const runnerGetBundleQueryKey = (
-  options: Options<RunnerGetBundleData>,
-) => createQueryKey("runnerGetBundle", options);
+export const runnerGetBundleQueryKey = (options: Options<RunnerGetBundleData>) =>
+  createQueryKey("runnerGetBundle", options);
 
 export const runnerGetBundleOptions = (options: Options<RunnerGetBundleData>) =>
   queryOptions<
@@ -490,11 +480,7 @@ export const runnerGetBundleOptions = (options: Options<RunnerGetBundleData>) =>
 
 export const runnerCompleteMutation = (
   options?: Partial<Options<RunnerCompleteData>>,
-): UseMutationOptions<
-  RunnerCompleteResponse,
-  RunnerCompleteError,
-  Options<RunnerCompleteData>
-> => {
+): UseMutationOptions<RunnerCompleteResponse, RunnerCompleteError, Options<RunnerCompleteData>> => {
   const mutationOptions: UseMutationOptions<
     RunnerCompleteResponse,
     RunnerCompleteError,
@@ -514,11 +500,7 @@ export const runnerCompleteMutation = (
 
 export const runnerPostEventsMutation = (
   options?: Partial<Options<RunnerPostEventsData>>,
-): UseMutationOptions<
-  RunnerPostEventsResponse,
-  RunnerPostEventsError,
-  Options<RunnerPostEventsData>
-> => {
+): UseMutationOptions<RunnerPostEventsResponse, RunnerPostEventsError, Options<RunnerPostEventsData>> => {
   const mutationOptions: UseMutationOptions<
     RunnerPostEventsResponse,
     RunnerPostEventsError,
@@ -538,11 +520,7 @@ export const runnerPostEventsMutation = (
 
 export const runnerHeartbeatMutation = (
   options?: Partial<Options<RunnerHeartbeatData>>,
-): UseMutationOptions<
-  RunnerHeartbeatResponse2,
-  RunnerHeartbeatError,
-  Options<RunnerHeartbeatData>
-> => {
+): UseMutationOptions<RunnerHeartbeatResponse2, RunnerHeartbeatError, Options<RunnerHeartbeatData>> => {
   const mutationOptions: UseMutationOptions<
     RunnerHeartbeatResponse2,
     RunnerHeartbeatError,
@@ -562,11 +540,7 @@ export const runnerHeartbeatMutation = (
 
 export const runnerPostLogsMutation = (
   options?: Partial<Options<RunnerPostLogsData>>,
-): UseMutationOptions<
-  RunnerPostLogsResponse,
-  RunnerPostLogsError,
-  Options<RunnerPostLogsData>
-> => {
+): UseMutationOptions<RunnerPostLogsResponse, RunnerPostLogsError, Options<RunnerPostLogsData>> => {
   const mutationOptions: UseMutationOptions<
     RunnerPostLogsResponse,
     RunnerPostLogsError,
@@ -584,8 +558,7 @@ export const runnerPostLogsMutation = (
   return mutationOptions;
 };
 
-export const runnerGetSpecQueryKey = (options: Options<RunnerGetSpecData>) =>
-  createQueryKey("runnerGetSpec", options);
+export const runnerGetSpecQueryKey = (options: Options<RunnerGetSpecData>) => createQueryKey("runnerGetSpec", options);
 
 export const runnerGetSpecOptions = (options: Options<RunnerGetSpecData>) =>
   queryOptions<
@@ -606,13 +579,10 @@ export const runnerGetSpecOptions = (options: Options<RunnerGetSpecData>) =>
     queryKey: runnerGetSpecQueryKey(options),
   });
 
-export const listAiConversationsQueryKey = (
-  options?: Options<ListAiConversationsData>,
-) => createQueryKey("listAiConversations", options);
+export const listAiConversationsQueryKey = (options?: Options<ListAiConversationsData>) =>
+  createQueryKey("listAiConversations", options);
 
-export const listAiConversationsOptions = (
-  options?: Options<ListAiConversationsData>,
-) =>
+export const listAiConversationsOptions = (options?: Options<ListAiConversationsData>) =>
   queryOptions<
     ListAiConversationsResponse,
     ListAiConversationsError,
@@ -633,11 +603,7 @@ export const listAiConversationsOptions = (
 
 export const createAiConversationMutation = (
   options?: Partial<Options<CreateAiConversationData>>,
-): UseMutationOptions<
-  CreateAiConversationResponse,
-  CreateAiConversationError,
-  Options<CreateAiConversationData>
-> => {
+): UseMutationOptions<CreateAiConversationResponse, CreateAiConversationError, Options<CreateAiConversationData>> => {
   const mutationOptions: UseMutationOptions<
     CreateAiConversationResponse,
     CreateAiConversationError,
@@ -657,11 +623,7 @@ export const createAiConversationMutation = (
 
 export const deleteAiConversationMutation = (
   options?: Partial<Options<DeleteAiConversationData>>,
-): UseMutationOptions<
-  DeleteAiConversationResponse,
-  DeleteAiConversationError,
-  Options<DeleteAiConversationData>
-> => {
+): UseMutationOptions<DeleteAiConversationResponse, DeleteAiConversationError, Options<DeleteAiConversationData>> => {
   const mutationOptions: UseMutationOptions<
     DeleteAiConversationResponse,
     DeleteAiConversationError,
@@ -679,13 +641,10 @@ export const deleteAiConversationMutation = (
   return mutationOptions;
 };
 
-export const getAiConversationQueryKey = (
-  options: Options<GetAiConversationData>,
-) => createQueryKey("getAiConversation", options);
+export const getAiConversationQueryKey = (options: Options<GetAiConversationData>) =>
+  createQueryKey("getAiConversation", options);
 
-export const getAiConversationOptions = (
-  options: Options<GetAiConversationData>,
-) =>
+export const getAiConversationOptions = (options: Options<GetAiConversationData>) =>
   queryOptions<
     GetAiConversationResponse,
     GetAiConversationError,
@@ -706,11 +665,7 @@ export const getAiConversationOptions = (
 
 export const deleteAiProviderMutation = (
   options?: Partial<Options<DeleteAiProviderData>>,
-): UseMutationOptions<
-  DeleteAiProviderResponse,
-  DeleteAiProviderError,
-  Options<DeleteAiProviderData>
-> => {
+): UseMutationOptions<DeleteAiProviderResponse, DeleteAiProviderError, Options<DeleteAiProviderData>> => {
   const mutationOptions: UseMutationOptions<
     DeleteAiProviderResponse,
     DeleteAiProviderError,
@@ -728,8 +683,7 @@ export const deleteAiProviderMutation = (
   return mutationOptions;
 };
 
-export const getAiProviderQueryKey = (options?: Options<GetAiProviderData>) =>
-  createQueryKey("getAiProvider", options);
+export const getAiProviderQueryKey = (options?: Options<GetAiProviderData>) => createQueryKey("getAiProvider", options);
 
 export const getAiProviderOptions = (options?: Options<GetAiProviderData>) =>
   queryOptions<
@@ -752,16 +706,8 @@ export const getAiProviderOptions = (options?: Options<GetAiProviderData>) =>
 
 export const putAiProviderMutation = (
   options?: Partial<Options<PutAiProviderData>>,
-): UseMutationOptions<
-  PutAiProviderResponse,
-  PutAiProviderError,
-  Options<PutAiProviderData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    PutAiProviderResponse,
-    PutAiProviderError,
-    Options<PutAiProviderData>
-  > = {
+): UseMutationOptions<PutAiProviderResponse, PutAiProviderError, Options<PutAiProviderData>> => {
+  const mutationOptions: UseMutationOptions<PutAiProviderResponse, PutAiProviderError, Options<PutAiProviderData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await putAiProvider({
         ...options,
@@ -776,11 +722,7 @@ export const putAiProviderMutation = (
 
 export const testAiProviderMutation = (
   options?: Partial<Options<TestAiProviderData>>,
-): UseMutationOptions<
-  TestAiProviderResponse,
-  TestAiProviderError,
-  Options<TestAiProviderData>
-> => {
+): UseMutationOptions<TestAiProviderResponse, TestAiProviderError, Options<TestAiProviderData>> => {
   const mutationOptions: UseMutationOptions<
     TestAiProviderResponse,
     TestAiProviderError,
@@ -798,16 +740,10 @@ export const testAiProviderMutation = (
   return mutationOptions;
 };
 
-export const getAiStatusQueryKey = (options?: Options<GetAiStatusData>) =>
-  createQueryKey("getAiStatus", options);
+export const getAiStatusQueryKey = (options?: Options<GetAiStatusData>) => createQueryKey("getAiStatus", options);
 
 export const getAiStatusOptions = (options?: Options<GetAiStatusData>) =>
-  queryOptions<
-    GetAiStatusResponse,
-    GetAiStatusError,
-    GetAiStatusResponse,
-    ReturnType<typeof getAiStatusQueryKey>
-  >({
+  queryOptions<GetAiStatusResponse, GetAiStatusError, GetAiStatusResponse, ReturnType<typeof getAiStatusQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await getAiStatus({
         ...options,
@@ -820,13 +756,10 @@ export const getAiStatusOptions = (options?: Options<GetAiStatusData>) =>
     queryKey: getAiStatusQueryKey(options),
   });
 
-export const listAuditEventsQueryKey = (
-  options?: Options<ListAuditEventsData>,
-) => createQueryKey("listAuditEvents", options);
+export const listAuditEventsQueryKey = (options?: Options<ListAuditEventsData>) =>
+  createQueryKey("listAuditEvents", options);
 
-export const listAuditEventsOptions = (
-  options?: Options<ListAuditEventsData>,
-) =>
+export const listAuditEventsOptions = (options?: Options<ListAuditEventsData>) =>
   queryOptions<
     ListAuditEventsResponse,
     ListAuditEventsError,
@@ -845,9 +778,7 @@ export const listAuditEventsOptions = (
     queryKey: listAuditEventsQueryKey(options),
   });
 
-const createInfiniteParams = <
-  K extends Pick<QueryKey<Options>[0], "body" | "headers" | "path" | "query">,
->(
+const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], "body" | "headers" | "path" | "query">>(
   queryKey: QueryKey<Options>,
   page: K,
 ) => {
@@ -881,31 +812,21 @@ const createInfiniteParams = <
 
 export const listAuditEventsInfiniteQueryKey = (
   options?: Options<ListAuditEventsData>,
-): QueryKey<Options<ListAuditEventsData>> =>
-  createQueryKey("listAuditEvents", options, true);
+): QueryKey<Options<ListAuditEventsData>> => createQueryKey("listAuditEvents", options, true);
 
-export const listAuditEventsInfiniteOptions = (
-  options?: Options<ListAuditEventsData>,
-) => {
+export const listAuditEventsInfiniteOptions = (options?: Options<ListAuditEventsData>) => {
   const opts = infiniteQueryOptions<
     ListAuditEventsResponse,
     ListAuditEventsError,
     InfiniteData<ListAuditEventsResponse>,
     QueryKey<Options<ListAuditEventsData>>,
-    | string
-    | Pick<
-        QueryKey<Options<ListAuditEventsData>>[0],
-        "body" | "headers" | "path" | "query"
-      >
+    string | Pick<QueryKey<Options<ListAuditEventsData>>[0], "body" | "headers" | "path" | "query">
   >(
     // @ts-ignore
     {
       queryFn: async ({ pageParam, queryKey, signal }) => {
         // @ts-ignore
-        const page: Pick<
-          QueryKey<Options<ListAuditEventsData>>[0],
-          "body" | "headers" | "path" | "query"
-        > =
+        const page: Pick<QueryKey<Options<ListAuditEventsData>>[0], "body" | "headers" | "path" | "query"> =
           typeof pageParam === "object"
             ? pageParam
             : {
@@ -931,11 +852,7 @@ export const listAuditEventsInfiniteOptions = (
 export const loginMutation = (
   options?: Partial<Options<LoginData>>,
 ): UseMutationOptions<LoginResponse, LoginError, Options<LoginData>> => {
-  const mutationOptions: UseMutationOptions<
-    LoginResponse,
-    LoginError,
-    Options<LoginData>
-  > = {
+  const mutationOptions: UseMutationOptions<LoginResponse, LoginError, Options<LoginData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await login({
         ...options,
@@ -951,11 +868,7 @@ export const loginMutation = (
 export const logoutMutation = (
   options?: Partial<Options<LogoutData>>,
 ): UseMutationOptions<LogoutResponse, LogoutError, Options<LogoutData>> => {
-  const mutationOptions: UseMutationOptions<
-    LogoutResponse,
-    LogoutError,
-    Options<LogoutData>
-  > = {
+  const mutationOptions: UseMutationOptions<LogoutResponse, LogoutError, Options<LogoutData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await logout({
         ...options,
@@ -968,16 +881,10 @@ export const logoutMutation = (
   return mutationOptions;
 };
 
-export const getMeQueryKey = (options?: Options<GetMeData>) =>
-  createQueryKey("getMe", options);
+export const getMeQueryKey = (options?: Options<GetMeData>) => createQueryKey("getMe", options);
 
 export const getMeOptions = (options?: Options<GetMeData>) =>
-  queryOptions<
-    GetMeResponse,
-    GetMeError,
-    GetMeResponse,
-    ReturnType<typeof getMeQueryKey>
-  >({
+  queryOptions<GetMeResponse, GetMeError, GetMeResponse, ReturnType<typeof getMeQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await getMe({
         ...options,
@@ -992,16 +899,8 @@ export const getMeOptions = (options?: Options<GetMeData>) =>
 
 export const updateMeMutation = (
   options?: Partial<Options<UpdateMeData>>,
-): UseMutationOptions<
-  UpdateMeResponse,
-  UpdateMeError,
-  Options<UpdateMeData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    UpdateMeResponse,
-    UpdateMeError,
-    Options<UpdateMeData>
-  > = {
+): UseMutationOptions<UpdateMeResponse, UpdateMeError, Options<UpdateMeData>> => {
+  const mutationOptions: UseMutationOptions<UpdateMeResponse, UpdateMeError, Options<UpdateMeData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await updateMe({
         ...options,
@@ -1016,11 +915,7 @@ export const updateMeMutation = (
 
 export const changePasswordMutation = (
   options?: Partial<Options<ChangePasswordData>>,
-): UseMutationOptions<
-  ChangePasswordResponse,
-  ChangePasswordError,
-  Options<ChangePasswordData>
-> => {
+): UseMutationOptions<ChangePasswordResponse, ChangePasswordError, Options<ChangePasswordData>> => {
   const mutationOptions: UseMutationOptions<
     ChangePasswordResponse,
     ChangePasswordError,
@@ -1040,11 +935,7 @@ export const changePasswordMutation = (
 
 export const revokeOtherSessionsMutation = (
   options?: Partial<Options<RevokeOtherSessionsData>>,
-): UseMutationOptions<
-  RevokeOtherSessionsResponse,
-  RevokeOtherSessionsError,
-  Options<RevokeOtherSessionsData>
-> => {
+): UseMutationOptions<RevokeOtherSessionsResponse, RevokeOtherSessionsError, Options<RevokeOtherSessionsData>> => {
   const mutationOptions: UseMutationOptions<
     RevokeOtherSessionsResponse,
     RevokeOtherSessionsError,
@@ -1086,31 +977,21 @@ export const listExecutionsOptions = (options?: Options<ListExecutionsData>) =>
 
 export const listExecutionsInfiniteQueryKey = (
   options?: Options<ListExecutionsData>,
-): QueryKey<Options<ListExecutionsData>> =>
-  createQueryKey("listExecutions", options, true);
+): QueryKey<Options<ListExecutionsData>> => createQueryKey("listExecutions", options, true);
 
-export const listExecutionsInfiniteOptions = (
-  options?: Options<ListExecutionsData>,
-) => {
+export const listExecutionsInfiniteOptions = (options?: Options<ListExecutionsData>) => {
   const opts = infiniteQueryOptions<
     ListExecutionsResponse,
     ListExecutionsError,
     InfiniteData<ListExecutionsResponse>,
     QueryKey<Options<ListExecutionsData>>,
-    | string
-    | Pick<
-        QueryKey<Options<ListExecutionsData>>[0],
-        "body" | "headers" | "path" | "query"
-      >
+    string | Pick<QueryKey<Options<ListExecutionsData>>[0], "body" | "headers" | "path" | "query">
   >(
     // @ts-ignore
     {
       queryFn: async ({ pageParam, queryKey, signal }) => {
         // @ts-ignore
-        const page: Pick<
-          QueryKey<Options<ListExecutionsData>>[0],
-          "body" | "headers" | "path" | "query"
-        > =
+        const page: Pick<QueryKey<Options<ListExecutionsData>>[0], "body" | "headers" | "path" | "query"> =
           typeof pageParam === "object"
             ? pageParam
             : {
@@ -1133,16 +1014,10 @@ export const listExecutionsInfiniteOptions = (
   return opts as Omit<typeof opts, "initialData">;
 };
 
-export const getExecutionQueryKey = (options: Options<GetExecutionData>) =>
-  createQueryKey("getExecution", options);
+export const getExecutionQueryKey = (options: Options<GetExecutionData>) => createQueryKey("getExecution", options);
 
 export const getExecutionOptions = (options: Options<GetExecutionData>) =>
-  queryOptions<
-    GetExecutionResponse,
-    GetExecutionError,
-    GetExecutionResponse,
-    ReturnType<typeof getExecutionQueryKey>
-  >({
+  queryOptions<GetExecutionResponse, GetExecutionError, GetExecutionResponse, ReturnType<typeof getExecutionQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await getExecution({
         ...options,
@@ -1155,13 +1030,10 @@ export const getExecutionOptions = (options: Options<GetExecutionData>) =>
     queryKey: getExecutionQueryKey(options),
   });
 
-export const listExecutionArtifactsQueryKey = (
-  options: Options<ListExecutionArtifactsData>,
-) => createQueryKey("listExecutionArtifacts", options);
+export const listExecutionArtifactsQueryKey = (options: Options<ListExecutionArtifactsData>) =>
+  createQueryKey("listExecutionArtifacts", options);
 
-export const listExecutionArtifactsOptions = (
-  options: Options<ListExecutionArtifactsData>,
-) =>
+export const listExecutionArtifactsOptions = (options: Options<ListExecutionArtifactsData>) =>
   queryOptions<
     ListExecutionArtifactsResponse,
     ListExecutionArtifactsError,
@@ -1180,13 +1052,10 @@ export const listExecutionArtifactsOptions = (
     queryKey: listExecutionArtifactsQueryKey(options),
   });
 
-export const downloadArtifactQueryKey = (
-  options: Options<DownloadArtifactData>,
-) => createQueryKey("downloadArtifact", options);
+export const downloadArtifactQueryKey = (options: Options<DownloadArtifactData>) =>
+  createQueryKey("downloadArtifact", options);
 
-export const downloadArtifactOptions = (
-  options: Options<DownloadArtifactData>,
-) =>
+export const downloadArtifactOptions = (options: Options<DownloadArtifactData>) =>
   queryOptions<
     DownloadArtifactResponse,
     DefaultError,
@@ -1207,11 +1076,7 @@ export const downloadArtifactOptions = (
 
 export const cancelExecutionMutation = (
   options?: Partial<Options<CancelExecutionData>>,
-): UseMutationOptions<
-  CancelExecutionResponse,
-  CancelExecutionError,
-  Options<CancelExecutionData>
-> => {
+): UseMutationOptions<CancelExecutionResponse, CancelExecutionError, Options<CancelExecutionData>> => {
   const mutationOptions: UseMutationOptions<
     CancelExecutionResponse,
     CancelExecutionError,
@@ -1229,13 +1094,10 @@ export const cancelExecutionMutation = (
   return mutationOptions;
 };
 
-export const listExecutionInsightsQueryKey = (
-  options: Options<ListExecutionInsightsData>,
-) => createQueryKey("listExecutionInsights", options);
+export const listExecutionInsightsQueryKey = (options: Options<ListExecutionInsightsData>) =>
+  createQueryKey("listExecutionInsights", options);
 
-export const listExecutionInsightsOptions = (
-  options: Options<ListExecutionInsightsData>,
-) =>
+export const listExecutionInsightsOptions = (options: Options<ListExecutionInsightsData>) =>
   queryOptions<
     ListExecutionInsightsResponse,
     ListExecutionInsightsError,
@@ -1256,16 +1118,8 @@ export const listExecutionInsightsOptions = (
 
 export const requestTriageMutation = (
   options?: Partial<Options<RequestTriageData>>,
-): UseMutationOptions<
-  RequestTriageResponse,
-  RequestTriageError,
-  Options<RequestTriageData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    RequestTriageResponse,
-    RequestTriageError,
-    Options<RequestTriageData>
-  > = {
+): UseMutationOptions<RequestTriageResponse, RequestTriageError, Options<RequestTriageData>> => {
+  const mutationOptions: UseMutationOptions<RequestTriageResponse, RequestTriageError, Options<RequestTriageData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await requestTriage({
         ...options,
@@ -1278,13 +1132,10 @@ export const requestTriageMutation = (
   return mutationOptions;
 };
 
-export const getExecutionLogsQueryKey = (
-  options: Options<GetExecutionLogsData>,
-) => createQueryKey("getExecutionLogs", options);
+export const getExecutionLogsQueryKey = (options: Options<GetExecutionLogsData>) =>
+  createQueryKey("getExecutionLogs", options);
 
-export const getExecutionLogsOptions = (
-  options: Options<GetExecutionLogsData>,
-) =>
+export const getExecutionLogsOptions = (options: Options<GetExecutionLogsData>) =>
   queryOptions<
     GetExecutionLogsResponse,
     GetExecutionLogsError,
@@ -1305,31 +1156,21 @@ export const getExecutionLogsOptions = (
 
 export const getExecutionLogsInfiniteQueryKey = (
   options: Options<GetExecutionLogsData>,
-): QueryKey<Options<GetExecutionLogsData>> =>
-  createQueryKey("getExecutionLogs", options, true);
+): QueryKey<Options<GetExecutionLogsData>> => createQueryKey("getExecutionLogs", options, true);
 
-export const getExecutionLogsInfiniteOptions = (
-  options: Options<GetExecutionLogsData>,
-) => {
+export const getExecutionLogsInfiniteOptions = (options: Options<GetExecutionLogsData>) => {
   const opts = infiniteQueryOptions<
     GetExecutionLogsResponse,
     GetExecutionLogsError,
     InfiniteData<GetExecutionLogsResponse>,
     QueryKey<Options<GetExecutionLogsData>>,
-    | string
-    | Pick<
-        QueryKey<Options<GetExecutionLogsData>>[0],
-        "body" | "headers" | "path" | "query"
-      >
+    string | Pick<QueryKey<Options<GetExecutionLogsData>>[0], "body" | "headers" | "path" | "query">
   >(
     // @ts-ignore
     {
       queryFn: async ({ pageParam, queryKey, signal }) => {
         // @ts-ignore
-        const page: Pick<
-          QueryKey<Options<GetExecutionLogsData>>[0],
-          "body" | "headers" | "path" | "query"
-        > =
+        const page: Pick<QueryKey<Options<GetExecutionLogsData>>[0], "body" | "headers" | "path" | "query"> =
           typeof pageParam === "object"
             ? pageParam
             : {
@@ -1352,19 +1193,11 @@ export const getExecutionLogsInfiniteOptions = (
   return opts as Omit<typeof opts, "initialData">;
 };
 
-export const downloadExecutionLogsQueryKey = (
-  options: Options<DownloadExecutionLogsData>,
-) => createQueryKey("downloadExecutionLogs", options);
+export const downloadExecutionLogsQueryKey = (options: Options<DownloadExecutionLogsData>) =>
+  createQueryKey("downloadExecutionLogs", options);
 
-export const downloadExecutionLogsOptions = (
-  options: Options<DownloadExecutionLogsData>,
-) =>
-  queryOptions<
-    unknown,
-    DefaultError,
-    unknown,
-    ReturnType<typeof downloadExecutionLogsQueryKey>
-  >({
+export const downloadExecutionLogsOptions = (options: Options<DownloadExecutionLogsData>) =>
+  queryOptions<unknown, DefaultError, unknown, ReturnType<typeof downloadExecutionLogsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await downloadExecutionLogs({
         ...options,
@@ -1377,13 +1210,10 @@ export const downloadExecutionLogsOptions = (
     queryKey: downloadExecutionLogsQueryKey(options),
   });
 
-export const listExecutionMetricsQueryKey = (
-  options: Options<ListExecutionMetricsData>,
-) => createQueryKey("listExecutionMetrics", options);
+export const listExecutionMetricsQueryKey = (options: Options<ListExecutionMetricsData>) =>
+  createQueryKey("listExecutionMetrics", options);
 
-export const listExecutionMetricsOptions = (
-  options: Options<ListExecutionMetricsData>,
-) =>
+export const listExecutionMetricsOptions = (options: Options<ListExecutionMetricsData>) =>
   queryOptions<
     ListExecutionMetricsResponse,
     ListExecutionMetricsError,
@@ -1404,11 +1234,7 @@ export const listExecutionMetricsOptions = (
 
 export const rerunExecutionMutation = (
   options?: Partial<Options<RerunExecutionData>>,
-): UseMutationOptions<
-  RerunExecutionResponse,
-  RerunExecutionError,
-  Options<RerunExecutionData>
-> => {
+): UseMutationOptions<RerunExecutionResponse, RerunExecutionError, Options<RerunExecutionData>> => {
   const mutationOptions: UseMutationOptions<
     RerunExecutionResponse,
     RerunExecutionError,
@@ -1428,11 +1254,7 @@ export const rerunExecutionMutation = (
 
 export const restartExecutionMutation = (
   options?: Partial<Options<RestartExecutionData>>,
-): UseMutationOptions<
-  RestartExecutionResponse,
-  RestartExecutionError,
-  Options<RestartExecutionData>
-> => {
+): UseMutationOptions<RestartExecutionResponse, RestartExecutionError, Options<RestartExecutionData>> => {
   const mutationOptions: UseMutationOptions<
     RestartExecutionResponse,
     RestartExecutionError,
@@ -1450,16 +1272,10 @@ export const restartExecutionMutation = (
   return mutationOptions;
 };
 
-export const listFlowsQueryKey = (options?: Options<ListFlowsData>) =>
-  createQueryKey("listFlows", options);
+export const listFlowsQueryKey = (options?: Options<ListFlowsData>) => createQueryKey("listFlows", options);
 
 export const listFlowsOptions = (options?: Options<ListFlowsData>) =>
-  queryOptions<
-    ListFlowsResponse,
-    ListFlowsError,
-    ListFlowsResponse,
-    ReturnType<typeof listFlowsQueryKey>
-  >({
+  queryOptions<ListFlowsResponse, ListFlowsError, ListFlowsResponse, ReturnType<typeof listFlowsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await listFlows({
         ...options,
@@ -1472,9 +1288,7 @@ export const listFlowsOptions = (options?: Options<ListFlowsData>) =>
     queryKey: listFlowsQueryKey(options),
   });
 
-export const listFlowsInfiniteQueryKey = (
-  options?: Options<ListFlowsData>,
-): QueryKey<Options<ListFlowsData>> =>
+export const listFlowsInfiniteQueryKey = (options?: Options<ListFlowsData>): QueryKey<Options<ListFlowsData>> =>
   createQueryKey("listFlows", options, true);
 
 export const listFlowsInfiniteOptions = (options?: Options<ListFlowsData>) => {
@@ -1483,20 +1297,13 @@ export const listFlowsInfiniteOptions = (options?: Options<ListFlowsData>) => {
     ListFlowsError,
     InfiniteData<ListFlowsResponse>,
     QueryKey<Options<ListFlowsData>>,
-    | string
-    | Pick<
-        QueryKey<Options<ListFlowsData>>[0],
-        "body" | "headers" | "path" | "query"
-      >
+    string | Pick<QueryKey<Options<ListFlowsData>>[0], "body" | "headers" | "path" | "query">
   >(
     // @ts-ignore
     {
       queryFn: async ({ pageParam, queryKey, signal }) => {
         // @ts-ignore
-        const page: Pick<
-          QueryKey<Options<ListFlowsData>>[0],
-          "body" | "headers" | "path" | "query"
-        > =
+        const page: Pick<QueryKey<Options<ListFlowsData>>[0], "body" | "headers" | "path" | "query"> =
           typeof pageParam === "object"
             ? pageParam
             : {
@@ -1519,16 +1326,10 @@ export const listFlowsInfiniteOptions = (options?: Options<ListFlowsData>) => {
   return opts as Omit<typeof opts, "initialData">;
 };
 
-export const getFlowQueryKey = (options: Options<GetFlowData>) =>
-  createQueryKey("getFlow", options);
+export const getFlowQueryKey = (options: Options<GetFlowData>) => createQueryKey("getFlow", options);
 
 export const getFlowOptions = (options: Options<GetFlowData>) =>
-  queryOptions<
-    GetFlowResponse,
-    GetFlowError,
-    GetFlowResponse,
-    ReturnType<typeof getFlowQueryKey>
-  >({
+  queryOptions<GetFlowResponse, GetFlowError, GetFlowResponse, ReturnType<typeof getFlowQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await getFlow({
         ...options,
@@ -1543,16 +1344,8 @@ export const getFlowOptions = (options: Options<GetFlowData>) =>
 
 export const updateFlowMutation = (
   options?: Partial<Options<UpdateFlowData>>,
-): UseMutationOptions<
-  UpdateFlowResponse,
-  UpdateFlowError,
-  Options<UpdateFlowData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    UpdateFlowResponse,
-    UpdateFlowError,
-    Options<UpdateFlowData>
-  > = {
+): UseMutationOptions<UpdateFlowResponse, UpdateFlowError, Options<UpdateFlowData>> => {
+  const mutationOptions: UseMutationOptions<UpdateFlowResponse, UpdateFlowError, Options<UpdateFlowData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await updateFlow({
         ...options,
@@ -1565,13 +1358,10 @@ export const updateFlowMutation = (
   return mutationOptions;
 };
 
-export const diffFlowRevisionsQueryKey = (
-  options: Options<DiffFlowRevisionsData>,
-) => createQueryKey("diffFlowRevisions", options);
+export const diffFlowRevisionsQueryKey = (options: Options<DiffFlowRevisionsData>) =>
+  createQueryKey("diffFlowRevisions", options);
 
-export const diffFlowRevisionsOptions = (
-  options: Options<DiffFlowRevisionsData>,
-) =>
+export const diffFlowRevisionsOptions = (options: Options<DiffFlowRevisionsData>) =>
   queryOptions<
     DiffFlowRevisionsResponse,
     DiffFlowRevisionsError,
@@ -1592,16 +1382,8 @@ export const diffFlowRevisionsOptions = (
 
 export const triggerFlowMutation = (
   options?: Partial<Options<TriggerFlowData>>,
-): UseMutationOptions<
-  TriggerFlowResponse,
-  TriggerFlowError,
-  Options<TriggerFlowData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    TriggerFlowResponse,
-    TriggerFlowError,
-    Options<TriggerFlowData>
-  > = {
+): UseMutationOptions<TriggerFlowResponse, TriggerFlowError, Options<TriggerFlowData>> => {
+  const mutationOptions: UseMutationOptions<TriggerFlowResponse, TriggerFlowError, Options<TriggerFlowData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await triggerFlow({
         ...options,
@@ -1636,13 +1418,10 @@ export const getFlowMetricsOptions = (options: Options<GetFlowMetricsData>) =>
     queryKey: getFlowMetricsQueryKey(options),
   });
 
-export const listFlowRevisionsQueryKey = (
-  options: Options<ListFlowRevisionsData>,
-) => createQueryKey("listFlowRevisions", options);
+export const listFlowRevisionsQueryKey = (options: Options<ListFlowRevisionsData>) =>
+  createQueryKey("listFlowRevisions", options);
 
-export const listFlowRevisionsOptions = (
-  options: Options<ListFlowRevisionsData>,
-) =>
+export const listFlowRevisionsOptions = (options: Options<ListFlowRevisionsData>) =>
   queryOptions<
     ListFlowRevisionsResponse,
     ListFlowRevisionsError,
@@ -1661,9 +1440,8 @@ export const listFlowRevisionsOptions = (
     queryKey: listFlowRevisionsQueryKey(options),
   });
 
-export const getFlowRevisionQueryKey = (
-  options: Options<GetFlowRevisionData>,
-) => createQueryKey("getFlowRevision", options);
+export const getFlowRevisionQueryKey = (options: Options<GetFlowRevisionData>) =>
+  createQueryKey("getFlowRevision", options);
 
 export const getFlowRevisionOptions = (options: Options<GetFlowRevisionData>) =>
   queryOptions<
@@ -1684,16 +1462,10 @@ export const getFlowRevisionOptions = (options: Options<GetFlowRevisionData>) =>
     queryKey: getFlowRevisionQueryKey(options),
   });
 
-export const getFlowStatsQueryKey = (options: Options<GetFlowStatsData>) =>
-  createQueryKey("getFlowStats", options);
+export const getFlowStatsQueryKey = (options: Options<GetFlowStatsData>) => createQueryKey("getFlowStats", options);
 
 export const getFlowStatsOptions = (options: Options<GetFlowStatsData>) =>
-  queryOptions<
-    GetFlowStatsResponse,
-    GetFlowStatsError,
-    GetFlowStatsResponse,
-    ReturnType<typeof getFlowStatsQueryKey>
-  >({
+  queryOptions<GetFlowStatsResponse, GetFlowStatsError, GetFlowStatsResponse, ReturnType<typeof getFlowStatsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await getFlowStats({
         ...options,
@@ -1708,11 +1480,7 @@ export const getFlowStatsOptions = (options: Options<GetFlowStatsData>) =>
 
 export const rotateWebhookKeyMutation = (
   options?: Partial<Options<RotateWebhookKeyData>>,
-): UseMutationOptions<
-  RotateWebhookKeyResponse,
-  RotateWebhookKeyError,
-  Options<RotateWebhookKeyData>
-> => {
+): UseMutationOptions<RotateWebhookKeyResponse, RotateWebhookKeyError, Options<RotateWebhookKeyData>> => {
   const mutationOptions: UseMutationOptions<
     RotateWebhookKeyResponse,
     RotateWebhookKeyError,
@@ -1754,11 +1522,7 @@ export const listGitSourcesOptions = (options?: Options<ListGitSourcesData>) =>
 
 export const createGitSourceMutation = (
   options?: Partial<Options<CreateGitSourceData>>,
-): UseMutationOptions<
-  CreateGitSourceResponse,
-  CreateGitSourceError,
-  Options<CreateGitSourceData>
-> => {
+): UseMutationOptions<CreateGitSourceResponse, CreateGitSourceError, Options<CreateGitSourceData>> => {
   const mutationOptions: UseMutationOptions<
     CreateGitSourceResponse,
     CreateGitSourceError,
@@ -1778,11 +1542,7 @@ export const createGitSourceMutation = (
 
 export const deleteGitSourceMutation = (
   options?: Partial<Options<DeleteGitSourceData>>,
-): UseMutationOptions<
-  DeleteGitSourceResponse,
-  DeleteGitSourceError,
-  Options<DeleteGitSourceData>
-> => {
+): UseMutationOptions<DeleteGitSourceResponse, DeleteGitSourceError, Options<DeleteGitSourceData>> => {
   const mutationOptions: UseMutationOptions<
     DeleteGitSourceResponse,
     DeleteGitSourceError,
@@ -1800,16 +1560,10 @@ export const deleteGitSourceMutation = (
   return mutationOptions;
 };
 
-export const getGitSourceQueryKey = (options: Options<GetGitSourceData>) =>
-  createQueryKey("getGitSource", options);
+export const getGitSourceQueryKey = (options: Options<GetGitSourceData>) => createQueryKey("getGitSource", options);
 
 export const getGitSourceOptions = (options: Options<GetGitSourceData>) =>
-  queryOptions<
-    GetGitSourceResponse,
-    GetGitSourceError,
-    GetGitSourceResponse,
-    ReturnType<typeof getGitSourceQueryKey>
-  >({
+  queryOptions<GetGitSourceResponse, GetGitSourceError, GetGitSourceResponse, ReturnType<typeof getGitSourceQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await getGitSource({
         ...options,
@@ -1824,11 +1578,7 @@ export const getGitSourceOptions = (options: Options<GetGitSourceData>) =>
 
 export const updateGitSourceMutation = (
   options?: Partial<Options<UpdateGitSourceData>>,
-): UseMutationOptions<
-  UpdateGitSourceResponse,
-  UpdateGitSourceError,
-  Options<UpdateGitSourceData>
-> => {
+): UseMutationOptions<UpdateGitSourceResponse, UpdateGitSourceError, Options<UpdateGitSourceData>> => {
   const mutationOptions: UseMutationOptions<
     UpdateGitSourceResponse,
     UpdateGitSourceError,
@@ -1846,9 +1596,8 @@ export const updateGitSourceMutation = (
   return mutationOptions;
 };
 
-export const listGitSyncRunsQueryKey = (
-  options: Options<ListGitSyncRunsData>,
-) => createQueryKey("listGitSyncRuns", options);
+export const listGitSyncRunsQueryKey = (options: Options<ListGitSyncRunsData>) =>
+  createQueryKey("listGitSyncRuns", options);
 
 export const listGitSyncRunsOptions = (options: Options<ListGitSyncRunsData>) =>
   queryOptions<
@@ -1871,16 +1620,8 @@ export const listGitSyncRunsOptions = (options: Options<ListGitSyncRunsData>) =>
 
 export const syncGitSourceMutation = (
   options?: Partial<Options<SyncGitSourceData>>,
-): UseMutationOptions<
-  unknown,
-  SyncGitSourceError,
-  Options<SyncGitSourceData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    unknown,
-    SyncGitSourceError,
-    Options<SyncGitSourceData>
-  > = {
+): UseMutationOptions<unknown, SyncGitSourceError, Options<SyncGitSourceData>> => {
+  const mutationOptions: UseMutationOptions<unknown, SyncGitSourceError, Options<SyncGitSourceData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await syncGitSource({
         ...options,
@@ -1893,8 +1634,7 @@ export const syncGitSourceMutation = (
   return mutationOptions;
 };
 
-export const listInstancesQueryKey = (options?: Options<ListInstancesData>) =>
-  createQueryKey("listInstances", options);
+export const listInstancesQueryKey = (options?: Options<ListInstancesData>) => createQueryKey("listInstances", options);
 
 export const listInstancesOptions = (options?: Options<ListInstancesData>) =>
   queryOptions<
@@ -1939,11 +1679,7 @@ export const listNamespacesOptions = (options?: Options<ListNamespacesData>) =>
 
 export const createNamespaceMutation = (
   options?: Partial<Options<CreateNamespaceData>>,
-): UseMutationOptions<
-  CreateNamespaceResponse,
-  CreateNamespaceError,
-  Options<CreateNamespaceData>
-> => {
+): UseMutationOptions<CreateNamespaceResponse, CreateNamespaceError, Options<CreateNamespaceData>> => {
   const mutationOptions: UseMutationOptions<
     CreateNamespaceResponse,
     CreateNamespaceError,
@@ -1963,11 +1699,7 @@ export const createNamespaceMutation = (
 
 export const deleteNamespaceMutation = (
   options?: Partial<Options<DeleteNamespaceData>>,
-): UseMutationOptions<
-  DeleteNamespaceResponse,
-  DeleteNamespaceError,
-  Options<DeleteNamespaceData>
-> => {
+): UseMutationOptions<DeleteNamespaceResponse, DeleteNamespaceError, Options<DeleteNamespaceData>> => {
   const mutationOptions: UseMutationOptions<
     DeleteNamespaceResponse,
     DeleteNamespaceError,
@@ -1985,16 +1717,10 @@ export const deleteNamespaceMutation = (
   return mutationOptions;
 };
 
-export const getNamespaceQueryKey = (options: Options<GetNamespaceData>) =>
-  createQueryKey("getNamespace", options);
+export const getNamespaceQueryKey = (options: Options<GetNamespaceData>) => createQueryKey("getNamespace", options);
 
 export const getNamespaceOptions = (options: Options<GetNamespaceData>) =>
-  queryOptions<
-    GetNamespaceResponse,
-    GetNamespaceError,
-    GetNamespaceResponse,
-    ReturnType<typeof getNamespaceQueryKey>
-  >({
+  queryOptions<GetNamespaceResponse, GetNamespaceError, GetNamespaceResponse, ReturnType<typeof getNamespaceQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await getNamespace({
         ...options,
@@ -2009,16 +1735,8 @@ export const getNamespaceOptions = (options: Options<GetNamespaceData>) =>
 
 export const saveChangesMutation = (
   options?: Partial<Options<SaveChangesData>>,
-): UseMutationOptions<
-  SaveChangesResponse,
-  SaveChangesError,
-  Options<SaveChangesData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    SaveChangesResponse,
-    SaveChangesError,
-    Options<SaveChangesData>
-  > = {
+): UseMutationOptions<SaveChangesResponse, SaveChangesError, Options<SaveChangesData>> => {
+  const mutationOptions: UseMutationOptions<SaveChangesResponse, SaveChangesError, Options<SaveChangesData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await saveChanges({
         ...options,
@@ -2031,16 +1749,10 @@ export const saveChangesMutation = (
   return mutationOptions;
 };
 
-export const diffVersionsQueryKey = (options: Options<DiffVersionsData>) =>
-  createQueryKey("diffVersions", options);
+export const diffVersionsQueryKey = (options: Options<DiffVersionsData>) => createQueryKey("diffVersions", options);
 
 export const diffVersionsOptions = (options: Options<DiffVersionsData>) =>
-  queryOptions<
-    DiffVersionsResponse,
-    DiffVersionsError,
-    DiffVersionsResponse,
-    ReturnType<typeof diffVersionsQueryKey>
-  >({
+  queryOptions<DiffVersionsResponse, DiffVersionsError, DiffVersionsResponse, ReturnType<typeof diffVersionsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await diffVersions({
         ...options,
@@ -2053,16 +1765,10 @@ export const diffVersionsOptions = (options: Options<DiffVersionsData>) =>
     queryKey: diffVersionsQueryKey(options),
   });
 
-export const getFileQueryKey = (options: Options<GetFileData>) =>
-  createQueryKey("getFile", options);
+export const getFileQueryKey = (options: Options<GetFileData>) => createQueryKey("getFile", options);
 
 export const getFileOptions = (options: Options<GetFileData>) =>
-  queryOptions<
-    GetFileResponse,
-    DefaultError,
-    GetFileResponse,
-    ReturnType<typeof getFileQueryKey>
-  >({
+  queryOptions<GetFileResponse, DefaultError, GetFileResponse, ReturnType<typeof getFileQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await getFile({
         ...options,
@@ -2078,11 +1784,7 @@ export const getFileOptions = (options: Options<GetFileData>) =>
 export const uploadFileMutation = (
   options?: Partial<Options<UploadFileData>>,
 ): UseMutationOptions<unknown, DefaultError, Options<UploadFileData>> => {
-  const mutationOptions: UseMutationOptions<
-    unknown,
-    DefaultError,
-    Options<UploadFileData>
-  > = {
+  const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<UploadFileData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await uploadFile({
         ...options,
@@ -2095,16 +1797,10 @@ export const uploadFileMutation = (
   return mutationOptions;
 };
 
-export const listFilesQueryKey = (options: Options<ListFilesData>) =>
-  createQueryKey("listFiles", options);
+export const listFilesQueryKey = (options: Options<ListFilesData>) => createQueryKey("listFiles", options);
 
 export const listFilesOptions = (options: Options<ListFilesData>) =>
-  queryOptions<
-    ListFilesResponse,
-    ListFilesError,
-    ListFilesResponse,
-    ReturnType<typeof listFilesQueryKey>
-  >({
+  queryOptions<ListFilesResponse, ListFilesError, ListFilesResponse, ReturnType<typeof listFilesQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await listFiles({
         ...options,
@@ -2117,9 +1813,8 @@ export const listFilesOptions = (options: Options<ListFilesData>) =>
     queryKey: listFilesQueryKey(options),
   });
 
-export const getNamespaceGitQueryKey = (
-  options: Options<GetNamespaceGitData>,
-) => createQueryKey("getNamespaceGit", options);
+export const getNamespaceGitQueryKey = (options: Options<GetNamespaceGitData>) =>
+  createQueryKey("getNamespaceGit", options);
 
 export const getNamespaceGitOptions = (options: Options<GetNamespaceGitData>) =>
   queryOptions<
@@ -2142,11 +1837,7 @@ export const getNamespaceGitOptions = (options: Options<GetNamespaceGitData>) =>
 
 export const pushNamespaceBranchMutation = (
   options?: Partial<Options<PushNamespaceBranchData>>,
-): UseMutationOptions<
-  PushNamespaceBranchResponse,
-  PushNamespaceBranchError,
-  Options<PushNamespaceBranchData>
-> => {
+): UseMutationOptions<PushNamespaceBranchResponse, PushNamespaceBranchError, Options<PushNamespaceBranchData>> => {
   const mutationOptions: UseMutationOptions<
     PushNamespaceBranchResponse,
     PushNamespaceBranchError,
@@ -2166,16 +1857,8 @@ export const pushNamespaceBranchMutation = (
 
 export const revertVersionMutation = (
   options?: Partial<Options<RevertVersionData>>,
-): UseMutationOptions<
-  RevertVersionResponse,
-  RevertVersionError,
-  Options<RevertVersionData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    RevertVersionResponse,
-    RevertVersionError,
-    Options<RevertVersionData>
-  > = {
+): UseMutationOptions<RevertVersionResponse, RevertVersionError, Options<RevertVersionData>> => {
+  const mutationOptions: UseMutationOptions<RevertVersionResponse, RevertVersionError, Options<RevertVersionData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await revertVersion({
         ...options,
@@ -2191,11 +1874,7 @@ export const revertVersionMutation = (
 export const runFileMutation = (
   options?: Partial<Options<RunFileData>>,
 ): UseMutationOptions<RunFileResponse, RunFileError, Options<RunFileData>> => {
-  const mutationOptions: UseMutationOptions<
-    RunFileResponse,
-    RunFileError,
-    Options<RunFileData>
-  > = {
+  const mutationOptions: UseMutationOptions<RunFileResponse, RunFileError, Options<RunFileData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await runFile({
         ...options,
@@ -2208,13 +1887,10 @@ export const runFileMutation = (
   return mutationOptions;
 };
 
-export const listNamespaceSecretsQueryKey = (
-  options: Options<ListNamespaceSecretsData>,
-) => createQueryKey("listNamespaceSecrets", options);
+export const listNamespaceSecretsQueryKey = (options: Options<ListNamespaceSecretsData>) =>
+  createQueryKey("listNamespaceSecrets", options);
 
-export const listNamespaceSecretsOptions = (
-  options: Options<ListNamespaceSecretsData>,
-) =>
+export const listNamespaceSecretsOptions = (options: Options<ListNamespaceSecretsData>) =>
   queryOptions<
     ListNamespaceSecretsResponse,
     ListNamespaceSecretsError,
@@ -2259,11 +1935,7 @@ export const deleteNamespaceSecretMutation = (
 
 export const putNamespaceSecretMutation = (
   options?: Partial<Options<PutNamespaceSecretData>>,
-): UseMutationOptions<
-  PutNamespaceSecretResponse,
-  PutNamespaceSecretError,
-  Options<PutNamespaceSecretData>
-> => {
+): UseMutationOptions<PutNamespaceSecretResponse, PutNamespaceSecretError, Options<PutNamespaceSecretData>> => {
   const mutationOptions: UseMutationOptions<
     PutNamespaceSecretResponse,
     PutNamespaceSecretError,
@@ -2283,11 +1955,7 @@ export const putNamespaceSecretMutation = (
 
 export const checkNamespaceSecretMutation = (
   options?: Partial<Options<CheckNamespaceSecretData>>,
-): UseMutationOptions<
-  CheckNamespaceSecretResponse,
-  CheckNamespaceSecretError,
-  Options<CheckNamespaceSecretData>
-> => {
+): UseMutationOptions<CheckNamespaceSecretResponse, CheckNamespaceSecretError, Options<CheckNamespaceSecretData>> => {
   const mutationOptions: UseMutationOptions<
     CheckNamespaceSecretResponse,
     CheckNamespaceSecretError,
@@ -2307,16 +1975,8 @@ export const checkNamespaceSecretMutation = (
 
 export const validateFileMutation = (
   options?: Partial<Options<ValidateFileData>>,
-): UseMutationOptions<
-  ValidateFileResponse,
-  ValidateFileError,
-  Options<ValidateFileData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    ValidateFileResponse,
-    ValidateFileError,
-    Options<ValidateFileData>
-  > = {
+): UseMutationOptions<ValidateFileResponse, ValidateFileError, Options<ValidateFileData>> => {
+  const mutationOptions: UseMutationOptions<ValidateFileResponse, ValidateFileError, Options<ValidateFileData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await validateFile({
         ...options,
@@ -2329,13 +1989,10 @@ export const validateFileMutation = (
   return mutationOptions;
 };
 
-export const listNamespaceVariablesQueryKey = (
-  options: Options<ListNamespaceVariablesData>,
-) => createQueryKey("listNamespaceVariables", options);
+export const listNamespaceVariablesQueryKey = (options: Options<ListNamespaceVariablesData>) =>
+  createQueryKey("listNamespaceVariables", options);
 
-export const listNamespaceVariablesOptions = (
-  options: Options<ListNamespaceVariablesData>,
-) =>
+export const listNamespaceVariablesOptions = (options: Options<ListNamespaceVariablesData>) =>
   queryOptions<
     ListNamespaceVariablesResponse,
     ListNamespaceVariablesError,
@@ -2380,11 +2037,7 @@ export const deleteNamespaceVariableMutation = (
 
 export const putNamespaceVariableMutation = (
   options?: Partial<Options<PutNamespaceVariableData>>,
-): UseMutationOptions<
-  PutNamespaceVariableResponse,
-  PutNamespaceVariableError,
-  Options<PutNamespaceVariableData>
-> => {
+): UseMutationOptions<PutNamespaceVariableResponse, PutNamespaceVariableError, Options<PutNamespaceVariableData>> => {
   const mutationOptions: UseMutationOptions<
     PutNamespaceVariableResponse,
     PutNamespaceVariableError,
@@ -2402,16 +2055,10 @@ export const putNamespaceVariableMutation = (
   return mutationOptions;
 };
 
-export const listVersionsQueryKey = (options: Options<ListVersionsData>) =>
-  createQueryKey("listVersions", options);
+export const listVersionsQueryKey = (options: Options<ListVersionsData>) => createQueryKey("listVersions", options);
 
 export const listVersionsOptions = (options: Options<ListVersionsData>) =>
-  queryOptions<
-    ListVersionsResponse,
-    ListVersionsError,
-    ListVersionsResponse,
-    ReturnType<typeof listVersionsQueryKey>
-  >({
+  queryOptions<ListVersionsResponse, ListVersionsError, ListVersionsResponse, ReturnType<typeof listVersionsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await listVersions({
         ...options,
@@ -2424,13 +2071,10 @@ export const listVersionsOptions = (options: Options<ListVersionsData>) =>
     queryKey: listVersionsQueryKey(options),
   });
 
-export const listUpcomingSchedulesQueryKey = (
-  options?: Options<ListUpcomingSchedulesData>,
-) => createQueryKey("listUpcomingSchedules", options);
+export const listUpcomingSchedulesQueryKey = (options?: Options<ListUpcomingSchedulesData>) =>
+  createQueryKey("listUpcomingSchedules", options);
 
-export const listUpcomingSchedulesOptions = (
-  options?: Options<ListUpcomingSchedulesData>,
-) =>
+export const listUpcomingSchedulesOptions = (options?: Options<ListUpcomingSchedulesData>) =>
   queryOptions<
     ListUpcomingSchedulesResponse,
     ListUpcomingSchedulesError,
@@ -2449,16 +2093,10 @@ export const listUpcomingSchedulesOptions = (
     queryKey: listUpcomingSchedulesQueryKey(options),
   });
 
-export const getFlowSchemaQueryKey = (options?: Options<GetFlowSchemaData>) =>
-  createQueryKey("getFlowSchema", options);
+export const getFlowSchemaQueryKey = (options?: Options<GetFlowSchemaData>) => createQueryKey("getFlowSchema", options);
 
 export const getFlowSchemaOptions = (options?: Options<GetFlowSchemaData>) =>
-  queryOptions<
-    unknown,
-    GetFlowSchemaError,
-    unknown,
-    ReturnType<typeof getFlowSchemaQueryKey>
-  >({
+  queryOptions<unknown, GetFlowSchemaError, unknown, ReturnType<typeof getFlowSchemaQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await getFlowSchema({
         ...options,
@@ -2471,13 +2109,10 @@ export const getFlowSchemaOptions = (options?: Options<GetFlowSchemaData>) =>
     queryKey: getFlowSchemaQueryKey(options),
   });
 
-export const listSecretProvidersQueryKey = (
-  options?: Options<ListSecretProvidersData>,
-) => createQueryKey("listSecretProviders", options);
+export const listSecretProvidersQueryKey = (options?: Options<ListSecretProvidersData>) =>
+  createQueryKey("listSecretProviders", options);
 
-export const listSecretProvidersOptions = (
-  options?: Options<ListSecretProvidersData>,
-) =>
+export const listSecretProvidersOptions = (options?: Options<ListSecretProvidersData>) =>
   queryOptions<
     ListSecretProvidersResponse,
     ListSecretProvidersError,
@@ -2498,11 +2133,7 @@ export const listSecretProvidersOptions = (
 
 export const createSecretProviderMutation = (
   options?: Partial<Options<CreateSecretProviderData>>,
-): UseMutationOptions<
-  CreateSecretProviderResponse,
-  CreateSecretProviderError,
-  Options<CreateSecretProviderData>
-> => {
+): UseMutationOptions<CreateSecretProviderResponse, CreateSecretProviderError, Options<CreateSecretProviderData>> => {
   const mutationOptions: UseMutationOptions<
     CreateSecretProviderResponse,
     CreateSecretProviderError,
@@ -2522,11 +2153,7 @@ export const createSecretProviderMutation = (
 
 export const deleteSecretProviderMutation = (
   options?: Partial<Options<DeleteSecretProviderData>>,
-): UseMutationOptions<
-  DeleteSecretProviderResponse,
-  DeleteSecretProviderError,
-  Options<DeleteSecretProviderData>
-> => {
+): UseMutationOptions<DeleteSecretProviderResponse, DeleteSecretProviderError, Options<DeleteSecretProviderData>> => {
   const mutationOptions: UseMutationOptions<
     DeleteSecretProviderResponse,
     DeleteSecretProviderError,
@@ -2546,11 +2173,7 @@ export const deleteSecretProviderMutation = (
 
 export const updateSecretProviderMutation = (
   options?: Partial<Options<UpdateSecretProviderData>>,
-): UseMutationOptions<
-  UpdateSecretProviderResponse,
-  UpdateSecretProviderError,
-  Options<UpdateSecretProviderData>
-> => {
+): UseMutationOptions<UpdateSecretProviderResponse, UpdateSecretProviderError, Options<UpdateSecretProviderData>> => {
   const mutationOptions: UseMutationOptions<
     UpdateSecretProviderResponse,
     UpdateSecretProviderError,
@@ -2570,11 +2193,7 @@ export const updateSecretProviderMutation = (
 
 export const checkSecretProviderMutation = (
   options?: Partial<Options<CheckSecretProviderData>>,
-): UseMutationOptions<
-  CheckSecretProviderResponse,
-  CheckSecretProviderError,
-  Options<CheckSecretProviderData>
-> => {
+): UseMutationOptions<CheckSecretProviderResponse, CheckSecretProviderError, Options<CheckSecretProviderData>> => {
   const mutationOptions: UseMutationOptions<
     CheckSecretProviderResponse,
     CheckSecretProviderError,
@@ -2592,13 +2211,10 @@ export const checkSecretProviderMutation = (
   return mutationOptions;
 };
 
-export const listGlobalSecretsQueryKey = (
-  options?: Options<ListGlobalSecretsData>,
-) => createQueryKey("listGlobalSecrets", options);
+export const listGlobalSecretsQueryKey = (options?: Options<ListGlobalSecretsData>) =>
+  createQueryKey("listGlobalSecrets", options);
 
-export const listGlobalSecretsOptions = (
-  options?: Options<ListGlobalSecretsData>,
-) =>
+export const listGlobalSecretsOptions = (options?: Options<ListGlobalSecretsData>) =>
   queryOptions<
     ListGlobalSecretsResponse,
     ListGlobalSecretsError,
@@ -2619,11 +2235,7 @@ export const listGlobalSecretsOptions = (
 
 export const deleteGlobalSecretMutation = (
   options?: Partial<Options<DeleteGlobalSecretData>>,
-): UseMutationOptions<
-  DeleteGlobalSecretResponse,
-  DeleteGlobalSecretError,
-  Options<DeleteGlobalSecretData>
-> => {
+): UseMutationOptions<DeleteGlobalSecretResponse, DeleteGlobalSecretError, Options<DeleteGlobalSecretData>> => {
   const mutationOptions: UseMutationOptions<
     DeleteGlobalSecretResponse,
     DeleteGlobalSecretError,
@@ -2643,11 +2255,7 @@ export const deleteGlobalSecretMutation = (
 
 export const putGlobalSecretMutation = (
   options?: Partial<Options<PutGlobalSecretData>>,
-): UseMutationOptions<
-  PutGlobalSecretResponse,
-  PutGlobalSecretError,
-  Options<PutGlobalSecretData>
-> => {
+): UseMutationOptions<PutGlobalSecretResponse, PutGlobalSecretError, Options<PutGlobalSecretData>> => {
   const mutationOptions: UseMutationOptions<
     PutGlobalSecretResponse,
     PutGlobalSecretError,
@@ -2667,11 +2275,7 @@ export const putGlobalSecretMutation = (
 
 export const checkGlobalSecretMutation = (
   options?: Partial<Options<CheckGlobalSecretData>>,
-): UseMutationOptions<
-  CheckGlobalSecretResponse,
-  CheckGlobalSecretError,
-  Options<CheckGlobalSecretData>
-> => {
+): UseMutationOptions<CheckGlobalSecretResponse, CheckGlobalSecretError, Options<CheckGlobalSecretData>> => {
   const mutationOptions: UseMutationOptions<
     CheckGlobalSecretResponse,
     CheckGlobalSecretError,
@@ -2689,16 +2293,10 @@ export const checkGlobalSecretMutation = (
   return mutationOptions;
 };
 
-export const getDashboardQueryKey = (options?: Options<GetDashboardData>) =>
-  createQueryKey("getDashboard", options);
+export const getDashboardQueryKey = (options?: Options<GetDashboardData>) => createQueryKey("getDashboard", options);
 
 export const getDashboardOptions = (options?: Options<GetDashboardData>) =>
-  queryOptions<
-    GetDashboardResponse,
-    GetDashboardError,
-    GetDashboardResponse,
-    ReturnType<typeof getDashboardQueryKey>
-  >({
+  queryOptions<GetDashboardResponse, GetDashboardError, GetDashboardResponse, ReturnType<typeof getDashboardQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await getDashboard({
         ...options,
@@ -2711,13 +2309,10 @@ export const getDashboardOptions = (options?: Options<GetDashboardData>) =>
     queryKey: getDashboardQueryKey(options),
   });
 
-export const getStorageStatusQueryKey = (
-  options?: Options<GetStorageStatusData>,
-) => createQueryKey("getStorageStatus", options);
+export const getStorageStatusQueryKey = (options?: Options<GetStorageStatusData>) =>
+  createQueryKey("getStorageStatus", options);
 
-export const getStorageStatusOptions = (
-  options?: Options<GetStorageStatusData>,
-) =>
+export const getStorageStatusOptions = (options?: Options<GetStorageStatusData>) =>
   queryOptions<
     GetStorageStatusResponse,
     GetStorageStatusError,
@@ -2736,16 +2331,10 @@ export const getStorageStatusOptions = (
     queryKey: getStorageStatusQueryKey(options),
   });
 
-export const listTokensQueryKey = (options?: Options<ListTokensData>) =>
-  createQueryKey("listTokens", options);
+export const listTokensQueryKey = (options?: Options<ListTokensData>) => createQueryKey("listTokens", options);
 
 export const listTokensOptions = (options?: Options<ListTokensData>) =>
-  queryOptions<
-    ListTokensResponse,
-    ListTokensError,
-    ListTokensResponse,
-    ReturnType<typeof listTokensQueryKey>
-  >({
+  queryOptions<ListTokensResponse, ListTokensError, ListTokensResponse, ReturnType<typeof listTokensQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await listTokens({
         ...options,
@@ -2758,33 +2347,22 @@ export const listTokensOptions = (options?: Options<ListTokensData>) =>
     queryKey: listTokensQueryKey(options),
   });
 
-export const listTokensInfiniteQueryKey = (
-  options?: Options<ListTokensData>,
-): QueryKey<Options<ListTokensData>> =>
+export const listTokensInfiniteQueryKey = (options?: Options<ListTokensData>): QueryKey<Options<ListTokensData>> =>
   createQueryKey("listTokens", options, true);
 
-export const listTokensInfiniteOptions = (
-  options?: Options<ListTokensData>,
-) => {
+export const listTokensInfiniteOptions = (options?: Options<ListTokensData>) => {
   const opts = infiniteQueryOptions<
     ListTokensResponse,
     ListTokensError,
     InfiniteData<ListTokensResponse>,
     QueryKey<Options<ListTokensData>>,
-    | string
-    | Pick<
-        QueryKey<Options<ListTokensData>>[0],
-        "body" | "headers" | "path" | "query"
-      >
+    string | Pick<QueryKey<Options<ListTokensData>>[0], "body" | "headers" | "path" | "query">
   >(
     // @ts-ignore
     {
       queryFn: async ({ pageParam, queryKey, signal }) => {
         // @ts-ignore
-        const page: Pick<
-          QueryKey<Options<ListTokensData>>[0],
-          "body" | "headers" | "path" | "query"
-        > =
+        const page: Pick<QueryKey<Options<ListTokensData>>[0], "body" | "headers" | "path" | "query"> =
           typeof pageParam === "object"
             ? pageParam
             : {
@@ -2809,16 +2387,8 @@ export const listTokensInfiniteOptions = (
 
 export const createTokenMutation = (
   options?: Partial<Options<CreateTokenData>>,
-): UseMutationOptions<
-  CreateTokenResponse,
-  CreateTokenError,
-  Options<CreateTokenData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    CreateTokenResponse,
-    CreateTokenError,
-    Options<CreateTokenData>
-  > = {
+): UseMutationOptions<CreateTokenResponse, CreateTokenError, Options<CreateTokenData>> => {
+  const mutationOptions: UseMutationOptions<CreateTokenResponse, CreateTokenError, Options<CreateTokenData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await createToken({
         ...options,
@@ -2833,16 +2403,8 @@ export const createTokenMutation = (
 
 export const revokeTokenMutation = (
   options?: Partial<Options<RevokeTokenData>>,
-): UseMutationOptions<
-  RevokeTokenResponse,
-  RevokeTokenError,
-  Options<RevokeTokenData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    RevokeTokenResponse,
-    RevokeTokenError,
-    Options<RevokeTokenData>
-  > = {
+): UseMutationOptions<RevokeTokenResponse, RevokeTokenError, Options<RevokeTokenData>> => {
+  const mutationOptions: UseMutationOptions<RevokeTokenResponse, RevokeTokenError, Options<RevokeTokenData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await revokeToken({
         ...options,
@@ -2855,16 +2417,10 @@ export const revokeTokenMutation = (
   return mutationOptions;
 };
 
-export const listUsersQueryKey = (options?: Options<ListUsersData>) =>
-  createQueryKey("listUsers", options);
+export const listUsersQueryKey = (options?: Options<ListUsersData>) => createQueryKey("listUsers", options);
 
 export const listUsersOptions = (options?: Options<ListUsersData>) =>
-  queryOptions<
-    ListUsersResponse,
-    ListUsersError,
-    ListUsersResponse,
-    ReturnType<typeof listUsersQueryKey>
-  >({
+  queryOptions<ListUsersResponse, ListUsersError, ListUsersResponse, ReturnType<typeof listUsersQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await listUsers({
         ...options,
@@ -2877,9 +2433,7 @@ export const listUsersOptions = (options?: Options<ListUsersData>) =>
     queryKey: listUsersQueryKey(options),
   });
 
-export const listUsersInfiniteQueryKey = (
-  options?: Options<ListUsersData>,
-): QueryKey<Options<ListUsersData>> =>
+export const listUsersInfiniteQueryKey = (options?: Options<ListUsersData>): QueryKey<Options<ListUsersData>> =>
   createQueryKey("listUsers", options, true);
 
 export const listUsersInfiniteOptions = (options?: Options<ListUsersData>) => {
@@ -2888,20 +2442,13 @@ export const listUsersInfiniteOptions = (options?: Options<ListUsersData>) => {
     ListUsersError,
     InfiniteData<ListUsersResponse>,
     QueryKey<Options<ListUsersData>>,
-    | string
-    | Pick<
-        QueryKey<Options<ListUsersData>>[0],
-        "body" | "headers" | "path" | "query"
-      >
+    string | Pick<QueryKey<Options<ListUsersData>>[0], "body" | "headers" | "path" | "query">
   >(
     // @ts-ignore
     {
       queryFn: async ({ pageParam, queryKey, signal }) => {
         // @ts-ignore
-        const page: Pick<
-          QueryKey<Options<ListUsersData>>[0],
-          "body" | "headers" | "path" | "query"
-        > =
+        const page: Pick<QueryKey<Options<ListUsersData>>[0], "body" | "headers" | "path" | "query"> =
           typeof pageParam === "object"
             ? pageParam
             : {
@@ -2926,16 +2473,8 @@ export const listUsersInfiniteOptions = (options?: Options<ListUsersData>) => {
 
 export const createUserMutation = (
   options?: Partial<Options<CreateUserData>>,
-): UseMutationOptions<
-  CreateUserResponse,
-  CreateUserError,
-  Options<CreateUserData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    CreateUserResponse,
-    CreateUserError,
-    Options<CreateUserData>
-  > = {
+): UseMutationOptions<CreateUserResponse, CreateUserError, Options<CreateUserData>> => {
+  const mutationOptions: UseMutationOptions<CreateUserResponse, CreateUserError, Options<CreateUserData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await createUser({
         ...options,
@@ -2950,16 +2489,8 @@ export const createUserMutation = (
 
 export const updateUserMutation = (
   options?: Partial<Options<UpdateUserData>>,
-): UseMutationOptions<
-  UpdateUserResponse,
-  UpdateUserError,
-  Options<UpdateUserData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    UpdateUserResponse,
-    UpdateUserError,
-    Options<UpdateUserData>
-  > = {
+): UseMutationOptions<UpdateUserResponse, UpdateUserError, Options<UpdateUserData>> => {
+  const mutationOptions: UseMutationOptions<UpdateUserResponse, UpdateUserError, Options<UpdateUserData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await updateUser({
         ...options,
@@ -2974,11 +2505,7 @@ export const updateUserMutation = (
 
 export const resetUserPasswordMutation = (
   options?: Partial<Options<ResetUserPasswordData>>,
-): UseMutationOptions<
-  ResetUserPasswordResponse,
-  ResetUserPasswordError,
-  Options<ResetUserPasswordData>
-> => {
+): UseMutationOptions<ResetUserPasswordResponse, ResetUserPasswordError, Options<ResetUserPasswordData>> => {
   const mutationOptions: UseMutationOptions<
     ResetUserPasswordResponse,
     ResetUserPasswordError,
@@ -2996,13 +2523,10 @@ export const resetUserPasswordMutation = (
   return mutationOptions;
 };
 
-export const listGlobalVariablesQueryKey = (
-  options?: Options<ListGlobalVariablesData>,
-) => createQueryKey("listGlobalVariables", options);
+export const listGlobalVariablesQueryKey = (options?: Options<ListGlobalVariablesData>) =>
+  createQueryKey("listGlobalVariables", options);
 
-export const listGlobalVariablesOptions = (
-  options?: Options<ListGlobalVariablesData>,
-) =>
+export const listGlobalVariablesOptions = (options?: Options<ListGlobalVariablesData>) =>
   queryOptions<
     ListGlobalVariablesResponse,
     ListGlobalVariablesError,
@@ -3023,11 +2547,7 @@ export const listGlobalVariablesOptions = (
 
 export const deleteGlobalVariableMutation = (
   options?: Partial<Options<DeleteGlobalVariableData>>,
-): UseMutationOptions<
-  DeleteGlobalVariableResponse,
-  DeleteGlobalVariableError,
-  Options<DeleteGlobalVariableData>
-> => {
+): UseMutationOptions<DeleteGlobalVariableResponse, DeleteGlobalVariableError, Options<DeleteGlobalVariableData>> => {
   const mutationOptions: UseMutationOptions<
     DeleteGlobalVariableResponse,
     DeleteGlobalVariableError,
@@ -3047,11 +2567,7 @@ export const deleteGlobalVariableMutation = (
 
 export const putGlobalVariableMutation = (
   options?: Partial<Options<PutGlobalVariableData>>,
-): UseMutationOptions<
-  PutGlobalVariableResponse,
-  PutGlobalVariableError,
-  Options<PutGlobalVariableData>
-> => {
+): UseMutationOptions<PutGlobalVariableResponse, PutGlobalVariableError, Options<PutGlobalVariableData>> => {
   const mutationOptions: UseMutationOptions<
     PutGlobalVariableResponse,
     PutGlobalVariableError,
@@ -3075,11 +2591,7 @@ export const putGlobalVariableMutation = (
 export const gitWebhookMutation = (
   options?: Partial<Options<GitWebhookData>>,
 ): UseMutationOptions<unknown, DefaultError, Options<GitWebhookData>> => {
-  const mutationOptions: UseMutationOptions<
-    unknown,
-    DefaultError,
-    Options<GitWebhookData>
-  > = {
+  const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<GitWebhookData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await gitWebhook({
         ...options,
@@ -3098,11 +2610,7 @@ export const gitWebhookMutation = (
 export const fireWebhookMutation = (
   options?: Partial<Options<FireWebhookData>>,
 ): UseMutationOptions<unknown, DefaultError, Options<FireWebhookData>> => {
-  const mutationOptions: UseMutationOptions<
-    unknown,
-    DefaultError,
-    Options<FireWebhookData>
-  > = {
+  const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<FireWebhookData>> = {
     mutationFn: async (fnOptions) => {
       const { data } = await fireWebhook({
         ...options,

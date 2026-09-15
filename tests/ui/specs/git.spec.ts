@@ -14,7 +14,10 @@ let info: FixtureInfo;
 test.beforeAll(async ({}, testInfo) => {
   testInfo.setTimeout(180_000);
   const repoRoot = path.resolve(uiTestsDir, "../..");
-  const child = spawn("go", ["run", "./tests/fixtures/gitserver"], { cwd: repoRoot, stdio: ["ignore", "pipe", "inherit"] });
+  const child = spawn("go", ["run", "./tests/fixtures/gitserver"], {
+    cwd: repoRoot,
+    stdio: ["ignore", "pipe", "inherit"],
+  });
   fixture = child;
   info = await new Promise<FixtureInfo>((resolve, reject) => {
     const rl = readline.createInterface({ input: child.stdout! });
@@ -39,14 +42,18 @@ async function control<T>(method: string, p: string, body?: unknown): Promise<T>
 
 type CommitInfo = { sha: string; author_name: string; author_email: string; message: string };
 
-test("SCN-GIT-005 an editor pushes an edit of a git namespace to a new branch and Sync now adds a sync run", async ({ browser }) => {
+test("SCN-GIT-005 an editor pushes an edit of a git namespace to a new branch and Sync now adds a sync run", async ({
+  browser,
+}) => {
   const repo = `ui-${uniq()}`;
   const { http_url } = await control<{ http_url: string }>("POST", `/repos/${repo}`);
-  const base = (await control<{ sha: string }>("POST", `/repos/${repo}/commits`, {
-    branch: "main",
-    message: "first",
-    files: [{ Path: "load.py", Content: "print('v1')\n" }],
-  })).sha;
+  const base = (
+    await control<{ sha: string }>("POST", `/repos/${repo}/commits`, {
+      branch: "main",
+      message: "first",
+      files: [{ Path: "load.py", Content: "print('v1')\n" }],
+    })
+  ).sha;
 
   const api = await adminAPI();
   const key = `GIT_UI_${uniq()}`;
@@ -66,9 +73,14 @@ test("SCN-GIT-005 an editor pushes an edit of a git namespace to a new branch an
   expect(created.status(), await created.text()).toBe(201);
   const sourceId = ((await created.json()) as { id: string }).id;
   await expect
-    .poll(async () => ((await (await api.get(`/api/v1/git-sources/${sourceId}/runs`)).json()) as { items: { status: string }[] }).items[0]?.status, {
-      timeout: 30_000,
-    })
+    .poll(
+      async () =>
+        ((await (await api.get(`/api/v1/git-sources/${sourceId}/runs`)).json()) as { items: { status: string }[] })
+          .items[0]?.status,
+      {
+        timeout: 30_000,
+      },
+    )
     .toBe("success");
 
   const { page, email } = await signInAs(browser, api, "editor");
@@ -89,7 +101,9 @@ test("SCN-GIT-005 an editor pushes an edit of a git namespace to a new branch an
   expect(branches).toContain(branch);
   const pushed = await control<CommitInfo>("GET", `/repos/${repo}/commits/${branch}`);
   expect(pushed.author_email).toBe(email);
-  const content = await (await fetch(`${info.control}/repos/${repo}/file?branch=${encodeURIComponent(branch)}&path=load.py`)).text();
+  const content = await (
+    await fetch(`${info.control}/repos/${repo}/file?branch=${encodeURIComponent(branch)}&path=load.py`)
+  ).text();
   expect(content).toContain("print('v2')");
   expect((await control<CommitInfo>("GET", `/repos/${repo}/commits/main`)).sha).toBe(base);
   await dialog.getByRole("button", { name: "Done" }).click();

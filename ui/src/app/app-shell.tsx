@@ -76,15 +76,7 @@ function readCollapsed(): boolean {
 }
 
 // NavTip shows the label on hover when the side nav shows icons only.
-function NavTip({
-  label,
-  show,
-  children,
-}: {
-  label: string;
-  show: boolean;
-  children: ReactNode;
-}) {
+function NavTip({ label, show, children }: { label: string; show: boolean; children: ReactNode }) {
   if (!show) return children;
   return (
     <Tooltip.Root>
@@ -108,10 +100,7 @@ export function ThemeSwitch({ vertical = false }: { vertical?: boolean }) {
     <div
       role="radiogroup"
       aria-label="Theme"
-      className={cn(
-        "flex w-fit gap-1 rounded-[6px] border p-0.5",
-        vertical && "flex-col",
-      )}
+      className={cn("flex w-fit gap-1 rounded-[6px] border p-0.5", vertical && "flex-col")}
     >
       {themes.map((t) => (
         <button
@@ -172,32 +161,16 @@ function NavLinks({
   );
 }
 
-function Nav({
-  onNavigate,
-  collapsed = false,
-}: {
-  onNavigate?: () => void;
-  collapsed?: boolean;
-}) {
+function Nav({ onNavigate, collapsed = false }: { onNavigate?: () => void; collapsed?: boolean }) {
   return (
     <nav aria-label="Main" className="flex flex-col gap-0.5">
-      <NavLinks
-        items={navItems}
-        onNavigate={onNavigate}
-        collapsed={collapsed}
-      />
+      <NavLinks items={navItems} onNavigate={onNavigate} collapsed={collapsed} />
       {collapsed ? (
         <div className="mx-2 my-3 border-t" role="separator" />
       ) : (
-        <div className="mt-4 px-3 pb-1 text-xs font-medium text-muted-foreground">
-          Settings
-        </div>
+        <div className="mt-4 px-3 pb-1 text-xs font-medium text-muted-foreground">Settings</div>
       )}
-      <NavLinks
-        items={settingsItems}
-        onNavigate={onNavigate}
-        collapsed={collapsed}
-      />
+      <NavLinks items={settingsItems} onNavigate={onNavigate} collapsed={collapsed} />
     </nav>
   );
 }
@@ -280,15 +253,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             collapsed ? "w-14 px-2" : "w-56",
           )}
         >
-          <div
-            className={cn(
-              "flex items-center",
-              collapsed ? "justify-center" : "justify-between pl-3",
-            )}
-          >
-            {!collapsed && (
-              <span className="py-1 text-base font-semibold">Sluice</span>
-            )}
+          <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between pl-3")}>
+            {!collapsed && <span className="py-1 text-base font-semibold">Sluice</span>}
             <NavTip label="Expand sidebar" show={collapsed}>
               <button
                 type="button"

@@ -37,7 +37,9 @@ function ChartFrame({
       <figcaption className="text-sm font-medium">{title}</figcaption>
       <div aria-hidden className="min-w-0">
         {rows.length === 0 ? (
-          <p className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">No data in this range.</p>
+          <p className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
+            No data in this range.
+          </p>
         ) : (
           <Suspense fallback={<div className="h-[220px] animate-pulse rounded-[6px] bg-muted" />}>{children}</Suspense>
         )}
@@ -45,29 +47,29 @@ function ChartFrame({
       {/* The data as a table, for screen readers and exact values. A table ignores the 1 px
           width of sr-only, so a wrapper clips it. */}
       <div className="sr-only">
-      <table aria-label={`${title} data`}>
-        <thead>
-          <tr>
-            <th scope="col">Label</th>
-            {series.map((s) => (
-              <th key={s.key} scope="col">
-                {s.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i}>
-              <th scope="row">{r.label}</th>
-              {series.map((s) => {
-                const v = r[s.key];
-                return <td key={s.key}>{typeof v === "number" ? (format ? format(v) : String(v)) : "—"}</td>;
-              })}
+        <table aria-label={`${title} data`}>
+          <thead>
+            <tr>
+              <th scope="col">Label</th>
+              {series.map((s) => (
+                <th key={s.key} scope="col">
+                  {s.label}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i}>
+                <th scope="row">{r.label}</th>
+                {series.map((s) => {
+                  const v = r[s.key];
+                  return <td key={s.key}>{typeof v === "number" ? (format ? format(v) : String(v)) : "—"}</td>;
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </figure>
   );

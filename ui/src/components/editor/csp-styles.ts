@@ -23,7 +23,11 @@ function setFor(root: Root): SheetSet {
 }
 
 function supported(): boolean {
-  return typeof CSSStyleSheet !== "undefined" && typeof Document !== "undefined" && "adoptedStyleSheets" in Document.prototype;
+  return (
+    typeof CSSStyleSheet !== "undefined" &&
+    typeof Document !== "undefined" &&
+    "adoptedStyleSheets" in Document.prototype
+  );
 }
 
 if (supported()) {

@@ -22,7 +22,10 @@ const durationText = /\d+ ms|\d+\.\d s/;
 
 /** bodyRows returns the data rows of the only table on the page. */
 function bodyRows(page: Page) {
-  return page.getByRole("table").getByRole("row").filter({ has: page.getByRole("cell") });
+  return page
+    .getByRole("table")
+    .getByRole("row")
+    .filter({ has: page.getByRole("cell") });
 }
 
 /** localInput formats a time for a datetime-local field in the browser time zone. */

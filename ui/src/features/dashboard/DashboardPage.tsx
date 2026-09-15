@@ -68,7 +68,12 @@ export function DashboardPage() {
             </label>
             <label className="flex flex-col gap-1 text-xs text-muted-foreground">
               Namespace
-              <Input value={namespace} placeholder="All namespaces" onChange={(e) => setNamespace(e.target.value)} className="w-44" />
+              <Input
+                value={namespace}
+                placeholder="All namespaces"
+                onChange={(e) => setNamespace(e.target.value)}
+                className="w-44"
+              />
             </label>
           </div>
         }
@@ -93,7 +98,11 @@ export function DashboardPage() {
                 {s.items.map((u) => (
                   <Tr key={`${u.namespace}/${u.flow_id}/${u.trigger_id}`}>
                     <Td>
-                      <Link to="/flows/$namespace/$flowId" params={{ namespace: u.namespace, flowId: u.flow_id }} className="hover:underline">
+                      <Link
+                        to="/flows/$namespace/$flowId"
+                        params={{ namespace: u.namespace, flowId: u.flow_id }}
+                        className="hover:underline"
+                      >
                         {u.namespace}/{u.flow_id}
                       </Link>
                     </Td>
@@ -123,7 +132,11 @@ function DashboardBody({ d, range }: { d: DashboardOut; range: Range }) {
     cancelled: b.cancelled,
     skipped: b.skipped,
   }));
-  const durationRows: ChartRow[] = d.buckets.map((b) => ({ label: bucketLabel(b.start, range), p50: b.p50_ms ?? null, p95: b.p95_ms ?? null }));
+  const durationRows: ChartRow[] = d.buckets.map((b) => ({
+    label: bucketLabel(b.start, range),
+    p50: b.p50_ms ?? null,
+    p95: b.p95_ms ?? null,
+  }));
   const anyEnded = d.buckets.some((b) => b.success + b.failed + b.timed_out + b.cancelled + b.skipped > 0);
   const anyDuration = d.buckets.some((b) => b.p50_ms !== null && b.p50_ms !== undefined);
   return (
@@ -137,7 +150,12 @@ function DashboardBody({ d, range }: { d: DashboardOut; range: Range }) {
       </section>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <StackedChart title="Executions by end state" rows={anyEnded ? stateRows : []} series={stateSeries} />
-        <LineChart title="Duration p50 and p95" rows={anyDuration ? durationRows : []} series={durationSeries} format={formatMs} />
+        <LineChart
+          title="Duration p50 and p95"
+          rows={anyDuration ? durationRows : []}
+          series={durationSeries}
+          format={formatMs}
+        />
       </div>
       <section aria-labelledby="running-heading" className="flex flex-col gap-2">
         <h2 id="running-heading" className="text-base font-semibold">
@@ -202,7 +220,9 @@ function DashboardBody({ d, range }: { d: DashboardOut; range: Range }) {
                     <ExecutionStateBadge state={x.state} />
                   </Td>
                   <Td>{x.ended_at ? formatTime(x.ended_at) : "—"}</Td>
-                  <Td className="max-w-md whitespace-normal text-sm">{x.triage_summary ?? <span className="text-muted-foreground">{x.error || "—"}</span>}</Td>
+                  <Td className="max-w-md whitespace-normal text-sm">
+                    {x.triage_summary ?? <span className="text-muted-foreground">{x.error || "—"}</span>}
+                  </Td>
                 </Tr>
               ))}
             </TBody>

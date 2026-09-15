@@ -78,11 +78,15 @@ function RevokeOthers() {
   const mutation = useMutation(revokeOtherSessionsMutation());
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground">Sign out all other browsers and devices. This session stays signed in.</p>
+      <p className="text-sm text-muted-foreground">
+        Sign out all other browsers and devices. This session stays signed in.
+      </p>
       {mutation.isError && <FormError>{errorMessage(mutation.error)}</FormError>}
       {mutation.isSuccess && (
         <p className="text-sm text-state-success">
-          {mutation.data.count === 1 ? "Signed out 1 other session." : `Signed out ${mutation.data.count} other sessions.`}
+          {mutation.data.count === 1
+            ? "Signed out 1 other session."
+            : `Signed out ${mutation.data.count} other sessions.`}
         </p>
       )}
       <div>

@@ -74,7 +74,9 @@ export function NamespacePage({
                   onSelect={(file) => navigate({ search: (prev) => ({ ...prev, file }) })}
                 />
               )}
-              {tab === "versions" && <VersionsPanel namespace={namespace} canEdit={canEdit} head={ns.head_version ?? undefined} />}
+              {tab === "versions" && (
+                <VersionsPanel namespace={namespace} canEdit={canEdit} head={ns.head_version ?? undefined} />
+              )}
               {tab === "variables" && scopePanels.variables}
               {tab === "secrets" && scopePanels.secrets}
             </>

@@ -187,8 +187,13 @@ export function FileTree({
                 open && "rotate-90",
               )}
             />
-            <Icon aria-hidden className={cn("h-4 w-4 shrink-0", isSelected ? "text-accent" : "text-muted-foreground")} />
-            <span className={cn("min-w-0 flex-1 truncate", node.kind === "file" && "font-mono text-xs")}>{node.name}</span>
+            <Icon
+              aria-hidden
+              className={cn("h-4 w-4 shrink-0", isSelected ? "text-accent" : "text-muted-foreground")}
+            />
+            <span className={cn("min-w-0 flex-1 truncate", node.kind === "file" && "font-mono text-xs")}>
+              {node.name}
+            </span>
             {node.kind === "file" && node.file.isNew && <Badge tone="accent">New</Badge>}
             {dirty && (
               <span className="text-xs text-muted-foreground" title="Unsaved changes">

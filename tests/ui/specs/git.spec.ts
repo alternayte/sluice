@@ -73,7 +73,7 @@ test("SCN-GIT-005 an editor pushes an edit of a git namespace to a new branch an
 
   const { page, email } = await signInAs(browser, api, "editor");
   await page.goto(`/namespaces/${ns}`);
-  await page.getByRole("button", { name: "load.py", exact: true }).click();
+  await page.getByRole("treeitem", { name: "load.py", exact: true }).click();
   await page.getByRole("textbox", { name: "Content of load.py" }).click();
   await page.keyboard.press("ControlOrMeta+End");
   await page.keyboard.type("print('v2')");

@@ -137,13 +137,15 @@ The namespace editor stages new files and edits in the browser. Sluice saves not
 
    The editor validates flow files while you type. An error gets a marker on its line, and a list of validation errors shows below the editor. The test SCN-UI-010 proves that the marker shows within 1 s.
 
-8. Above the file list, the bar shows **2 unsaved files**. Click **Save changes**.
+8. Above the file browser, the bar shows **2 unsaved files**. Click **Save changes**.
 9. Type a text in **Commit message**, for example `Add the hello flow`.
 10. Click **Save**.
 
 Sluice saves both files as one version. The test SCN-NS-002 proves this. The task `load` writes one output, one metric and one artifact through `$SLUICE_OUTPUTS`. The task `report` reads the output through a template. [flows.md](flows.md) explains all flow fields.
 
-![The namespace editor with the file list, the Save button and a flow file](images/editor.png)
+![The namespace editor with the file tree, the Save button and a flow file](images/editor.png)
+
+The file browser shows the files as a tree. Click a folder to open or close it, or use the arrow keys. Drag the line between the file browser and the editor to change the width. Double-click the line to reset the width.
 
 The editor actions:
 

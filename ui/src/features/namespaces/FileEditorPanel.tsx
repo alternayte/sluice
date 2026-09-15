@@ -104,7 +104,7 @@ export function FileEditorPanel({
         const value = draft ?? saved;
         const dirty = isNew || (draft !== undefined && draft !== saved);
         return (
-          <div className="flex flex-col gap-2">
+          <div className="flex min-h-0 flex-1 flex-col gap-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2">
                 <h2 id="editor-label" className="truncate font-mono text-sm" title={path}>
@@ -155,7 +155,7 @@ export function FileEditorPanel({
               )}
             </div>
             <CodeEditor
-              className="h-[60vh] min-h-80"
+              className="min-h-0 flex-1"
               value={value}
               path={path}
               label={`Content of ${path}`}
@@ -165,11 +165,11 @@ export function FileEditorPanel({
               onIssues={setIssues}
             />
             {validated && issues.length > 0 && (
-              <div role="alert" aria-label="Validation errors" className="rounded-[8px] border bg-panel">
+              <div role="alert" aria-label="Validation errors" className="flex max-h-40 shrink-0 flex-col overflow-hidden rounded-[8px] border bg-panel">
                 <div className="border-b px-3 py-2 text-sm font-medium text-state-failed">
                   {issues.length === 1 ? "1 validation error" : `${issues.length} validation errors`}
                 </div>
-                <ul className="flex flex-col text-sm">
+                <ul className="flex flex-col overflow-y-auto text-sm">
                   {issues.map((i, n) => (
                     <li key={n} className="flex flex-wrap gap-x-3 border-b px-3 py-1.5 last:border-0">
                       <span className="font-mono text-xs text-muted-foreground">

@@ -127,7 +127,7 @@ test("SCN-UI-010 an invalid flow shows an error marker within 1 s and the secret
   const { page } = await signInAs(browser, api, "editor");
 
   await page.goto(`/namespaces/${child}`);
-  await page.getByRole("button", { name: "f.flow.yaml", exact: true }).click();
+  await page.getByRole("treeitem", { name: "f.flow.yaml", exact: true }).click();
   const editor = page.getByRole("textbox", { name: "Content of f.flow.yaml" });
   await editor.click();
   await page.keyboard.press("ControlOrMeta+End");

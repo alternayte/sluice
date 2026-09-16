@@ -169,8 +169,8 @@ function DeleteNamespaceDialog({ name, onClose }: { name: string; onClose: () =>
       onConfirm={() => del.mutate({ path: { namespace: name } })}
       onClose={onClose}
     >
-      Delete the namespace <span className="font-medium">{name}</span> with all its files and versions? You cannot
-      undo this.
+      Delete the namespace <span className="font-medium">{name}</span> with all its files and versions? You cannot undo
+      this.
     </ConfirmDialog>
   );
 }

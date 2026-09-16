@@ -6,7 +6,12 @@ import { SSEBuffer, type SSEEvent } from "@/lib/sse";
  * EventSource cannot send a POST body, so the assistant streams use fetch (DI-40).
  * An error answer before the stream starts throws an ApiError.
  */
-export async function postStream(url: string, body: unknown, onEvent: (e: SSEEvent) => void, signal?: AbortSignal): Promise<void> {
+export async function postStream(
+  url: string,
+  body: unknown,
+  onEvent: (e: SSEEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
   const response = await rawFetch(url, {
     method: "POST",
     headers: body === undefined ? undefined : { "Content-Type": "application/json" },

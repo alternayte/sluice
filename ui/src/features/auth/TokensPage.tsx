@@ -20,11 +20,24 @@ import { formatTime } from "@/lib/utils";
 const tokensQueryKey = [{ _id: "listTokens" }];
 
 function tokenState(t: Token) {
-  if (t.revoked_at) return <Badge tone="failed" icon={Ban}>Revoked</Badge>;
+  if (t.revoked_at)
+    return (
+      <Badge tone="failed" icon={Ban}>
+        Revoked
+      </Badge>
+    );
   if (t.expires_at && new Date(t.expires_at).getTime() < Date.now()) {
-    return <Badge tone="warning" icon={Clock}>Expired</Badge>;
+    return (
+      <Badge tone="warning" icon={Clock}>
+        Expired
+      </Badge>
+    );
   }
-  return <Badge tone="success" icon={CheckCircle2}>Active</Badge>;
+  return (
+    <Badge tone="success" icon={CheckCircle2}>
+      Active
+    </Badge>
+  );
 }
 
 export function TokensPage() {
@@ -56,7 +69,12 @@ export function TokensPage() {
       />
       {isAdmin && (
         <label className="flex w-fit items-center gap-2 text-sm">
-          <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} className="h-4 w-4 accent-accent" />
+          <input
+            type="checkbox"
+            checked={all}
+            onChange={(e) => setAll(e.target.checked)}
+            className="h-4 w-4 accent-accent"
+          />
           All users
         </label>
       )}
@@ -184,7 +202,12 @@ function CreateTokenForm({ role, onDone }: { role: Role; onDone: () => void }) {
           ))}
         </Select>
       </Field>
-      <Field id="token-days" label="Expiry in days" hint="Optional. From 1 to 365. Leave empty for no expiry." error={fields.expires_in_days}>
+      <Field
+        id="token-days"
+        label="Expiry in days"
+        hint="Optional. From 1 to 365. Leave empty for no expiry."
+        error={fields.expires_in_days}
+      >
         <Input type="number" min={1} max={365} step={1} value={days} onChange={(e) => setDays(e.target.value)} />
       </Field>
       {mutation.isError && <FormError>{errorMessage(mutation.error)}</FormError>}

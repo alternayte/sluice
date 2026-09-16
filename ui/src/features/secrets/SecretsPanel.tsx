@@ -1,18 +1,5 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-  type QueryClient,
-} from "@tanstack/react-query";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  CornerLeftUp,
-  Eye,
-  EyeOff,
-  Plus,
-  XCircle,
-} from "lucide-react";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { AlertTriangle, CheckCircle2, CornerLeftUp, Eye, EyeOff, Plus, XCircle } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import {
   checkGlobalSecretMutation,
@@ -25,11 +12,7 @@ import {
   putGlobalSecretMutation,
   putNamespaceSecretMutation,
 } from "@/api/@tanstack/react-query.gen";
-import type {
-  CheckResult,
-  SecretInfo,
-  SecretPutWritable,
-} from "@/api/types.gen";
+import type { CheckResult, SecretInfo, SecretPutWritable } from "@/api/types.gen";
 import { DataState } from "@/components/data-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -86,11 +69,7 @@ export function SecretsPanel({ namespace }: { namespace?: string }) {
           </Button>
         </div>
       )}
-      <DataState
-        query={secrets}
-        empty={(d) => d.length === 0}
-        emptyText="No secrets exist in this scope."
-      >
+      <DataState query={secrets} empty={(d) => d.length === 0} emptyText="No secrets exist in this scope.">
         {(items) => (
           <Table>
             <THead>
@@ -112,9 +91,7 @@ export function SecretsPanel({ namespace }: { namespace?: string }) {
                   <Td className="font-mono text-xs">{s.key}</Td>
                   <Td>
                     {s.inherited ? (
-                      <Badge icon={CornerLeftUp}>
-                        Inherited from {s.scope}
-                      </Badge>
+                      <Badge icon={CornerLeftUp}>Inherited from {s.scope}</Badge>
                     ) : (
                       <span className="text-sm">{s.scope}</span>
                     )}
@@ -123,43 +100,19 @@ export function SecretsPanel({ namespace }: { namespace?: string }) {
                   <Td className="font-mono text-xs">{s.ref ?? ""}</Td>
                   <Td>
                     {formatTime(s.updated_at)}
-                    {s.updated_by && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        by {s.updated_by}
-                      </span>
-                    )}
+                    {s.updated_by && <span className="text-muted-foreground"> by {s.updated_by}</span>}
                   </Td>
-                  <Td>
-                    {s.last_resolved_at
-                      ? formatTime(s.last_resolved_at)
-                      : "Never"}
-                  </Td>
+                  <Td>{s.last_resolved_at ? formatTime(s.last_resolved_at) : "Never"}</Td>
                   <Td className="text-right whitespace-nowrap">
                     {canEdit && !s.inherited && (
                       <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setChecking(s)}
-                          aria-label={`Check ${s.key}`}
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => setChecking(s)} aria-label={`Check ${s.key}`}>
                           Check
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditing(s)}
-                          aria-label={`Edit ${s.key}`}
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => setEditing(s)} aria-label={`Edit ${s.key}`}>
                           Edit
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleting(s)}
-                          aria-label={`Delete ${s.key}`}
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => setDeleting(s)} aria-label={`Delete ${s.key}`}>
                           Delete
                         </Button>
                       </>
@@ -184,45 +137,17 @@ export function SecretsPanel({ namespace }: { namespace?: string }) {
           />
         )}
       </Dialog>
-      <Dialog
-        open={checking !== null}
-        onClose={() => setChecking(null)}
-        title="Check secret"
-      >
-        {checking && (
-          <SecretCheck
-            namespace={namespace}
-            secret={checking}
-            onDone={() => setChecking(null)}
-          />
-        )}
+      <Dialog open={checking !== null} onClose={() => setChecking(null)} title="Check secret">
+        {checking && <SecretCheck namespace={namespace} secret={checking} onDone={() => setChecking(null)} />}
       </Dialog>
-      <Dialog
-        open={deleting !== null}
-        onClose={() => setDeleting(null)}
-        title="Delete secret"
-      >
-        {deleting && (
-          <SecretDelete
-            namespace={namespace}
-            secret={deleting}
-            onDone={() => setDeleting(null)}
-          />
-        )}
+      <Dialog open={deleting !== null} onClose={() => setDeleting(null)} title="Delete secret">
+        {deleting && <SecretDelete namespace={namespace} secret={deleting} onDone={() => setDeleting(null)} />}
       </Dialog>
     </div>
   );
 }
 
-function SecretForm({
-  namespace,
-  secret,
-  onDone,
-}: {
-  namespace?: string;
-  secret?: SecretInfo;
-  onDone: () => void;
-}) {
+function SecretForm({ namespace, secret, onDone }: { namespace?: string; secret?: SecretInfo; onDone: () => void }) {
   const qc = useQueryClient();
   const providers = useQuery({
     ...listSecretProvidersOptions(),
@@ -233,9 +158,7 @@ function SecretForm({
   const [value, setValue] = useState("");
   const [ref, setRef] = useState(secret?.ref ?? "");
   const [description, setDescription] = useState(secret?.description ?? "");
-  const type =
-    providers.data?.find((p) => p.name === provider)?.type ??
-    (provider === "builtin" ? "builtin" : "");
+  const type = providers.data?.find((p) => p.name === provider)?.type ?? (provider === "builtin" ? "builtin" : "");
   const isBuiltin = type === "builtin";
   const onSuccess = () => {
     void invalidateSecrets(qc);
@@ -263,12 +186,7 @@ function SecretForm({
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
-      <Field
-        id="secret-key"
-        label="Key"
-        hint="Letters, digits and underscores."
-        error={fields.key}
-      >
+      <Field id="secret-key" label="Key" hint="Letters, digits and underscores." error={fields.key}>
         <Input
           required
           disabled={secret !== undefined}
@@ -281,13 +199,11 @@ function SecretForm({
       </Field>
       <Field id="secret-provider" label="Provider" error={fields.provider}>
         <Select value={provider} onChange={(e) => setProvider(e.target.value)}>
-          {(providers.data ?? [{ name: "builtin", type: "builtin" }]).map(
-            (p) => (
-              <option key={p.name} value={p.name}>
-                {p.name === p.type ? p.name : `${p.name} (${p.type})`}
-              </option>
-            ),
-          )}
+          {(providers.data ?? [{ name: "builtin", type: "builtin" }]).map((p) => (
+            <option key={p.name} value={p.name}>
+              {p.name === p.type ? p.name : `${p.name} (${p.type})`}
+            </option>
+          ))}
         </Select>
       </Field>
       {isBuiltin ? (
@@ -302,9 +218,7 @@ function SecretForm({
           error={fields.value}
         >
           <SecretValueInput
-            required={
-              secret === undefined || secret.provider_type !== "builtin"
-            }
+            required={secret === undefined || secret.provider_type !== "builtin"}
             value={value}
             onChange={setValue}
           />
@@ -334,29 +248,15 @@ function SecretForm({
         </Field>
       )}
       {isBuiltin && value.length > 0 && value.length < MinMaskedLength && (
-        <p
-          role="alert"
-          className="flex items-center gap-2 text-sm text-state-timed-out"
-        >
+        <p role="alert" className="flex items-center gap-2 text-sm text-state-timed-out">
           <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
-          Values shorter than {MinMaskedLength} characters are not masked in
-          logs.
+          Values shorter than {MinMaskedLength} characters are not masked in logs.
         </p>
       )}
-      <Field
-        id="secret-description"
-        label="Description"
-        error={fields.description}
-      >
-        <Input
-          maxLength={500}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
+      <Field id="secret-description" label="Description" error={fields.description}>
+        <Input maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} />
       </Field>
-      {mutation.isError && (
-        <FormError>{errorMessage(mutation.error)}</FormError>
-      )}
+      {mutation.isError && <FormError>{errorMessage(mutation.error)}</FormError>}
       <div className="flex justify-end gap-2">
         <Button variant="secondary" onClick={onDone}>
           Cancel
@@ -376,29 +276,19 @@ const checkLabels: Record<CheckResult["status"], string> = {
   provider_error: "The provider returned an error.",
 };
 
-function SecretCheck({
-  namespace,
-  secret,
-  onDone,
-}: {
-  namespace?: string;
-  secret: SecretInfo;
-  onDone: () => void;
-}) {
+function SecretCheck({ namespace, secret, onDone }: { namespace?: string; secret: SecretInfo; onDone: () => void }) {
   const checkGlobal = useMutation(checkGlobalSecretMutation());
   const checkNamespace = useMutation(checkNamespaceSecretMutation());
   const mutation = namespace ? checkNamespace : checkGlobal;
   const run = () => {
-    if (namespace)
-      checkNamespace.mutate({ path: { namespace, key: secret.key } });
+    if (namespace) checkNamespace.mutate({ path: { namespace, key: secret.key } });
     else checkGlobal.mutate({ path: { key: secret.key } });
   };
   const result = mutation.data;
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm">
-        Resolve <span className="font-mono">{secret.key}</span> with provider{" "}
-        {secret.provider}. The value is not shown.
+        Resolve <span className="font-mono">{secret.key}</span> with provider {secret.provider}. The value is not shown.
       </p>
       {result && (
         <div role="status" className="flex flex-col gap-1">
@@ -408,14 +298,10 @@ function SecretCheck({
           >
             {checkLabels[result.status]}
           </Badge>
-          {result.message && (
-            <p className="text-xs text-muted-foreground">{result.message}</p>
-          )}
+          {result.message && <p className="text-xs text-muted-foreground">{result.message}</p>}
         </div>
       )}
-      {mutation.isError && (
-        <FormError>{errorMessage(mutation.error)}</FormError>
-      )}
+      {mutation.isError && <FormError>{errorMessage(mutation.error)}</FormError>}
       <div className="flex justify-end gap-2">
         <Button variant="secondary" onClick={onDone}>
           Close
@@ -428,15 +314,7 @@ function SecretCheck({
   );
 }
 
-function SecretDelete({
-  namespace,
-  secret,
-  onDone,
-}: {
-  namespace?: string;
-  secret: SecretInfo;
-  onDone: () => void;
-}) {
+function SecretDelete({ namespace, secret, onDone }: { namespace?: string; secret: SecretInfo; onDone: () => void }) {
   const qc = useQueryClient();
   const onSuccess = () => {
     void invalidateSecrets(qc);
@@ -449,29 +327,21 @@ function SecretDelete({
   });
   const mutation = namespace ? delNamespace : delGlobal;
   const run = () => {
-    if (namespace)
-      delNamespace.mutate({ path: { namespace, key: secret.key } });
+    if (namespace) delNamespace.mutate({ path: { namespace, key: secret.key } });
     else delGlobal.mutate({ path: { key: secret.key } });
   };
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm">
-        Delete <span className="font-mono">{secret.key}</span> from{" "}
-        {secret.scope}? Flows then get the value of a parent scope, or fail with
-        secret_not_found.
+        Delete <span className="font-mono">{secret.key}</span> from {secret.scope}? Flows then get the value of a parent
+        scope, or fail with secret_not_found.
       </p>
-      {mutation.isError && (
-        <FormError>{errorMessage(mutation.error)}</FormError>
-      )}
+      {mutation.isError && <FormError>{errorMessage(mutation.error)}</FormError>}
       <div className="flex justify-end gap-2">
         <Button variant="secondary" onClick={onDone}>
           Cancel
         </Button>
-        <Button
-          variant="destructive"
-          onClick={run}
-          disabled={mutation.isPending}
-        >
+        <Button variant="destructive" onClick={run} disabled={mutation.isPending}>
           Delete
         </Button>
       </div>
@@ -524,11 +394,7 @@ function SecretValueInput({
         onClick={() => setShown(!shown)}
         className="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-[4px] text-muted-foreground hover:bg-muted hover:text-foreground"
       >
-        {shown ? (
-          <EyeOff className="h-4 w-4" aria-hidden />
-        ) : (
-          <Eye className="h-4 w-4" aria-hidden />
-        )}
+        {shown ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
       </button>
     </div>
   );

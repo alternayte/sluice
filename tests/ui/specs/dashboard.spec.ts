@@ -40,7 +40,9 @@ async function runAll(api: APIRequestContext, ns: string, flowId: string, n: num
     .toBe(n);
 }
 
-test("SCN-UI-001 KPI values equal the API aggregates, the bucket totals match and a range change changes the query", async ({ page }) => {
+test("SCN-UI-001 KPI values equal the API aggregates, the bucket totals match and a range change changes the query", async ({
+  page,
+}) => {
   test.setTimeout(240_000);
   const api = await adminAPI();
   const ns = await seedNamespace(api, "ui001", {
@@ -69,7 +71,9 @@ test("SCN-UI-001 KPI values equal the API aggregates, the bucket totals match an
   expect(shown).toBe(apiTotal);
   expect(apiTotal).toBe(d.kpis.executions);
 
-  const request = page.waitForRequest((r) => r.url().includes("/api/v1/stats/dashboard") && r.url().includes("range=7d"));
+  const request = page.waitForRequest(
+    (r) => r.url().includes("/api/v1/stats/dashboard") && r.url().includes("range=7d"),
+  );
   await page.getByLabel("Range").selectOption("7d");
   await request;
   await expect(table.getByRole("row")).toHaveCount(8);
@@ -94,7 +98,9 @@ test("SCN-UI-004 the state strip shows 50 states, the duration chart renders and
   const duration = page.locator("figure", { hasText: "Duration of the last executions" });
   // The legend icons are also recharts surfaces. The chart surface is the wrapper child.
   await expect(duration.locator(".recharts-wrapper > svg.recharts-surface")).toBeVisible();
-  await expect(page.getByRole("table", { name: "Duration of the last executions data" }).getByRole("row")).toHaveCount(51);
+  await expect(page.getByRole("table", { name: "Duration of the last executions data" }).getByRole("row")).toHaveCount(
+    51,
+  );
 
   // The label wraps the select, so the accessible name also contains the selected option.
   await expect(page.getByRole("combobox", { name: /^Metric/ })).toHaveValue("rows_loaded");

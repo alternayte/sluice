@@ -19,7 +19,12 @@ const stateIcons: Record<string, LucideIcon> = {
 };
 
 function shortTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 /** FlowCharts shows the last 50 execution states, their durations and a custom metric chart (REQ-UI-006). */
@@ -86,7 +91,10 @@ function MetricChart({ namespace, flowId }: { namespace: string; flowId: string 
   const names = useQuery({ ...getFlowMetricsOptions({ path: { namespace, flowId } }), select: (d) => d.names });
   const metric = name || names.data?.[0] || "";
   const data = useQuery({
-    ...getFlowMetricsOptions({ path: { namespace, flowId }, query: { name: metric, agg, group_by: groupBy.trim() || undefined } }),
+    ...getFlowMetricsOptions({
+      path: { namespace, flowId },
+      query: { name: metric, agg, group_by: groupBy.trim() || undefined },
+    }),
     enabled: metric !== "",
   });
 

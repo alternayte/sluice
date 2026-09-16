@@ -61,7 +61,13 @@ function ProviderForm({ provider }: { provider: AiProvider }) {
     e.preventDefault();
     test.reset();
     save.mutate({
-      body: { type, base_url: baseUrl.trim() || undefined, model: model.trim(), api_key_secret_key: keyName.trim(), auto_triage: autoTriage },
+      body: {
+        type,
+        base_url: baseUrl.trim() || undefined,
+        model: model.trim(),
+        api_key_secret_key: keyName.trim(),
+        auto_triage: autoTriage,
+      },
     });
   };
   const result = test.data;
@@ -88,18 +94,31 @@ function ProviderForm({ provider }: { provider: AiProvider }) {
       <Field id="ai-model" label="Model" error={fields.model}>
         <Input required value={model} onChange={(e) => setModel(e.target.value)} className="font-mono" />
       </Field>
-      <Field id="ai-key" label="API key secret key" hint="A global secret that holds the API key." error={fields.api_key_secret_key}>
+      <Field
+        id="ai-key"
+        label="API key secret key"
+        hint="A global secret that holds the API key."
+        error={fields.api_key_secret_key}
+      >
         <Input required value={keyName} onChange={(e) => setKeyName(e.target.value)} className="font-mono" />
       </Field>
       <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={autoTriage} onChange={(e) => setAutoTriage(e.target.checked)} className="h-4 w-4" />
+        <input
+          type="checkbox"
+          checked={autoTriage}
+          onChange={(e) => setAutoTriage(e.target.checked)}
+          className="h-4 w-4"
+        />
         Triage failed and timed out executions automatically
       </label>
       {save.isError && <FormError>{errorMessage(save.error)}</FormError>}
       {test.isError && <FormError>{errorMessage(test.error)}</FormError>}
       {result && (
         <div role="status" className="flex flex-col gap-1">
-          <Badge tone={result.status === "ok" ? "success" : "failed"} icon={result.status === "ok" ? CheckCircle2 : XCircle}>
+          <Badge
+            tone={result.status === "ok" ? "success" : "failed"}
+            icon={result.status === "ok" ? CheckCircle2 : XCircle}
+          >
             {result.status === "ok" ? "The provider answered." : "The test failed."}
           </Badge>
           {result.message && <p className="text-xs break-words text-muted-foreground">{result.message}</p>}

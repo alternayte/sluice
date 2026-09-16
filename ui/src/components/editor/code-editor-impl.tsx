@@ -4,7 +4,13 @@ import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
 import { sql } from "@codemirror/lang-sql";
 import { yaml } from "@codemirror/lang-yaml";
-import { HighlightStyle, StreamLanguage, syntaxHighlighting, bracketMatching, indentOnInput } from "@codemirror/language";
+import {
+  HighlightStyle,
+  StreamLanguage,
+  syntaxHighlighting,
+  bracketMatching,
+  indentOnInput,
+} from "@codemirror/language";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { linter, lintGutter } from "@codemirror/lint";
 import { Compartment, EditorState, type Extension } from "@codemirror/state";
@@ -121,7 +127,15 @@ function editorTheme(dark: boolean): Extension {
 }
 
 /** CodeEditorImpl is the CodeMirror 6 editor. Load it only through the lazy CodeEditor. */
-export default function CodeEditorImpl({ value, path, label, readOnly, onChange, validate, onIssues }: CodeEditorProps) {
+export default function CodeEditorImpl({
+  value,
+  path,
+  label,
+  readOnly,
+  onChange,
+  validate,
+  onIssues,
+}: CodeEditorProps) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const themeSlot = useRef(new Compartment());

@@ -13,9 +13,23 @@ import { can } from "@/lib/roles";
 import { formatTime } from "@/lib/utils";
 
 function RunState({ status }: { status: RunOut["status"] }) {
-  if (status === "success") return <Badge tone="success" icon={CheckCircle2}>Success</Badge>;
-  if (status === "failed") return <Badge tone="failed" icon={XCircle}>Failed</Badge>;
-  return <Badge tone="accent" icon={Loader2}>Running</Badge>;
+  if (status === "success")
+    return (
+      <Badge tone="success" icon={CheckCircle2}>
+        Success
+      </Badge>
+    );
+  if (status === "failed")
+    return (
+      <Badge tone="failed" icon={XCircle}>
+        Failed
+      </Badge>
+    );
+  return (
+    <Badge tone="accent" icon={Loader2}>
+      Running
+    </Badge>
+  );
 }
 
 /** GitSourcePanel shows the git source of a namespace, Sync now and the last 50 sync runs (REQ-GIT-004). */
@@ -33,8 +47,12 @@ export function GitSourcePanel({ namespace }: { namespace: string }) {
   const sync = useMutation({
     ...syncGitSourceMutation(),
     onSuccess: () => {
-      void qc.invalidateQueries({ predicate: (q) => (q.queryKey[0] as { _id?: string } | undefined)?._id === "listGitSyncRuns" });
-      void qc.invalidateQueries({ predicate: (q) => (q.queryKey[0] as { _id?: string } | undefined)?._id === "getNamespaceGit" });
+      void qc.invalidateQueries({
+        predicate: (q) => (q.queryKey[0] as { _id?: string } | undefined)?._id === "listGitSyncRuns",
+      });
+      void qc.invalidateQueries({
+        predicate: (q) => (q.queryKey[0] as { _id?: string } | undefined)?._id === "getNamespaceGit",
+      });
     },
   });
   if (info.isError) return null;
@@ -66,7 +84,12 @@ export function GitSourcePanel({ namespace }: { namespace: string }) {
               )}
             </dl>
             {can(me.role, "operator") && (
-              <Button size="sm" variant="secondary" disabled={sync.isPending} onClick={() => sync.mutate({ path: { sourceId: g.source_id } })}>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={sync.isPending}
+                onClick={() => sync.mutate({ path: { sourceId: g.source_id } })}
+              >
                 <RefreshCw className="h-3.5 w-3.5" aria-hidden />
                 Sync now
               </Button>

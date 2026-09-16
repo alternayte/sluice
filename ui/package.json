@@ -8,7 +8,9 @@
     "build": "vite build && tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "gen:api": "openapi-ts"
+    "gen:api": "openapi-ts",
+    "format": "prettier --ignore-path ../.prettierignore --write src ../tests/ui/specs ../tests/ui/helpers ../tests/ui/*.ts",
+    "format:check": "prettier --ignore-path ../.prettierignore --check src ../tests/ui/specs ../tests/ui/helpers ../tests/ui/*.ts"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.0",

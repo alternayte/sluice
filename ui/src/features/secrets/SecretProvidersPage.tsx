@@ -93,7 +93,12 @@ export function SecretProvidersPage() {
                         </Button>
                       )}
                       {!fixed && (
-                        <Button variant="ghost" size="sm" onClick={() => setDeleting(p)} aria-label={`Delete ${p.name}`}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleting(p)}
+                          aria-label={`Delete ${p.name}`}
+                        >
                           Delete
                         </Button>
                       )}
@@ -143,7 +148,13 @@ function ProviderForm({ onDone }: { onDone: () => void }) {
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       <Field id="provider-name" label="Name" hint="Lower-case letters, digits, - and _." error={fields.name}>
-        <Input required pattern="[a-z0-9][a-z0-9_\-]*" maxLength={63} value={name} onChange={(e) => setName(e.target.value)} />
+        <Input
+          required
+          pattern="[a-z0-9][a-z0-9_\-]*"
+          maxLength={63}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
       </Field>
       <Field id="provider-type" label="Type" error={fields.type}>
         <Select
@@ -159,8 +170,18 @@ function ProviderForm({ onDone }: { onDone: () => void }) {
         </Select>
       </Field>
       {configFields[type].map((f) => (
-        <Field key={f.key} id={`provider-${f.key}`} label={f.label} hint={f.hint} error={fields[`config.${f.key}`] ?? fields.config}>
-          <Input required={f.required} value={config[f.key] ?? ""} onChange={(e) => setConfig({ ...config, [f.key]: e.target.value })} />
+        <Field
+          key={f.key}
+          id={`provider-${f.key}`}
+          label={f.label}
+          hint={f.hint}
+          error={fields[`config.${f.key}`] ?? fields.config}
+        >
+          <Input
+            required={f.required}
+            value={config[f.key] ?? ""}
+            onChange={(e) => setConfig({ ...config, [f.key]: e.target.value })}
+          />
         </Field>
       ))}
       {mutation.isError && <FormError>{errorMessage(mutation.error)}</FormError>}
@@ -191,7 +212,10 @@ function ProviderCheck({ provider, onDone }: { provider: ProviderOut; onDone: ()
       </Field>
       {result && (
         <div role="status" className="flex flex-col gap-1">
-          <Badge tone={result.status === "ok" ? "success" : "failed"} icon={result.status === "ok" ? CheckCircle2 : XCircle}>
+          <Badge
+            tone={result.status === "ok" ? "success" : "failed"}
+            icon={result.status === "ok" ? CheckCircle2 : XCircle}
+          >
             {result.status === "ok" ? "The reference resolves." : `Check result: ${result.status.replace("_", " ")}`}
           </Badge>
           {result.message && <p className="text-xs text-muted-foreground">{result.message}</p>}
@@ -227,7 +251,11 @@ function ProviderDelete({ provider, onDone }: { provider: ProviderOut; onDone: (
         <Button variant="secondary" onClick={onDone}>
           Cancel
         </Button>
-        <Button variant="destructive" onClick={() => mutation.mutate({ path: { name: provider.name } })} disabled={mutation.isPending}>
+        <Button
+          variant="destructive"
+          onClick={() => mutation.mutate({ path: { name: provider.name } })}
+          disabled={mutation.isPending}
+        >
           Delete
         </Button>
       </div>

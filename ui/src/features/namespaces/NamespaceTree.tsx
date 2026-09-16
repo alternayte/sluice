@@ -1,6 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FilePlus, Save, Upload } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent, type PointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+  type KeyboardEvent,
+  type PointerEvent,
+} from "react";
 import { listFilesOptions } from "@/api/@tanstack/react-query.gen";
 import { ApiError, rawFetch } from "@/api-client";
 import { DataState } from "@/components/data-state";
@@ -39,7 +49,9 @@ export function NamespaceTree({
   /** staged maps a path to its unsaved content. created lists the staged paths that no version has. */
   const [staged, setStaged] = useState<Record<string, string>>({});
   const [created, setCreated] = useState<string[]>([]);
-  const [folder, setFolder] = useState(() => (selected?.includes("/") ? selected.slice(0, selected.lastIndexOf("/")) : ""));
+  const [folder, setFolder] = useState(() =>
+    selected?.includes("/") ? selected.slice(0, selected.lastIndexOf("/")) : "",
+  );
   const split = useSplit();
   const files = useQuery(listFilesOptions({ path: { namespace } }));
   const upload = useMutation({
@@ -73,7 +85,10 @@ export function NamespaceTree({
         const isNew = (p: string) => newPaths.includes(p);
         return (
           <div ref={split.container} style={split.style} className="flex flex-col gap-4 lg:flex-row lg:gap-0">
-            <section aria-label="File browser" className="flex min-w-0 shrink-0 flex-col gap-2 lg:w-[var(--tree-width)]">
+            <section
+              aria-label="File browser"
+              className="flex min-w-0 shrink-0 flex-col gap-2 lg:w-[var(--tree-width)]"
+            >
               {canEdit && (
                 <div className="flex flex-col gap-2">
                   <div className="flex flex-wrap gap-2">
@@ -150,7 +165,10 @@ export function NamespaceTree({
             >
               <div className="h-full w-px bg-border group-hover:w-0.5 group-hover:bg-accent group-focus-visible:w-0.5 group-focus-visible:bg-accent" />
             </div>
-            <section aria-label="Editor" className="flex h-[75vh] min-h-96 min-w-0 flex-1 flex-col lg:h-auto lg:min-h-0">
+            <section
+              aria-label="Editor"
+              className="flex h-[75vh] min-h-96 min-w-0 flex-1 flex-col lg:h-auto lg:min-h-0"
+            >
               {selected && (existing.has(selected) || isNew(selected)) ? (
                 <FileEditorPanel
                   key={selected}
@@ -344,7 +362,14 @@ function NewFileDialog({
           hint="Relative to the namespace root, for example flows/etl.flow.yaml. The file is saved with the next save."
           error={taken ? "A file with this path exists." : undefined}
         >
-          <Input className="font-mono" value={path} onChange={(e) => setPath(e.target.value)} required maxLength={512} autoFocus />
+          <Input
+            className="font-mono"
+            value={path}
+            onChange={(e) => setPath(e.target.value)}
+            required
+            maxLength={512}
+            autoFocus
+          />
         </Field>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
@@ -380,7 +405,11 @@ function SaveChangesDialog({
   const submit = (e: FormEvent) => {
     e.preventDefault();
     save.mutate(
-      { message: message.trim(), base_version: baseVersion, changes: paths.map((p) => ({ op: "put", path: p, content: staged[p] })) },
+      {
+        message: message.trim(),
+        base_version: baseVersion,
+        changes: paths.map((p) => ({ op: "put", path: p, content: staged[p] })),
+      },
       { onSuccess: () => onSaved(paths) },
     );
   };
@@ -398,7 +427,11 @@ function SaveChangesDialog({
           <Input value={message} onChange={(e) => setMessage(e.target.value)} required maxLength={500} autoFocus />
         </Field>
         {save.isError && (
-          <FormError>{conflict ? "The namespace changed. Reload the page; the staged files stay in this dialog until then." : errorMessage(save.error)}</FormError>
+          <FormError>
+            {conflict
+              ? "The namespace changed. Reload the page; the staged files stay in this dialog until then."
+              : errorMessage(save.error)}
+          </FormError>
         )}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>

@@ -276,15 +276,7 @@ export type ExecutionDetail = {
   snapshot_id: string;
   snapshot_version?: number | null;
   started_at?: string | null;
-  state:
-    | "QUEUED"
-    | "RUNNING"
-    | "CANCELLING"
-    | "SUCCESS"
-    | "FAILED"
-    | "TIMED_OUT"
-    | "CANCELLED"
-    | "SKIPPED";
+  state: "QUEUED" | "RUNNING" | "CANCELLING" | "SUCCESS" | "FAILED" | "TIMED_OUT" | "CANCELLED" | "SKIPPED";
   task_runs: Array<TaskRun>;
   trigger_payload: {
     [key: string]: unknown;
@@ -338,15 +330,7 @@ export type ExecutionSummary = {
   namespace: string;
   reason: string;
   started_at?: string | null;
-  state:
-    | "QUEUED"
-    | "RUNNING"
-    | "CANCELLING"
-    | "SUCCESS"
-    | "FAILED"
-    | "TIMED_OUT"
-    | "CANCELLED"
-    | "SKIPPED";
+  state: "QUEUED" | "RUNNING" | "CANCELLING" | "SUCCESS" | "FAILED" | "TIMED_OUT" | "CANCELLED" | "SKIPPED";
   trigger_type: string;
   [key: string]: unknown;
 };
@@ -986,15 +970,7 @@ export type TaskRun = {
   reason: string;
   reused_from_id?: string | null;
   started_at?: string | null;
-  state:
-    | "PENDING"
-    | "QUEUED"
-    | "RUNNING"
-    | "SUCCESS"
-    | "FAILED"
-    | "TIMED_OUT"
-    | "CANCELLED"
-    | "SKIPPED";
+  state: "PENDING" | "QUEUED" | "RUNNING" | "SUCCESS" | "FAILED" | "TIMED_OUT" | "CANCELLED" | "SKIPPED";
   task_key: string;
   task_type: string;
   [key: string]: unknown;
@@ -1192,8 +1168,7 @@ export type RunnerPutArtifactResponses = {
   204: void;
 };
 
-export type RunnerPutArtifactResponse =
-  RunnerPutArtifactResponses[keyof RunnerPutArtifactResponses];
+export type RunnerPutArtifactResponse = RunnerPutArtifactResponses[keyof RunnerPutArtifactResponses];
 
 export type RunnerGetBundleData = {
   body?: never;
@@ -1211,8 +1186,7 @@ export type RunnerGetBundleResponses = {
   200: Blob | File;
 };
 
-export type RunnerGetBundleResponse =
-  RunnerGetBundleResponses[keyof RunnerGetBundleResponses];
+export type RunnerGetBundleResponse = RunnerGetBundleResponses[keyof RunnerGetBundleResponses];
 
 export type RunnerCompleteData = {
   body: RunnerComplete;
@@ -1230,8 +1204,7 @@ export type RunnerCompleteErrors = {
   default: ErrorEnvelope;
 };
 
-export type RunnerCompleteError =
-  RunnerCompleteErrors[keyof RunnerCompleteErrors];
+export type RunnerCompleteError = RunnerCompleteErrors[keyof RunnerCompleteErrors];
 
 export type RunnerCompleteResponses = {
   /**
@@ -1240,8 +1213,7 @@ export type RunnerCompleteResponses = {
   204: void;
 };
 
-export type RunnerCompleteResponse =
-  RunnerCompleteResponses[keyof RunnerCompleteResponses];
+export type RunnerCompleteResponse = RunnerCompleteResponses[keyof RunnerCompleteResponses];
 
 export type RunnerPostEventsData = {
   body: RunnerEventBatch;
@@ -1259,8 +1231,7 @@ export type RunnerPostEventsErrors = {
   default: ErrorEnvelope;
 };
 
-export type RunnerPostEventsError =
-  RunnerPostEventsErrors[keyof RunnerPostEventsErrors];
+export type RunnerPostEventsError = RunnerPostEventsErrors[keyof RunnerPostEventsErrors];
 
 export type RunnerPostEventsResponses = {
   /**
@@ -1269,8 +1240,7 @@ export type RunnerPostEventsResponses = {
   204: void;
 };
 
-export type RunnerPostEventsResponse =
-  RunnerPostEventsResponses[keyof RunnerPostEventsResponses];
+export type RunnerPostEventsResponse = RunnerPostEventsResponses[keyof RunnerPostEventsResponses];
 
 export type RunnerHeartbeatData = {
   body?: never;
@@ -1288,8 +1258,7 @@ export type RunnerHeartbeatErrors = {
   default: ErrorEnvelope;
 };
 
-export type RunnerHeartbeatError =
-  RunnerHeartbeatErrors[keyof RunnerHeartbeatErrors];
+export type RunnerHeartbeatError = RunnerHeartbeatErrors[keyof RunnerHeartbeatErrors];
 
 export type RunnerHeartbeatResponses = {
   /**
@@ -1298,8 +1267,7 @@ export type RunnerHeartbeatResponses = {
   200: RunnerHeartbeatResponse;
 };
 
-export type RunnerHeartbeatResponse2 =
-  RunnerHeartbeatResponses[keyof RunnerHeartbeatResponses];
+export type RunnerHeartbeatResponse2 = RunnerHeartbeatResponses[keyof RunnerHeartbeatResponses];
 
 export type RunnerPostLogsData = {
   body: RunnerLogBatch;
@@ -1317,8 +1285,7 @@ export type RunnerPostLogsErrors = {
   default: ErrorEnvelope;
 };
 
-export type RunnerPostLogsError =
-  RunnerPostLogsErrors[keyof RunnerPostLogsErrors];
+export type RunnerPostLogsError = RunnerPostLogsErrors[keyof RunnerPostLogsErrors];
 
 export type RunnerPostLogsResponses = {
   /**
@@ -1327,8 +1294,7 @@ export type RunnerPostLogsResponses = {
   204: void;
 };
 
-export type RunnerPostLogsResponse =
-  RunnerPostLogsResponses[keyof RunnerPostLogsResponses];
+export type RunnerPostLogsResponse = RunnerPostLogsResponses[keyof RunnerPostLogsResponses];
 
 export type RunnerGetSpecData = {
   body?: never;
@@ -1355,8 +1321,7 @@ export type RunnerGetSpecResponses = {
   200: RunnerSpec;
 };
 
-export type RunnerGetSpecResponse =
-  RunnerGetSpecResponses[keyof RunnerGetSpecResponses];
+export type RunnerGetSpecResponse = RunnerGetSpecResponses[keyof RunnerGetSpecResponses];
 
 export type ListAiConversationsData = {
   body?: never;
@@ -1372,8 +1337,7 @@ export type ListAiConversationsErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListAiConversationsError =
-  ListAiConversationsErrors[keyof ListAiConversationsErrors];
+export type ListAiConversationsError = ListAiConversationsErrors[keyof ListAiConversationsErrors];
 
 export type ListAiConversationsResponses = {
   /**
@@ -1382,8 +1346,7 @@ export type ListAiConversationsResponses = {
   200: ConversationList;
 };
 
-export type ListAiConversationsResponse =
-  ListAiConversationsResponses[keyof ListAiConversationsResponses];
+export type ListAiConversationsResponse = ListAiConversationsResponses[keyof ListAiConversationsResponses];
 
 export type CreateAiConversationData = {
   body: CreateAiConversationRequest;
@@ -1399,8 +1362,7 @@ export type CreateAiConversationErrors = {
   default: ErrorEnvelope;
 };
 
-export type CreateAiConversationError =
-  CreateAiConversationErrors[keyof CreateAiConversationErrors];
+export type CreateAiConversationError = CreateAiConversationErrors[keyof CreateAiConversationErrors];
 
 export type CreateAiConversationResponses = {
   /**
@@ -1409,8 +1371,7 @@ export type CreateAiConversationResponses = {
   201: Conversation;
 };
 
-export type CreateAiConversationResponse =
-  CreateAiConversationResponses[keyof CreateAiConversationResponses];
+export type CreateAiConversationResponse = CreateAiConversationResponses[keyof CreateAiConversationResponses];
 
 export type DeleteAiConversationData = {
   body?: never;
@@ -1428,8 +1389,7 @@ export type DeleteAiConversationErrors = {
   default: ErrorEnvelope;
 };
 
-export type DeleteAiConversationError =
-  DeleteAiConversationErrors[keyof DeleteAiConversationErrors];
+export type DeleteAiConversationError = DeleteAiConversationErrors[keyof DeleteAiConversationErrors];
 
 export type DeleteAiConversationResponses = {
   /**
@@ -1438,8 +1398,7 @@ export type DeleteAiConversationResponses = {
   204: void;
 };
 
-export type DeleteAiConversationResponse =
-  DeleteAiConversationResponses[keyof DeleteAiConversationResponses];
+export type DeleteAiConversationResponse = DeleteAiConversationResponses[keyof DeleteAiConversationResponses];
 
 export type GetAiConversationData = {
   body?: never;
@@ -1457,8 +1416,7 @@ export type GetAiConversationErrors = {
   default: ErrorEnvelope;
 };
 
-export type GetAiConversationError =
-  GetAiConversationErrors[keyof GetAiConversationErrors];
+export type GetAiConversationError = GetAiConversationErrors[keyof GetAiConversationErrors];
 
 export type GetAiConversationResponses = {
   /**
@@ -1467,8 +1425,7 @@ export type GetAiConversationResponses = {
   200: ConversationDetail;
 };
 
-export type GetAiConversationResponse =
-  GetAiConversationResponses[keyof GetAiConversationResponses];
+export type GetAiConversationResponse = GetAiConversationResponses[keyof GetAiConversationResponses];
 
 export type ConfirmAiActionData = {
   body?: never;
@@ -1534,8 +1491,7 @@ export type DeleteAiProviderErrors = {
   default: ErrorEnvelope;
 };
 
-export type DeleteAiProviderError =
-  DeleteAiProviderErrors[keyof DeleteAiProviderErrors];
+export type DeleteAiProviderError = DeleteAiProviderErrors[keyof DeleteAiProviderErrors];
 
 export type DeleteAiProviderResponses = {
   /**
@@ -1544,8 +1500,7 @@ export type DeleteAiProviderResponses = {
   204: void;
 };
 
-export type DeleteAiProviderResponse =
-  DeleteAiProviderResponses[keyof DeleteAiProviderResponses];
+export type DeleteAiProviderResponse = DeleteAiProviderResponses[keyof DeleteAiProviderResponses];
 
 export type GetAiProviderData = {
   body?: never;
@@ -1570,8 +1525,7 @@ export type GetAiProviderResponses = {
   200: AiProvider;
 };
 
-export type GetAiProviderResponse =
-  GetAiProviderResponses[keyof GetAiProviderResponses];
+export type GetAiProviderResponse = GetAiProviderResponses[keyof GetAiProviderResponses];
 
 export type PutAiProviderData = {
   body: AiProviderPut;
@@ -1596,8 +1550,7 @@ export type PutAiProviderResponses = {
   200: AiProvider;
 };
 
-export type PutAiProviderResponse =
-  PutAiProviderResponses[keyof PutAiProviderResponses];
+export type PutAiProviderResponse = PutAiProviderResponses[keyof PutAiProviderResponses];
 
 export type TestAiProviderData = {
   body?: never;
@@ -1613,8 +1566,7 @@ export type TestAiProviderErrors = {
   default: ErrorEnvelope;
 };
 
-export type TestAiProviderError =
-  TestAiProviderErrors[keyof TestAiProviderErrors];
+export type TestAiProviderError = TestAiProviderErrors[keyof TestAiProviderErrors];
 
 export type TestAiProviderResponses = {
   /**
@@ -1623,8 +1575,7 @@ export type TestAiProviderResponses = {
   200: AiTestResult;
 };
 
-export type TestAiProviderResponse =
-  TestAiProviderResponses[keyof TestAiProviderResponses];
+export type TestAiProviderResponse = TestAiProviderResponses[keyof TestAiProviderResponses];
 
 export type GetAiStatusData = {
   body?: never;
@@ -1649,8 +1600,7 @@ export type GetAiStatusResponses = {
   200: AiStatus;
 };
 
-export type GetAiStatusResponse =
-  GetAiStatusResponses[keyof GetAiStatusResponses];
+export type GetAiStatusResponse = GetAiStatusResponses[keyof GetAiStatusResponses];
 
 export type ListAuditEventsData = {
   body?: never;
@@ -1674,8 +1624,7 @@ export type ListAuditEventsErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListAuditEventsError =
-  ListAuditEventsErrors[keyof ListAuditEventsErrors];
+export type ListAuditEventsError = ListAuditEventsErrors[keyof ListAuditEventsErrors];
 
 export type ListAuditEventsResponses = {
   /**
@@ -1684,8 +1633,7 @@ export type ListAuditEventsResponses = {
   200: AuditList;
 };
 
-export type ListAuditEventsResponse =
-  ListAuditEventsResponses[keyof ListAuditEventsResponses];
+export type ListAuditEventsResponse = ListAuditEventsResponses[keyof ListAuditEventsResponses];
 
 export type LoginData = {
   body: LoginRequest;
@@ -1801,8 +1749,7 @@ export type ChangePasswordErrors = {
   default: ErrorEnvelope;
 };
 
-export type ChangePasswordError =
-  ChangePasswordErrors[keyof ChangePasswordErrors];
+export type ChangePasswordError = ChangePasswordErrors[keyof ChangePasswordErrors];
 
 export type ChangePasswordResponses = {
   /**
@@ -1811,8 +1758,7 @@ export type ChangePasswordResponses = {
   204: void;
 };
 
-export type ChangePasswordResponse =
-  ChangePasswordResponses[keyof ChangePasswordResponses];
+export type ChangePasswordResponse = ChangePasswordResponses[keyof ChangePasswordResponses];
 
 export type RevokeOtherSessionsData = {
   body?: never;
@@ -1828,8 +1774,7 @@ export type RevokeOtherSessionsErrors = {
   default: ErrorEnvelope;
 };
 
-export type RevokeOtherSessionsError =
-  RevokeOtherSessionsErrors[keyof RevokeOtherSessionsErrors];
+export type RevokeOtherSessionsError = RevokeOtherSessionsErrors[keyof RevokeOtherSessionsErrors];
 
 export type RevokeOtherSessionsResponses = {
   /**
@@ -1838,8 +1783,7 @@ export type RevokeOtherSessionsResponses = {
   200: CountResult;
 };
 
-export type RevokeOtherSessionsResponse =
-  RevokeOtherSessionsResponses[keyof RevokeOtherSessionsResponses];
+export type RevokeOtherSessionsResponse = RevokeOtherSessionsResponses[keyof RevokeOtherSessionsResponses];
 
 export type ListExecutionsData = {
   body?: never;
@@ -1857,15 +1801,7 @@ export type ListExecutionsData = {
      * Flow as <namespace>/<flow_id>.
      */
     flow?: string;
-    trigger_type?:
-      | "manual"
-      | "schedule"
-      | "webhook"
-      | "flow"
-      | "file"
-      | "subflow"
-      | "rerun"
-      | "restart";
+    trigger_type?: "manual" | "schedule" | "webhook" | "flow" | "file" | "subflow" | "rerun" | "restart";
     /**
      * Label filter key=value. Repeat for several labels.
      */
@@ -1889,8 +1825,7 @@ export type ListExecutionsErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListExecutionsError =
-  ListExecutionsErrors[keyof ListExecutionsErrors];
+export type ListExecutionsError = ListExecutionsErrors[keyof ListExecutionsErrors];
 
 export type ListExecutionsResponses = {
   /**
@@ -1899,8 +1834,7 @@ export type ListExecutionsResponses = {
   200: ExecutionList;
 };
 
-export type ListExecutionsResponse =
-  ListExecutionsResponses[keyof ListExecutionsResponses];
+export type ListExecutionsResponse = ListExecutionsResponses[keyof ListExecutionsResponses];
 
 export type GetExecutionData = {
   body?: never;
@@ -1927,8 +1861,7 @@ export type GetExecutionResponses = {
   200: ExecutionDetail;
 };
 
-export type GetExecutionResponse =
-  GetExecutionResponses[keyof GetExecutionResponses];
+export type GetExecutionResponse = GetExecutionResponses[keyof GetExecutionResponses];
 
 export type ListExecutionArtifactsData = {
   body?: never;
@@ -1946,8 +1879,7 @@ export type ListExecutionArtifactsErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListExecutionArtifactsError =
-  ListExecutionArtifactsErrors[keyof ListExecutionArtifactsErrors];
+export type ListExecutionArtifactsError = ListExecutionArtifactsErrors[keyof ListExecutionArtifactsErrors];
 
 export type ListExecutionArtifactsResponses = {
   /**
@@ -1956,8 +1888,7 @@ export type ListExecutionArtifactsResponses = {
   200: ArtifactList;
 };
 
-export type ListExecutionArtifactsResponse =
-  ListExecutionArtifactsResponses[keyof ListExecutionArtifactsResponses];
+export type ListExecutionArtifactsResponse = ListExecutionArtifactsResponses[keyof ListExecutionArtifactsResponses];
 
 export type DownloadArtifactData = {
   body?: never;
@@ -1976,8 +1907,7 @@ export type DownloadArtifactResponses = {
   200: Blob | File;
 };
 
-export type DownloadArtifactResponse =
-  DownloadArtifactResponses[keyof DownloadArtifactResponses];
+export type DownloadArtifactResponse = DownloadArtifactResponses[keyof DownloadArtifactResponses];
 
 export type CancelExecutionData = {
   body?: never;
@@ -1995,8 +1925,7 @@ export type CancelExecutionErrors = {
   default: ErrorEnvelope;
 };
 
-export type CancelExecutionError =
-  CancelExecutionErrors[keyof CancelExecutionErrors];
+export type CancelExecutionError = CancelExecutionErrors[keyof CancelExecutionErrors];
 
 export type CancelExecutionResponses = {
   /**
@@ -2005,8 +1934,7 @@ export type CancelExecutionResponses = {
   202: ExecutionDetail;
 };
 
-export type CancelExecutionResponse =
-  CancelExecutionResponses[keyof CancelExecutionResponses];
+export type CancelExecutionResponse = CancelExecutionResponses[keyof CancelExecutionResponses];
 
 export type StreamExecutionEventsData = {
   body?: never;
@@ -2043,8 +1971,7 @@ export type ListExecutionInsightsErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListExecutionInsightsError =
-  ListExecutionInsightsErrors[keyof ListExecutionInsightsErrors];
+export type ListExecutionInsightsError = ListExecutionInsightsErrors[keyof ListExecutionInsightsErrors];
 
 export type ListExecutionInsightsResponses = {
   /**
@@ -2053,8 +1980,7 @@ export type ListExecutionInsightsResponses = {
   200: InsightList;
 };
 
-export type ListExecutionInsightsResponse =
-  ListExecutionInsightsResponses[keyof ListExecutionInsightsResponses];
+export type ListExecutionInsightsResponse = ListExecutionInsightsResponses[keyof ListExecutionInsightsResponses];
 
 export type RequestTriageData = {
   body?: never;
@@ -2081,8 +2007,7 @@ export type RequestTriageResponses = {
   202: InsightList;
 };
 
-export type RequestTriageResponse =
-  RequestTriageResponses[keyof RequestTriageResponses];
+export type RequestTriageResponse = RequestTriageResponses[keyof RequestTriageResponses];
 
 export type GetExecutionLogsData = {
   body?: never;
@@ -2114,8 +2039,7 @@ export type GetExecutionLogsErrors = {
   default: ErrorEnvelope;
 };
 
-export type GetExecutionLogsError =
-  GetExecutionLogsErrors[keyof GetExecutionLogsErrors];
+export type GetExecutionLogsError = GetExecutionLogsErrors[keyof GetExecutionLogsErrors];
 
 export type GetExecutionLogsResponses = {
   /**
@@ -2124,8 +2048,7 @@ export type GetExecutionLogsResponses = {
   200: LogPage;
 };
 
-export type GetExecutionLogsResponse =
-  GetExecutionLogsResponses[keyof GetExecutionLogsResponses];
+export type GetExecutionLogsResponse = GetExecutionLogsResponses[keyof GetExecutionLogsResponses];
 
 export type DownloadExecutionLogsData = {
   body?: never;
@@ -2182,8 +2105,7 @@ export type ListExecutionMetricsErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListExecutionMetricsError =
-  ListExecutionMetricsErrors[keyof ListExecutionMetricsErrors];
+export type ListExecutionMetricsError = ListExecutionMetricsErrors[keyof ListExecutionMetricsErrors];
 
 export type ListExecutionMetricsResponses = {
   /**
@@ -2192,8 +2114,7 @@ export type ListExecutionMetricsResponses = {
   200: MetricList;
 };
 
-export type ListExecutionMetricsResponse =
-  ListExecutionMetricsResponses[keyof ListExecutionMetricsResponses];
+export type ListExecutionMetricsResponse = ListExecutionMetricsResponses[keyof ListExecutionMetricsResponses];
 
 export type RerunExecutionData = {
   body?: never;
@@ -2211,8 +2132,7 @@ export type RerunExecutionErrors = {
   default: ErrorEnvelope;
 };
 
-export type RerunExecutionError =
-  RerunExecutionErrors[keyof RerunExecutionErrors];
+export type RerunExecutionError = RerunExecutionErrors[keyof RerunExecutionErrors];
 
 export type RerunExecutionResponses = {
   /**
@@ -2221,8 +2141,7 @@ export type RerunExecutionResponses = {
   201: ExecutionDetail;
 };
 
-export type RerunExecutionResponse =
-  RerunExecutionResponses[keyof RerunExecutionResponses];
+export type RerunExecutionResponse = RerunExecutionResponses[keyof RerunExecutionResponses];
 
 export type RestartExecutionData = {
   body?: never;
@@ -2240,8 +2159,7 @@ export type RestartExecutionErrors = {
   default: ErrorEnvelope;
 };
 
-export type RestartExecutionError =
-  RestartExecutionErrors[keyof RestartExecutionErrors];
+export type RestartExecutionError = RestartExecutionErrors[keyof RestartExecutionErrors];
 
 export type RestartExecutionResponses = {
   /**
@@ -2250,8 +2168,7 @@ export type RestartExecutionResponses = {
   201: ExecutionDetail;
 };
 
-export type RestartExecutionResponse =
-  RestartExecutionResponses[keyof RestartExecutionResponses];
+export type RestartExecutionResponse = RestartExecutionResponses[keyof RestartExecutionResponses];
 
 export type ListFlowsData = {
   body?: never;
@@ -2364,8 +2281,7 @@ export type DiffFlowRevisionsErrors = {
   default: ErrorEnvelope;
 };
 
-export type DiffFlowRevisionsError =
-  DiffFlowRevisionsErrors[keyof DiffFlowRevisionsErrors];
+export type DiffFlowRevisionsError = DiffFlowRevisionsErrors[keyof DiffFlowRevisionsErrors];
 
 export type DiffFlowRevisionsResponses = {
   /**
@@ -2374,8 +2290,7 @@ export type DiffFlowRevisionsResponses = {
   200: TextDiff;
 };
 
-export type DiffFlowRevisionsResponse =
-  DiffFlowRevisionsResponses[keyof DiffFlowRevisionsResponses];
+export type DiffFlowRevisionsResponse = DiffFlowRevisionsResponses[keyof DiffFlowRevisionsResponses];
 
 export type TriggerFlowData = {
   body: TriggerRequest;
@@ -2403,8 +2318,7 @@ export type TriggerFlowResponses = {
   201: ExecutionDetail;
 };
 
-export type TriggerFlowResponse =
-  TriggerFlowResponses[keyof TriggerFlowResponses];
+export type TriggerFlowResponse = TriggerFlowResponses[keyof TriggerFlowResponses];
 
 export type GetFlowMetricsData = {
   body?: never;
@@ -2433,8 +2347,7 @@ export type GetFlowMetricsErrors = {
   default: ErrorEnvelope;
 };
 
-export type GetFlowMetricsError =
-  GetFlowMetricsErrors[keyof GetFlowMetricsErrors];
+export type GetFlowMetricsError = GetFlowMetricsErrors[keyof GetFlowMetricsErrors];
 
 export type GetFlowMetricsResponses = {
   /**
@@ -2443,8 +2356,7 @@ export type GetFlowMetricsResponses = {
   200: FlowMetricsOut;
 };
 
-export type GetFlowMetricsResponse =
-  GetFlowMetricsResponses[keyof GetFlowMetricsResponses];
+export type GetFlowMetricsResponse = GetFlowMetricsResponses[keyof GetFlowMetricsResponses];
 
 export type ListFlowRevisionsData = {
   body?: never;
@@ -2465,8 +2377,7 @@ export type ListFlowRevisionsErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListFlowRevisionsError =
-  ListFlowRevisionsErrors[keyof ListFlowRevisionsErrors];
+export type ListFlowRevisionsError = ListFlowRevisionsErrors[keyof ListFlowRevisionsErrors];
 
 export type ListFlowRevisionsResponses = {
   /**
@@ -2475,8 +2386,7 @@ export type ListFlowRevisionsResponses = {
   200: RevisionList;
 };
 
-export type ListFlowRevisionsResponse =
-  ListFlowRevisionsResponses[keyof ListFlowRevisionsResponses];
+export type ListFlowRevisionsResponse = ListFlowRevisionsResponses[keyof ListFlowRevisionsResponses];
 
 export type GetFlowRevisionData = {
   body?: never;
@@ -2496,8 +2406,7 @@ export type GetFlowRevisionErrors = {
   default: ErrorEnvelope;
 };
 
-export type GetFlowRevisionError =
-  GetFlowRevisionErrors[keyof GetFlowRevisionErrors];
+export type GetFlowRevisionError = GetFlowRevisionErrors[keyof GetFlowRevisionErrors];
 
 export type GetFlowRevisionResponses = {
   /**
@@ -2506,8 +2415,7 @@ export type GetFlowRevisionResponses = {
   200: Revision;
 };
 
-export type GetFlowRevisionResponse =
-  GetFlowRevisionResponses[keyof GetFlowRevisionResponses];
+export type GetFlowRevisionResponse = GetFlowRevisionResponses[keyof GetFlowRevisionResponses];
 
 export type GetFlowStatsData = {
   body?: never;
@@ -2535,8 +2443,7 @@ export type GetFlowStatsResponses = {
   200: FlowStatsOut;
 };
 
-export type GetFlowStatsResponse =
-  GetFlowStatsResponses[keyof GetFlowStatsResponses];
+export type GetFlowStatsResponse = GetFlowStatsResponses[keyof GetFlowStatsResponses];
 
 export type RotateWebhookKeyData = {
   body?: never;
@@ -2556,8 +2463,7 @@ export type RotateWebhookKeyErrors = {
   default: ErrorEnvelope;
 };
 
-export type RotateWebhookKeyError =
-  RotateWebhookKeyErrors[keyof RotateWebhookKeyErrors];
+export type RotateWebhookKeyError = RotateWebhookKeyErrors[keyof RotateWebhookKeyErrors];
 
 export type RotateWebhookKeyResponses = {
   /**
@@ -2566,8 +2472,7 @@ export type RotateWebhookKeyResponses = {
   200: WebhookKey;
 };
 
-export type RotateWebhookKeyResponse =
-  RotateWebhookKeyResponses[keyof RotateWebhookKeyResponses];
+export type RotateWebhookKeyResponse = RotateWebhookKeyResponses[keyof RotateWebhookKeyResponses];
 
 export type ListGitSourcesData = {
   body?: never;
@@ -2583,8 +2488,7 @@ export type ListGitSourcesErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListGitSourcesError =
-  ListGitSourcesErrors[keyof ListGitSourcesErrors];
+export type ListGitSourcesError = ListGitSourcesErrors[keyof ListGitSourcesErrors];
 
 export type ListGitSourcesResponses = {
   /**
@@ -2593,8 +2497,7 @@ export type ListGitSourcesResponses = {
   200: SourceList;
 };
 
-export type ListGitSourcesResponse =
-  ListGitSourcesResponses[keyof ListGitSourcesResponses];
+export type ListGitSourcesResponse = ListGitSourcesResponses[keyof ListGitSourcesResponses];
 
 export type CreateGitSourceData = {
   body: CreateGitSourceRequest;
@@ -2610,8 +2513,7 @@ export type CreateGitSourceErrors = {
   default: ErrorEnvelope;
 };
 
-export type CreateGitSourceError =
-  CreateGitSourceErrors[keyof CreateGitSourceErrors];
+export type CreateGitSourceError = CreateGitSourceErrors[keyof CreateGitSourceErrors];
 
 export type CreateGitSourceResponses = {
   /**
@@ -2620,8 +2522,7 @@ export type CreateGitSourceResponses = {
   201: SourceOut;
 };
 
-export type CreateGitSourceResponse =
-  CreateGitSourceResponses[keyof CreateGitSourceResponses];
+export type CreateGitSourceResponse = CreateGitSourceResponses[keyof CreateGitSourceResponses];
 
 export type DeleteGitSourceData = {
   body?: never;
@@ -2639,8 +2540,7 @@ export type DeleteGitSourceErrors = {
   default: ErrorEnvelope;
 };
 
-export type DeleteGitSourceError =
-  DeleteGitSourceErrors[keyof DeleteGitSourceErrors];
+export type DeleteGitSourceError = DeleteGitSourceErrors[keyof DeleteGitSourceErrors];
 
 export type DeleteGitSourceResponses = {
   /**
@@ -2649,8 +2549,7 @@ export type DeleteGitSourceResponses = {
   204: void;
 };
 
-export type DeleteGitSourceResponse =
-  DeleteGitSourceResponses[keyof DeleteGitSourceResponses];
+export type DeleteGitSourceResponse = DeleteGitSourceResponses[keyof DeleteGitSourceResponses];
 
 export type GetGitSourceData = {
   body?: never;
@@ -2677,8 +2576,7 @@ export type GetGitSourceResponses = {
   200: SourceOut;
 };
 
-export type GetGitSourceResponse =
-  GetGitSourceResponses[keyof GetGitSourceResponses];
+export type GetGitSourceResponse = GetGitSourceResponses[keyof GetGitSourceResponses];
 
 export type UpdateGitSourceData = {
   body: SourceBody;
@@ -2696,8 +2594,7 @@ export type UpdateGitSourceErrors = {
   default: ErrorEnvelope;
 };
 
-export type UpdateGitSourceError =
-  UpdateGitSourceErrors[keyof UpdateGitSourceErrors];
+export type UpdateGitSourceError = UpdateGitSourceErrors[keyof UpdateGitSourceErrors];
 
 export type UpdateGitSourceResponses = {
   /**
@@ -2706,8 +2603,7 @@ export type UpdateGitSourceResponses = {
   200: SourceOut;
 };
 
-export type UpdateGitSourceResponse =
-  UpdateGitSourceResponses[keyof UpdateGitSourceResponses];
+export type UpdateGitSourceResponse = UpdateGitSourceResponses[keyof UpdateGitSourceResponses];
 
 export type ListGitSyncRunsData = {
   body?: never;
@@ -2725,8 +2621,7 @@ export type ListGitSyncRunsErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListGitSyncRunsError =
-  ListGitSyncRunsErrors[keyof ListGitSyncRunsErrors];
+export type ListGitSyncRunsError = ListGitSyncRunsErrors[keyof ListGitSyncRunsErrors];
 
 export type ListGitSyncRunsResponses = {
   /**
@@ -2735,8 +2630,7 @@ export type ListGitSyncRunsResponses = {
   200: RunList;
 };
 
-export type ListGitSyncRunsResponse =
-  ListGitSyncRunsResponses[keyof ListGitSyncRunsResponses];
+export type ListGitSyncRunsResponse = ListGitSyncRunsResponses[keyof ListGitSyncRunsResponses];
 
 export type SyncGitSourceData = {
   body?: never;
@@ -2786,8 +2680,7 @@ export type ListInstancesResponses = {
   200: InstanceList;
 };
 
-export type ListInstancesResponse =
-  ListInstancesResponses[keyof ListInstancesResponses];
+export type ListInstancesResponse = ListInstancesResponses[keyof ListInstancesResponses];
 
 export type ListNamespacesData = {
   body?: never;
@@ -2803,8 +2696,7 @@ export type ListNamespacesErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListNamespacesError =
-  ListNamespacesErrors[keyof ListNamespacesErrors];
+export type ListNamespacesError = ListNamespacesErrors[keyof ListNamespacesErrors];
 
 export type ListNamespacesResponses = {
   /**
@@ -2813,8 +2705,7 @@ export type ListNamespacesResponses = {
   200: NamespaceList;
 };
 
-export type ListNamespacesResponse =
-  ListNamespacesResponses[keyof ListNamespacesResponses];
+export type ListNamespacesResponse = ListNamespacesResponses[keyof ListNamespacesResponses];
 
 export type CreateNamespaceData = {
   body: CreateNamespaceRequest;
@@ -2830,8 +2721,7 @@ export type CreateNamespaceErrors = {
   default: ErrorEnvelope;
 };
 
-export type CreateNamespaceError =
-  CreateNamespaceErrors[keyof CreateNamespaceErrors];
+export type CreateNamespaceError = CreateNamespaceErrors[keyof CreateNamespaceErrors];
 
 export type CreateNamespaceResponses = {
   /**
@@ -2840,8 +2730,7 @@ export type CreateNamespaceResponses = {
   201: Namespace;
 };
 
-export type CreateNamespaceResponse =
-  CreateNamespaceResponses[keyof CreateNamespaceResponses];
+export type CreateNamespaceResponse = CreateNamespaceResponses[keyof CreateNamespaceResponses];
 
 export type DeleteNamespaceData = {
   body?: never;
@@ -2859,8 +2748,7 @@ export type DeleteNamespaceErrors = {
   default: ErrorEnvelope;
 };
 
-export type DeleteNamespaceError =
-  DeleteNamespaceErrors[keyof DeleteNamespaceErrors];
+export type DeleteNamespaceError = DeleteNamespaceErrors[keyof DeleteNamespaceErrors];
 
 export type DeleteNamespaceResponses = {
   /**
@@ -2869,8 +2757,7 @@ export type DeleteNamespaceResponses = {
   204: void;
 };
 
-export type DeleteNamespaceResponse =
-  DeleteNamespaceResponses[keyof DeleteNamespaceResponses];
+export type DeleteNamespaceResponse = DeleteNamespaceResponses[keyof DeleteNamespaceResponses];
 
 export type GetNamespaceData = {
   body?: never;
@@ -2897,8 +2784,7 @@ export type GetNamespaceResponses = {
   200: Namespace;
 };
 
-export type GetNamespaceResponse =
-  GetNamespaceResponses[keyof GetNamespaceResponses];
+export type GetNamespaceResponse = GetNamespaceResponses[keyof GetNamespaceResponses];
 
 export type SaveChangesData = {
   body: SaveChangesRequest;
@@ -2925,8 +2811,7 @@ export type SaveChangesResponses = {
   201: Snapshot;
 };
 
-export type SaveChangesResponse =
-  SaveChangesResponses[keyof SaveChangesResponses];
+export type SaveChangesResponse = SaveChangesResponses[keyof SaveChangesResponses];
 
 export type DiffVersionsData = {
   body?: never;
@@ -2956,8 +2841,7 @@ export type DiffVersionsResponses = {
   200: VersionDiff;
 };
 
-export type DiffVersionsResponse =
-  DiffVersionsResponses[keyof DiffVersionsResponses];
+export type DiffVersionsResponse = DiffVersionsResponses[keyof DiffVersionsResponses];
 
 export type GetFileData = {
   body?: never;
@@ -3057,8 +2941,7 @@ export type GetNamespaceGitErrors = {
   default: ErrorEnvelope;
 };
 
-export type GetNamespaceGitError =
-  GetNamespaceGitErrors[keyof GetNamespaceGitErrors];
+export type GetNamespaceGitError = GetNamespaceGitErrors[keyof GetNamespaceGitErrors];
 
 export type GetNamespaceGitResponses = {
   /**
@@ -3067,8 +2950,7 @@ export type GetNamespaceGitResponses = {
   200: NamespaceGit;
 };
 
-export type GetNamespaceGitResponse =
-  GetNamespaceGitResponses[keyof GetNamespaceGitResponses];
+export type GetNamespaceGitResponse = GetNamespaceGitResponses[keyof GetNamespaceGitResponses];
 
 export type PushNamespaceBranchData = {
   body: PushNamespaceBranchRequest;
@@ -3086,8 +2968,7 @@ export type PushNamespaceBranchErrors = {
   default: ErrorEnvelope;
 };
 
-export type PushNamespaceBranchError =
-  PushNamespaceBranchErrors[keyof PushNamespaceBranchErrors];
+export type PushNamespaceBranchError = PushNamespaceBranchErrors[keyof PushNamespaceBranchErrors];
 
 export type PushNamespaceBranchResponses = {
   /**
@@ -3096,8 +2977,7 @@ export type PushNamespaceBranchResponses = {
   201: PushResult;
 };
 
-export type PushNamespaceBranchResponse =
-  PushNamespaceBranchResponses[keyof PushNamespaceBranchResponses];
+export type PushNamespaceBranchResponse = PushNamespaceBranchResponses[keyof PushNamespaceBranchResponses];
 
 export type RevertVersionData = {
   body: RevertRequest;
@@ -3124,8 +3004,7 @@ export type RevertVersionResponses = {
   201: Snapshot;
 };
 
-export type RevertVersionResponse =
-  RevertVersionResponses[keyof RevertVersionResponses];
+export type RevertVersionResponse = RevertVersionResponses[keyof RevertVersionResponses];
 
 export type RunFileData = {
   body: RunFileRequest;
@@ -3170,8 +3049,7 @@ export type ListNamespaceSecretsErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListNamespaceSecretsError =
-  ListNamespaceSecretsErrors[keyof ListNamespaceSecretsErrors];
+export type ListNamespaceSecretsError = ListNamespaceSecretsErrors[keyof ListNamespaceSecretsErrors];
 
 export type ListNamespaceSecretsResponses = {
   /**
@@ -3180,8 +3058,7 @@ export type ListNamespaceSecretsResponses = {
   200: SecretList;
 };
 
-export type ListNamespaceSecretsResponse =
-  ListNamespaceSecretsResponses[keyof ListNamespaceSecretsResponses];
+export type ListNamespaceSecretsResponse = ListNamespaceSecretsResponses[keyof ListNamespaceSecretsResponses];
 
 export type DeleteNamespaceSecretData = {
   body?: never;
@@ -3200,8 +3077,7 @@ export type DeleteNamespaceSecretErrors = {
   default: ErrorEnvelope;
 };
 
-export type DeleteNamespaceSecretError =
-  DeleteNamespaceSecretErrors[keyof DeleteNamespaceSecretErrors];
+export type DeleteNamespaceSecretError = DeleteNamespaceSecretErrors[keyof DeleteNamespaceSecretErrors];
 
 export type DeleteNamespaceSecretResponses = {
   /**
@@ -3210,8 +3086,7 @@ export type DeleteNamespaceSecretResponses = {
   204: void;
 };
 
-export type DeleteNamespaceSecretResponse =
-  DeleteNamespaceSecretResponses[keyof DeleteNamespaceSecretResponses];
+export type DeleteNamespaceSecretResponse = DeleteNamespaceSecretResponses[keyof DeleteNamespaceSecretResponses];
 
 export type PutNamespaceSecretData = {
   body: SecretPutWritable;
@@ -3230,8 +3105,7 @@ export type PutNamespaceSecretErrors = {
   default: ErrorEnvelope;
 };
 
-export type PutNamespaceSecretError =
-  PutNamespaceSecretErrors[keyof PutNamespaceSecretErrors];
+export type PutNamespaceSecretError = PutNamespaceSecretErrors[keyof PutNamespaceSecretErrors];
 
 export type PutNamespaceSecretResponses = {
   /**
@@ -3240,8 +3114,7 @@ export type PutNamespaceSecretResponses = {
   200: SecretInfo;
 };
 
-export type PutNamespaceSecretResponse =
-  PutNamespaceSecretResponses[keyof PutNamespaceSecretResponses];
+export type PutNamespaceSecretResponse = PutNamespaceSecretResponses[keyof PutNamespaceSecretResponses];
 
 export type CheckNamespaceSecretData = {
   body?: never;
@@ -3260,8 +3133,7 @@ export type CheckNamespaceSecretErrors = {
   default: ErrorEnvelope;
 };
 
-export type CheckNamespaceSecretError =
-  CheckNamespaceSecretErrors[keyof CheckNamespaceSecretErrors];
+export type CheckNamespaceSecretError = CheckNamespaceSecretErrors[keyof CheckNamespaceSecretErrors];
 
 export type CheckNamespaceSecretResponses = {
   /**
@@ -3270,8 +3142,7 @@ export type CheckNamespaceSecretResponses = {
   200: CheckResult;
 };
 
-export type CheckNamespaceSecretResponse =
-  CheckNamespaceSecretResponses[keyof CheckNamespaceSecretResponses];
+export type CheckNamespaceSecretResponse = CheckNamespaceSecretResponses[keyof CheckNamespaceSecretResponses];
 
 export type ValidateFileData = {
   body: ValidateFileRequest;
@@ -3298,8 +3169,7 @@ export type ValidateFileResponses = {
   200: ValidateFileResult;
 };
 
-export type ValidateFileResponse =
-  ValidateFileResponses[keyof ValidateFileResponses];
+export type ValidateFileResponse = ValidateFileResponses[keyof ValidateFileResponses];
 
 export type ListNamespaceVariablesData = {
   body?: never;
@@ -3317,8 +3187,7 @@ export type ListNamespaceVariablesErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListNamespaceVariablesError =
-  ListNamespaceVariablesErrors[keyof ListNamespaceVariablesErrors];
+export type ListNamespaceVariablesError = ListNamespaceVariablesErrors[keyof ListNamespaceVariablesErrors];
 
 export type ListNamespaceVariablesResponses = {
   /**
@@ -3327,8 +3196,7 @@ export type ListNamespaceVariablesResponses = {
   200: VariableList;
 };
 
-export type ListNamespaceVariablesResponse =
-  ListNamespaceVariablesResponses[keyof ListNamespaceVariablesResponses];
+export type ListNamespaceVariablesResponse = ListNamespaceVariablesResponses[keyof ListNamespaceVariablesResponses];
 
 export type DeleteNamespaceVariableData = {
   body?: never;
@@ -3347,8 +3215,7 @@ export type DeleteNamespaceVariableErrors = {
   default: ErrorEnvelope;
 };
 
-export type DeleteNamespaceVariableError =
-  DeleteNamespaceVariableErrors[keyof DeleteNamespaceVariableErrors];
+export type DeleteNamespaceVariableError = DeleteNamespaceVariableErrors[keyof DeleteNamespaceVariableErrors];
 
 export type DeleteNamespaceVariableResponses = {
   /**
@@ -3357,8 +3224,7 @@ export type DeleteNamespaceVariableResponses = {
   204: void;
 };
 
-export type DeleteNamespaceVariableResponse =
-  DeleteNamespaceVariableResponses[keyof DeleteNamespaceVariableResponses];
+export type DeleteNamespaceVariableResponse = DeleteNamespaceVariableResponses[keyof DeleteNamespaceVariableResponses];
 
 export type PutNamespaceVariableData = {
   body: VariablePut;
@@ -3377,8 +3243,7 @@ export type PutNamespaceVariableErrors = {
   default: ErrorEnvelope;
 };
 
-export type PutNamespaceVariableError =
-  PutNamespaceVariableErrors[keyof PutNamespaceVariableErrors];
+export type PutNamespaceVariableError = PutNamespaceVariableErrors[keyof PutNamespaceVariableErrors];
 
 export type PutNamespaceVariableResponses = {
   /**
@@ -3387,8 +3252,7 @@ export type PutNamespaceVariableResponses = {
   200: VariableInfo;
 };
 
-export type PutNamespaceVariableResponse =
-  PutNamespaceVariableResponses[keyof PutNamespaceVariableResponses];
+export type PutNamespaceVariableResponse = PutNamespaceVariableResponses[keyof PutNamespaceVariableResponses];
 
 export type ListVersionsData = {
   body?: never;
@@ -3417,8 +3281,7 @@ export type ListVersionsResponses = {
   200: SnapshotList;
 };
 
-export type ListVersionsResponse =
-  ListVersionsResponses[keyof ListVersionsResponses];
+export type ListVersionsResponse = ListVersionsResponses[keyof ListVersionsResponses];
 
 export type ListUpcomingSchedulesData = {
   body?: never;
@@ -3440,8 +3303,7 @@ export type ListUpcomingSchedulesErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListUpcomingSchedulesError =
-  ListUpcomingSchedulesErrors[keyof ListUpcomingSchedulesErrors];
+export type ListUpcomingSchedulesError = ListUpcomingSchedulesErrors[keyof ListUpcomingSchedulesErrors];
 
 export type ListUpcomingSchedulesResponses = {
   /**
@@ -3450,8 +3312,7 @@ export type ListUpcomingSchedulesResponses = {
   200: UpcomingList;
 };
 
-export type ListUpcomingSchedulesResponse =
-  ListUpcomingSchedulesResponses[keyof ListUpcomingSchedulesResponses];
+export type ListUpcomingSchedulesResponse = ListUpcomingSchedulesResponses[keyof ListUpcomingSchedulesResponses];
 
 export type GetFlowSchemaData = {
   body?: never;
@@ -3490,8 +3351,7 @@ export type ListSecretProvidersErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListSecretProvidersError =
-  ListSecretProvidersErrors[keyof ListSecretProvidersErrors];
+export type ListSecretProvidersError = ListSecretProvidersErrors[keyof ListSecretProvidersErrors];
 
 export type ListSecretProvidersResponses = {
   /**
@@ -3500,8 +3360,7 @@ export type ListSecretProvidersResponses = {
   200: ProviderList;
 };
 
-export type ListSecretProvidersResponse =
-  ListSecretProvidersResponses[keyof ListSecretProvidersResponses];
+export type ListSecretProvidersResponse = ListSecretProvidersResponses[keyof ListSecretProvidersResponses];
 
 export type CreateSecretProviderData = {
   body: CreateSecretProviderRequest;
@@ -3517,8 +3376,7 @@ export type CreateSecretProviderErrors = {
   default: ErrorEnvelope;
 };
 
-export type CreateSecretProviderError =
-  CreateSecretProviderErrors[keyof CreateSecretProviderErrors];
+export type CreateSecretProviderError = CreateSecretProviderErrors[keyof CreateSecretProviderErrors];
 
 export type CreateSecretProviderResponses = {
   /**
@@ -3527,8 +3385,7 @@ export type CreateSecretProviderResponses = {
   201: ProviderOut;
 };
 
-export type CreateSecretProviderResponse =
-  CreateSecretProviderResponses[keyof CreateSecretProviderResponses];
+export type CreateSecretProviderResponse = CreateSecretProviderResponses[keyof CreateSecretProviderResponses];
 
 export type DeleteSecretProviderData = {
   body?: never;
@@ -3546,8 +3403,7 @@ export type DeleteSecretProviderErrors = {
   default: ErrorEnvelope;
 };
 
-export type DeleteSecretProviderError =
-  DeleteSecretProviderErrors[keyof DeleteSecretProviderErrors];
+export type DeleteSecretProviderError = DeleteSecretProviderErrors[keyof DeleteSecretProviderErrors];
 
 export type DeleteSecretProviderResponses = {
   /**
@@ -3556,8 +3412,7 @@ export type DeleteSecretProviderResponses = {
   204: void;
 };
 
-export type DeleteSecretProviderResponse =
-  DeleteSecretProviderResponses[keyof DeleteSecretProviderResponses];
+export type DeleteSecretProviderResponse = DeleteSecretProviderResponses[keyof DeleteSecretProviderResponses];
 
 export type UpdateSecretProviderData = {
   body: UpdateSecretProviderRequest;
@@ -3575,8 +3430,7 @@ export type UpdateSecretProviderErrors = {
   default: ErrorEnvelope;
 };
 
-export type UpdateSecretProviderError =
-  UpdateSecretProviderErrors[keyof UpdateSecretProviderErrors];
+export type UpdateSecretProviderError = UpdateSecretProviderErrors[keyof UpdateSecretProviderErrors];
 
 export type UpdateSecretProviderResponses = {
   /**
@@ -3585,8 +3439,7 @@ export type UpdateSecretProviderResponses = {
   200: ProviderOut;
 };
 
-export type UpdateSecretProviderResponse =
-  UpdateSecretProviderResponses[keyof UpdateSecretProviderResponses];
+export type UpdateSecretProviderResponse = UpdateSecretProviderResponses[keyof UpdateSecretProviderResponses];
 
 export type CheckSecretProviderData = {
   body: CheckSecretProviderRequest;
@@ -3604,8 +3457,7 @@ export type CheckSecretProviderErrors = {
   default: ErrorEnvelope;
 };
 
-export type CheckSecretProviderError =
-  CheckSecretProviderErrors[keyof CheckSecretProviderErrors];
+export type CheckSecretProviderError = CheckSecretProviderErrors[keyof CheckSecretProviderErrors];
 
 export type CheckSecretProviderResponses = {
   /**
@@ -3614,8 +3466,7 @@ export type CheckSecretProviderResponses = {
   200: CheckResult;
 };
 
-export type CheckSecretProviderResponse =
-  CheckSecretProviderResponses[keyof CheckSecretProviderResponses];
+export type CheckSecretProviderResponse = CheckSecretProviderResponses[keyof CheckSecretProviderResponses];
 
 export type ListGlobalSecretsData = {
   body?: never;
@@ -3631,8 +3482,7 @@ export type ListGlobalSecretsErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListGlobalSecretsError =
-  ListGlobalSecretsErrors[keyof ListGlobalSecretsErrors];
+export type ListGlobalSecretsError = ListGlobalSecretsErrors[keyof ListGlobalSecretsErrors];
 
 export type ListGlobalSecretsResponses = {
   /**
@@ -3641,8 +3491,7 @@ export type ListGlobalSecretsResponses = {
   200: SecretList;
 };
 
-export type ListGlobalSecretsResponse =
-  ListGlobalSecretsResponses[keyof ListGlobalSecretsResponses];
+export type ListGlobalSecretsResponse = ListGlobalSecretsResponses[keyof ListGlobalSecretsResponses];
 
 export type DeleteGlobalSecretData = {
   body?: never;
@@ -3660,8 +3509,7 @@ export type DeleteGlobalSecretErrors = {
   default: ErrorEnvelope;
 };
 
-export type DeleteGlobalSecretError =
-  DeleteGlobalSecretErrors[keyof DeleteGlobalSecretErrors];
+export type DeleteGlobalSecretError = DeleteGlobalSecretErrors[keyof DeleteGlobalSecretErrors];
 
 export type DeleteGlobalSecretResponses = {
   /**
@@ -3670,8 +3518,7 @@ export type DeleteGlobalSecretResponses = {
   204: void;
 };
 
-export type DeleteGlobalSecretResponse =
-  DeleteGlobalSecretResponses[keyof DeleteGlobalSecretResponses];
+export type DeleteGlobalSecretResponse = DeleteGlobalSecretResponses[keyof DeleteGlobalSecretResponses];
 
 export type PutGlobalSecretData = {
   body: SecretPutWritable;
@@ -3689,8 +3536,7 @@ export type PutGlobalSecretErrors = {
   default: ErrorEnvelope;
 };
 
-export type PutGlobalSecretError =
-  PutGlobalSecretErrors[keyof PutGlobalSecretErrors];
+export type PutGlobalSecretError = PutGlobalSecretErrors[keyof PutGlobalSecretErrors];
 
 export type PutGlobalSecretResponses = {
   /**
@@ -3699,8 +3545,7 @@ export type PutGlobalSecretResponses = {
   200: SecretInfo;
 };
 
-export type PutGlobalSecretResponse =
-  PutGlobalSecretResponses[keyof PutGlobalSecretResponses];
+export type PutGlobalSecretResponse = PutGlobalSecretResponses[keyof PutGlobalSecretResponses];
 
 export type CheckGlobalSecretData = {
   body?: never;
@@ -3718,8 +3563,7 @@ export type CheckGlobalSecretErrors = {
   default: ErrorEnvelope;
 };
 
-export type CheckGlobalSecretError =
-  CheckGlobalSecretErrors[keyof CheckGlobalSecretErrors];
+export type CheckGlobalSecretError = CheckGlobalSecretErrors[keyof CheckGlobalSecretErrors];
 
 export type CheckGlobalSecretResponses = {
   /**
@@ -3728,8 +3572,7 @@ export type CheckGlobalSecretResponses = {
   200: CheckResult;
 };
 
-export type CheckGlobalSecretResponse =
-  CheckGlobalSecretResponses[keyof CheckGlobalSecretResponses];
+export type CheckGlobalSecretResponse = CheckGlobalSecretResponses[keyof CheckGlobalSecretResponses];
 
 export type GetDashboardData = {
   body?: never;
@@ -3760,8 +3603,7 @@ export type GetDashboardResponses = {
   200: DashboardOut;
 };
 
-export type GetDashboardResponse =
-  GetDashboardResponses[keyof GetDashboardResponses];
+export type GetDashboardResponse = GetDashboardResponses[keyof GetDashboardResponses];
 
 export type GetStorageStatusData = {
   body?: never;
@@ -3777,8 +3619,7 @@ export type GetStorageStatusErrors = {
   default: ErrorEnvelope;
 };
 
-export type GetStorageStatusError =
-  GetStorageStatusErrors[keyof GetStorageStatusErrors];
+export type GetStorageStatusError = GetStorageStatusErrors[keyof GetStorageStatusErrors];
 
 export type GetStorageStatusResponses = {
   /**
@@ -3787,8 +3628,7 @@ export type GetStorageStatusResponses = {
   200: Status;
 };
 
-export type GetStorageStatusResponse =
-  GetStorageStatusResponses[keyof GetStorageStatusResponses];
+export type GetStorageStatusResponse = GetStorageStatusResponses[keyof GetStorageStatusResponses];
 
 export type ListTokensData = {
   body?: never;
@@ -3845,8 +3685,7 @@ export type CreateTokenResponses = {
   201: CreatedToken;
 };
 
-export type CreateTokenResponse =
-  CreateTokenResponses[keyof CreateTokenResponses];
+export type CreateTokenResponse = CreateTokenResponses[keyof CreateTokenResponses];
 
 export type RevokeTokenData = {
   body?: never;
@@ -3873,8 +3712,7 @@ export type RevokeTokenResponses = {
   204: void;
 };
 
-export type RevokeTokenResponse =
-  RevokeTokenResponses[keyof RevokeTokenResponses];
+export type RevokeTokenResponse = RevokeTokenResponses[keyof RevokeTokenResponses];
 
 export type ListUsersData = {
   body?: never;
@@ -3972,8 +3810,7 @@ export type ResetUserPasswordErrors = {
   default: ErrorEnvelope;
 };
 
-export type ResetUserPasswordError =
-  ResetUserPasswordErrors[keyof ResetUserPasswordErrors];
+export type ResetUserPasswordError = ResetUserPasswordErrors[keyof ResetUserPasswordErrors];
 
 export type ResetUserPasswordResponses = {
   /**
@@ -3982,8 +3819,7 @@ export type ResetUserPasswordResponses = {
   204: void;
 };
 
-export type ResetUserPasswordResponse =
-  ResetUserPasswordResponses[keyof ResetUserPasswordResponses];
+export type ResetUserPasswordResponse = ResetUserPasswordResponses[keyof ResetUserPasswordResponses];
 
 export type ListGlobalVariablesData = {
   body?: never;
@@ -3999,8 +3835,7 @@ export type ListGlobalVariablesErrors = {
   default: ErrorEnvelope;
 };
 
-export type ListGlobalVariablesError =
-  ListGlobalVariablesErrors[keyof ListGlobalVariablesErrors];
+export type ListGlobalVariablesError = ListGlobalVariablesErrors[keyof ListGlobalVariablesErrors];
 
 export type ListGlobalVariablesResponses = {
   /**
@@ -4009,8 +3844,7 @@ export type ListGlobalVariablesResponses = {
   200: VariableList;
 };
 
-export type ListGlobalVariablesResponse =
-  ListGlobalVariablesResponses[keyof ListGlobalVariablesResponses];
+export type ListGlobalVariablesResponse = ListGlobalVariablesResponses[keyof ListGlobalVariablesResponses];
 
 export type DeleteGlobalVariableData = {
   body?: never;
@@ -4028,8 +3862,7 @@ export type DeleteGlobalVariableErrors = {
   default: ErrorEnvelope;
 };
 
-export type DeleteGlobalVariableError =
-  DeleteGlobalVariableErrors[keyof DeleteGlobalVariableErrors];
+export type DeleteGlobalVariableError = DeleteGlobalVariableErrors[keyof DeleteGlobalVariableErrors];
 
 export type DeleteGlobalVariableResponses = {
   /**
@@ -4038,8 +3871,7 @@ export type DeleteGlobalVariableResponses = {
   204: void;
 };
 
-export type DeleteGlobalVariableResponse =
-  DeleteGlobalVariableResponses[keyof DeleteGlobalVariableResponses];
+export type DeleteGlobalVariableResponse = DeleteGlobalVariableResponses[keyof DeleteGlobalVariableResponses];
 
 export type PutGlobalVariableData = {
   body: VariablePut;
@@ -4057,8 +3889,7 @@ export type PutGlobalVariableErrors = {
   default: ErrorEnvelope;
 };
 
-export type PutGlobalVariableError =
-  PutGlobalVariableErrors[keyof PutGlobalVariableErrors];
+export type PutGlobalVariableError = PutGlobalVariableErrors[keyof PutGlobalVariableErrors];
 
 export type PutGlobalVariableResponses = {
   /**
@@ -4067,8 +3898,7 @@ export type PutGlobalVariableResponses = {
   200: VariableInfo;
 };
 
-export type PutGlobalVariableResponse =
-  PutGlobalVariableResponses[keyof PutGlobalVariableResponses];
+export type PutGlobalVariableResponse = PutGlobalVariableResponses[keyof PutGlobalVariableResponses];
 
 export type GitWebhookData = {
   body?: never;

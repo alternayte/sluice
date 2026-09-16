@@ -192,4 +192,3 @@ function Filters({ search, onApply }: { search: ExecutionsSearch; onApply: (s: E
     </form>
   );
 }
-

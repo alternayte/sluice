@@ -22,7 +22,10 @@ test("SCN-AUTH-001 login errors, reload, logout and old cookie", async ({ page, 
   await expect(page).toHaveURL(/\/login/);
   await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
 
-  const old = await request.newContext({ baseURL: baseURL(), extraHTTPHeaders: { Cookie: `sluice_session=${cookie!.value}` } });
+  const old = await request.newContext({
+    baseURL: baseURL(),
+    extraHTTPHeaders: { Cookie: `sluice_session=${cookie!.value}` },
+  });
   expect((await old.get("/api/v1/auth/me")).status()).toBe(401);
   await old.dispose();
 });
@@ -54,6 +57,9 @@ test("SCN-AUTH-003 admin creates an editor who must set a new password", async (
   await expect(editor.getByRole("heading", { name: "Dashboard" })).toBeVisible();
 
   const me = await ctx.request.get("/api/v1/auth/me");
-  expect(((await me.json()) as { role: string; must_change_password: boolean })).toMatchObject({ role: "editor", must_change_password: false });
+  expect((await me.json()) as { role: string; must_change_password: boolean }).toMatchObject({
+    role: "editor",
+    must_change_password: false,
+  });
   await ctx.close();
 });

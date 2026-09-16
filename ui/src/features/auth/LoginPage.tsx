@@ -55,7 +55,13 @@ export function LoginPage({ redirect }: { redirect?: string }) {
         <h1 className="text-lg font-semibold">Sign in to Sluice</h1>
         <form onSubmit={submit} className="flex flex-col gap-3">
           <Field id="login-email" label="Email">
-            <Input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              type="email"
+              autoComplete="username"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </Field>
           <Field id="login-password" label="Password">
             <Input

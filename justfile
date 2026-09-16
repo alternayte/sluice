@@ -63,7 +63,7 @@ gen-check: gen
 
 lint: forbid
     golangci-lint run ./...
-    if [ -f ui/package.json ]; then cd ui && bun run lint && bunx tsc --noEmit; fi
+    if [ -f ui/package.json ]; then cd ui && bun run format:check && bun run lint && bunx tsc --noEmit; fi
     if [ -d deploy/helm/sluice ]; then helm lint deploy/helm/sluice; fi
 
 forbid:

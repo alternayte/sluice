@@ -101,149 +101,157 @@ export function FileEditorPanel({
   );
 
   const body = (saved: string) => {
-        const value = draft ?? saved;
-        const dirty = isNew || (draft !== undefined && draft !== saved);
-        return (
-          <div className="flex min-h-0 flex-1 flex-col gap-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex min-w-0 items-center gap-2">
-                <h2 id="editor-label" className="truncate font-mono text-sm" title={path}>
-                  {path}
-                </h2>
-                {dirty && <Badge tone="warning">Unsaved changes</Badge>}
-              </div>
-              {(canEdit || canRun || gitPush) && (
-                <div className="flex flex-wrap gap-2">
-                  {canRun && (
-                    <Button size="sm" variant="secondary" onClick={() => setDialog("run")}>
-                      <Play className="h-3.5 w-3.5" aria-hidden />
-                      Run
+    const value = draft ?? saved;
+    const dirty = isNew || (draft !== undefined && draft !== saved);
+    return (
+      <div className="flex min-h-0 flex-1 flex-col gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <h2 id="editor-label" className="truncate font-mono text-sm" title={path}>
+              {path}
+            </h2>
+            {dirty && <Badge tone="warning">Unsaved changes</Badge>}
+          </div>
+          {(canEdit || canRun || gitPush) && (
+            <div className="flex flex-wrap gap-2">
+              {canRun && (
+                <Button size="sm" variant="secondary" onClick={() => setDialog("run")}>
+                  <Play className="h-3.5 w-3.5" aria-hidden />
+                  Run
+                </Button>
+              )}
+              {gitPush && (
+                <Button size="sm" disabled={!dirty} onClick={() => setDialog("push")}>
+                  <GitBranch className="h-3.5 w-3.5" aria-hidden />
+                  Push to branch
+                </Button>
+              )}
+              {canEdit && (
+                <>
+                  {isNew ? (
+                    <Button size="sm" variant="ghost" onClick={onDiscard}>
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                      Discard
                     </Button>
-                  )}
-                  {gitPush && (
-                    <Button size="sm" disabled={!dirty} onClick={() => setDialog("push")}>
-                      <GitBranch className="h-3.5 w-3.5" aria-hidden />
-                      Push to branch
-                    </Button>
-                  )}
-                  {canEdit && (
+                  ) : (
                     <>
-                      {isNew ? (
-                        <Button size="sm" variant="ghost" onClick={onDiscard}>
-                          <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                          Discard
-                        </Button>
-                      ) : (
-                        <>
-                          <Button size="sm" variant="ghost" onClick={() => setDialog("rename")}>
-                            <Pencil className="h-3.5 w-3.5" aria-hidden />
-                            Rename
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => setDialog("delete")}>
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                            Delete
-                          </Button>
-                        </>
-                      )}
-                      <Button size="sm" disabled={!dirty} onClick={() => setDialog("save")}>
-                        <Save className="h-3.5 w-3.5" aria-hidden />
-                        Save
+                      <Button size="sm" variant="ghost" onClick={() => setDialog("rename")}>
+                        <Pencil className="h-3.5 w-3.5" aria-hidden />
+                        Rename
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setDialog("delete")}>
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                        Delete
                       </Button>
                     </>
                   )}
-                </div>
+                  <Button size="sm" disabled={!dirty} onClick={() => setDialog("save")}>
+                    <Save className="h-3.5 w-3.5" aria-hidden />
+                    Save
+                  </Button>
+                </>
               )}
             </div>
-            <CodeEditor
-              className="min-h-0 flex-1"
-              value={value}
-              path={path}
-              label={`Content of ${path}`}
-              readOnly={!canEdit && !gitPush}
-              onChange={(text) => onDraft(!isNew && text === saved ? null : text)}
-              validate={validated ? validate : undefined}
-              onIssues={setIssues}
-            />
-            {validated && issues.length > 0 && (
-              <div role="alert" aria-label="Validation errors" className="flex max-h-40 shrink-0 flex-col overflow-hidden rounded-[8px] border bg-panel">
-                <div className="border-b px-3 py-2 text-sm font-medium text-state-failed">
-                  {issues.length === 1 ? "1 validation error" : `${issues.length} validation errors`}
-                </div>
-                <ul className="flex flex-col overflow-y-auto text-sm">
-                  {issues.map((i, n) => (
-                    <li key={n} className="flex flex-wrap gap-x-3 border-b px-3 py-1.5 last:border-0">
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {i.line}:{i.column}
-                      </span>
-                      <span className="font-mono text-xs">{i.code}</span>
-                      <span>{i.message}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {dialog === "save" && (
-              <SaveDialog
-                namespace={namespace}
-                path={path}
-                content={value}
-                isNew={isNew}
-                baseVersion={baseVersion}
-                onClose={() => setDialog(null)}
-                onSaved={() => {
-                  qc.setQueryData(contentKey, value);
-                  onDraft(null);
-                  setDialog(null);
-                }}
-                onReload={() => {
-                  onDraft(null);
-                  setDialog(null);
-                  invalidateNamespace(qc, namespace);
-                }}
-              />
-            )}
-            {dialog === "push" && (
-              <PushDialog namespace={namespace} path={path} content={value} onClose={() => setDialog(null)} onPushed={() => onDraft(null)} />
-            )}
-            {dialog === "run" && (
-              <RunFileDialog namespace={namespace} path={path} onClose={() => setDialog(null)} />
-            )}
-            {dialog === "rename" && (
-              <PathDialog
-                title="Rename file"
-                submitLabel="Rename"
-                initial={path}
-                namespace={namespace}
-                onClose={() => setDialog(null)}
-                build={(newPath) => ({
-                  message: `Rename ${path} to ${newPath}`,
-                  base_version: baseVersion,
-                  changes: [{ op: "rename", path, new_path: newPath }],
-                })}
-                onDone={(newPath) => onSelect(newPath)}
-              />
-            )}
-            {dialog === "delete" && (
-              <ConfirmDialog
-                open
-                title="Delete file"
-                confirmLabel="Delete"
-                destructive
-                pending={del.isPending}
-                error={del.isError ? errorMessage(del.error) : undefined}
-                onClose={() => setDialog(null)}
-                onConfirm={() =>
-                  del.mutate(
-                    { message: `Delete ${path}`, base_version: baseVersion, changes: [{ op: "delete", path }] },
-                    { onSuccess: () => onSelect(undefined) },
-                  )
-                }
-              >
-                Delete <span className="font-mono">{path}</span>? This creates a new version.
-              </ConfirmDialog>
-            )}
+          )}
+        </div>
+        <CodeEditor
+          className="min-h-0 flex-1"
+          value={value}
+          path={path}
+          label={`Content of ${path}`}
+          readOnly={!canEdit && !gitPush}
+          onChange={(text) => onDraft(!isNew && text === saved ? null : text)}
+          validate={validated ? validate : undefined}
+          onIssues={setIssues}
+        />
+        {validated && issues.length > 0 && (
+          <div
+            role="alert"
+            aria-label="Validation errors"
+            className="flex max-h-40 shrink-0 flex-col overflow-hidden rounded-[8px] border bg-panel"
+          >
+            <div className="border-b px-3 py-2 text-sm font-medium text-state-failed">
+              {issues.length === 1 ? "1 validation error" : `${issues.length} validation errors`}
+            </div>
+            <ul className="flex flex-col overflow-y-auto text-sm">
+              {issues.map((i, n) => (
+                <li key={n} className="flex flex-wrap gap-x-3 border-b px-3 py-1.5 last:border-0">
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {i.line}:{i.column}
+                  </span>
+                  <span className="font-mono text-xs">{i.code}</span>
+                  <span>{i.message}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        );
+        )}
+        {dialog === "save" && (
+          <SaveDialog
+            namespace={namespace}
+            path={path}
+            content={value}
+            isNew={isNew}
+            baseVersion={baseVersion}
+            onClose={() => setDialog(null)}
+            onSaved={() => {
+              qc.setQueryData(contentKey, value);
+              onDraft(null);
+              setDialog(null);
+            }}
+            onReload={() => {
+              onDraft(null);
+              setDialog(null);
+              invalidateNamespace(qc, namespace);
+            }}
+          />
+        )}
+        {dialog === "push" && (
+          <PushDialog
+            namespace={namespace}
+            path={path}
+            content={value}
+            onClose={() => setDialog(null)}
+            onPushed={() => onDraft(null)}
+          />
+        )}
+        {dialog === "run" && <RunFileDialog namespace={namespace} path={path} onClose={() => setDialog(null)} />}
+        {dialog === "rename" && (
+          <PathDialog
+            title="Rename file"
+            submitLabel="Rename"
+            initial={path}
+            namespace={namespace}
+            onClose={() => setDialog(null)}
+            build={(newPath) => ({
+              message: `Rename ${path} to ${newPath}`,
+              base_version: baseVersion,
+              changes: [{ op: "rename", path, new_path: newPath }],
+            })}
+            onDone={(newPath) => onSelect(newPath)}
+          />
+        )}
+        {dialog === "delete" && (
+          <ConfirmDialog
+            open
+            title="Delete file"
+            confirmLabel="Delete"
+            destructive
+            pending={del.isPending}
+            error={del.isError ? errorMessage(del.error) : undefined}
+            onClose={() => setDialog(null)}
+            onConfirm={() =>
+              del.mutate(
+                { message: `Delete ${path}`, base_version: baseVersion, changes: [{ op: "delete", path }] },
+                { onSuccess: () => onSelect(undefined) },
+              )
+            }
+          >
+            Delete <span className="font-mono">{path}</span>? This creates a new version.
+          </ConfirmDialog>
+        )}
+      </div>
+    );
   };
 
   return isNew ? body("") : <DataState query={content}>{body}</DataState>;
@@ -331,8 +339,8 @@ function PushDialog({
       {push.data ? (
         <div className="flex flex-col gap-4">
           <p role="status" className="text-sm">
-            Pushed to branch <span className="font-mono">{push.data.branch}</span>. The namespace changes when the branch is merged
-            and synced.
+            Pushed to branch <span className="font-mono">{push.data.branch}</span>. The namespace changes when the
+            branch is merged and synced.
           </p>
           <div className="flex justify-end">
             <Button onClick={onClose}>Done</Button>

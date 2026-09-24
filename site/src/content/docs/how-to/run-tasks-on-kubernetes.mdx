@@ -42,7 +42,7 @@ The server needs these permissions in the Job namespace:
 
 4. Set the runner image.
 
-   An init container copies the runner from `SLUICE_RUNNER_IMAGE` into the pod. The Helm chart sets this variable to the server image. Without the chart, a release build uses its own published image, for example `ghcr.io/alternayte/sluice:0.2.0`. Set the variable to use a mirror in a private registry.
+   An init container copies the runner from `SLUICE_RUNNER_IMAGE` into the pod. The Helm chart sets this variable to the server image. Without the chart, a release build uses its own published image, for example `ghcr.io/alternayte/sluice:0.2.1`. Set the variable to use a mirror in a private registry.
 
 5. Set the URL that pods call.
 

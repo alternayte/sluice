@@ -46,7 +46,7 @@ The compose file uses the released image from GitHub Container Registry. It need
 
 </Steps>
 
-The image is `ghcr.io/alternayte/sluice-uv:latest`. Pin a release with `SLUICE_IMAGE`, for example `SLUICE_IMAGE=ghcr.io/alternayte/sluice-uv:0.2.0`.
+The image is `ghcr.io/alternayte/sluice-uv:latest`. Pin a release with `SLUICE_IMAGE`, for example `SLUICE_IMAGE=ghcr.io/alternayte/sluice-uv:0.2.1`.
 
 To run your own build, run `just build-images` in a checkout of the repository. Then start the stack with `SLUICE_IMAGE=sluice-uv:dev docker compose -f deploy/compose/compose.yml up -d`.
 

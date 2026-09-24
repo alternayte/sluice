@@ -1,0 +1,46 @@
+name: Chart
+
+# Publishes the Helm chart of a release to oci://ghcr.io/alternayte/charts/sluice. The release
+# workflow calls it for each tag. Run it by hand to publish the chart of an existing tag.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, for example v0.2.0.
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  chart:
+    name: chart
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the tag.
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Set up Helm.
+        uses: azure/setup-helm@v4
+
+      - name: Package and push the chart.
+        env:
+          TAG: ${{ inputs.tag }}
+          GH_ACTOR: ${{ github.actor }}
+          TOKEN: ${{ github.token }}
+        run: |
+          version="${TAG#v}"
+          grep -qx "version: ${version}" deploy/helm/sluice/Chart.yaml || { echo "::error::Chart.yaml version is not ${version}"; exit 1; }
+          helm package deploy/helm/sluice --destination build
+          echo "$TOKEN" | helm registry login ghcr.io --username "$GH_ACTOR" --password-stdin
+          helm push "build/sluice-${version}.tgz" oci://ghcr.io/alternayte/charts

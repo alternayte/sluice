@@ -5,12 +5,12 @@ description: Install Sluice in a Kubernetes cluster with the Helm chart, with Se
 
 import { Steps, Aside } from "@astrojs/starlight/components";
 
-This guide shows you how to install Sluice in a Kubernetes cluster with the Helm chart in `deploy/helm/sluice`. The chart runs two server replicas on one Postgres database. It creates no PersistentVolumeClaim, because Sluice keeps all state in Postgres and in object storage.
+This guide shows you how to install Sluice in a Kubernetes cluster with the Helm chart `oci://ghcr.io/alternayte/charts/sluice`. The chart runs two server replicas on one Postgres database. It creates no PersistentVolumeClaim, because Sluice keeps all state in Postgres and in object storage.
 
 ## Before you start
 
 - A Kubernetes cluster, `kubectl` and `helm`.
-- A checkout of the Sluice repository. The chart is in `deploy/helm/sluice`.
+- Helm 3.8 or later, for charts in an OCI registry. The chart version is the Sluice version, and its default image is the image of that version.
 - A Postgres database. The tests use Postgres 17. The first migration runs `CREATE EXTENSION IF NOT EXISTS citext`, so the database user needs the right to create this extension.
 - A pooled URL works, for example PgBouncer in transaction mode or the Neon pooler. Sluice uses no prepared statements, no session advisory locks and no `LISTEN`.
 
@@ -64,11 +64,14 @@ This guide shows you how to install Sluice in a Kubernetes cluster with the Helm
          secretName: sluice-tls
    ```
 
-6. Install the chart from the root of the checkout:
+6. Install the chart:
 
    ```sh
-   helm install sluice ./deploy/helm/sluice --namespace sluice-system -f values.yaml
+   helm install sluice oci://ghcr.io/alternayte/charts/sluice --version 0.2.0 \
+     --namespace sluice-system -f values.yaml
    ```
+
+   The source of the chart is `deploy/helm/sluice` in the repository. `helm show values oci://ghcr.io/alternayte/charts/sluice --version 0.2.0` prints its values.
 
 7. Wait until the pods are ready:
 

@@ -6,26 +6,36 @@ Sluice runs flows of tasks: Python, shell and bun scripts, commands, HTTP calls 
 
 ![Open a flow, run it and watch the execution](site/src/assets/shots/quickstart.gif)
 
+## Install
+
+**Server and web UI** with Docker Compose. It starts Sluice and Postgres from the released images, with no checkout:
+
+```sh
+mkdir sluice && cd sluice
+curl -fsSLO https://raw.githubusercontent.com/alternayte/sluice/main/deploy/compose/compose.yml
+printf 'SLUICE_BOOTSTRAP_ADMIN_PASSWORD=%s\nSLUICE_MASTER_KEYS=k1:%s\n' 'change-me-now-1' "$(openssl rand -base64 32)" > .env
+docker compose up -d
+```
+
+Open <http://localhost:8080> and sign in as `admin@local.test` with the password in `.env`. Keep `.env`: the master key in it decrypts your secrets.
+
+**CLI** for Linux and macOS. The installer checks the download against the published checksum:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh | sh
+```
+
+**Kubernetes** with Helm:
+
+```sh
+helm install sluice oci://ghcr.io/alternayte/charts/sluice --version 0.2.0 -n sluice-system -f values.yaml
+```
+
+[Install Sluice](https://sluice-docs.pages.dev/how-to/install-sluice/) has every option: Docker with your own Postgres, the Helm values, a pinned version and a build from source.
+
 ## Quickstart
 
-You need Docker and [just](https://just.systems).
-
-1. Build the images:
-
-   ```sh
-   just build-images
-   ```
-
-2. Start Sluice and Postgres:
-
-   ```sh
-   export SLUICE_BOOTSTRAP_ADMIN_PASSWORD=change-me-now-1
-   export SLUICE_MASTER_KEYS="k1:$(openssl rand -base64 32)"
-   docker compose -f deploy/compose/compose.yml up -d
-   ```
-
-3. Open <http://localhost:8080> and sign in as `admin@local.test` with the password of step 2.
-4. Open **Namespaces**, create a namespace, and add a flow file, for example `hello.flow.yaml`:
+1. Open **Namespaces**, create a namespace, and add a flow file, for example `hello.flow.yaml`:
 
    ```yaml
    id: hello
@@ -35,17 +45,11 @@ You need Docker and [just](https://just.systems).
        command: ["echo", "hello from sluice"]
    ```
 
-5. Save the file, open **Flows**, select the flow, and click **Run**. The execution page shows the tasks and their logs live.
+2. Save the file, open **Flows**, select the flow, and click **Run**. The execution page shows the tasks and their logs live.
 
 [Run your first flow](https://sluice-docs.pages.dev/tutorials/run-your-first-flow/) is the full tutorial.
 
 ## From a terminal, CI or a coding agent
-
-Install the `sluice` binary. The installer checks the download against the published checksum:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh | sh
-```
 
 ```sh
 export SLUICE_URL=http://localhost:8080 SLUICE_TOKEN=<api token>

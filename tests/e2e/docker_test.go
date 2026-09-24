@@ -269,7 +269,8 @@ func TestSCN_DEP_005_Compose(t *testing.T) {
 	requireImages(t)
 	port := freePort(t)
 	project := fmt.Sprintf("sluice-dep005-%d", time.Now().UnixNano())
-	env := append(os.Environ(), "COMPOSE_PROJECT_NAME="+project, fmt.Sprintf("SLUICE_PORT=%d", port),
+	// The compose file uses the released image by default; the test runs the image of this build.
+	env := append(os.Environ(), "COMPOSE_PROJECT_NAME="+project, fmt.Sprintf("SLUICE_PORT=%d", port), "SLUICE_IMAGE=sluice-uv:dev",
 		"SLUICE_BOOTSTRAP_ADMIN_PASSWORD="+adminPassword, "SLUICE_MASTER_KEYS="+masterKey("k1", 1))
 	compose := func(args ...string) ([]byte, error) {
 		cmd := exec.Command("docker", append([]string{"compose", "-f", "deploy/compose/compose.yml"}, args...)...)

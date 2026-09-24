@@ -6,7 +6,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh | sh
 #
 # Environment:
-#   SLUICE_VERSION   the version to install, such as 0.2.0. The default is the newest release.
+#   SLUICE_VERSION   the version to install, such as 0.2.0. The default is the latest release.
 #   SLUICE_BIN_DIR   where the binary goes. The default is /usr/local/bin, or ~/.local/bin
 #                    when /usr/local/bin needs a password and sudo is not there.
 set -eu
@@ -38,12 +38,11 @@ esac
 
 version=${SLUICE_VERSION:-}
 if [ -z "$version" ]; then
-	# The newest release by its tag. Releases before 1.0.0 are prereleases, which
-	# /releases/latest leaves out, so the list gives the newest one. The API answers without
-	# a token for a public repository.
-	version=$(curl -fsSL "https://api.github.com/repos/$REPO/releases?per_page=1" |
+	# The latest release by its tag. A prerelease, such as v1.2.0-rc.1, is never the latest.
+	# The API answers without a token for a public repository.
+	version=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" |
 		sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -n 1)
-	[ -n "$version" ] || die "The installer could not read the newest version. Set SLUICE_VERSION, or download from https://github.com/$REPO/releases."
+	[ -n "$version" ] || die "The installer could not read the latest version. Set SLUICE_VERSION, or download from https://github.com/$REPO/releases."
 fi
 version=${version#v}
 

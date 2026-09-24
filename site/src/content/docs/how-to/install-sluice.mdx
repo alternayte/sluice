@@ -1,0 +1,163 @@
+---
+title: Install Sluice
+description: Start the Sluice server with Docker Compose, Docker or Helm, and install the sluice CLI with one command.
+sidebar:
+  order: 1
+---
+
+import { Steps, Tabs, TabItem, Aside } from "@astrojs/starlight/components";
+
+This page shows you how to install the two parts of Sluice: the server with its web UI, and the `sluice` CLI. Both are the same binary. The server needs Postgres. The CLI needs only the URL of a server and an API token.
+
+| You want | Use |
+|---|---|
+| Sluice on your computer or on one host | [Docker Compose](#server-with-docker-compose). It starts Sluice and Postgres. |
+| Sluice with a Postgres database that you already have | [Docker](#server-with-docker). |
+| Sluice in a Kubernetes cluster | [Helm](#server-with-helm). |
+| The CLI for a terminal, a CI job or a coding agent | [The install script](#the-cli). |
+
+The releases are on [GitHub](https://github.com/alternayte/sluice/releases). The images are `ghcr.io/alternayte/sluice` and `ghcr.io/alternayte/sluice-uv`. The `sluice-uv` image also has `bash`, `uv`, Python 3.12 and `bun`, so script tasks run on the process executor inside the server.
+
+## Server with Docker Compose
+
+You need Docker with the Compose plugin and a free port 8080. You need no checkout of the repository.
+
+<Steps>
+
+1. Download the compose file into an empty directory:
+
+   ```sh
+   mkdir sluice/ && cd sluice/
+   curl -fsSLO https://raw.githubusercontent.com/alternayte/sluice/main/deploy/compose/compose.yml
+   ```
+
+2. Write the two required values to a `.env` file next to it. Keep this file: Sluice needs the same master key at each start to read the secrets that it stores.
+
+   ```sh
+   printf 'SLUICE_BOOTSTRAP_ADMIN_PASSWORD=%s\n' 'change-me-now-1' > .env
+   printf 'SLUICE_MASTER_KEYS=k1:%s\n' "$(openssl rand -base64 32)" >> .env
+   ```
+
+3. Start Sluice and Postgres:
+
+   ```sh
+   docker compose up -d
+   ```
+
+4. Check that the server is ready. The answer shows `"status":"ok"`.
+
+   ```sh
+   curl -s http://localhost:8080/readyz
+   ```
+
+5. Open [http://localhost:8080](http://localhost:8080). Sign in as `admin@local.test` with the password of step 2.
+
+</Steps>
+
+The compose file uses the image `ghcr.io/alternayte/sluice-uv:latest`. To pin a release, add a line such as `SLUICE_IMAGE=ghcr.io/alternayte/sluice-uv:0.2.0` to `.env`. [Deploy with Docker Compose](/how-to/deploy-with-docker-compose/) lists the other variables and shows how to upgrade.
+
+## Server with Docker
+
+The server needs a Postgres database. The first migration runs `CREATE EXTENSION IF NOT EXISTS citext`, so the database user needs the right to create this extension.
+
+```sh
+docker run -d --name sluice -p 8080:8080 \
+  -e SLUICE_DATABASE_URL='postgres://sluice:secret@db.example.com:5432/sluice?sslmode=require' \
+  -e SLUICE_PUBLIC_URL=http://localhost:8080 \
+  -e SLUICE_BOOTSTRAP_ADMIN_EMAIL=admin@example.com \
+  -e SLUICE_BOOTSTRAP_ADMIN_PASSWORD='change-me-now-1' \
+  -e SLUICE_MASTER_KEYS="k1:$(openssl rand -base64 32)" \
+  ghcr.io/alternayte/sluice-uv:0.2.0
+```
+
+Keep the value of `SLUICE_MASTER_KEYS`. The server applies the migrations at start. [Environment variables](/reference/env/) lists every setting.
+
+## Server with Helm
+
+The chart is in the OCI registry of GitHub. It needs a Postgres database and three Secrets: the database URL, the master keys and the first admin.
+
+```sh
+helm install sluice oci://ghcr.io/alternayte/charts/sluice --version 0.2.0 \
+  --namespace sluice-system -f values.yaml
+```
+
+[Deploy on Kubernetes with Helm](/how-to/deploy-on-kubernetes/) shows the Secrets, the values file and the ingress.
+
+## The CLI
+
+<Tabs>
+<TabItem label="Linux and macOS">
+
+Run the install script. It downloads the latest release for your system, checks it against the published checksum, and puts `sluice` in `/usr/local/bin`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh | sh
+```
+
+The script asks for your password when `/usr/local/bin` needs `sudo`. Without `sudo` it uses `~/.local/bin`. Two variables change what it does:
+
+| Variable | Effect |
+|---|---|
+| `SLUICE_VERSION` | Installs this release, for example `0.2.0`. |
+| `SLUICE_BIN_DIR` | Puts the binary in this directory. |
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh | SLUICE_VERSION=0.2.0 SLUICE_BIN_DIR="$HOME/bin" sh
+```
+
+</TabItem>
+<TabItem label="Manual download">
+
+<Steps>
+
+1. Download the archive of your system and `checksums.txt` from the [releases page](https://github.com/alternayte/sluice/releases). The archive name has the form `sluice_<version>_<os>_<arch>.tar.gz`, for example `sluice_0.2.0_linux_amd64.tar.gz`.
+
+2. Check the archive against the checksum:
+
+   ```sh
+   grep ' sluice_0.2.0_linux_amd64.tar.gz$' checksums.txt | sha256sum -c -
+   ```
+
+3. Extract the binary and put it in a directory of your `PATH`:
+
+   ```sh
+   tar -xzf sluice_0.2.0_linux_amd64.tar.gz
+   sudo install -m 0755 sluice_0.2.0_linux_amd64/sluice /usr/local/bin/sluice
+   ```
+
+</Steps>
+
+</TabItem>
+<TabItem label="From source">
+
+You need Go and Bun. The binary embeds the web UI, so build the UI first:
+
+```sh
+git clone https://github.com/alternayte/sluice.git
+cd sluice/
+just setup
+just build-ui build-go
+sudo install -m 0755 bin/sluice /usr/local/bin/sluice
+```
+
+</TabItem>
+</Tabs>
+
+Check the installation, then point the CLI at a server with an API token. Create the token on **Settings → API tokens**.
+
+```sh
+sluice version
+export SLUICE_URL=http://localhost:8080
+export SLUICE_TOKEN=slu_paste-your-token-here
+sluice flows list
+```
+
+<Aside type="note">
+Run the install script again to update the CLI. After an update, run `sluice init` again in a repository that uses the agent skill, so the skill matches the binary.
+</Aside>
+
+## Next steps
+
+- [Run your first flow](/tutorials/run-your-first-flow/): write a flow, run it and read the execution.
+- [Use Sluice with coding agents](/how-to/use-sluice-with-coding-agents/): the skill, the MCP server and the JSON Schemas.
+- [Harden a deployment](/operations/harden-a-deployment/): TLS, roles, tokens and secret providers before production.

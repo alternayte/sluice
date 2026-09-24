@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Install Sluice, a docs page for Docker Compose, Docker, Helm and the CLI.
+- The release publishes the Helm chart to `oci://ghcr.io/alternayte/charts/sluice`. The `Chart` workflow publishes the chart of an existing tag.
+
+### Changed
+
+- `deploy/compose/compose.yml` uses the released image `ghcr.io/alternayte/sluice-uv:latest` and needs no checkout. `SLUICE_IMAGE` picks another image, for example `sluice-uv:dev` from `just build-images`.
+- `install.sh` installs the latest release.
+
+### Fixed
+
+- A release without a suffix, such as v0.2.0, is the latest release on GitHub. Before, every `v0.*` release was a prerelease, so GitHub showed no latest release.
+- The Helm chart deploys the image of its release. A release fails when the chart version differs from the tag.
+
 ## [0.2.0] - 2026-09-24
 
 ### Added

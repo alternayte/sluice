@@ -13,7 +13,7 @@ The workflow has two parts:
 - The action `alternayte/sluice` runs the flow with an operator token. It streams the logs into the job log and writes the result to the job summary. The step fails with the exit code of the run.
 
 <Aside type="caution">
-The action installs the `sluice` CLI from a GitHub release. It needs a release that has the client commands, and v0.1.2 and older releases do not have them. With such a release, the step fails because `sluice run` does not exist.
+The action installs the `sluice` CLI from a GitHub release. The client commands are in v0.2.0 and later. With v0.1.2 or older, the step fails because `sluice run` does not exist.
 </Aside>
 
 ## Before you start

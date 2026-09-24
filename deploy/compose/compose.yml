@@ -1,3 +1,8 @@
+# Sluice and Postgres on one host. It needs no checkout:
+#   curl -fsSLO https://raw.githubusercontent.com/alternayte/sluice/main/deploy/compose/compose.yml
+#   export SLUICE_BOOTSTRAP_ADMIN_PASSWORD=change-me-now-1
+#   export SLUICE_MASTER_KEYS="k1:$(openssl rand -base64 32)"
+#   docker compose up -d
 name: sluice
 services:
   postgres:
@@ -15,12 +20,10 @@ services:
       timeout: 2s
       retries: 30
   sluice:
-    build:
-      context: ../..
-      dockerfile: deploy/docker/Dockerfile
-      # sluice-uv runs Python, bash and bun tasks on the process executor.
-      target: sluice-uv
-    image: sluice-uv:dev
+    # The released image. sluice-uv runs Python, bash and bun tasks on the process executor.
+    # Pin a release in production, for example SLUICE_IMAGE=ghcr.io/alternayte/sluice-uv:0.2.0.
+    # For a build from source, run `just build-images` and set SLUICE_IMAGE=sluice-uv:dev.
+    image: ${SLUICE_IMAGE:-ghcr.io/alternayte/sluice-uv:latest}
     depends_on:
       postgres:
         condition: service_healthy

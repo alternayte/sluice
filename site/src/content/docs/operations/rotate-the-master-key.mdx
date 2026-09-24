@@ -1,0 +1,107 @@
+---
+title: Rotate the master key
+description: Add a new master key, encrypt all builtin secrets with it, and remove the old key without downtime.
+sidebar:
+  order: 6
+---
+
+import { Steps, Aside } from "@astrojs/starlight/components";
+
+This guide shows you how to replace the master key that encrypts the builtin secrets of Sluice. The procedure keeps all secrets readable at each step.
+
+## The key format
+
+`SLUICE_MASTER_KEYS` holds one or more entries, separated by commas. Each entry is `kid:base64key`.
+
+| Part | Rule |
+|---|---|
+| `kid` | The key ID. It must not be empty, and each key ID can occur only once. Sluice stores it next to each ciphertext. |
+| `base64key` | 32 random bytes in standard base64. |
+| Order | The first entry is the active key. Sluice encrypts each new or changed secret with it. The other entries only decrypt. |
+
+A value that breaks a rule stops each command that reads the configuration with exit code 2. Make a new entry with a new key ID:
+
+```sh
+echo "k2:$(openssl rand -base64 32)"
+```
+
+The builtin secrets use AES-256-GCM. The other secret providers do not use the master keys.
+
+## Rotate the key
+
+Do the steps on all instances, and in the environment where you run `sluice secrets rekey`. Every instance must have the same value of `SLUICE_MASTER_KEYS`.
+
+<Steps>
+
+1. Put the new key first, and keep the old key after it.
+
+   ```sh
+   SLUICE_MASTER_KEYS="k2:<new-key>,k1:<old-key>"
+   ```
+
+   With the Helm chart, update the Secret that `masterKeys.existingSecret` names.
+
+2. Restart all instances with the new value. New secret writes now use `k2`. The instances still decrypt the secrets that use `k1`.
+
+   ```sh
+   kubectl -n sluice rollout restart deployment/sluice
+   kubectl -n sluice rollout status deployment/sluice
+   ```
+
+3. Run `sluice secrets rekey` once, with `SLUICE_DATABASE_URL` and the new `SLUICE_MASTER_KEYS`.
+
+   ```sh
+   sluice secrets rekey
+   ```
+
+   The command prints `re-encrypted <n> secrets with key k2`.
+
+4. Remove the old key.
+
+   ```sh
+   SLUICE_MASTER_KEYS="k2:<new-key>"
+   ```
+
+5. Restart all instances.
+6. Make sure that `/readyz` returns 200 on each instance.
+
+</Steps>
+
+<Aside type="caution">
+Do not remove the old key before `sluice secrets rekey` ends. A builtin secret with a key ID that has no key makes `/readyz` fail with `master_key_missing`, and each task that reads the secret fails.
+</Aside>
+
+## What `sluice secrets rekey` does
+
+| Property | Behaviour |
+|---|---|
+| Scope | Every builtin secret, global and in each namespace. |
+| Work | It decrypts each secret with its stored key ID and encrypts it again with the active key. It skips a secret that already uses the active key. |
+| Transaction | It changes all secrets in one transaction. When one secret fails, no secret changes. |
+| Count | `<n>` in the output counts only the secrets that changed. A second run prints `0`. |
+| Audit | It writes the audit event `secret.rekey` with the count and the key ID. |
+| Migrations | It applies new migrations first, as `sluice server` does. |
+| Empty keys | It stops with exit code 2 when `SLUICE_MASTER_KEYS` is empty. |
+
+The command connects to the database directly. It does not need a running server or an API token.
+
+## Recover from a missing key
+
+When `/readyz` fails with `master_key_missing: no master key for key IDs k1`, a stored secret uses a key that the instances do not have.
+
+<Steps>
+
+1. Add the missing key to `SLUICE_MASTER_KEYS` again, after the active key.
+2. Restart all instances.
+3. Run `sluice secrets rekey`.
+4. Remove the old key and restart all instances.
+
+</Steps>
+
+When nobody has the old key, nobody can decrypt the secrets that use it. **Check** on the **Secrets** page shows `master_key_missing` for each of them. Save a new value for each such secret. Sluice encrypts the new value with the active key. `sluice secrets rekey` fails while such a secret exists, because it cannot decrypt the secret.
+
+## Related pages
+
+- [Harden a deployment](/operations/harden-a-deployment/): where to keep the master keys.
+- [Back up and restore](/operations/back-up-and-restore/): keep the keys with the backups.
+- [Use secrets and variables](/how-to/use-secrets-and-variables/): builtin secrets and scopes.

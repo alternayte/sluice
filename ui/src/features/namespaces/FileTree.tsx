@@ -6,12 +6,10 @@ import {
   FileJson,
   FileText,
   Folder,
-  FolderOpen,
   Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Badge } from "@/components/ui/badge";
 import { ancestors, buildTree, visibleNodes, type FileEntry, type TreeNode } from "@/lib/file-tree";
 import { cn, formatBytes } from "@/lib/utils";
 
@@ -19,7 +17,8 @@ const codeExt = new Set(["py", "ts", "tsx", "js", "mjs", "sh", "bash", "sql", "g
 const textExt = new Set(["md", "txt", "csv", "rst"]);
 const configExt = new Set(["yaml", "yml", "toml", "ini", "cfg", "env"]);
 
-function fileIcon(name: string): LucideIcon {
+/** fileIcon returns the icon of a file type, by the file name. */
+export function fileIcon(name: string): LucideIcon {
   if (name.endsWith(".flow.yaml") || name.endsWith(".flow.yml")) return Workflow;
   const ext = name.includes(".") ? name.slice(name.lastIndexOf(".") + 1).toLowerCase() : "";
   if (codeExt.has(ext)) return FileCode;
@@ -151,12 +150,13 @@ export function FileTree({
   };
 
   return (
-    <div role="tree" aria-label="Files" onKeyDown={onKeyDown} className="flex flex-col py-1">
+    <div role="tree" aria-label="Files" onKeyDown={onKeyDown} className="flex flex-col gap-px p-1.5">
       {visible.map(({ node, depth }) => {
         const open = node.kind === "dir" && expanded.has(node.path);
         const isSelected = node.kind === "file" && node.path === selected;
-        const Icon = node.kind === "dir" ? (open ? FolderOpen : Folder) : fileIcon(node.name);
-        const dirty = node.kind === "dir" ? node.dirty && !open : node.file.dirty && !node.file.isNew;
+        const Icon = node.kind === "dir" ? Folder : fileIcon(node.name);
+        const isNew = node.kind === "file" && node.file.isNew === true;
+        const dirty = node.kind === "dir" ? node.dirty && !open : node.file.dirty && !isNew;
         return (
           <div
             key={node.path}
@@ -173,31 +173,39 @@ export function FileTree({
             title={node.path}
             onClick={() => activate(node)}
             onFocus={() => setFocused(node.path)}
-            style={{ paddingLeft: `${depth * 14 + 6}px` }}
+            style={{ paddingLeft: `${depth * 16 + 4}px` }}
             className={cn(
-              "group flex h-7 cursor-pointer items-center gap-1.5 pr-2 text-sm outline-none select-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
-              isSelected && "bg-accent-soft text-accent-text hover:bg-accent-soft",
+              "group flex h-7 shrink-0 cursor-default items-center gap-1.5 rounded-inner pr-2 text-sm outline-none select-none hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+              isSelected && "bg-accent-soft hover:bg-accent-soft",
             )}
           >
             <ChevronRight
               aria-hidden
               className={cn(
-                "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform",
+                "h-3 w-3 shrink-0 text-muted-foreground transition-transform duration-300 ease-snappy",
                 node.kind !== "dir" && "invisible",
                 open && "rotate-90",
               )}
             />
             <Icon
               aria-hidden
-              className={cn("h-4 w-4 shrink-0", isSelected ? "text-accent" : "text-muted-foreground")}
+              className={cn(
+                "h-4 w-4 shrink-0",
+                node.kind === "dir" || isSelected ? "text-accent" : "text-muted-foreground",
+                node.kind === "dir" && "fill-accent/15",
+              )}
             />
-            <span className={cn("min-w-0 flex-1 truncate", node.kind === "file" && "font-mono text-xs")}>
-              {node.name}
-            </span>
-            {node.kind === "file" && node.file.isNew && <Badge tone="accent">New</Badge>}
+            <span className="min-w-0 flex-1 truncate">{node.name}</span>
+            {isNew && (
+              <span title="New file, not saved" className="flex h-4 w-3 shrink-0 items-center justify-center">
+                <span aria-hidden className="h-1.5 w-1.5 animate-enter rounded-full bg-accent" />
+                <span className="sr-only">New</span>
+              </span>
+            )}
             {dirty && (
-              <span className="text-xs text-muted-foreground" title="Unsaved changes">
-                ●<span className="sr-only">Unsaved changes</span>
+              <span title="Unsaved changes" className="flex h-4 w-3 shrink-0 items-center justify-center">
+                <span aria-hidden className="h-1.5 w-1.5 animate-enter rounded-full bg-muted-foreground" />
+                <span className="sr-only">Modified</span>
               </span>
             )}
             {node.kind === "file" && node.file.size !== undefined && (

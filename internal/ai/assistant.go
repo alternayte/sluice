@@ -74,6 +74,8 @@ type ConversationDetail struct {
 // MessageIn is the body of a user message.
 type MessageIn struct {
 	Text string `json:"text" minLength:"1" maxLength:"20000"`
+	// Attachments are objects that the model gets with the message.
+	Attachments []Attachment `json:"attachments,omitempty" maxItems:"5"`
 }
 
 var (
@@ -276,6 +278,11 @@ func history(rows []aidb.AiMessage) ([]Message, int, int) {
 				}
 			}
 		}
+		for i, b := range blocks {
+			if b.Type == BlockAttachment {
+				blocks[i] = Block{Type: BlockText, Text: "Attached " + b.Label + ":\n" + b.Text}
+			}
+		}
 		if n := len(msgs); n > 0 && msgs[n-1].Role == role {
 			msgs[n-1].Content = append(msgs[n-1].Content, blocks...)
 			continue
@@ -437,8 +444,8 @@ func (s *Service) hasPending(ctx context.Context, convID uuid.UUID) (bool, error
 	return false, nil
 }
 
-// SendMessage saves a user message and streams the turn.
-func (s *Service) SendMessage(w http.ResponseWriter, r *http.Request, convID uuid.UUID, text string) {
+// SendMessage saves a user message with its attachments and streams the turn.
+func (s *Service) SendMessage(w http.ResponseWriter, r *http.Request, convID uuid.UUID, text string, attachments []Attachment) {
 	ctx := r.Context()
 	m, unlock, err := s.prepareTurn(ctx, convID)
 	if err != nil {
@@ -453,7 +460,12 @@ func (s *Service) SendMessage(w http.ResponseWriter, r *http.Request, convID uui
 		httpx.WriteError(w, r, err)
 		return
 	}
-	if err := s.storeMessage(ctx, convID, "user", []Block{{Type: BlockText, Text: text}}); err != nil {
+	attached, err := s.expandAttachments(ctx, attachments)
+	if err != nil {
+		httpx.WriteError(w, r, err)
+		return
+	}
+	if err := s.storeMessage(ctx, convID, "user", append([]Block{{Type: BlockText, Text: text}}, attached...)); err != nil {
 		httpx.WriteError(w, r, err)
 		return
 	}
@@ -610,7 +622,11 @@ func registerAssistant(api huma.API, r chi.Router, s *Service) {
 			httpx.WriteError(w, req, httpx.Validation(httpx.FieldError{Field: "text", Message: "use 1 to 20000 characters"}))
 			return
 		}
-		s.SendMessage(w, req, id, in.Text)
+		if len(in.Attachments) > maxAttachments {
+			httpx.WriteError(w, req, httpx.Validation(httpx.FieldError{Field: "attachments", Message: "attach at most 5 objects"}))
+			return
+		}
+		s.SendMessage(w, req, id, in.Text, in.Attachments)
 	})
 
 	for _, d := range []struct {

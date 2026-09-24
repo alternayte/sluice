@@ -131,7 +131,8 @@ func TestSCN_AI_003_MCP(t *testing.T) {
 		for _, tool := range res.Tools {
 			names[tool.Name] = true
 		}
-		for _, want := range []string{"list_namespaces", "list_flows", "get_execution", "get_logs", "trigger_execution", "cancel_execution", "apply_change"} {
+		for _, want := range []string{"list_namespaces", "list_flows", "get_execution", "get_logs", "trigger_execution", "cancel_execution",
+			"rerun_execution", "restart_execution", "get_flow_schema", "apply_change"} {
 			if !names[want] {
 				t.Fatalf("tool %s is missing: %v", want, names)
 			}
@@ -182,6 +183,71 @@ func TestSCN_AI_003_MCP(t *testing.T) {
 		text, isErr := callTool(t, viewer, "get_logs", map[string]any{"execution_id": d.ID})
 		if isErr || !strings.Contains(text, "leak:***") || strings.Contains(text, canary) {
 			t.Fatalf("error %v: %s", isErr, text)
+		}
+		// grep runs on the masked text: the secret value finds nothing, the mask finds the line.
+		text, isErr = callTool(t, viewer, "get_logs", map[string]any{"execution_id": d.ID, "grep": canary})
+		if isErr || !strings.Contains(text, `"total_lines":0`) {
+			t.Fatalf("grep for the secret: error %v: %s", isErr, text)
+		}
+		text, isErr = callTool(t, viewer, "get_logs", map[string]any{"execution_id": d.ID, "grep": "LEAK:"})
+		if isErr || !strings.Contains(text, `"total_lines":1`) {
+			t.Fatalf("grep for the mask: error %v: %s", isErr, text)
+		}
+		text, isErr = callTool(t, viewer, "get_logs", map[string]any{"execution_id": d.ID, "failed_only": true})
+		if isErr || !strings.Contains(text, `"total_lines":0`) {
+			t.Fatalf("failed_only of a successful execution: error %v: %s", isErr, text)
+		}
+	})
+
+	t.Run("SCN-AI-003 rerun_execution needs the operator role and starts a new execution", func(t *testing.T) {
+		d := waitTerminal(t, admin, triggerFlow(t, admin, "mcp", "hello", nil, nil).ID, time.Minute)
+		text, isErr := callTool(t, viewer, "rerun_execution", map[string]any{"execution_id": d.ID})
+		if !isErr || !strings.Contains(text, "forbidden") {
+			t.Fatalf("viewer: error %v: %s", isErr, text)
+		}
+		text, isErr = callTool(t, editor, "rerun_execution", map[string]any{"execution_id": d.ID})
+		var rerun struct {
+			ID          string `json:"id"`
+			TriggerType string `json:"trigger_type"`
+		}
+		if isErr || json.Unmarshal([]byte(text), &rerun) != nil || rerun.TriggerType != "rerun" || rerun.ID == "" || rerun.ID == d.ID {
+			t.Fatalf("editor: error %v: %s", isErr, text)
+		}
+		text, isErr = callTool(t, editor, "restart_execution", map[string]any{"execution_id": d.ID})
+		if !isErr || !strings.Contains(text, "not_restartable") {
+			t.Fatalf("restart of a successful execution: error %v: %s", isErr, text)
+		}
+	})
+
+	t.Run("SCN-AI-003 get_flow_schema returns the flow schema", func(t *testing.T) {
+		text, isErr := callTool(t, viewer, "get_flow_schema", map[string]any{})
+		if isErr || !strings.Contains(text, "https://sluice-docs.pages.dev/schemas/flow.schema.json") {
+			t.Fatalf("error %v: %.300s", isErr, text)
+		}
+	})
+
+	t.Run("SCN-AI-003 /.well-known/mcp.json names the endpoint and the bearer header", func(t *testing.T) {
+		r := tokenClient(p.URL, "").raw(t, http.MethodGet, "/.well-known/mcp.json", nil, nil)
+		if r.Status != http.StatusOK {
+			t.Fatalf("status %d: %s", r.Status, r.Body)
+		}
+		var card struct {
+			Name    string `json:"name"`
+			Remotes []struct {
+				Type    string `json:"type"`
+				URL     string `json:"url"`
+				Headers []struct {
+					Name       string `json:"name"`
+					IsRequired bool   `json:"isRequired"`
+				} `json:"headers"`
+			} `json:"remotes"`
+		}
+		if err := json.Unmarshal(r.Body, &card); err != nil {
+			t.Fatal(err)
+		}
+		if len(card.Remotes) != 1 || card.Remotes[0].Type != "streamable-http" || !strings.HasSuffix(card.Remotes[0].URL, "/mcp") ||
+			len(card.Remotes[0].Headers) != 1 || card.Remotes[0].Headers[0].Name != "Authorization" || !card.Remotes[0].Headers[0].IsRequired {
+			t.Fatalf("card %s", r.Body)
 		}
 	})
 }

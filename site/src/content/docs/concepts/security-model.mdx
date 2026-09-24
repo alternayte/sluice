@@ -1,0 +1,172 @@
+---
+title: Security model
+description: How Sluice authenticates users, tokens and runners, what each role can do, and how it protects sessions, secrets and the audit trail.
+sidebar:
+  order: 6
+---
+
+This page explains how Sluice decides who can do what, and how it keeps secrets out of places where they do not belong. For the steps to secure a deployment, see [Harden a deployment](/operations/harden-a-deployment/).
+
+## Credentials
+
+Sluice has its own user accounts. It has no OIDC, SSO or SCIM. A request authenticates in one of three ways:
+
+| Credential | Where it works | Used by |
+|---|---|---|
+| Session cookie `sluice_session` | The UI and `/api/v1` | Browsers |
+| API token, `Authorization: Bearer slu_…` | `/api/v1` and `/mcp` | Scripts, CI jobs, the CLI, MCP clients |
+| Run token, `Authorization: Bearer …` | `/api/runner/v1` only | The runner inside a task |
+
+Webhooks under `/hooks/` use their own keys or signatures. `/mcp` accepts only API tokens. A session cookie there gets `401`.
+
+### Passwords
+
+Sluice stores each password as an argon2id hash with 19 MiB of memory, 2 iterations and 1 thread. A new password needs at least 10 characters. A change of your own password needs the current password, and it ends your other sessions.
+
+An admin can set a temporary password for a user. Until the user sets a new one, every operation except the own profile and password operations answers `403 password_change_required`.
+
+The login has a rate limit. More than 10 failures for one email, or 50 failures from one IP address, in 15 minutes give `429 rate_limited` with `Retry-After`. The counts are in Postgres, so the limit applies over all instances. Sluice reads the IP address from the TCP connection, not from `X-Forwarded-For`. Behind a reverse proxy, all clients thus share the address of the proxy.
+
+### Sessions
+
+| Property | Value |
+|---|---|
+| Cookie | `sluice_session`, `HttpOnly`, `SameSite=Lax`, `Path=/`. |
+| `Secure` flag | On when `SLUICE_PUBLIC_URL` starts with `https://`. |
+| Lifetime | `SLUICE_SESSION_TTL`, default `168h`. Each use extends it, at most once per minute. |
+| Storage | Postgres holds only the SHA-256 hash of the session ID. |
+| End | Logout deletes the session. A disable or a password reset of a user deletes all sessions of the user. |
+
+### API tokens
+
+An API token is `slu_` and 43 base62 characters, 256 random bits. Sluice shows the token once, at creation. The list shows only the first 10 characters, for example `slu_w6Ryj9`. Postgres holds only the SHA-256 hash.
+
+A token has a role that is at most the role of its owner. Its effective role is the lower of the token role and the current role of the owner. A demoted owner thus does not keep a higher token. A token can expire after 1 to 365 days, or never. A revoked or expired token, or a token of a disabled user, gets `401`.
+
+Each request reads the session or the token from Postgres. A disable, a role change or a revoke thus applies on all instances at once.
+
+## Roles
+
+Sluice has four fixed roles: `viewer`, `operator`, `editor` and `admin`. Each role has all permissions of the roles before it.
+
+| Capability | viewer | operator | editor | admin |
+|---|---|---|---|---|
+| Read dashboards, flows, files, executions, logs, metrics and variables | ✓ | ✓ | ✓ | ✓ |
+| List secret keys and their metadata, never values | ✓ | ✓ | ✓ | ✓ |
+| Use the assistant with the read tools | ✓ | ✓ | ✓ | ✓ |
+| Trigger, cancel, rerun and restart executions, run a file | | ✓ | ✓ | ✓ |
+| Request a triage, git **Sync now** | | ✓ | ✓ | ✓ |
+| Edit managed files, push a branch, enable or disable flows, rotate webhook keys | | | ✓ | ✓ |
+| Write namespace secrets and variables, check a secret | | | ✓ | ✓ |
+| Create managed namespaces | | | ✓ | ✓ |
+| Users, all tokens, global secrets and variables, secret providers, git sources | | | | ✓ |
+| Storage, instances, the AI provider, the audit log, delete namespaces | | | | ✓ |
+
+Every user manages their own profile, password and tokens.
+
+Every API operation declares its access in code. The server does not start when an operation has none. The server checks the role before it reads the request body, so a caller without permission never sees validation details. The UI hides actions that your role does not allow, but the server enforces each rule.
+
+## The same-origin rule
+
+A browser sends the session cookie with every request to Sluice, also from another site. Sluice therefore checks the origin of each change that uses the cookie. A `POST`, `PUT`, `PATCH` or `DELETE` with the cookie passes only in one of these cases:
+
+- `Origin` is the origin of `SLUICE_PUBLIC_URL`.
+- `Origin` has the same host as the `Host` header of the request.
+- The request has no `Origin`, and `Sec-Fetch-Site` is `same-origin`.
+
+Every other cookie request gets `403 csrf_failed`, also `Origin: null`. Requests with an API token do not need `Origin`, because a browser does not add a token by itself.
+
+## Security headers
+
+Every response of the UI and of the API has these headers:
+
+| Header | Value |
+|---|---|
+| `Content-Security-Policy` | `default-src 'self'; frame-ancestors 'none'` |
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+
+The UI loads scripts, styles, fonts and images only from its own origin. The fonts are in the binary. No other site can show Sluice in a frame. A reverse proxy must not remove or change these headers.
+
+## Secrets
+
+The rule is that no secret value leaves the task process in plain text.
+
+| Place | Protection |
+|---|---|
+| Postgres | Builtin secret values are AES-256-GCM ciphertext. External secrets store only the reference. |
+| API responses | No operation returns a secret value. A secret check returns only a status. |
+| Logs, outputs, metric tags, errors | The runner masks secret values before it sends them. The server masks them again before it stores them. A secret shows as `***`. |
+| Object storage | Log archives and artifacts hold only masked text. |
+| Docker containers and Kubernetes Jobs | They hold no secret values. The runner reads them from the runner API at run time. |
+| AI requests and tool results | Sluice masks execution data with the secret values of every task run of the execution. |
+| Audit events | Events hold keys and provider names, never values. |
+
+The task process itself gets the resolved values in its environment. Sluice cannot stop a script that sends a value somewhere else.
+
+### Master keys
+
+`SLUICE_MASTER_KEYS` holds the keys that encrypt builtin secrets, as `kid:base64key` entries. Each key has 32 bytes. The first key is the active key for new writes. The other keys can still decrypt older values. Each stored value records the ID of its key.
+
+Without master keys, a write of a builtin secret answers `409 builtin_provider_disabled`. The other providers still work. When a stored value uses a key ID that is not in the list, `/readyz` fails with `master_key_missing`. `sluice secrets rekey` encrypts all builtin values again with the active key. See [Rotate the master key](/operations/rotate-the-master-key/).
+
+### Stored hashes
+
+Postgres holds no credential in plain text. Passwords are argon2id hashes. Session IDs, API tokens, run tokens and webhook keys are SHA-256 hashes.
+
+## Run tokens
+
+The dispatcher creates a run token when it claims a task run. The token reaches the runner in `SLUICE_RUN_TOKEN`.
+
+| Property | Value |
+|---|---|
+| Scope | One task run. A token of task A on task B gets `403`. |
+| Validity | Only while the task run is `RUNNING`. |
+| Expiry | The task timeout plus 10 minutes. |
+| End | Sluice deletes the hash when the task run ends. Later calls get `401`. |
+| Routes | `/api/runner/v1` only. A run token cannot call `/api/v1`. |
+
+A Kubernetes Job holds the run token in its environment, because the runner needs it. The token has a narrow scope and expires, and the Job holds no secret values.
+
+## Webhook keys
+
+A webhook trigger has no key until an editor rotates it. The rotation returns the key and the URL once. A key has 256 random bits. Sluice stores only its hash and compares it in constant time. A wrong key gets `404`, so a caller cannot find out which flows exist. Sluice does not store the `Authorization`, `Cookie` and `Proxy-Authorization` headers of a webhook call.
+
+Git webhooks use an HMAC signature or a token from a global secret.
+
+## MCP clients
+
+An MCP client uses an API token, and each tool runs with the role of the token. A mutating tool runs at once, with no confirmation, and Sluice records `ai.tool.call` in the audit log. Give each client its own token with the lowest role that it needs and an expiry. See [The assistant and MCP](/concepts/the-assistant-and-mcp/).
+
+## Audit log
+
+Sluice records each change with the time, the actor type (`user`, `token`, `system` or `ai`), the actor, the action, the target, details and the client IP address. A call with an API token records the token ID. An admin reads the log on **Settings → Audit log** or with `GET /api/v1/audit`, with filters for the actor, the action, the target and the time.
+
+| Area | Actions |
+|---|---|
+| Sign-in | `auth.login`, `auth.login_failed`, `auth.logout`, `auth.revoke_other_sessions` |
+| Users and tokens | `user.create`, `user.update`, `user.change_password`, `user.reset_password`, `token.create`, `token.revoke` |
+| Secrets and variables | `secret.create`, `secret.update`, `secret.delete`, `secret.rekey`, `secret_provider.create`, `secret_provider.update`, `secret_provider.delete`, `variable.create`, `variable.update`, `variable.delete` |
+| Git, namespaces and files | `git_source.create`, `git_source.update`, `git_source.delete`, `git_source.sync`, `git.push`, `namespace.create`, `namespace.delete`, `file.save`, `file.sync` |
+| Flows and triggers | `flow.enable`, `flow.disable`, `trigger.webhook_key_rotate`, `trigger.failed`, `trigger.chain_depth_exceeded` |
+| Executions | `execution.trigger`, `execution.run_file`, `execution.cancel`, `execution.rerun`, `execution.restart` |
+| AI | `ai.provider.update`, `ai.provider.delete`, `ai.triage.request`, `ai.action.confirmed`, `ai.action.rejected`, `ai.tool.call` |
+
+The maintenance leader deletes events older than 365 days.
+
+## TLS and the public URL
+
+Sluice serves plain HTTP. It has no TLS settings. Put an Ingress, a load balancer or a reverse proxy with TLS in front of it.
+
+`SLUICE_PUBLIC_URL` must be the URL that browsers use. Sluice uses it for the `Secure` flag of the cookie, the same-origin check and the webhook URLs. Keep `SLUICE_INTERNAL_URL` on the internal network. Runners call it with run tokens.
+
+## Containers
+
+Both Sluice images run as the non-root user 65532. The Helm chart runs the server with a read-only root file system, no privilege escalation, all capabilities dropped and the seccomp profile `RuntimeDefault`. The only writable path is an `emptyDir` at `/tmp`. See [Deploy on Kubernetes with Helm](/how-to/deploy-on-kubernetes/).
+
+## Related pages
+
+- [Harden a deployment](/operations/harden-a-deployment/)
+- [Rotate the master key](/operations/rotate-the-master-key/)
+- [Use secrets and variables](/how-to/use-secrets-and-variables/)
+- [The assistant and MCP](/concepts/the-assistant-and-mcp/)

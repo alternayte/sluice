@@ -1,0 +1,209 @@
+---
+title: Build an ELT pipeline
+description: Load a Postgres schema with dlt, transform it with SQLMesh, and read the outputs, the metrics and the metric chart of the flow.
+sidebar:
+  order: 2
+---
+
+import Shot from "../../../components/Shot.astro";
+import { Steps, LinkCard, CardGrid } from "@astrojs/starlight/components";
+
+In this tutorial, you run the ELT example of the Sluice repository. A flow loads a source schema into a warehouse with dlt, then builds a model with SQLMesh. You read the logs of both tools, the outputs and the metrics, and you chart the loaded rows on the flow page.
+
+## Before you start
+
+Do the tutorial [Run your first flow](/tutorials/run-your-first-flow/) first. You need the same tools, the cloned repository and Python 3 on your computer.
+
+If the stack of the first tutorial still runs, stop it. Both stacks use the host port 8080.
+
+```sh
+docker compose -f deploy/compose/compose.yml down
+```
+
+## What the example holds
+
+The directory `examples/elt/` has these files:
+
+| File | Purpose |
+|---|---|
+| `compose.yml` | Starts Sluice and Postgres from `deploy/compose/compose.yml`, and adds a `warehouse` Postgres. |
+| `seed.sql` | Fills the schema `source` of the warehouse with 3 customers and 5 orders at the first start. |
+| `setup.py` | Loads the example into Sluice and runs the flow. It uses only the Python standard library. |
+| `namespace/elt.flow.yaml` | The flow `elt`. |
+| `namespace/pipelines/extract.py` | The dlt pipeline. |
+| `namespace/transform.sh` | Runs the SQLMesh project. |
+| `namespace/sqlmesh/` | The SQLMesh project with the model `analytics.customer_orders`. |
+| `namespace/namespace.yaml` | The description of the namespace. |
+
+## Start the stack
+
+<Steps>
+
+1. In the repository root, set the two required variables:
+
+   ```sh
+   export SLUICE_BOOTSTRAP_ADMIN_PASSWORD=change-me-now-1
+   export SLUICE_MASTER_KEYS="k1:$(openssl rand -base64 32)"
+   ```
+
+2. Start Sluice, its database and the warehouse:
+
+   ```sh
+   docker compose -f examples/elt/compose.yml up -d
+   ```
+
+3. Check that Sluice is ready:
+
+   ```sh
+   curl -fsS http://localhost:8080/readyz
+   ```
+
+</Steps>
+
+The warehouse is a Postgres database `warehouse` with the user `elt` and the password `elt-password-1`. To use another password, set `ELT_PG_PASSWORD` before you start the stack and before you run `setup.py`.
+
+## Load and run the example
+
+Run the setup script in the same shell. It reads `SLUICE_BOOTSTRAP_ADMIN_PASSWORD` to sign in.
+
+```sh
+python3 examples/elt/setup.py
+```
+
+The script does these steps through the HTTP API:
+
+<Steps>
+
+1. It signs in as the first admin and creates the API token `elt-example-setup`.
+2. It creates the namespace `elt` and uploads the files of `examples/elt/namespace/` as one version.
+3. It sets the variables `PG_HOST`, `PG_PORT`, `PG_DATABASE` and `PG_USER` on the namespace.
+4. It sets the secret `ELT_PG_PASSWORD` on the namespace.
+5. It runs the flow `elt` and prints the state every 5 seconds until the execution ends.
+
+</Steps>
+
+The script prints the URL of the execution. The first run downloads dlt and SQLMesh, so it takes longer than the next runs. The last line is `The execution ended SUCCESS.`
+
+## Read the flow
+
+Open [http://localhost:8080](http://localhost:8080) and sign in as `admin@local.test`. Click **Namespaces**, then `elt`, then `elt.flow.yaml`:
+
+```yaml flow
+id: elt
+description: Load the source schema with dlt, then transform it with SQLMesh.
+labels: { team: data }
+env:
+  PG_HOST: ${{ vars.PG_HOST }}
+  PG_PORT: ${{ vars.PG_PORT }}
+  PG_DATABASE: ${{ vars.PG_DATABASE }}
+  PG_USER: ${{ vars.PG_USER }}
+  PG_PASSWORD: ${{ secret('ELT_PG_PASSWORD') }}
+timeout: 1h
+tasks:
+  - id: extract
+    type: script
+    file: pipelines/extract.py
+  - id: transform
+    type: script
+    file: transform.sh
+    depends_on: [extract]
+outputs:
+  rows: ${{ tasks.extract.outputs.rows }}
+```
+
+The flow `env` applies to every task. It maps the namespace variables and the secret to the environment variables that the scripts read. No password is in a file.
+
+The two tasks are `script` tasks. The file extension selects the runtime:
+
+- `extract.py` runs with `uv run`. `uv` reads the dependencies from the comment block at the top of the file and installs dlt before the script starts.
+- `transform.sh` runs with bash. It starts SQLMesh with `uv run --with 'sqlmesh==0.236.2'` and applies the plan of the project.
+
+`transform` depends on `extract`, so it starts only after `extract` succeeds. The flow output `rows` takes the output `rows` of `extract`. The flow stops each task after 1 hour.
+
+## Read the execution
+
+Click **Executions** in the sidebar, then the execution of `elt/elt`.
+
+<Steps>
+
+1. Read the **Logs** tab. The task `extract` prints the load information of dlt, then `loaded 3 rows into raw.customers` and `loaded 5 rows into raw.orders`. The task `transform` prints the plan of SQLMesh and `sqlmesh ran in … s`.
+2. Click **Outputs**. The execution output `rows` is `8`, the sum of the two tables.
+3. Click **Metrics**. The task `extract` has two values of `rows_loaded`: `3` with the tag `table=customers` and `5` with the tag `table=orders`. The task `transform` has `sqlmesh_run_seconds` with the unit `s`.
+
+</Steps>
+
+A task writes outputs and metrics as JSON lines to the file in `$SLUICE_OUTPUTS`. This is the function in `extract.py` that does it:
+
+```python
+def emit(event: dict) -> None:
+    """Write one output or metric event for Sluice."""
+    with open(os.environ["SLUICE_OUTPUTS"], "a", encoding="utf-8") as f:
+        f.write(json.dumps(event) + "\n")
+```
+
+`extract.py` calls it once for each table with `{"type": "metric", "name": "rows_loaded", "value": rows, "tags": {"table": table}}`. At the end, it calls it with `{"type": "output", "key": "rows", "value": total}`.
+
+## Chart the loaded rows
+
+A metric chart needs more than one execution. Run the flow again from the UI:
+
+<Steps>
+
+1. Click **Flows**, then `elt`.
+2. Click **Run**, then click **Run** in the dialog. The execution page opens.
+3. Wait until the execution shows **Success**. This run reuses the packages that `uv` downloaded in the first run.
+4. Go back to the flow page. The **Overview** tab shows the chart **Metric rows_loaded**.
+5. Type `table` in **Group by tag**. The chart shows one line for `customers` and one line for `orders`.
+6. Click **Avg** or **Max** to change the aggregation. **Sum** adds the values of each execution.
+
+</Steps>
+
+<Shot name="flow" alt="The Overview tab of a flow: the details, the last executions, the duration chart and the chart of the metric rows_loaded." />
+
+Select `sqlmesh_run_seconds` in **Metric** to chart the run time of SQLMesh.
+
+## See the variables and the secret
+
+Click **Namespaces**, then `elt`.
+
+- The **Variables** tab shows `PG_HOST`, `PG_PORT`, `PG_DATABASE` and `PG_USER`. A variable value is plain text.
+- The **Secrets** tab shows `ELT_PG_PASSWORD`. Sluice encrypts the value with the master key and never shows it again.
+
+A task gets the secret value only through a `secret('…')` template. Sluice masks the secret value in the logs, the outputs and the error texts: it shows as `***`.
+
+<Shot name="secrets" alt="The Secrets tab of a namespace: each key with its scope, provider and last use, and no values." />
+
+## See the result in the warehouse
+
+Query the model that SQLMesh built:
+
+```sh
+docker compose -f examples/elt/compose.yml exec warehouse psql -U elt -d warehouse -c "SELECT * FROM analytics.customer_orders"
+```
+
+The table has one row for each customer:
+
+```text
+ customer_id | customer_name | order_count | order_amount
+-------------+---------------+-------------+--------------
+           1 | Ada           |           2 |        15.50
+           2 | Bob           |           3 |        10.50
+           3 | Cy            |           0 |            0
+```
+
+## Remove the stack
+
+This command removes the containers and the volumes of Sluice and of the warehouse:
+
+```sh
+docker compose -f examples/elt/compose.yml down -v
+```
+
+## Next steps
+
+<CardGrid>
+  <LinkCard title="Use secrets and variables" href="/how-to/use-secrets-and-variables/" description="Point the flow at your own database." />
+  <LinkCard title="Pass data between tasks" href="/how-to/pass-data-between-tasks/" description="Outputs, metrics and artifacts." />
+  <LinkCard title="Run tasks in Docker" href="/how-to/run-tasks-in-docker/" description="Run each task in a container with an image that has the packages." />
+  <LinkCard title="Schedule a flow" href="/how-to/schedule-a-flow/" description="Run the pipeline every night." />
+</CardGrid>

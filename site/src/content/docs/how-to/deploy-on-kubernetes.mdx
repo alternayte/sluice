@@ -1,0 +1,207 @@
+---
+title: Deploy on Kubernetes with Helm
+description: Install Sluice in a Kubernetes cluster with the Helm chart, with Secrets for the database, the master keys and the first admin.
+---
+
+import { Steps, Aside } from "@astrojs/starlight/components";
+
+This guide shows you how to install Sluice in a Kubernetes cluster with the Helm chart in `deploy/helm/sluice`. The chart runs two server replicas on one Postgres database. It creates no PersistentVolumeClaim, because Sluice keeps all state in Postgres and in object storage.
+
+## Before you start
+
+- A Kubernetes cluster, `kubectl` and `helm`.
+- A checkout of the Sluice repository. The chart is in `deploy/helm/sluice`.
+- A Postgres database. The tests use Postgres 17. The first migration runs `CREATE EXTENSION IF NOT EXISTS citext`, so the database user needs the right to create this extension.
+- A pooled URL works, for example PgBouncer in transaction mode or the Neon pooler. Sluice uses no prepared statements, no session advisory locks and no `LISTEN`.
+
+## Install the chart
+
+<Steps>
+
+1. Create a namespace:
+
+   ```sh
+   kubectl create namespace sluice-system
+   ```
+
+2. Create the Secret with the database URL. The chart reads the key `url`.
+
+   ```sh
+   kubectl -n sluice-system create secret generic sluice-db \
+     --from-literal=url='postgres://sluice:secret@postgres.example.com:5432/sluice?sslmode=require'
+   ```
+
+3. Create the Secret with the master keys. Keep a copy of the value outside the cluster.
+
+   ```sh
+   kubectl -n sluice-system create secret generic sluice-master-keys \
+     --from-literal=keys="k1:$(openssl rand -base64 32)"
+   ```
+
+4. Create the Secret with the first admin:
+
+   ```sh
+   kubectl -n sluice-system create secret generic sluice-admin \
+     --from-literal=email=admin@example.com --from-literal=password='change-me-now-1'
+   ```
+
+5. Write a values file, for example `values.yaml`:
+
+   ```yaml helm
+   image:
+     repository: ghcr.io/alternayte/sluice-uv
+   publicURL: https://sluice.example.com
+   masterKeys:
+     existingSecret: sluice-master-keys
+   bootstrapAdmin:
+     existingSecret: sluice-admin
+   ingress:
+     enabled: true
+     className: nginx
+     host: sluice.example.com
+     tls:
+       - hosts: [sluice.example.com]
+         secretName: sluice-tls
+   ```
+
+6. Install the chart from the root of the checkout:
+
+   ```sh
+   helm install sluice ./deploy/helm/sluice --namespace sluice-system -f values.yaml
+   ```
+
+7. Wait until the pods are ready:
+
+   ```sh
+   kubectl -n sluice-system rollout status deployment/sluice
+   ```
+
+8. Open the URL of `publicURL`. Sign in as the admin of step 4.
+
+</Steps>
+
+The readiness probe calls `/readyz`. It checks the database, the migrations, a storage round trip and the master keys. A pod that is not ready shows the failed check in its answer:
+
+```sh
+kubectl -n sluice-system port-forward deployment/sluice 8080:8080
+curl -s http://localhost:8080/readyz
+```
+
+## Choose the server image
+
+A task without an executor type runs on the process executor, inside a server pod. Choose the image by where your tasks run:
+
+| Image | Contents | Use it when |
+|---|---|---|
+| `ghcr.io/alternayte/sluice` | The `sluice` binary only, on a distroless base. No shell. | All `script` and `command` tasks run on the kubernetes executor. This is the chart default. |
+| `ghcr.io/alternayte/sluice-uv` | The binary, `bash`, `git`, `uv`, Python 3.12 and `bun`, on Debian slim. | Some tasks run on the process executor inside the server pod. |
+
+With the default image, set `defaults.executor` in `namespace.yaml` to `type: kubernetes` with a task image. See [Run tasks on Kubernetes](/how-to/run-tasks-on-kubernetes/).
+
+`image.tag` defaults to the `appVersion` of the chart. `runnerImage` defaults to the server image. The kubernetes executor copies the runner from it into each task pod.
+
+## Set the values
+
+| Value | Default | Sets |
+|---|---|---|
+| `replicas` | `2` | The number of server pods. |
+| `image.repository` | `ghcr.io/alternayte/sluice` | The server image. |
+| `image.tag` | `""` | Empty uses the chart `appVersion`. |
+| `runnerImage` | `""` | `SLUICE_RUNNER_IMAGE`. Empty uses the server image. |
+| `database.existingSecret` | `sluice-db` | The Secret with `SLUICE_DATABASE_URL`. |
+| `database.key` | `url` | The key in that Secret. |
+| `masterKeys.existingSecret` | `""` | The Secret with `SLUICE_MASTER_KEYS`. Empty sets no master keys. |
+| `masterKeys.key` | `keys` | The key in that Secret. |
+| `bootstrapAdmin.existingSecret` | `""` | The Secret with the first admin. Empty sets no bootstrap admin. |
+| `bootstrapAdmin.emailKey`, `bootstrapAdmin.passwordKey` | `email`, `password` | The keys in that Secret. |
+| `publicURL` | `http://localhost:8080` | `SLUICE_PUBLIC_URL`. |
+| `internalURL` | `""` | `SLUICE_INTERNAL_URL`. Empty uses the URL of the Service. |
+| `pools` | `[default]` | `SLUICE_POOLS`. |
+| `executors` | `auto` | `SLUICE_EXECUTORS`. |
+| `storage.type` | `postgres` | `SLUICE_STORAGE_TYPE`. |
+| `kubernetes.maxJobs` | `50` | `SLUICE_K8S_MAX_JOBS`. |
+| `kubernetes.jobTTL` | `600s` | `SLUICE_K8S_JOB_TTL`. |
+| `kubernetes.pendingTimeout` | `10m` | `SLUICE_K8S_PENDING_TIMEOUT`. |
+| `kubernetesSecretProvider.enabled` | `false` | Adds `get` on Secrets to the Role. |
+| `extraEnv` | `[]` | More environment variables of the server. |
+| `service.type`, `service.port` | `ClusterIP`, `8080` | The Service. |
+| `ingress.enabled`, `ingress.className`, `ingress.host` | `false`, `""`, `""` | The Ingress. |
+| `ingress.annotations`, `ingress.tls` | `{}`, `[]` | The annotations and the TLS blocks of the Ingress. |
+| `resources` | `{}` | The resources of the server container. |
+| `serviceAccount.name`, `serviceAccount.annotations` | `""`, `{}` | The service account. An empty name uses the full name of the release. |
+| `podAnnotations`, `nodeSelector`, `tolerations`, `affinity` | empty | The placement of the server pods. |
+| `shutdownGraceSeconds` | `30` | `SLUICE_SHUTDOWN_GRACE`. The pod grace period is 10 seconds longer. |
+
+The chart also sets `SLUICE_LISTEN_ADDR` to `:8080` and `SLUICE_K8S_NAMESPACE` to the namespace of the pod. The chart reads the database URL, the master keys and the admin only from Secrets. It never puts them in the pod spec as plain values.
+
+## Choose a storage driver
+
+Sluice keeps file contents, bundles, logs and artifacts in object storage. `storage.type` selects the driver. Set the other variables of the driver with `extraEnv`.
+
+| Driver | Variables | Notes |
+|---|---|---|
+| `postgres` | none | The default. Objects go into Postgres in chunks of 1 MiB. No other infrastructure. |
+| `s3` | `SLUICE_S3_BUCKET` (required), `SLUICE_S3_REGION`, `SLUICE_S3_ENDPOINT`, `SLUICE_S3_FORCE_PATH_STYLE`, `SLUICE_S3_ACCESS_KEY_ID`, `SLUICE_S3_SECRET_ACCESS_KEY`, `SLUICE_S3_PREFIX` | AWS S3, Cloudflare R2 and MinIO. Without static keys, the driver uses the default AWS credential chain. |
+| `azblob` | `SLUICE_AZBLOB_CONTAINER` (required), `SLUICE_AZBLOB_ACCOUNT_URL` or `SLUICE_AZBLOB_CONNECTION_STRING`, `SLUICE_AZBLOB_PREFIX` | Azure Blob Storage. An account URL uses `DefaultAzureCredential`. |
+| `fs` | `SLUICE_FS_ROOT` (required) | A directory. It needs a shared file system. Do not use it with more than one replica. |
+
+```yaml helm
+storage:
+  type: s3
+extraEnv:
+  - name: SLUICE_S3_BUCKET
+    value: sluice
+  - name: SLUICE_S3_REGION
+    value: eu-central-1
+  - name: SLUICE_S3_PREFIX
+    value: prod/
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/sluice
+```
+
+An `extraEnv` entry is a standard container `env` entry, so `valueFrom.secretKeyRef` works too. Set both static S3 keys or neither. The server stops at start when a required variable of the driver is missing.
+
+## Keep the master keys
+
+`SLUICE_MASTER_KEYS` holds entries of the form `kid:base64key`, separated by commas. Each key decodes to 32 bytes. The first entry is the active key. Without master keys, a write of a builtin secret answers `409 builtin_provider_disabled`. The other secret providers still work.
+
+When a stored secret uses a key ID that is not in `SLUICE_MASTER_KEYS`, `/readyz` fails with `master_key_missing`, and the pods do not become ready. To replace a key, see [Rotate the master key](/operations/rotate-the-master-key/).
+
+## Understand the bootstrap admin
+
+Sluice creates the first admin only when the `users` table is empty. Later starts do not change users. After the first sign-in, change the password on **Settings → Profile**. You can then set `bootstrapAdmin.existingSecret` to `""` and delete the Secret.
+
+When no admin can sign in, create one with the CLI in a server pod. The command writes to the database directly:
+
+```sh
+printf '%s' "$NEW_PASSWORD" | kubectl -n sluice-system exec -i deployment/sluice -- \
+  sluice user create --email ops@example.com --role admin --password-stdin --temporary
+```
+
+## Know the security settings of the pods
+
+| Item | Value |
+|---|---|
+| Pod security context | `runAsNonRoot`, user and group 65532, `fsGroup` 65532, seccomp `RuntimeDefault`. |
+| Container security context | `readOnlyRootFilesystem: true`, `allowPrivilegeEscalation: false`, all capabilities dropped. |
+| Writable path | An `emptyDir` at `/tmp`. |
+| Readiness probe | `GET /readyz`, every 5 seconds, 3 failures. |
+| Liveness probe | `GET /healthz`, every 10 seconds, 6 failures. |
+
+The Role of the chart allows `create`, `get`, `list`, `watch` and `delete` on Jobs, `get`, `list` and `watch` on pods, and `get` on `pods/log`. With `kubernetesSecretProvider.enabled: true`, it also allows `get` on Secrets.
+
+## Scale out
+
+Any number of replicas can use one database. They share the task queue. Leases select one leader for each background job, for example the scheduler. Instances in other clusters can use the same database, the same storage and the same master keys, with their own `pools`. See [Architecture](/concepts/architecture/) and [Run tasks on Kubernetes](/how-to/run-tasks-on-kubernetes/).
+
+<Aside type="note">
+During a rollout, a stopping pod fails its process and inline tasks with the reason `instance_shutdown`, and the retry policy applies. Kubernetes tasks continue in their Jobs.
+</Aside>
+
+## Related pages
+
+- [Run tasks on Kubernetes](/how-to/run-tasks-on-kubernetes/)
+- [Upgrade](/operations/upgrade/)
+- [Harden a deployment](/operations/harden-a-deployment/)
+- [Environment variables](/reference/env/)

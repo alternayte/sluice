@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sluice.dev/schemas/flow.json",
+  "$id": "https://sluice-docs.pages.dev/schemas/flow.schema.json",
   "$ref": "#/$defs/Flow",
   "$defs": {
     "Concurrency": {

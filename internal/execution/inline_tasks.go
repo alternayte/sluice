@@ -155,12 +155,11 @@ func (e *Engine) runSubflow(ctx context.Context, p *Plan) {
 	for k, v := range p.SubflowInputs {
 		given[k] = parseMaybeJSON(v)
 	}
-	// Inputs from templates are strings; coerce them to the declared types.
+	// Inputs from templates are strings. parseMaybeJSON turns "42" into a number for an int
+	// input; a string input gets the text as the parent rendered it.
 	for _, in := range ref.Def.Flow.Inputs {
-		if v, ok := given[in.ID]; ok {
-			if s, isStr := v.(string); isStr && in.Type == "string" {
-				given[in.ID] = s
-			}
+		if raw, ok := p.SubflowInputs[in.ID]; ok && in.Type == "string" {
+			given[in.ID] = raw
 		}
 	}
 	inputs, ierrs := flow.ResolveInputs(ref.Def.Flow.Inputs, given)

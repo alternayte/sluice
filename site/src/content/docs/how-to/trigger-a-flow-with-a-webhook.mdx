@@ -1,0 +1,140 @@
+---
+title: Trigger a flow with a webhook
+description: Start a flow from an HTTP call, map the request body and headers to flow inputs, and rotate the webhook key.
+---
+
+import { Steps, Aside } from "@astrojs/starlight/components";
+
+This guide shows you how to start a flow when another system sends an HTTP request. You declare a webhook trigger, create its secret URL, map the request to flow inputs, and rotate the key.
+
+## Declare the trigger
+
+Add a trigger of type `webhook` to the flow. The `inputs` map sets flow inputs from the request. The examples on this page use this flow in the namespace `demo`:
+
+```yaml flow
+id: greet
+inputs:
+  - { id: name, type: string, required: true }
+  - { id: source, type: string, required: true }
+triggers:
+  - id: hook
+    type: webhook
+    inputs:
+      name: "${{ trigger.body.name }}"
+      source: "${{ trigger.headers.X-Source }}"
+tasks:
+  - id: say
+    type: command
+    command: ["echo", "hello ${{ inputs.name }} from ${{ inputs.source }}"]
+```
+
+Save the flow. The trigger has no key yet, so no URL starts the flow.
+
+## Create the webhook URL
+
+The key in the URL is the only credential of the call. You need the editor role or a higher role to create it.
+
+<Steps>
+
+1. Open the flow page and select the **Triggers** tab.
+
+2. Click **Rotate key** in the row of the trigger `hook`.
+
+3. Confirm with **Rotate key**. The dialog **New webhook URL** shows the URL.
+
+4. Click **Copy** and store the URL in a safe place, for example the secret store of the calling system. Sluice shows the URL only once.
+
+</Steps>
+
+The API gives the same result. The response holds the key and the URL:
+
+```sh
+curl -X POST "$SLUICE_URL/api/v1/flows/demo/greet/triggers/hook/webhook-key" \
+  -H "Authorization: Bearer $SLUICE_TOKEN"
+```
+
+```json
+{"key": "URJG…3BLc", "url": "https://sluice.example.com/hooks/URJG…3BLc"}
+```
+
+The URL is `SLUICE_PUBLIC_URL` followed by `/hooks/<key>`. Set `SLUICE_PUBLIC_URL` to the address that callers use, or the URL points to the wrong host.
+
+The key has 256 random bits. Sluice stores only its SHA-256 hash, so nobody can read the key back. The flow API shows `has_webhook_key` for each trigger.
+
+## Call the webhook
+
+Send a `POST` to the URL. The call needs no other authentication.
+
+```sh
+curl -X POST "$WEBHOOK_URL" \
+  -H "Content-Type: application/json" \
+  -H "X-Source: crm" \
+  -d '{"name": "sluice"}'
+```
+
+```json
+{"execution_id": "01a09151-a036-77a5-90bf-ffb777f1e07e"}
+```
+
+The execution prints `hello sluice from crm`.
+
+| Status | Code | Cause |
+|---|---|---|
+| 202 | — | Sluice created the execution. The body holds `execution_id`. |
+| 404 | `not_found` | A wrong key, an old key, a removed trigger or a deleted flow. |
+| 409 | `flow_disabled` | The flow is off. Turn on **Enabled** on the flow page. |
+| 413 | `body_too_large` | The body is larger than 1 MiB. |
+| 422 | `flow_invalid` | The flow has validation errors. |
+| 422 | `validation_failed` | A trigger input failed to render, or an input check failed. `details` names the input. |
+
+The call returns when the execution exists, not when it ends. To follow the execution, poll `GET /api/v1/executions/{executionId}`, or run `sluice executions get` with the ID.
+
+## Map the request to inputs
+
+Each value in the trigger `inputs` map is a template over the payload of the call.
+
+| Payload field | Value |
+|---|---|
+| `trigger.body` | The body as JSON when it is valid JSON. Otherwise the body as text. |
+| `trigger.headers` | The request headers. Names are lower case. Each header has its first value. |
+
+Rules:
+
+- A trigger input can read only `trigger.<path>`. `vars`, `secret()`, `inputs`, `tasks` and `execution` fail validation with `trigger_input_reference`.
+- A header lookup ignores case, so `trigger.headers.X-Source` finds `x-source`.
+- The rendered value is text. For an input of type `int`, `number`, `boolean` or `json`, Sluice parses the text as JSON. Thus `"42"` becomes the number 42.
+- A path cannot select a list item. To use a list, map the list to a `json` input: `"${{ trigger.body.items }}"`.
+- A field that the request does not have fails the call with 422 `validation_failed`. To make a field optional, leave it out of `inputs` and give the input a `default`.
+
+Tasks can also read the whole payload through templates, for example `${{ trigger.body }}` in a task `env`.
+
+<Aside type="caution">
+  Sluice stores the payload on the execution. Every user who can read the execution can read the body and the headers. Sluice drops `Authorization`, `Cookie` and `Proxy-Authorization`. Send no other credential in the body or the headers.
+</Aside>
+
+## Rotate the key
+
+Rotate the key when the URL becomes known to others, or on a regular schedule.
+
+<Steps>
+
+1. Click **Rotate key** on the **Triggers** tab, or send the API request again.
+
+2. Copy the new URL from the dialog.
+
+3. Update the calling system with the new URL.
+
+</Steps>
+
+The new key works at once, and the old key returns 404 at once. Each rotation writes the audit event `trigger.webhook_key_rotate`. Plan the rotation with the owner of the calling system, because calls fail between the rotation and the update.
+
+## Keep the key after a change
+
+The key belongs to the trigger ID. A save that keeps the trigger `id` keeps the key. A save that removes the trigger, or renames its `id`, makes the old URL return 404. A new trigger ID needs a new key.
+
+## Related pages
+
+- [Schedule a flow](/how-to/schedule-a-flow/)
+- [Chain flows](/how-to/chain-flows/)
+- [Templates](/reference/templates/)
+- [Security model](/concepts/security-model/)

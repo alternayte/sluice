@@ -237,6 +237,33 @@ func TestSCN_EXE_013_FlowAndSubflowOutputs(t *testing.T) {
 	}
 }
 
+// TestSubflowStringInputKeepsDigits checks that a rendered subflow input keeps its text for a
+// string input of the child. "0042" and "true" are valid JSON, but a string input must get
+// the text as the parent rendered it.
+func TestSubflowStringInputKeepsDigits(t *testing.T) {
+	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
+	c := adminClient(t, p)
+	saveFiles(t, c, "strin.child", map[string]string{
+		"child.flow.yaml": "id: child\ninputs:\n  - {id: code, type: string}\n  - {id: flag, type: string}\n  - {id: n, type: int}\n" +
+			"tasks:\n  - {id: t, type: command, command: [\"true\"]}\n",
+	})
+	saveFiles(t, c, "strin", map[string]string{
+		"parent.flow.yaml": "id: parent\ntasks:\n  - {id: c, type: subflow, flow: strin.child/child, inputs: {code: \"42\", flag: \"true\", n: \"7\"}}\n",
+	})
+	d := waitTerminal(t, c, triggerFlow(t, c, "strin", "parent", nil, nil).ID, 60*time.Second)
+	ct := d.last("c")
+	if d.State != "SUCCESS" || ct.ChildExecutionID == nil {
+		t.Fatalf("parent %s: task c %s %s", d.State, ct.State, ct.Error)
+	}
+	var child struct {
+		Inputs map[string]any `json:"inputs"`
+	}
+	c.do(t, http.MethodGet, "/api/v1/executions/"+*ct.ChildExecutionID, nil, http.StatusOK, &child)
+	if child.Inputs["code"] != "42" || child.Inputs["flag"] != "true" || child.Inputs["n"] != float64(7) {
+		t.Fatalf("child inputs %#v", child.Inputs)
+	}
+}
+
 type execList struct {
 	Items []struct {
 		ID     string            `json:"id"`

@@ -1,6 +1,18 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, CornerLeftUp, Eye, EyeOff, Plus, XCircle } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  CornerLeftUp,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Pencil,
+  Plus,
+  ShieldCheck,
+  Trash2,
+  XCircle,
+} from "lucide-react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import {
   checkGlobalSecretMutation,
   checkNamespaceSecretMutation,
@@ -18,8 +30,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, FormError } from "@/components/ui/field";
-import { Input, Select } from "@/components/ui/input";
+import { Input, Select, Textarea } from "@/components/ui/input";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
+import { toast } from "@/components/ui/toast";
 import { useCurrentUser } from "@/lib/auth";
 import { errorMessage, fieldErrors } from "@/lib/errors";
 import { can } from "@/lib/roles";
@@ -59,17 +72,31 @@ export function SecretsPanel({ namespace }: { namespace?: string }) {
   const [checking, setChecking] = useState<SecretInfo | null>(null);
   const [deleting, setDeleting] = useState<SecretInfo | null>(null);
 
+  const isEmpty = secrets.data !== undefined && secrets.data.length === 0;
+  const addButton = (
+    <Button size="sm" onClick={() => setEditing("new")}>
+      <Plus className="h-3.5 w-3.5" aria-hidden />
+      Add secret
+    </Button>
+  );
+
   return (
     <div className="flex flex-col gap-3">
-      {canEdit && (
-        <div className="flex justify-end">
-          <Button onClick={() => setEditing("new")}>
-            <Plus className="h-4 w-4" aria-hidden />
-            Add secret
-          </Button>
+      {secrets.data !== undefined && !isEmpty && (
+        <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            {secrets.data.length === 1 ? "1 secret" : `${secrets.data.length} secrets`}. Values are never shown.
+          </p>
+          {canEdit && addButton}
         </div>
       )}
-      <DataState query={secrets} empty={(d) => d.length === 0} emptyText="No secrets exist in this scope.">
+      <DataState
+        query={secrets}
+        empty={(d) => d.length === 0}
+        emptyText="No secrets exist in this scope."
+        emptyIcon={KeyRound}
+        emptyAction={canEdit && addButton}
+      >
         {(items) => (
           <Table>
             <THead>
@@ -87,8 +114,8 @@ export function SecretsPanel({ namespace }: { namespace?: string }) {
             </THead>
             <TBody>
               {items.map((s) => (
-                <Tr key={s.key}>
-                  <Td className="font-mono text-xs">{s.key}</Td>
+                <Tr key={s.key} className="group/row">
+                  <Td className="font-mono text-xs font-medium">{s.key}</Td>
                   <Td>
                     {s.inherited ? (
                       <Badge icon={CornerLeftUp}>Inherited from {s.scope}</Badge>
@@ -96,26 +123,32 @@ export function SecretsPanel({ namespace }: { namespace?: string }) {
                       <span className="text-sm">{s.scope}</span>
                     )}
                   </Td>
-                  <Td>{s.provider}</Td>
-                  <Td className="font-mono text-xs">{s.ref ?? ""}</Td>
                   <Td>
+                    <span className="rounded-inner bg-muted px-1.5 py-0.5 font-mono text-xs">{s.provider}</span>
+                  </Td>
+                  <Td className="max-w-64 truncate font-mono text-xs text-muted-foreground" title={s.ref || undefined}>
+                    {s.ref ?? ""}
+                  </Td>
+                  <Td className="tabular-nums">
                     {formatTime(s.updated_at)}
                     {s.updated_by && <span className="text-muted-foreground"> by {s.updated_by}</span>}
                   </Td>
-                  <Td>{s.last_resolved_at ? formatTime(s.last_resolved_at) : "Never"}</Td>
-                  <Td className="text-right whitespace-nowrap">
+                  <Td className={cn("tabular-nums", !s.last_resolved_at && "text-muted-foreground")}>
+                    {s.last_resolved_at ? formatTime(s.last_resolved_at) : "Never"}
+                  </Td>
+                  <Td className="w-0 text-right">
                     {canEdit && !s.inherited && (
-                      <>
-                        <Button variant="ghost" size="sm" onClick={() => setChecking(s)} aria-label={`Check ${s.key}`}>
-                          Check
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setEditing(s)} aria-label={`Edit ${s.key}`}>
-                          Edit
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setDeleting(s)} aria-label={`Delete ${s.key}`}>
-                          Delete
-                        </Button>
-                      </>
+                      <span className="inline-flex items-center gap-0.5">
+                        <RowAction label={`Check ${s.key}`} title="Check" onClick={() => setChecking(s)}>
+                          <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+                        </RowAction>
+                        <RowAction label={`Edit ${s.key}`} title="Edit" onClick={() => setEditing(s)}>
+                          <Pencil className="h-3.5 w-3.5" aria-hidden />
+                        </RowAction>
+                        <RowAction label={`Delete ${s.key}`} title="Delete" destructive onClick={() => setDeleting(s)}>
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                        </RowAction>
+                      </span>
                     )}
                   </Td>
                 </Tr>
@@ -162,6 +195,7 @@ function SecretForm({ namespace, secret, onDone }: { namespace?: string; secret?
   const isBuiltin = type === "builtin";
   const onSuccess = () => {
     void invalidateSecrets(qc);
+    toast({ title: secret ? `Updated ${key}` : `Added ${key}` });
     onDone();
   };
   const putGlobal = useMutation({ ...putGlobalSecretMutation(), onSuccess });
@@ -185,7 +219,7 @@ function SecretForm({ namespace, secret, onDone }: { namespace?: string; secret?
   };
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3">
+    <form onSubmit={submit} className="flex flex-col gap-4">
       <Field id="secret-key" label="Key" hint="Letters, digits and underscores." error={fields.key}>
         <Input
           required
@@ -248,8 +282,11 @@ function SecretForm({ namespace, secret, onDone }: { namespace?: string; secret?
         </Field>
       )}
       {isBuiltin && value.length > 0 && value.length < MinMaskedLength && (
-        <p role="alert" className="flex items-center gap-2 text-sm text-state-timed-out">
-          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
+        <p
+          role="alert"
+          className="flex animate-enter items-start gap-2 rounded-control bg-state-timed-out/10 px-2.5 py-2 text-xs"
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-state-timed-out" aria-hidden />
           Values shorter than {MinMaskedLength} characters are not masked in logs.
         </p>
       )}
@@ -257,7 +294,7 @@ function SecretForm({ namespace, secret, onDone }: { namespace?: string; secret?
         <Input maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} />
       </Field>
       {mutation.isError && <FormError>{errorMessage(mutation.error)}</FormError>}
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 pt-1">
         <Button variant="secondary" onClick={onDone}>
           Cancel
         </Button>
@@ -291,14 +328,14 @@ function SecretCheck({ namespace, secret, onDone }: { namespace?: string; secret
         Resolve <span className="font-mono">{secret.key}</span> with provider {secret.provider}. The value is not shown.
       </p>
       {result && (
-        <div role="status" className="flex flex-col gap-1">
+        <div role="status" className="flex animate-enter flex-col gap-1 rounded-control bg-muted/60 px-3 py-2">
           <Badge
             tone={result.status === "ok" ? "success" : "failed"}
             icon={result.status === "ok" ? CheckCircle2 : XCircle}
           >
             {checkLabels[result.status]}
           </Badge>
-          {result.message && <p className="text-xs text-muted-foreground">{result.message}</p>}
+          {result.message && <p className="text-xs break-words text-muted-foreground">{result.message}</p>}
         </div>
       )}
       {mutation.isError && <FormError>{errorMessage(mutation.error)}</FormError>}
@@ -318,6 +355,7 @@ function SecretDelete({ namespace, secret, onDone }: { namespace?: string; secre
   const qc = useQueryClient();
   const onSuccess = () => {
     void invalidateSecrets(qc);
+    toast({ title: `Deleted ${secret.key}` });
     onDone();
   };
   const delGlobal = useMutation({ ...deleteGlobalSecretMutation(), onSuccess });
@@ -370,7 +408,7 @@ function SecretValueInput({
   const [shown, setShown] = useState(false);
   return (
     <div className="relative">
-      <textarea
+      <Textarea
         {...aria}
         required={required}
         value={value}
@@ -382,7 +420,7 @@ function SecretValueInput({
         autoCorrect="off"
         data-1p-ignore
         className={cn(
-          "block max-h-80 min-h-20 w-full [field-sizing:content] min-w-0 resize-y overflow-y-auto rounded-[6px] border border-input bg-background py-2 pr-10 pl-3 font-mono text-sm break-all text-foreground aria-[invalid=true]:border-destructive",
+          "block max-h-80 min-h-20 [field-sizing:content] resize-y overflow-y-auto py-2 pr-10 font-mono text-xs leading-5 break-all",
           !shown && "[-webkit-text-security:disc]",
         )}
       />
@@ -392,10 +430,42 @@ function SecretValueInput({
         aria-pressed={shown}
         title={shown ? "Hide secret" : "Show secret"}
         onClick={() => setShown(!shown)}
-        className="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-[4px] text-muted-foreground hover:bg-muted hover:text-foreground"
+        className="pressable absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-inner text-muted-foreground hover:bg-muted hover:text-foreground aria-pressed:text-accent"
       >
-        {shown ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
+        {shown ? (
+          <EyeOff key="hide" className="h-4 w-4 animate-enter" aria-hidden />
+        ) : (
+          <Eye key="show" className="h-4 w-4 animate-enter" aria-hidden />
+        )}
       </button>
     </div>
+  );
+}
+
+/** RowAction is an icon button in a table row. Its label names the row, for example "Edit KEY". */
+function RowAction({
+  label,
+  title,
+  destructive,
+  onClick,
+  children,
+}: {
+  label: string;
+  title: string;
+  destructive?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={cn("h-7 w-7", destructive && "hover:text-destructive")}
+      aria-label={label}
+      title={title}
+      onClick={onClick}
+    >
+      {children}
+    </Button>
   );
 }

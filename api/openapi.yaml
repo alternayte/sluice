@@ -111,6 +111,30 @@ components:
       required:
         - items
       type: object
+    Attachment:
+      additionalProperties: true
+      properties:
+        execution_id:
+          description: Execution UUID.
+          type: string
+        flow_id:
+          description: Flow ID of a flow.
+          type: string
+        kind:
+          enum:
+            - flow
+            - execution
+            - file
+          type: string
+        namespace:
+          description: Namespace of a flow or a file.
+          type: string
+        path:
+          description: File path of a file.
+          type: string
+      required:
+        - kind
+      type: object
     AuditEvent:
       additionalProperties: true
       properties:
@@ -171,6 +195,8 @@ components:
         input: {}
         is_error:
           type: boolean
+        label:
+          type: string
         text:
           type: string
         tool_name:
@@ -1302,6 +1328,11 @@ components:
     MessageIn:
       additionalProperties: true
       properties:
+        attachments:
+          items:
+            $ref: "#/components/schemas/Attachment"
+          maxItems: 5
+          type: array
         text:
           maxLength: 20000
           minLength: 1

@@ -11,3 +11,10 @@ tests/ui/test-results/
 tests/ui/playwright-report/
 *.tsbuildinfo
 tests/ui/.server-state.json
+
+# Cloudflare wrangler cache
+.wrangler/
+
+.dev.vars*
+!.dev.vars.example
+!.env.example

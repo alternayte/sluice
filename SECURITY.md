@@ -35,4 +35,4 @@ The SDD §8 security invariants define the main controls:
 - The assistant runs a tool call that changes data only after the user confirms it. The audit log records all AI actions that change data.
 - Responses set a strict `Content-Security-Policy` and other security headers.
 
-For details, read [docs/operations/security.md](docs/operations/security.md) and SDD §8 in [docs/sluice-sdd.md](docs/sluice-sdd.md).
+For details, read the [security model](https://sluice-docs.pages.dev/concepts/security-model/), [Harden a deployment](https://sluice-docs.pages.dev/operations/harden-a-deployment/) and SDD §8 in [docs/sluice-sdd.md](docs/sluice-sdd.md).

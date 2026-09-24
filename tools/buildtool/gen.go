@@ -4,24 +4,24 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/alternayte/sluice/internal/app"
 	"github.com/alternayte/sluice/internal/flow"
 )
 
-// cmdGen writes generated files that come from Go definitions.
+// cmdGen writes generated files that come from Go definitions: the schemas and the generated
+// Reference pages of the docs site.
 func cmdGen() error {
-	env, err := app.EnvDoc()
-	if err != nil {
-		return err
-	}
-	if err := writeFile("docs/reference/env.md", env); err != nil {
-		return err
-	}
 	schema, err := flow.FlowSchema()
 	if err != nil {
 		return err
 	}
 	if err := writeFile("schemas/flow.schema.json", string(schema)); err != nil {
+		return err
+	}
+	nsSchema, err := flow.NamespaceSchema()
+	if err != nil {
+		return err
+	}
+	if err := writeFile("schemas/namespace.schema.json", string(nsSchema)); err != nil {
 		return err
 	}
 	vr, err := flow.ValidateResultSchema()
@@ -31,11 +31,7 @@ func cmdGen() error {
 	if err := writeFile("schemas/validate-result.schema.json", string(vr)); err != nil {
 		return err
 	}
-	doc, err := flow.ReferenceDoc()
-	if err != nil {
-		return err
-	}
-	return writeFile("docs/reference/flow.md", doc)
+	return writeReferencePages()
 }
 
 func writeFile(path, content string) error {

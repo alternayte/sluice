@@ -188,7 +188,7 @@ func newServer(ctx context.Context, cfg *Config, log *slog.Logger, clk clock.Clo
 		Secrets: globalSecrets{s.Secrets}, Holder: id.String(), PublicURL: cfg.PublicURL, MaxFileBytes: int64(cfg.MaxFileBytes)}
 	s.Stats = &metrics.Service{Pool: pool, Clock: clk}
 	s.AI = &ai.Service{Pool: pool, Clock: clk, Audit: s.Audit, Log: log, Secrets: globalSecrets{s.Secrets},
-		MaxContextChars: cfg.AIMaxContextChars, Data: aiData{ns: s.Namespaces, e: s.Engine, git: s.Git}, Version: Version}
+		MaxContextChars: cfg.AIMaxContextChars, Data: aiData{ns: s.Namespaces, e: s.Engine, git: s.Git}, Version: Version, PublicURL: cfg.PublicURL}
 	s.Engine.EndHooks = append(s.Engine.EndHooks, aiTriageHook(s.AI))
 	created, err := s.Auth.Bootstrap(ctx, cfg.BootstrapAdminEmail, cfg.BootstrapAdminPassword)
 	if err != nil {

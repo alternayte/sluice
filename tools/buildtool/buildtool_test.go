@@ -103,3 +103,24 @@ func TestTraceRules(t *testing.T) {
 		t.Fatalf("errors: %v", res.Errors)
 	}
 }
+
+func TestSluiceCommandsInShellSamples(t *testing.T) {
+	cases := map[string][]string{
+		"sluice run sales/nightly-load --wait":            {"run sales"},
+		"$ sluice validate ./flows --json":                {"validate"},
+		"cd sluice\nls":                                   nil,
+		"kubectl -n sluice rollout restart deploy/sluice": nil,
+		"make && sluice flows list":                       {"flows list"},
+		"id=$(sluice run a/b -o json | jq -r .id)":        {"run a"},
+		"echo done; sluice executions logs $id":           {"executions logs"},
+	}
+	for in, want := range cases {
+		var got []string
+		for _, m := range sluiceCmdRe.FindAllStringSubmatch(in, -1) {
+			got = append(got, strings.TrimSpace(m[1]+" "+m[2]))
+		}
+		if strings.Join(got, "|") != strings.Join(want, "|") {
+			t.Errorf("%q: got %q, want %q", in, got, want)
+		}
+	}
+}

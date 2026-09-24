@@ -57,6 +57,27 @@ export type ArtifactList = {
   [key: string]: unknown;
 };
 
+export type Attachment = {
+  /**
+   * Execution UUID.
+   */
+  execution_id?: string;
+  /**
+   * Flow ID of a flow.
+   */
+  flow_id?: string;
+  kind: "flow" | "execution" | "file";
+  /**
+   * Namespace of a flow or a file.
+   */
+  namespace?: string;
+  /**
+   * File path of a file.
+   */
+  path?: string;
+  [key: string]: unknown;
+};
+
 export type AuditEvent = {
   action: string;
   actor_id: string;
@@ -82,6 +103,7 @@ export type AuditList = {
 export type Block = {
   input?: unknown;
   is_error?: boolean;
+  label?: string;
   text?: string;
   tool_name?: string;
   tool_use_id?: string;
@@ -551,6 +573,7 @@ export type Me = {
 };
 
 export type MessageIn = {
+  attachments?: Array<Attachment>;
   text: string;
   [key: string]: unknown;
 };

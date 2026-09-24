@@ -89,3 +89,35 @@ func checkTaskRun(t *testing.T, pool *pgxpool.Pool, id uuid.UUID, wantState, wan
 		t.Errorf("task run %s: %s %q, want %s %q", id, state, reason, wantState, wantReason)
 	}
 }
+
+// TestTaskTimeoutOfTheLeaderEndsTimedOut checks the backstop of DI-20: a running task run
+// that reports nothing for its timeout plus TaskGrace ends TIMED_OUT with reason timeout.
+// The leader also requests a cancel to stop the process; that request must not turn the
+// end state into CANCELLED.
+func TestTaskTimeoutOfTheLeaderEndsTimedOut(t *testing.T) {
+	pool, _ := pgtest.Shared(t).NewPool(t)
+	ctx := context.Background()
+	store, err := storage.Open(ctx, storage.Config{Type: "postgres"}, pool)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	fake := clock.NewFake(now)
+	e := &execution.Engine{Pool: pool, Clock: fake, Store: store, Log: slog.New(slog.DiscardHandler),
+		OfflineAfter: time.Hour, Cfg: execution.Config{HeartbeatTimeout: time.Hour}}
+
+	const def = `{"namespace":"slow","flow":{"id":"f","tasks":[{"id":"a","type":"command","timeout":"1m"}]}}`
+	ns, snap, ex, inst, run := uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	mustExec(t, pool, `INSERT INTO namespaces (id, name, source_type) VALUES ($1, 'slow', 'managed')`, ns)
+	mustExec(t, pool, `INSERT INTO snapshots (id, namespace_id, version, manifest_hash) VALUES ($1, $2, 1, 'm')`, snap, ns)
+	mustExec(t, pool, `INSERT INTO executions (id, namespace_id, snapshot_id, state, trigger_type, created_at, started_at, definition)
+		VALUES ($1, $2, $3, 'RUNNING', 'manual', $4, $4, $5)`, ex, ns, snap, now.Add(-10*time.Minute), def)
+	mustExec(t, pool, `INSERT INTO instances (id, hostname, version, pools, executors, started_at, heartbeat_at)
+		VALUES ($1, 'h', 'v', '{default}', '{process}', $2, $3)`, inst, now.Add(-time.Hour), now)
+	mustExec(t, pool, `INSERT INTO task_runs (id, execution_id, task_key, task_type, state, executor_type, claimed_by, started_at, heartbeat_at)
+		VALUES ($1, $2, 'a', 'command', 'RUNNING', 'process', $3, $4, $5)`, run, ex, inst, now.Add(-5*time.Minute), now)
+
+	e.LeaderTick(ctx)
+
+	checkTaskRun(t, pool, run, execution.TaskTimedOut, execution.ReasonTimeout)
+}

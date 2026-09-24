@@ -16,7 +16,13 @@ export const queryClient = new QueryClient({
   },
 });
 
-const router = createRouter({ routeTree, context: { queryClient }, defaultPreload: "intent" });
+const router = createRouter({
+  routeTree,
+  context: { queryClient },
+  defaultPreload: "intent",
+  // A page change fades the page in. A change of the search only (filters, tabs) does not.
+  defaultViewTransition: { types: ({ pathChanged }) => (pathChanged ? ["page"] : false) },
+});
 
 declare module "@tanstack/react-router" {
   interface Register {

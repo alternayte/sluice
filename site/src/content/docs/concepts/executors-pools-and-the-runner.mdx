@@ -1,0 +1,130 @@
+---
+title: Executors, pools and the runner
+description: Why Sluice has four executors, how pools route tasks to instances, how worker slots limit the work, and what the runner does inside a task.
+sidebar:
+  order: 5
+---
+
+This page explains where a task runs and why. An executor starts the work of a task run. A pool connects tasks to the instances that can run them. The runner is the part of Sluice that runs inside the task and reports back.
+
+## Four executors
+
+All executors use one interface: start, wait, cancel and status. The engine does not know how an executor starts the work. A task run keeps the external reference of its work, for example a container ID or a Job name.
+
+| Executor | Task types | Where the work runs | Isolation | After a server stop |
+|---|---|---|---|---|
+| `inline` | `http`, `subflow` | A goroutine in the instance that claimed the task. | None. | The task ends with `instance_shutdown`. |
+| `process` | `script`, `command` | A `sluice exec` child process of the server. | A separate process group. It shares the file system and the tools of the server. | The task ends with `instance_shutdown`. |
+| `docker` | `script`, `command` | A new container for each attempt, through the Docker Engine API. | The container. Any image, limits on CPU and memory. | The container continues. |
+| `kubernetes` | `script`, `command` | A new Job for each attempt. | The pod. Requests, limits, node placement, service accounts. | The Job continues. |
+
+You cannot select `inline` in a flow. `http` and `subflow` tasks do only network calls or start other executions, so they need no process of their own.
+
+### Choose an executor
+
+The **process** executor has the smallest overhead. It needs the tools of the task on the server, for example `uv` for Python scripts. The `sluice-uv` image holds `bash`, `uv`, Python 3.12 and `bun` for this case. Use it for a single host, a trial, or tasks that trust each other.
+
+The **docker** executor gives each attempt a clean container from an image that you choose. Use it on one host when tasks need different tools, or when a task must not change the server file system.
+
+The **kubernetes** executor gives each attempt a Job. The cluster places the pod by its requests, node selector and tolerations. Use it for production work in a cluster, and for tasks that need more resources than one server has.
+
+A docker or kubernetes task continues when the server stops, for example during a rollout. The runner in the task sends its data to any instance. A process task stops with its instance, and the retry policy applies.
+
+## Which executor a task gets
+
+A task gets its executor from four levels, in this order: the task, the flow, `defaults.executor` of `namespace.yaml`, and the instance default. Sluice merges the levels field by field. A level replaces only the fields that it sets.
+
+A task can thus set only `pool` and keep the type and the image of the flow. After the merge, an empty `type` becomes `process` and an empty `pool` becomes `default`. The instance default is always `process`. No variable changes it.
+
+The validator checks the merged result. It reports `image_required` when a docker or kubernetes task has no image. It reports `field_not_allowed` when a block sets a field that its type does not accept, for example `pull` on a kubernetes block. It reports `executor_not_allowed` when an `http` or `subflow` task has an executor block.
+
+## Which executors an instance has
+
+`SLUICE_EXECUTORS` selects the executors of an instance. With the default `auto`, the instance detects them at start:
+
+| Executor | Rule with `auto` |
+|---|---|
+| `inline` | Always on. |
+| `process` | Always on. |
+| `docker` | On when the Docker API answers a ping within 2 seconds. |
+| `kubernetes` | On when a Job create dry run in the Job namespace succeeds within 5 seconds. |
+
+An explicit list, for example `process,kubernetes`, turns on exactly these executors plus `inline`. It does no detection. A list without `process` turns the process executor off.
+
+Each instance records its pools and executors. An admin sees them on **Settings → Instances**.
+
+## Pools route tasks
+
+A pool is a name that connects tasks to instances. `SLUICE_POOLS` lists the pools of an instance. The default is `default`. A task goes to the pool in its `executor.pool`.
+
+An instance claims a task run only when two conditions are true. The pool of the task is in its `SLUICE_POOLS`, and the executor of the task is on. Inline tasks have no pool. Any instance can claim them.
+
+Pools let you place work without a scheduler of your own:
+
+- An instance on a host with a GPU serves the pool `gpu`. Only tasks with `pool: gpu` go there.
+- An instance in a second cluster serves the pool `cluster-b`. It uses the same database, storage and master keys.
+- An instance with `SLUICE_WORKER_SLOTS=0` serves the UI and the API, and claims no process or docker task.
+
+When no online instance serves the pool and the executor of a queued task, the task shows the reason `no_instance_for_pool`. It stays `QUEUED`. It starts when such an instance comes online.
+
+## Slots limit the work
+
+Each claim takes a slot. When no slot is free, the task run waits in the queue.
+
+| Limit | Variable | Default | Scope |
+|---|---|---|---|
+| Process and docker tasks | `SLUICE_WORKER_SLOTS` | `8` | One instance. Process and docker tasks share the slots. |
+| Kubernetes Jobs | `SLUICE_K8S_MAX_JOBS` | `50` | One pool, over all instances. |
+| Inline tasks | none | `64` | One instance. |
+
+The dispatcher claims the oldest queued task runs first. It polls the queue every `SLUICE_QUEUE_POLL_INTERVAL`, and also when a local task ends. The concurrency limit of a flow and `max_parallel` apply before the claim. See [Retry, time out and limit executions](/how-to/retry-time-out-and-limit/).
+
+## The runner
+
+The runner is the command `sluice exec` of the same binary. It runs next to the task command on the process, docker and kubernetes executors. It does these things for one task run:
+
+- It reads the task spec and the resolved environment, secrets included, from the runner API.
+- It downloads the bundle of the pinned snapshot and extracts it into the work directory.
+- It runs the command, and sends the log lines, the outputs, the metrics and the artifacts.
+- It sends a heartbeat every 10 seconds. The answer tells it when a user cancels the execution.
+- It posts the exit code and the error.
+
+The executor gives the runner only three variables: `SLUICE_API_URL`, `SLUICE_RUN_TOKEN` and `SLUICE_TASK_RUN_ID`. The run token is valid for this task run only, and it expires at the task timeout plus 10 minutes. The server revokes it when the task run ends.
+
+This design has two results. First, no secret value is in a server process environment, a container configuration or a Kubernetes Job. Second, all three executors use one protocol, so logs, outputs and cancels behave the same on each of them.
+
+The process executor passes only a short list of server variables to the runner, for example `PATH`, `HOME`, `TZ` and the proxy variables. The server configuration, for example `SLUICE_DATABASE_URL` and `SLUICE_MASTER_KEYS`, does not reach tasks.
+
+### Runner injection
+
+The runner must be in the container of the task. With `inject_runner: true`, the default, Sluice puts it there, so any Linux image can run a task:
+
+| Executor | How the runner gets into the task |
+|---|---|
+| `docker` | The server copies the binary once from `SLUICE_RUNNER_IMAGE`. For each task, it copies the binary into the created container at `/sluice-bin/sluice` through the Engine API. No volume. |
+| `kubernetes` | An init container from `SLUICE_RUNNER_IMAGE` runs `sluice runner-install /sluice-bin`. It writes the binary into an `emptyDir` that the task container mounts. |
+
+With `inject_runner: false`, the task container runs `sluice exec` from the `PATH` of the image. Sluice copies nothing and adds no init container. Use this option with an image that holds the binary, for example `sluice-uv` or an image built from it.
+
+### The Sluice images
+
+Both images hold the binary at `/usr/local/bin/sluice` and run as the non-root user 65532.
+
+| Image | Base | Contents |
+|---|---|---|
+| `sluice` | distroless static | The `sluice` binary only. No shell. |
+| `sluice-uv` | Debian slim | The binary, `bash`, `ca-certificates`, `git`, `uv`, a Python 3.12 and `bun`. |
+
+## Cancels and lost work
+
+A cancel reaches each executor in its own way. The runner sends SIGTERM to the task process group, and SIGKILL after 10 seconds. The docker executor stops the container with a grace time of 10 seconds and removes it. The kubernetes executor deletes the Job.
+
+When the work of a task run stops without a result, the task run ends `FAILED` with the reason `lost`. Examples are a `docker kill`, an evicted pod, or a claiming instance that went offline. The retry policy applies to a lost attempt like to any failure.
+
+## Related pages
+
+- [Run tasks in Docker](/how-to/run-tasks-in-docker/)
+- [Run tasks on Kubernetes](/how-to/run-tasks-on-kubernetes/)
+- [Architecture](/concepts/architecture/)
+- [Flow file reference](/reference/flow/)
+- [Environment variables](/reference/env/)

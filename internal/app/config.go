@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -33,7 +34,7 @@ func (b *ByteSize) UnmarshalText(text []byte) error {
 }
 
 // Config holds all server configuration. Every field comes from one environment
-// variable (C-04). The struct tags are the single source for docs/reference/env.md.
+// variable (C-04). The struct tags are the single source for the env page of the docs site.
 type Config struct {
 	DatabaseURL            string        `env:"SLUICE_DATABASE_URL,required" desc:"Postgres URL. A pooled URL (PgBouncer transaction mode, Neon pooler) is allowed."`
 	ListenAddr             string        `env:"SLUICE_LISTEN_ADDR" envDefault:":8080" desc:"HTTP listen address."`
@@ -68,7 +69,7 @@ type Config struct {
 	MaxFileBytes           ByteSize      `env:"SLUICE_MAX_FILE_BYTES" envDefault:"10MiB" desc:"Maximum size of one namespace file."`
 	MaxBundleBytes         ByteSize      `env:"SLUICE_MAX_BUNDLE_BYTES" envDefault:"200MiB" desc:"Maximum total size of one snapshot."`
 	MaxArtifactBytes       ByteSize      `env:"SLUICE_MAX_ARTIFACT_BYTES" envDefault:"100MiB" desc:"Maximum size of one artifact."`
-	RunnerImage            string        "env:\"SLUICE_RUNNER_IMAGE\" docDefault:\"`sluice:<version>`\" desc:\"Image that holds the runner binary for injection into docker and kubernetes tasks.\""
+	RunnerImage            string        "env:\"SLUICE_RUNNER_IMAGE\" docDefault:\"`ghcr.io/alternayte/sluice:<version>` for a release, `sluice:dev` otherwise\" desc:\"Image that holds the runner binary for injection into docker and kubernetes tasks.\""
 	DockerAPIURL           string        "env:\"SLUICE_DOCKER_API_URL\" docDefault:\"`http://host.docker.internal:<port>`\" desc:\"Base URL that runners in docker containers call.\""
 	DockerKeepContainers   bool          `env:"SLUICE_DOCKER_KEEP_CONTAINERS" envDefault:"false" desc:"Keep docker task containers after completion."`
 	K8sKubeconfig          string        `env:"SLUICE_K8S_KUBECONFIG" desc:"Path to a kubeconfig for out-of-cluster access."`
@@ -306,6 +307,19 @@ func (c *Config) Port() string {
 	return port
 }
 
+// releaseVersionRe matches the version of a release build, for example v0.1.2 or v1.4.0-rc.1.
+// A git describe version such as v0.1.2-1-g222619e-dirty is not a release.
+var releaseVersionRe = regexp.MustCompile(`^v?(\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)(?:\.\d+)?)?)$`)
+
+// defaultRunnerImage returns an image that exists for the build: the published image of a
+// release (the release workflow tags it without the v), or the image of `just build-images`.
+func defaultRunnerImage(version string) string {
+	if m := releaseVersionRe.FindStringSubmatch(version); m != nil {
+		return "ghcr.io/alternayte/sluice:" + m[1]
+	}
+	return "sluice:dev"
+}
+
 func (c *Config) applyComputedDefaults(version string) {
 	if c.InternalURL == "" {
 		c.InternalURL = "http://127.0.0.1:" + c.Port()
@@ -314,10 +328,7 @@ func (c *Config) applyComputedDefaults(version string) {
 		c.DockerAPIURL = "http://host.docker.internal:" + c.Port()
 	}
 	if c.RunnerImage == "" {
-		if version == "" {
-			version = "dev"
-		}
-		c.RunnerImage = "sluice:" + version
+		c.RunnerImage = defaultRunnerImage(version)
 	}
 	if c.K8sNamespace == "" {
 		if b, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
@@ -377,7 +388,8 @@ func contains(list []string, s string) bool {
 	return false
 }
 
-// EnvDoc renders docs/reference/env.md from the Config struct (REQ-DOC-001).
+// EnvDoc renders the env reference from the Config struct (REQ-DOC-001). `just gen` writes it
+// into site/src/content/docs/reference/env.md.
 func EnvDoc() (string, error) {
 	params, err := env.GetFieldParams(&Config{})
 	if err != nil {

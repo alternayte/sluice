@@ -1,0 +1,181 @@
+---
+title: Deploy with Docker Compose
+description: Start Sluice and Postgres on one host with Docker Compose, keep the master key, and upgrade the stack.
+---
+
+import { Steps, Tabs, TabItem, Aside } from "@astrojs/starlight/components";
+
+This guide shows you how to run Sluice and Postgres on one host with Docker Compose. The stack fits a trial, a laptop or a small server. For a cluster, see [Deploy on Kubernetes with Helm](/how-to/deploy-on-kubernetes/).
+
+The stack has two services:
+
+| Service | Image | Notes |
+|---|---|---|
+| `postgres` | `postgres:17-alpine` | The user, the password and the database are `sluice`. The data stays in the named volume `postgres-data`. |
+| `sluice` | `sluice-uv` | Starts after Postgres is healthy. Tasks run on the process executor inside this container. The image has `bash`, `uv`, Python 3.12 and `bun`. |
+
+Sluice itself needs no volume. It keeps all state in Postgres, and the default storage driver `postgres` also keeps file contents, logs and artifacts there.
+
+## Start the stack
+
+<Tabs>
+<TabItem label="From a checkout">
+
+The repository holds `deploy/compose/compose.yml`. It builds the `sluice-uv` image from the source.
+
+<Steps>
+
+1. Clone the repository and go to its root:
+
+   ```sh
+   git clone https://github.com/alternayte/sluice.git
+   cd sluice
+   ```
+
+2. Set the two required variables. Compose stops when one of them is empty.
+
+   ```sh
+   export SLUICE_BOOTSTRAP_ADMIN_PASSWORD='change-me-now-1'
+   export SLUICE_MASTER_KEYS="k1:$(openssl rand -base64 32)"
+   ```
+
+3. Start the stack:
+
+   ```sh
+   docker compose -f deploy/compose/compose.yml up -d --build
+   ```
+
+4. Open [http://localhost:8080](http://localhost:8080). Sign in as `admin@local.test` with the password of step 2.
+
+</Steps>
+
+</TabItem>
+<TabItem label="With the released image">
+
+This compose file uses the released image from GitHub Container Registry. It needs no checkout. Put it in an empty directory as `compose.yml`, and pin the image tag to a release.
+
+```yaml compose
+name: sluice
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: sluice
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sluice}
+      POSTGRES_DB: sluice
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sluice -d sluice"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  sluice:
+    image: ghcr.io/alternayte/sluice-uv:0.1.2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SLUICE_DATABASE_URL: postgres://sluice:${POSTGRES_PASSWORD:-sluice}@postgres:5432/sluice?sslmode=disable
+      SLUICE_PUBLIC_URL: ${SLUICE_PUBLIC_URL:-http://localhost:8080}
+      SLUICE_BOOTSTRAP_ADMIN_EMAIL: ${SLUICE_BOOTSTRAP_ADMIN_EMAIL:-admin@local.test}
+      SLUICE_BOOTSTRAP_ADMIN_PASSWORD: ${SLUICE_BOOTSTRAP_ADMIN_PASSWORD:?set SLUICE_BOOTSTRAP_ADMIN_PASSWORD}
+      SLUICE_MASTER_KEYS: ${SLUICE_MASTER_KEYS:?set SLUICE_MASTER_KEYS}
+      SLUICE_EXECUTORS: process
+    ports:
+      - "${SLUICE_PORT:-8080}:8080"
+volumes:
+  postgres-data:
+```
+
+<Steps>
+
+1. Set the two required variables:
+
+   ```sh
+   export SLUICE_BOOTSTRAP_ADMIN_PASSWORD='change-me-now-1'
+   export SLUICE_MASTER_KEYS="k1:$(openssl rand -base64 32)"
+   ```
+
+2. Start the stack in the directory of the file:
+
+   ```sh
+   docker compose up -d
+   ```
+
+3. Open [http://localhost:8080](http://localhost:8080). Sign in as `admin@local.test` with the password of step 1.
+
+</Steps>
+
+</TabItem>
+</Tabs>
+
+Check that the server is ready. The answer lists the checks `database`, `master_keys`, `migrations` and `storage`:
+
+```sh
+curl -s http://localhost:8080/readyz
+```
+
+## Set the variables
+
+The compose file reads these variables from the shell or from a `.env` file next to it:
+
+| Variable | Default | Notes |
+|---|---|---|
+| `SLUICE_BOOTSTRAP_ADMIN_PASSWORD` | none | Required. The password of the first admin. |
+| `SLUICE_MASTER_KEYS` | none | Required. The keys that encrypt the builtin secrets. |
+| `SLUICE_BOOTSTRAP_ADMIN_EMAIL` | `admin@local.test` | The email of the first admin. |
+| `SLUICE_PUBLIC_URL` | `http://localhost:8080` | The URL that browsers use. |
+| `SLUICE_PORT` | `8080` | A variable of the compose file only: the host port. Sluice does not read it. |
+| `POSTGRES_PASSWORD` | `sluice` | The password of the Postgres user. |
+
+To set more server variables, add them under `environment` of the `sluice` service. [Environment variables](/reference/env/) lists all of them.
+
+## Keep the master key
+
+The command in the steps creates a new master key each time. Sluice encrypts each builtin secret with the first key of `SLUICE_MASTER_KEYS`. When the key of a stored secret is missing, `/readyz` fails with `master_key_missing`. Store the value in a `.env` file next to the compose file:
+
+```sh
+printf 'SLUICE_MASTER_KEYS=%s\n' "$SLUICE_MASTER_KEYS" >> .env
+printf 'SLUICE_BOOTSTRAP_ADMIN_PASSWORD=%s\n' "$SLUICE_BOOTSTRAP_ADMIN_PASSWORD" >> .env
+```
+
+Keep a copy of the key outside the host. Without the key, Sluice cannot read the builtin secrets of a database backup. To replace a key, see [Rotate the master key](/operations/rotate-the-master-key/).
+
+## Understand the bootstrap admin
+
+Sluice creates the first admin from `SLUICE_BOOTSTRAP_ADMIN_EMAIL` and `SLUICE_BOOTSTRAP_ADMIN_PASSWORD` only when the `users` table is empty. Later starts do not change users. A new bootstrap password thus has no effect after the first start.
+
+After the first sign-in, change the password on **Settings → Profile**. Then create one user for each person on **Settings → Users**.
+
+## Put TLS in front
+
+Sluice serves plain HTTP. To serve it on a domain, put a reverse proxy with TLS in front of port 8080. Then set `SLUICE_PUBLIC_URL` to the `https://` URL that browsers use. Sluice uses this URL for the same-origin check of the UI, the `Secure` flag of the session cookie, and the webhook URLs.
+
+<Aside type="caution">
+When `SLUICE_PUBLIC_URL` and the host in the browser differ, every change from the UI fails with `403 csrf_failed`.
+</Aside>
+
+## Stop, remove and upgrade
+
+| Command | Effect |
+|---|---|
+| `docker compose stop` | Stops the containers. The data stays. |
+| `docker compose down` | Removes the containers. The volume `postgres-data` stays. |
+| `docker compose down -v` | Removes the containers and the volume with all data. |
+
+To upgrade, back up the database first. Then change the image tag and start the stack again:
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+In a checkout, pull the new source and run `docker compose -f deploy/compose/compose.yml up -d --build`. The server applies the new database migrations at start. See [Upgrade](/operations/upgrade/) and [Back up and restore](/operations/back-up-and-restore/).
+
+## Related pages
+
+- [Run your first flow](/tutorials/run-your-first-flow/)
+- [Deploy on Kubernetes with Helm](/how-to/deploy-on-kubernetes/)
+- [Harden a deployment](/operations/harden-a-deployment/)
+- [Security model](/concepts/security-model/)

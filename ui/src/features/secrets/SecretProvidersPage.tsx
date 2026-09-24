@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Plus, XCircle } from "lucide-react";
+import { CheckCircle2, Plus, Trash2, Vault, XCircle } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import {
   checkSecretProviderMutation,
@@ -16,6 +16,7 @@ import { Field, FormError } from "@/components/ui/field";
 import { Input, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
+import { toast } from "@/components/ui/toast";
 import { errorMessage, fieldErrors } from "@/lib/errors";
 import { formatTime } from "@/lib/utils";
 
@@ -59,7 +60,12 @@ export function SecretProvidersPage() {
           </Button>
         }
       />
-      <DataState query={providers} empty={(d) => d.length === 0} emptyText="No secret providers exist.">
+      <DataState
+        query={providers}
+        empty={(d) => d.length === 0}
+        emptyText="No secret providers exist."
+        emptyIcon={Vault}
+      >
         {(items) => (
           <Table>
             <THead>
@@ -68,7 +74,7 @@ export function SecretProvidersPage() {
                 <Th>Type</Th>
                 <Th>Configuration</Th>
                 <Th>Updated</Th>
-                <Th>
+                <Th className="relative">
                   <span className="sr-only">Actions</span>
                 </Th>
               </Tr>
@@ -79,29 +85,41 @@ export function SecretProvidersPage() {
                 return (
                   <Tr key={p.name}>
                     <Td className="font-medium">{p.name}</Td>
-                    <Td>{typeLabels[p.type]}</Td>
-                    <Td className="font-mono text-xs">
+                    <Td>
+                      {typeLabels[p.type]}
+                      {fixed && <span className="ml-1.5 text-xs text-muted-foreground">(built in)</span>}
+                    </Td>
+                    <Td className="max-w-80 truncate font-mono text-xs text-muted-foreground">
                       {Object.entries(p.config)
                         .map(([k, v]) => `${k}=${String(v)}`)
-                        .join(", ")}
+                        .join(", ") || "—"}
                     </Td>
-                    <Td>{formatTime(p.updated_at)}</Td>
+                    <Td className="text-muted-foreground tabular-nums">{formatTime(p.updated_at)}</Td>
                     <Td className="text-right whitespace-nowrap">
-                      {p.type !== "builtin" && (
-                        <Button variant="ghost" size="sm" onClick={() => setChecking(p)} aria-label={`Check ${p.name}`}>
-                          Check
-                        </Button>
-                      )}
-                      {!fixed && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleting(p)}
-                          aria-label={`Delete ${p.name}`}
-                        >
-                          Delete
-                        </Button>
-                      )}
+                      <div className="flex justify-end gap-1">
+                        {p.type !== "builtin" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setChecking(p)}
+                            aria-label={`Check ${p.name}`}
+                          >
+                            Check
+                          </Button>
+                        )}
+                        {!fixed && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-7 px-0 hover:text-destructive"
+                            onClick={() => setDeleting(p)}
+                            aria-label={`Delete ${p.name}`}
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                          </Button>
+                        )}
+                      </div>
                     </Td>
                   </Tr>
                 );
@@ -130,8 +148,9 @@ function ProviderForm({ onDone }: { onDone: () => void }) {
   const [config, setConfig] = useState<Record<string, string>>({});
   const mutation = useMutation({
     ...createSecretProviderMutation(),
-    onSuccess: () => {
+    onSuccess: (p) => {
       void qc.invalidateQueries({ queryKey: providersKey });
+      toast({ title: "Provider added", description: p.name });
       onDone();
     },
   });
@@ -211,7 +230,7 @@ function ProviderCheck({ provider, onDone }: { provider: ProviderOut; onDone: ()
         <Input required maxLength={512} value={ref} onChange={(e) => setRef(e.target.value)} className="font-mono" />
       </Field>
       {result && (
-        <div role="status" className="flex flex-col gap-1">
+        <div role="status" className="flex flex-col gap-1 rounded-control bg-muted px-3 py-2.5">
           <Badge
             tone={result.status === "ok" ? "success" : "failed"}
             icon={result.status === "ok" ? CheckCircle2 : XCircle}
@@ -240,6 +259,7 @@ function ProviderDelete({ provider, onDone }: { provider: ProviderOut; onDone: (
     ...deleteSecretProviderMutation(),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: providersKey });
+      toast({ title: "Provider deleted", description: provider.name });
       onDone();
     },
   });

@@ -37,7 +37,7 @@ export function ExecutionStateBadge({ state }: { state: string }) {
   const s = state.toLowerCase();
   const tone = executionStateTone(s);
   return (
-    <Badge tone={tone} icon={toneIcons[tone]}>
+    <Badge tone={tone} icon={toneIcons[tone]} pulse={s === "running" || s === "cancelling" || s === "retrying"}>
       {stateLabel(s)}
     </Badge>
   );

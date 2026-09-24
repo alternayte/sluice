@@ -25,7 +25,7 @@ func TestConfigDefaults(t *testing.T) {
 	if cfg.WorkerSlots != 8 || cfg.SessionTTL != 168*time.Hour || cfg.MaxFileBytes != 10<<20 || cfg.MaxBundleBytes != 200<<20 {
 		t.Fatalf("defaults: %+v", cfg)
 	}
-	if cfg.InternalURL != "http://127.0.0.1:9090" || cfg.RunnerImage != "sluice:1.2.3" || !cfg.SecureCookies() {
+	if cfg.InternalURL != "http://127.0.0.1:9090" || cfg.RunnerImage != "ghcr.io/alternayte/sluice:1.2.3" || !cfg.SecureCookies() {
 		t.Fatalf("computed defaults: %s %s", cfg.InternalURL, cfg.RunnerImage)
 	}
 	if len(cfg.Pools) != 1 || cfg.Pools[0] != "default" || cfg.StorageType != "postgres" {
@@ -115,23 +115,52 @@ func TestParseByteSize(t *testing.T) {
 	}
 }
 
-// TestSCN_DOC_001_EnvDocGenerated checks that docs/reference/env.md equals the
-// generated text and that every config field has a description.
+// TestSCN_DOC_001_EnvDocGenerated checks that every config field has a description and a
+// row on the env page of the docs site. `just docs-ref-check` checks that the page is current.
 func TestSCN_DOC_001_EnvDocGenerated(t *testing.T) {
 	want, err := EnvDoc()
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := os.ReadFile("../../docs/reference/env.md")
+	const page = "../../site/src/content/docs/reference/env.md"
+	got, err := os.ReadFile(page)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(got) != want {
-		t.Fatal("docs/reference/env.md is out of date: run `just gen`")
+	for _, line := range strings.Split(want, "\n") {
+		if key, _, ok := strings.Cut(strings.TrimPrefix(line, "| "), " |"); ok && strings.HasPrefix(line, "| `") &&
+			!strings.Contains(string(got), strings.NewReplacer("<", "&lt;", ">", "&gt;").Replace(key)) && !strings.Contains(string(got), key) {
+			t.Errorf("%s misses %s: run `just gen`", page, key)
+		}
 	}
 	for _, name := range []string{"SLUICE_DATABASE_URL", "SLUICE_SECRET_<KEY>", "SLUICE_AI_MAX_CONTEXT_CHARS"} {
 		if !strings.Contains(want, name) {
 			t.Errorf("env.md misses %s", name)
+		}
+	}
+}
+
+// TestRunnerImageDefault checks that the default runner image exists: a release version names
+// the published image, and any other build names the image of `just build-images`.
+func TestRunnerImageDefault(t *testing.T) {
+	for version, want := range map[string]string{
+		"v0.1.2":                  "ghcr.io/alternayte/sluice:0.1.2",
+		"v1.4.0-rc.1":             "ghcr.io/alternayte/sluice:1.4.0-rc.1",
+		"1.2.3":                   "ghcr.io/alternayte/sluice:1.2.3",
+		"v0.1.2-1-g222619e-dirty": "sluice:dev",
+		"222619e":                 "sluice:dev",
+		"dev":                     "sluice:dev",
+		"":                        "sluice:dev",
+	} {
+		cfg, err := LoadConfig(LoadOptions{Server: true, Version: version, Env: envOf(map[string]string{
+			"SLUICE_DATABASE_URL": "postgres://x/y",
+			"SLUICE_PUBLIC_URL":   "https://sluice.example.com",
+		})})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.RunnerImage != want {
+			t.Errorf("version %q: runner image %s, want %s", version, cfg.RunnerImage, want)
 		}
 	}
 }

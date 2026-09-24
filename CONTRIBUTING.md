@@ -96,9 +96,23 @@ Run `just gen` after a change to SQL, to an API operation or to a schema. `just 
 1. `go tool sqlc generate`
 2. `go run ./cmd/sluice openapi > api/openapi.yaml`
 3. `bun run gen:api` in `ui/`
-4. `go run ./tools/buildtool gen` for the schemas in `schemas/` and the reference docs in `docs/reference/`
+4. `go run ./tools/buildtool gen` for the schemas in `schemas/` and the generated reference pages in `site/src/content/docs/reference/`
 
 Commit the generated files. `just gen-check` fails when they differ from the committed files.
+
+## Docs site
+
+The docs site is an Astro Starlight site in `site/`. It deploys to https://sluice-docs.pages.dev.
+
+| Recipe | Purpose |
+|---|---|
+| `just docs-dev` | Serve the site with live reload on http://localhost:4321. |
+| `just docs` | Build the site into `site/dist`. |
+| `just docs-ref-check` | Fail on a stale generated page, an invalid sample, an unknown `sluice` command, a missing `SLUICE_` variable or a Vale error. `just check` runs it. |
+| `just docs-shots` | Capture the screenshots and the quickstart GIF from the real UI. It needs Docker, agent-browser and ffmpeg. |
+| `just docs-deploy` | Deploy `site/dist` to Cloudflare Pages with the logged-in wrangler. |
+
+A YAML sample needs its kind after `yaml`, for example `yaml flow`. The check validates a `flow` or `namespace` sample with the validator of the server.
 
 ## Add an API operation
 

@@ -1,0 +1,144 @@
+---
+title: Connect an MCP client
+description: Connect Claude Code, Cursor, VS Code or another MCP client to the Sluice MCP server with an API token of the lowest role that fits.
+---
+
+import { Steps, Tabs, TabItem, Aside } from "@astrojs/starlight/components";
+
+This guide shows you how to connect an MCP client to the Sluice MCP server. The client then reads flows, executions, logs and failure triage, and it runs flows, with the role of an API token.
+
+The server serves MCP over streamable HTTP at `/mcp`. It needs no AI provider. It accepts only a bearer API token: a request with a session cookie or with no token gets `401`.
+
+## Choose the role
+
+A tool runs with the role of the token. Give the client a token with the lowest role that fits the work:
+
+| Role | Tools | Use it for |
+|---|---|---|
+| Viewer | `list_namespaces`, `list_flows`, `get_flow`, `validate_flow`, `list_files`, `read_file`, `list_executions`, `get_execution`, `get_logs`, `get_metrics`, `get_insight`, `get_flow_schema` | Read flows and triage failures. |
+| Operator | The viewer tools, `trigger_execution`, `cancel_execution`, `rerun_execution`, `restart_execution` | Run, cancel, rerun and restart executions. |
+| Editor | The operator tools and `apply_change` | Write files to a namespace. |
+
+The client lists all tools for every role. A call to a tool above the role of the token returns a tool error, for example `forbidden: the tool rerun_execution needs the operator role`.
+
+<Aside type="caution">
+A mutating tool runs at once over MCP. The client does not wait for a confirmation from Sluice. In the assistant of the web UI, the same tools wait for your confirmation.
+</Aside>
+
+## Create the token
+
+<Steps>
+
+1. In Sluice, click **API tokens** under **Settings** in the sidebar.
+2. Click **Create token**.
+3. Type a name, for example `claude-code-mcp`, in **Name**.
+4. Select the role in **Role**. The list shows only the roles up to your own role.
+5. Type a number of days in **Expiry in days**, from 1 to 365.
+6. Click **Create token**, then click **Copy**. Sluice shows the token only once.
+
+</Steps>
+
+## Add the server to the client
+
+The examples use the URL `https://sluice.example.com`. Use the public URL of your server.
+
+<Tabs>
+  <TabItem label="Claude Code">
+    Put the URL and the token in variables, then add the server:
+
+    ```sh
+    export SLUICE_URL=https://sluice.example.com
+    export SLUICE_TOKEN=slu_paste-your-token-here
+    claude mcp add --transport http sluice "$SLUICE_URL/mcp" --header "Authorization: Bearer $SLUICE_TOKEN"
+    ```
+
+    Run `claude mcp list` to see the server and its status. In a Claude Code session, `/mcp` shows the tools.
+  </TabItem>
+  <TabItem label="Cursor">
+    Add the server to `~/.cursor/mcp.json` for all projects, or to `.cursor/mcp.json` for one project:
+
+    ```json
+    {
+      "mcpServers": {
+        "sluice": {
+          "url": "https://sluice.example.com/mcp",
+          "headers": {
+            "Authorization": "Bearer slu_paste-your-token-here"
+          }
+        }
+      }
+    }
+    ```
+
+    Do not commit a project file that holds a token.
+  </TabItem>
+  <TabItem label="VS Code">
+    Add the server to `.vscode/mcp.json`. VS Code asks for the token at the first start and stores it:
+
+    ```json
+    {
+      "inputs": [
+        { "type": "promptString", "id": "sluice-token", "description": "Sluice API token", "password": true }
+      ],
+      "servers": {
+        "sluice": {
+          "type": "http",
+          "url": "https://sluice.example.com/mcp",
+          "headers": { "Authorization": "Bearer ${input:sluice-token}" }
+        }
+      }
+    }
+    ```
+  </TabItem>
+  <TabItem label="Other clients">
+    Configure a remote server with the transport "streamable HTTP", the URL `https://sluice.example.com/mcp` and the header `Authorization: Bearer <token>`. The server sends JSON responses and keeps no session.
+  </TabItem>
+</Tabs>
+
+## Read the server card
+
+The server publishes a server card at `/.well-known/mcp.json`. A client or a registry reads it to find the endpoint and the header. The card is public and holds no data.
+
+```sh
+curl -s https://sluice.example.com/.well-known/mcp.json
+```
+
+```json
+{
+  "name": "io.github.alternayte/sluice",
+  "title": "Sluice",
+  "description": "Read, run and triage Sluice flows and executions. Tools run with the role of the API token.",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://sluice.example.com/mcp",
+      "headers": [
+        { "name": "Authorization", "description": "Bearer <API token>. Create a token on Settings, API tokens.", "isRequired": true, "isSecret": true }
+      ]
+    }
+  ]
+}
+```
+
+The card also has `version`, `websiteUrl`, `repository` and the supported protocol versions. The endpoint URL comes from `SLUICE_PUBLIC_URL`. When that variable is empty, it comes from the host of the request.
+
+## Test the connection
+
+Ask the client a question that needs a read tool, for example:
+
+```text
+List the failed Sluice executions of today. For the newest one, read the logs of the failed task and tell me the cause.
+```
+
+The client calls `list_executions` with the state `FAILED`, then `get_execution` and `get_logs` with `failed_only: true`. `get_logs` also takes `grep` to keep the lines that contain a text, case-insensitive.
+
+## Audit and masking
+
+- Each call of a mutating tool over MCP writes the audit event `ai.tool.call`. The target is the tool name, and the details hold `"via": "mcp"`. An admin sees the events on the **Audit log** page. Read tools write no audit event.
+- Sluice masks the results of the execution tools. A secret value of the execution shows as `***`. `grep` searches the masked text, so a secret value never matches.
+- A tool result has at most 20 000 characters. A longer result ends with `…(truncated)`. Use `tail`, `task`, `grep` or `failed_only` on `get_logs` to get the lines that you need.
+- `propose_change` is a tool of the assistant only. An MCP client checks a file with `validate_flow` and writes it with `apply_change`. `apply_change` refuses an invalid flow.
+
+To stop a client, revoke its token on the **API tokens** page. The next call gets `401`.
+
+[MCP tools](/reference/mcp-tools/) lists every tool with its arguments and its role.

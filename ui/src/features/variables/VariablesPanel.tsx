@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { CornerLeftUp, Plus } from "lucide-react";
+import { CornerLeftUp, Pencil, Plus, Trash2, Variable } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import {
   deleteGlobalVariableMutation,
@@ -18,6 +18,7 @@ import { Field, FormError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
+import { toast } from "@/components/ui/toast";
 import { useCurrentUser } from "@/lib/auth";
 import { errorMessage, fieldErrors } from "@/lib/errors";
 import { can } from "@/lib/roles";
@@ -49,17 +50,31 @@ export function VariablesPanel({ namespace }: { namespace?: string }) {
   const [editing, setEditing] = useState<VariableInfo | "new" | null>(null);
   const [deleting, setDeleting] = useState<VariableInfo | null>(null);
 
+  const isEmpty = variables.data !== undefined && variables.data.length === 0;
+  const addButton = (
+    <Button size="sm" onClick={() => setEditing("new")}>
+      <Plus className="h-3.5 w-3.5" aria-hidden />
+      Add variable
+    </Button>
+  );
+
   return (
     <div className="flex flex-col gap-3">
-      {canEdit && (
-        <div className="flex justify-end">
-          <Button onClick={() => setEditing("new")}>
-            <Plus className="h-4 w-4" aria-hidden />
-            Add variable
-          </Button>
+      {variables.data !== undefined && !isEmpty && (
+        <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            {variables.data.length === 1 ? "1 variable" : `${variables.data.length} variables`}
+          </p>
+          {canEdit && addButton}
         </div>
       )}
-      <DataState query={variables} empty={(d) => d.length === 0} emptyText="No variables exist in this scope.">
+      <DataState
+        query={variables}
+        empty={(d) => d.length === 0}
+        emptyText="No variables exist in this scope."
+        emptyIcon={Variable}
+        emptyAction={canEdit && addButton}
+      >
         {(items) => (
           <Table>
             <THead>
@@ -76,8 +91,8 @@ export function VariablesPanel({ namespace }: { namespace?: string }) {
             <TBody>
               {items.map((v) => (
                 <Tr key={v.key}>
-                  <Td className="font-mono text-xs">{v.key}</Td>
-                  <Td className="max-w-[24rem] truncate font-mono text-xs" title={v.value}>
+                  <Td className="font-mono text-xs font-medium">{v.key}</Td>
+                  <Td className="max-w-[24rem] truncate font-mono text-xs text-muted-foreground" title={v.value}>
                     {v.value}
                   </Td>
                   <Td>
@@ -87,20 +102,34 @@ export function VariablesPanel({ namespace }: { namespace?: string }) {
                       <span className="text-sm">{v.scope}</span>
                     )}
                   </Td>
-                  <Td>
+                  <Td className="tabular-nums">
                     {formatTime(v.updated_at)}
                     {v.updated_by && <span className="text-muted-foreground"> by {v.updated_by}</span>}
                   </Td>
-                  <Td className="text-right whitespace-nowrap">
+                  <Td className="w-0 text-right">
                     {canEdit && !v.inherited && (
-                      <>
-                        <Button variant="ghost" size="sm" onClick={() => setEditing(v)} aria-label={`Edit ${v.key}`}>
-                          Edit
+                      <span className="inline-flex items-center gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Edit"
+                          aria-label={`Edit ${v.key}`}
+                          onClick={() => setEditing(v)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" aria-hidden />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setDeleting(v)} aria-label={`Delete ${v.key}`}>
-                          Delete
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 hover:text-destructive"
+                          title="Delete"
+                          aria-label={`Delete ${v.key}`}
+                          onClick={() => setDeleting(v)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden />
                         </Button>
-                      </>
+                      </span>
                     )}
                   </Td>
                 </Tr>
@@ -143,6 +172,7 @@ function VariableForm({
   const [value, setValue] = useState(variable?.value ?? "");
   const onSuccess = () => {
     void invalidateVariables(qc);
+    toast({ title: variable ? `Updated ${key}` : `Added ${key}` });
     onDone();
   };
   const putGlobal = useMutation({ ...putGlobalVariableMutation(), onSuccess });
@@ -155,7 +185,7 @@ function VariableForm({
     else putGlobal.mutate({ path: { key }, body: { value } });
   };
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3">
+    <form onSubmit={submit} className="flex flex-col gap-4">
       <Field
         id="variable-key"
         label="Key"
@@ -200,6 +230,7 @@ function VariableDelete({
   const qc = useQueryClient();
   const onSuccess = () => {
     void invalidateVariables(qc);
+    toast({ title: `Deleted ${variable.key}` });
     onDone();
   };
   const delGlobal = useMutation({ ...deleteGlobalVariableMutation(), onSuccess });

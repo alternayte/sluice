@@ -1,0 +1,137 @@
+---
+name: sluice
+description: Write, validate, deploy, run and debug Sluice flows (*.flow.yaml) and namespace files. Use when a task touches a Sluice namespace directory, a flow file, namespace.yaml, the sluice CLI, the Sluice MCP server or a Sluice execution.
+---
+
+# Sluice
+
+Sluice runs flows of tasks. A flow is a YAML file in a namespace. A namespace is a directory of flows, scripts and other files. This skill matches the `sluice` binary that wrote it (`sluice version`).
+
+Reference: https://sluice-docs.pages.dev. Flow schema: https://sluice-docs.pages.dev/schemas/flow.schema.json. All docs as one file: https://sluice-docs.pages.dev/llms-full.txt.
+
+## The loop
+
+Do these steps in this order for every change to a namespace directory:
+
+1. Edit the files.
+2. Validate offline: `sluice validate <dir> --json`. Exit 0 means valid. Exit 1 lists each error with `path`, `line`, `column`, `code` and `message`. Fix every error before the next step.
+3. Deploy: `sluice namespaces push <dir> --namespace <name>`. It sends only the changed files as one new version. It creates no version when nothing changed. Add `--create` the first time, when the namespace does not exist yet.
+4. Run: `sluice run <namespace>/<flow> --wait --input key=value`. The logs stream to stderr. The exit code is the end state.
+5. On a failure, read the failed task: `sluice executions get <id>`, then `sluice executions logs <id> --task <task>`.
+6. Fix the files, then go to step 2 and start a new run with `sluice run`. `sluice executions rerun <id>` and `sluice executions restart <id>` reuse the files of the old execution. Use them only when the cause is outside the files, for example a network error. `restart` keeps the successful tasks and runs only the rest.
+
+Install or update the binary with `curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh | sh`.
+
+The client commands read `SLUICE_URL` (for example `https://sluice.example.com`) and `SLUICE_TOKEN` (an API token from Settings, API tokens). Add `--output json` to get the API JSON on stdout.
+
+| Exit code | Meaning |
+|---|---|
+| 0 | Success. |
+| 1 | API or network error, or `sluice validate` found an invalid file. |
+| 2 | Usage or configuration error. |
+| 10 | The execution ended FAILED. |
+| 11 | The execution ended TIMED_OUT. |
+| 12 | The execution ended CANCELLED. |
+| 13 | The execution ended SKIPPED (a concurrency limit with `behavior: skip`). |
+| 14 | `--timeout` ended the wait. The execution continues. |
+
+## Flow file
+
+A flow file is `<name>.flow.yaml` anywhere in the namespace. Put this line first, so editors validate it:
+
+```yaml
+# yaml-language-server: $schema=https://sluice-docs.pages.dev/schemas/flow.schema.json
+id: nightly-load
+description: Load orders, then build the report.
+inputs:
+  - { id: run_date, type: string, required: true }
+triggers:
+  - { id: nightly, type: schedule, cron: "0 2 * * *", timezone: Europe/Zurich }
+retry: { max_attempts: 3, backoff: exponential, initial: 30s }
+tasks:
+  - id: extract
+    type: script
+    file: pipelines/extract.py
+    args: ["--date", "${{ inputs.run_date }}"]
+    env:
+      DB_URL: ${{ secret('DB_URL') }}
+  - id: report
+    type: command
+    depends_on: [extract]
+    command: ["echo", "rows: ${{ tasks.extract.outputs.rows }}"]
+outputs:
+  rows: ${{ tasks.extract.outputs.rows }}
+```
+
+Rules that validation enforces:
+
+- Flow `id`: lower case letters, digits and hyphens. Unique in the namespace.
+- Task and input `id`: `^[a-z][a-z0-9_]{0,62}$`. Use underscores, not hyphens.
+- A flow has 1 to 200 tasks. `depends_on` names tasks of the same flow and has no cycle.
+- `run_if` is `success` (default), `failure` or `always`.
+- A field of another task type is an error (`field_not_allowed`), for example `url` on a `script` task.
+- `executor` is not allowed on `http` and `subflow` tasks.
+
+## Task types
+
+| Type | Required | Optional | Runs |
+|---|---|---|---|
+| `script` | `file` (path from the namespace root) | `runtime`, `args` | the file; the extension selects the runtime (.py, .sh, .ts, .js) |
+| `command` | `command` (argv list, no shell) | `workdir` | the argv |
+| `http` | `url` | `method`, `headers`, `body`, `expect_status` | an HTTP request on the server |
+| `subflow` | `flow` (`<namespace>/<flow_id>`) | `inputs`, `wait` | a child execution |
+
+A `command` has no shell. For pipes or `&&`, use `command: ["sh", "-c", "a | b"]`.
+
+Every task also takes `depends_on`, `run_if`, `timeout` (default `24h`), `retry`, `env` and `executor`. `script` and `command` take `files`: a map from a path to a template that Sluice writes before the task starts.
+
+## Templates
+
+A template is `${{ expr }}` in a string. An expression is a lookup. There are no operators.
+
+| Expression | Value |
+|---|---|
+| `inputs.<id>` | A declared flow input. |
+| `vars.<KEY>` | A variable: flow `variables`, then the namespace, its parents, then global. |
+| `secret('<KEY>')` | A secret. Allowed only in `env` values, `files` values and the `http` fields `url`, `headers` and `body`. |
+| `tasks.<task_id>.outputs.<key>` | An output of a task that is a dependency, directly or through other tasks. |
+| `trigger.<path>` | The trigger payload, for example `trigger.body` of a webhook. |
+| `execution.id`, `execution.namespace`, `execution.flow_id`, `execution.created_at` | Facts of the execution. |
+
+Write `$${{` for a literal `${{`.
+
+## Outputs, metrics and artifacts
+
+A task writes one JSON object per line to the file in `$SLUICE_OUTPUTS`:
+
+```sh
+echo '{"type":"output","key":"rows","value":42}' >> "$SLUICE_OUTPUTS"
+echo '{"type":"metric","name":"rows_loaded","value":42,"unit":"rows"}' >> "$SLUICE_OUTPUTS"
+echo '{"type":"artifact","path":"report.html","name":"report"}' >> "$SLUICE_OUTPUTS"
+```
+
+Other variables of every task: `SLUICE_EXECUTION_ID`, `SLUICE_TASK_ID`, `SLUICE_ATTEMPT`, `SLUICE_NAMESPACE`, `SLUICE_FLOW_ID` and `SLUICE_WORKDIR`.
+
+## namespace.yaml
+
+`namespace.yaml` at the namespace root sets defaults for all flows. A flow or task value overrides a default.
+
+```yaml
+# yaml-language-server: $schema=https://sluice-docs.pages.dev/schemas/namespace.schema.json
+description: ELT pipelines
+defaults:
+  executor: { type: docker, image: ghcr.io/acme/elt:1.4.0 }
+  env: { TZ: Europe/Zurich }
+  retry: { max_attempts: 2 }
+  timeout: 1h
+```
+
+## MCP
+
+The server serves MCP at `<SLUICE_URL>/mcp` with a bearer API token. `<SLUICE_URL>/.well-known/mcp.json` describes it. Useful tools: `get_flow_schema`, `validate_flow`, `list_executions`, `get_execution`, `get_logs` (with `failed_only: true` and `grep`), `get_insight`, `rerun_execution` and `restart_execution`. A tool runs with the role of the token.
+
+## Do not
+
+- Do not put a secret value in a flow file, a script or a label. Use `secret('KEY')` in `env` and read the variable.
+- Do not skip `sluice validate` before a push. An invalid flow gets no active triggers, and a run returns 422 `flow_invalid`.
+- Do not push to a namespace that comes from git. It is read-only; change the git repository instead.

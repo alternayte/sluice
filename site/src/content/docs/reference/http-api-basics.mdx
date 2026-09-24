@@ -1,0 +1,175 @@
+---
+title: HTTP API basics
+description: Authentication, the Origin check, the error envelope, pagination, event streams and the OpenAPI document of the Sluice HTTP API.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+This page holds the rules that apply to every operation of the Sluice HTTP API. The [HTTP API reference](/reference/api/) lists each operation with its parameters and schemas.
+
+## Base paths
+
+| Path | Purpose | Authentication |
+|---|---|---|
+| `/api/v1/` | The API of the UI, the CLI and scripts. | Session cookie or bearer API token |
+| `/api/runner/v1/` | The runner protocol of `sluice exec`. | Bearer run token |
+| `/hooks/{key}`, `/hooks/git/{sourceId}` | Webhooks from other systems. | The key in the path, or a signature |
+| `/mcp` | The MCP server. | Bearer API token only |
+| `/.well-known/mcp.json` | The MCP server card. | None |
+| `/healthz`, `/readyz`, `/metrics` | Health and Prometheus. | None |
+
+Request and response bodies are JSON, except the event streams, the log download and the artifact download. Every response has an `X-Request-Id` header. The server log line of the request has the same ID.
+
+## Authentication
+
+### Bearer API token
+
+Scripts, CI jobs, the CLI and MCP clients send an API token in the `Authorization` header:
+
+```sh
+curl -s -H "Authorization: Bearer $SLUICE_TOKEN" "$SLUICE_URL/api/v1/auth/me"
+```
+
+A token is `slu_` and 43 base62 characters. Create one on **Settings → API tokens**, or with `POST /api/v1/tokens`. The create response shows the token once, in the `secret` field.
+
+| Rule | Value |
+|---|---|
+| Role | At most the role of the owner. The effective role is the lower of the token role and the current role of the owner. |
+| Expiry | Optional, from 1 to 365 days (`expires_in_days`). |
+| Rejected with 401 | A revoked token, an expired token, or a token of a disabled user. |
+| Origin check | None. A bearer request needs no `Origin` header. |
+
+`GET /api/v1/auth/me` returns the principal of a credential. Its `auth_type` is `token` for a bearer request and `session` for a cookie request.
+
+### Session cookie
+
+`POST /api/v1/auth/login` with `email` and `password` sets the cookie `sluice_session`. The browser UI uses this cookie. `POST /api/v1/auth/logout` deletes the session.
+
+| Property | Value |
+|---|---|
+| Flags | `HttpOnly`, `SameSite=Lax`, `Path=/`. `Secure` when `SLUICE_PUBLIC_URL` starts with `https://`. |
+| Lifetime | `SLUICE_SESSION_TTL` after the last use. Default `168h`. |
+| Rate limit | 10 failed logins for one email, or 50 for one IP address, in 15 minutes. Then 429 `rate_limited` with `Retry-After`. |
+
+A user with a temporary password gets 403 `password_change_required` on every operation except the own profile, the own password and logout.
+
+### The Origin check
+
+A cookie request with a method other than `GET`, `HEAD` or `OPTIONS` must come from the same origin. The server accepts the request when one of these conditions is true:
+
+- The `Origin` header is the origin of `SLUICE_PUBLIC_URL`.
+- The host of the `Origin` header is the host of the request.
+- The request has no `Origin` header and has `Sec-Fetch-Site: same-origin`.
+
+Any other cookie request gets 403 `csrf_failed`. This includes `Origin: null` and a request with neither header. Browsers send one of the two headers. A script that sends cookies gets 403, so use a bearer token in scripts.
+
+```console
+$ curl -s -X POST -b cookies.txt -H 'Origin: https://evil.example' \
+    "$SLUICE_URL/api/v1/executions/$EXECUTION_ID/rerun"
+{"error":{"code":"csrf_failed","message":"cross-origin request rejected"}}
+```
+
+### Roles
+
+Each operation has one minimum role: `viewer`, `operator`, `editor` or `admin`. A higher role can call every operation of a lower role. A few operations are public, for example `login` and `getFlowSchema`. The server checks the role before it reads the request, so a caller without the role never sees validation details. [Harden a deployment](/operations/harden-a-deployment/#users-and-roles) lists what each role adds.
+
+## Errors
+
+Every error uses one envelope:
+
+```json
+{"error":{"code":"execution_not_found","message":"execution not found"}}
+```
+
+`details` is present only when the error has details, for example the fields of `validation_failed`.
+
+| Status | Code | Cause |
+|---|---|---|
+| 401 | `unauthorized` | No credential, or a credential that is not valid. |
+| 403 | `forbidden` | The role is too low. |
+| 403 | `csrf_failed` | A cookie request failed the Origin check. |
+| 403 | `password_change_required` | The user must set a new password first. |
+| 404 | `not_found` | An unknown API route, or an object that does not exist. |
+| 409 | `conflict` | A state conflict without a more specific code. |
+| 413 | `too_large`, `body_too_large` | The request body is too large. |
+| 415 | `unsupported_media_type` | The `Content-Type` is not JSON. |
+| 422 | `validation_failed` | The request does not match the schema. `details` lists `{field, message}`. |
+| 429 | `rate_limited` | Too many failed logins. `Retry-After` gives the seconds to wait. |
+| 500 | `internal` | An unexpected error. The server log has the cause, with the request ID. |
+
+Features add their own codes, for example `execution_not_found`, `execution_ended`, `not_restartable`, `flow_invalid`, `flow_disabled`, `namespace_read_only`, `last_admin`, `builtin_provider_disabled` and `ai_disabled`. The [HTTP API reference](/reference/api/) shows the error responses of each operation.
+
+### validation_failed
+
+A request that fails the schema gets one `details` entry for each field. A query or path parameter uses its name as the field. A body that is not JSON gets the field `body` with the message `invalid JSON`.
+
+```console
+$ curl -s -H "Authorization: Bearer $SLUICE_TOKEN" "$SLUICE_URL/api/v1/executions?limit=500"
+{"error":{"code":"validation_failed","message":"validation failed","details":[{"field":"limit","message":"expected number <= 200"}]}}
+```
+
+## Pagination
+
+List operations use cursor pagination. The response has `items` and, when more rows follow, `next_cursor`. Send the cursor back in the `cursor` query parameter.
+
+| Parameter | Rule |
+|---|---|
+| `limit` | 1 to 200. The default is 50 for most lists. A value above 200 gets 422. |
+| `cursor` | The `next_cursor` of the previous page. Do not build or change it. A cursor that does not decode gets 422 with the field `cursor`. |
+
+The cursor holds the sort key of the last row. New rows do not move a page, so no row repeats and no row goes missing between pages. The log page operation `GET /api/v1/executions/{executionId}/logs` has its own `limit`, from 1 to 5000, with a default of 1000.
+
+```sh
+curl -s -H "Authorization: Bearer $SLUICE_TOKEN" "$SLUICE_URL/api/v1/executions?state=FAILED&limit=20"
+curl -s -H "Authorization: Bearer $SLUICE_TOKEN" "$SLUICE_URL/api/v1/executions?state=FAILED&limit=20&cursor=$NEXT_CURSOR"
+```
+
+## Event streams
+
+These operations answer with `text/event-stream`:
+
+| Operation | Events | Event `id` |
+|---|---|---|
+| `GET /api/v1/executions/{executionId}/events` | `execution` with the execution detail, each time the state of the execution or of a task run changes. | A hash of the states. |
+| `GET /api/v1/executions/{executionId}/logs/stream` | `line` with one log line. The optional `task` query parameter selects one task. | The read position of each task run. |
+| `POST /api/v1/ai/conversations/{conversationId}/messages` | The events of one assistant turn. | None |
+
+The two execution streams send `event: end` when the execution has ended and no more data follows, and then close. They send a `: keep-alive` comment after about 15 seconds without data.
+
+To resume a stream, send the last `id` that you got in the `Last-Event-ID` header. The log stream then sends only the lines after that position, so no line repeats and no line goes missing. The browser `EventSource` sends `Last-Event-ID` itself when it reconnects. `sluice executions logs --follow` and `sluice run --wait` also resume this way.
+
+```console
+$ curl -s -N -H "Authorization: Bearer $SLUICE_TOKEN" \
+    "$SLUICE_URL/api/v1/executions/$EXECUTION_ID/logs/stream"
+id: eyIwMWEwOTE0YS0wNjFiLTc1NDAtOWIzOS1lNGU2ZTY4MTYwYmIiOjF9
+event: line
+data: {"task_run_id":"01a0914a-061b-…","task_key":"post","attempt":1,"n":1,"ts":"2026-09-11T16:25:43.987704131Z","stream":"stdout","text":"posting alert with token ***"}
+
+event: end
+data: {}
+```
+
+<Aside type="note">
+A reverse proxy must not buffer the event streams. Sluice sends `X-Accel-Buffering: no` and `Cache-Control: no-cache` on each stream.
+</Aside>
+
+## The flow schema
+
+`GET /api/v1/schemas/flow.json` returns the JSON Schema of a flow file. It needs no credential. The same schema is on this site at [/schemas/flow.schema.json](/schemas/flow.schema.json), and its `$id` is that URL. See [JSON Schemas](/reference/schemas/).
+
+## The OpenAPI document
+
+The API is code-first. `sluice openapi` prints the OpenAPI 3.1 document of all `/api/v1`, `/api/runner/v1` and `/hooks` operations. It needs no database and no server.
+
+```sh
+sluice openapi > openapi.yaml
+```
+
+The server does not serve the document. This site publishes the document of the current release at [/openapi.yaml](/openapi.yaml), and the [HTTP API reference](/reference/api/) renders it. Use the document to generate a client, or to look up the schema of a request or a response.
+
+## Related pages
+
+- [HTTP API reference](/reference/api/): every operation.
+- [States and reasons](/reference/states-and-reasons/): the values of `state` and `reason`.
+- [Connect an MCP client](/how-to/connect-an-mcp-client/): `/mcp` and its tools.
+- [Trigger a flow with a webhook](/how-to/trigger-a-flow-with-a-webhook/): `/hooks/{key}`.

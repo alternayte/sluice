@@ -1,0 +1,206 @@
+/* The app's visual system (ui/src/index.css): a macOS system app — Inter at 13 to 16 px,
+   hairline separators on a quiet grey ground, and Apple system blue for links and selection.
+   The docs and the app look like one product. */
+:root {
+  --sl-font: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --sl-font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --sl-content-width: 46rem;
+  --sl-nav-height: 3.25rem;
+
+  --sl-color-accent-low: #10284a;
+  --sl-color-accent: #0a84ff;
+  --sl-color-accent-high: #8cc4ff;
+  --sl-color-white: #f2f2f5;
+  --sl-color-gray-1: #e0e0e5;
+  --sl-color-gray-2: #c2c2c9;
+  --sl-color-gray-3: #9a9aa2;
+  --sl-color-gray-4: #5c5c63;
+  --sl-color-gray-5: #3a3a40;
+  --sl-color-gray-6: #1c1c1f;
+  --sl-color-black: #151517;
+  --sl-color-bg-nav: rgb(21 21 23 / 80%);
+  --sl-color-bg-sidebar: #151517;
+  --sl-color-hairline: #2c2c31;
+  --sl-color-hairline-light: #2c2c31;
+  --sl-color-hairline-shade: #151517;
+
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --shadow-panel: 0 0 0 0.5px rgb(0 0 0 / 40%), 0 1px 2px rgb(0 0 0 / 30%);
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #e6f0ff;
+  --sl-color-accent: #0062cc;
+  --sl-color-accent-high: #00408a;
+  --sl-color-white: #1d1d1f;
+  --sl-color-gray-1: #2c2c2e;
+  --sl-color-gray-2: #48484a;
+  --sl-color-gray-3: #636368;
+  --sl-color-gray-4: #aeaeb2;
+  --sl-color-gray-5: #d1d1d6;
+  --sl-color-gray-6: #eeeef1;
+  --sl-color-gray-7: #f5f5f7;
+  --sl-color-black: #ffffff;
+  --sl-color-bg-nav: rgb(255 255 255 / 80%);
+  --sl-color-bg-sidebar: #f5f5f7;
+  --sl-color-hairline: #e3e3e8;
+  --sl-color-hairline-light: #e3e3e8;
+  --sl-color-hairline-shade: #d1d1d6;
+  --shadow-panel: 0 0 0 0.5px rgb(0 0 0 / 3%), 0 1px 2px rgb(0 0 0 / 5%);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+}
+
+/* The header is a translucent bar, as the app's mobile header. */
+header.header {
+  backdrop-filter: saturate(150%) blur(20px);
+  -webkit-backdrop-filter: saturate(150%) blur(20px);
+}
+
+.site-title {
+  color: var(--sl-color-white);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.site-title img {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3,
+h1#_top {
+  letter-spacing: -0.015em;
+}
+
+/* Sidebar links: a rounded selection pill, as the app's source list. */
+.sidebar-content a {
+  border-radius: var(--radius-control);
+  transition: background-color 120ms ease-out;
+}
+.sidebar-content a[aria-current="page"] {
+  background-color: var(--sl-color-accent-low);
+  color: var(--sl-color-white);
+  font-weight: 600;
+}
+
+/* Code, tables, asides and cards sit on panels with hairlines. */
+.sl-markdown-content .expressive-code .frame,
+.sl-markdown-content table {
+  border-radius: var(--radius-panel);
+}
+.sl-markdown-content table {
+  display: table;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--sl-color-hairline);
+  overflow: hidden;
+  font-size: var(--sl-text-sm);
+}
+.sl-markdown-content :is(th, td) {
+  border-bottom: 1px solid var(--sl-color-hairline);
+  border-inline: 0;
+  padding: 0.5rem 0.75rem;
+}
+.sl-markdown-content tr:last-child td {
+  border-bottom: 0;
+}
+.sl-markdown-content th {
+  background: var(--sl-color-gray-6);
+  font-weight: 600;
+}
+.sl-markdown-content :not(pre) > code {
+  border-radius: 5px;
+  padding: 0.1em 0.35em;
+}
+.card,
+.sl-link-card {
+  border-radius: var(--radius-panel) !important;
+  box-shadow: var(--shadow-panel);
+  transition:
+    transform 320ms var(--ease-smooth),
+    box-shadow 200ms ease-out;
+}
+.sl-link-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Screenshots of the app sit in a frame, so its ground does not melt into the page. */
+.sl-markdown-content img:not(.plain) {
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+
+/* The splash hero: a soft wash of the brand blue behind the title. */
+.hero {
+  position: relative;
+}
+[data-has-hero] .main-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 36rem;
+  pointer-events: none;
+  background:
+    radial-gradient(40rem 22rem at 20% 0%, rgb(10 132 255 / 14%), transparent 70%),
+    radial-gradient(30rem 20rem at 85% 10%, rgb(175 82 222 / 10%), transparent 70%);
+}
+.hero h1 {
+  letter-spacing: -0.03em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Hero buttons: the primary action is a filled blue button, as in the app. */
+.hero .sl-link-button.primary {
+  background: #0a70e6;
+  border-color: transparent;
+  color: #fff;
+  box-shadow: var(--shadow-panel);
+  transition: transform 300ms var(--ease-smooth), filter 120ms;
+}
+:root[data-theme="light"] .hero .sl-link-button.primary {
+  background: #0071e3;
+}
+.hero .sl-link-button.primary:hover {
+  filter: brightness(1.1);
+}
+.hero .sl-link-button:active {
+  transform: scale(0.97);
+}
+.hero img {
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: var(--radius-panel);
+  box-shadow:
+    0 4px 12px -2px rgb(0 0 0 / 15%),
+    0 24px 60px -12px rgb(0 0 0 / 35%);
+}
+@media (min-width: 50rem) {
+  .hero {
+    grid-template-columns: 5fr 7fr;
+    gap: 3rem;
+  }
+  .hero img {
+    width: 100%;
+    max-width: none;
+    height: auto;
+    aspect-ratio: 1440 / 900;
+    object-fit: contain;
+  }
+}

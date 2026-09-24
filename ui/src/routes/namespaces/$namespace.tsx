@@ -8,6 +8,7 @@ export const Route = createFileRoute("/namespaces/$namespace")({
     const out: NamespaceSearch = {};
     if (s.tab === "versions" || s.tab === "variables" || s.tab === "secrets") out.tab = s.tab;
     if (typeof s.file === "string" && s.file !== "") out.file = s.file;
+    if (s.new === true || s.new === "true") out.new = true;
     return out;
   },
   component: function NamespaceRoute() {

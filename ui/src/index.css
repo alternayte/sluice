@@ -1,53 +1,79 @@
 @import "tailwindcss";
-@import "@fontsource/ibm-plex-sans/400.css";
-@import "@fontsource/ibm-plex-sans/500.css";
-@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource-variable/inter/opsz.css";
 @import "@fontsource/jetbrains-mono/400.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Visual system of REQ-UI-010. */
+/* Direction: a macOS Sonoma system app in the manner of Xcode's navigator and Console.app — a
+   translucent source list over a quiet grey window, hairline separators, SF-style type at 13 px,
+   and system blue kept for selection, focus and the one primary action. */
+
+/* Visual system of docs/specs/ui-polish.md. It replaces the visual system of REQ-UI-010. */
 :root {
-  --background: #fafaf9;
-  --foreground: #1c1917;
-  --border: #e7e5e4;
-  --muted: #f2f1ef;
-  --muted-foreground: #57534e;
+  --background: #f5f5f7;
+  --foreground: #1d1d1f;
+  --border: #e3e3e8;
+  --muted: #eeeef1;
+  --muted-foreground: #636368;
   --panel: #ffffff;
-  --input: #d6d3d1;
-  --accent: #2f6feb;
+  --input: #d1d1d6;
+  --sidebar: rgb(236 236 240 / 72%);
+  --backdrop-a: rgb(0 122 255 / 9%);
+  --backdrop-b: rgb(175 82 222 / 7%);
+  --accent: #007aff;
+  /* White text on a filled button needs 4.5:1. #007aff reaches 4.0:1, so filled controls use this (REQ-UI-011). */
+  --accent-fill: #0071e3;
   --accent-foreground: #ffffff;
-  --accent-soft: #e8effd;
-  /* Accent for small text: #2f6feb does not reach 4.5:1 on light backgrounds (REQ-UI-011). */
-  --accent-text: #1f5bd0;
-  --ring: #2f6feb;
-  --destructive: #d64545;
+  --accent-soft: #e6f0ff;
+  /* Accent for small text on the panel and on accent-soft. */
+  --accent-text: #0062cc;
+  --ring: rgb(0 122 255 / 55%);
+  --destructive: #d70015;
+  --destructive-fill: #d70015;
   --destructive-foreground: #ffffff;
-  --state-success: #1f9d55;
-  --state-failed: #d64545;
-  --state-running: #2f6feb;
-  --state-queued: #8a94a6;
-  --state-cancelled: #6b7280;
-  --state-timed-out: #c27c0e;
-  --state-skipped: #a8a29e;
+  --state-success: #248a3d;
+  --state-failed: #d70015;
+  --state-running: #007aff;
+  --state-queued: #8e8e93;
+  --state-cancelled: #6e6e73;
+  --state-timed-out: #c45500;
+  --state-skipped: #aeaeb2;
+  --shadow-panel: 0 0 0 0.5px rgb(0 0 0 / 3%), 0 1px 2px rgb(0 0 0 / 5%);
+  --shadow-float: 0 0 0 0.5px rgb(0 0 0 / 8%), 0 4px 10px -2px rgb(0 0 0 / 8%), 0 16px 40px -8px rgb(0 0 0 / 18%);
+  --shimmer: rgb(255 255 255 / 55%);
   color-scheme: light;
 }
 
 .dark {
-  --background: #161a1d;
-  --foreground: #e6e8ea;
-  --border: #2a3036;
-  --muted: #1e2327;
-  --muted-foreground: #a3aab1;
-  --panel: #1b2024;
-  --input: #3a424a;
-  --accent: #2f6feb;
+  --background: #151517;
+  --foreground: #f2f2f5;
+  --border: #2c2c31;
+  --muted: #26262b;
+  --muted-foreground: #9a9aa2;
+  --panel: #1c1c1f;
+  --input: #3a3a40;
+  --sidebar: rgb(32 32 36 / 70%);
+  --backdrop-a: rgb(10 132 255 / 12%);
+  --backdrop-b: rgb(191 90 242 / 9%);
+  --accent: #0a84ff;
+  --accent-fill: #0a70e6;
   --accent-foreground: #ffffff;
-  --accent-soft: #1b2a45;
-  --accent-text: #7aa5f5;
-  --ring: #5b8ff0;
-  --destructive: #d64545;
+  --accent-soft: #10284a;
+  --accent-text: #5cadff;
+  --ring: rgb(10 132 255 / 65%);
+  --destructive: #ff6961;
+  --destructive-fill: #d92d20;
   --destructive-foreground: #ffffff;
+  --state-success: #30d158;
+  --state-failed: #ff6961;
+  --state-running: #0a84ff;
+  --state-queued: #8e8e93;
+  --state-cancelled: #98989d;
+  --state-timed-out: #ff9f0a;
+  --state-skipped: #636366;
+  --shadow-panel: 0 0 0 0.5px rgb(0 0 0 / 40%), 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow-float: 0 0 0 0.5px rgb(0 0 0 / 60%), 0 4px 12px -2px rgb(0 0 0 / 40%), 0 20px 48px -8px rgb(0 0 0 / 60%);
+  --shimmer: rgb(255 255 255 / 6%);
   color-scheme: dark;
 }
 
@@ -59,12 +85,15 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-panel: var(--panel);
   --color-input: var(--input);
+  --color-sidebar: var(--sidebar);
   --color-accent: var(--accent);
+  --color-accent-fill: var(--accent-fill);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-soft: var(--accent-soft);
   --color-accent-text: var(--accent-text);
   --color-ring: var(--ring);
   --color-destructive: var(--destructive);
+  --color-destructive-fill: var(--destructive-fill);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-state-success: var(--state-success);
   --color-state-failed: var(--state-failed);
@@ -73,10 +102,107 @@
   --color-state-cancelled: var(--state-cancelled);
   --color-state-timed-out: var(--state-timed-out);
   --color-state-skipped: var(--state-skipped);
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --shadow-panel: var(--shadow-panel);
+  --shadow-float: var(--shadow-float);
+}
+
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --radius-control: 6px;
-  --radius-panel: 8px;
+
+  /* The macOS type ramp: 11, 13, 15, 17, 22 and 28 px, a ratio near 1.2 around a 13 px body. */
+  --text-xs: 0.6875rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.9375rem;
+  --text-base--line-height: 1.375rem;
+  --text-lg: 1.0625rem;
+  --text-lg--line-height: 1.5rem;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 2.125rem;
+
+  /* Controls 8 px, panels 12 px, a thumb inside a 2 px track 6 px, marks inside a control 5 px. */
+  --radius-inner: 5px;
+  --radius-thumb: 6px;
+  --radius-control: 8px;
+  --radius-panel: 12px;
+
+  /* Springs as linear() curves. snappy settles with a small overshoot, for presses, thumbs and bars;
+     smooth has no overshoot, for panels and pages. */
+  --ease-snappy: linear(
+    0,
+    0.2178 2.1%,
+    0.8959 8.3%,
+    1.0515 11.3%,
+    1.0835 13.6%,
+    1.0772 15.6%,
+    1.0138 29.1%,
+    0.9946 34.6%,
+    1.0004 51.4%,
+    1
+  );
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-enter: enter 280ms var(--ease-smooth) both;
+  --animate-pop-in: pop-in 220ms var(--ease-smooth) both;
+  --animate-pop-out: pop-out 140ms ease-in both;
+  --animate-toast-in: toast-in 420ms var(--ease-snappy) both;
+  --animate-toast-out: toast-out 180ms ease-in both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-breathe: breathe 1.8s ease-in-out infinite;
+  --animate-flash: flash 900ms var(--ease-smooth) both;
+
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(-2px);
+    }
+  }
+  @keyframes pop-out {
+    to {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+  }
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.96);
+    }
+  }
+  @keyframes toast-out {
+    to {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 150% 0;
+    }
+    to {
+      background-position: -50% 0;
+    }
+  }
+  @keyframes breathe {
+    50% {
+      opacity: 0.45;
+    }
+  }
+  @keyframes flash {
+    from {
+      background-color: var(--accent-soft);
+    }
+  }
 }
 
 @layer base {
@@ -88,10 +214,160 @@
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2 {
+    letter-spacing: -0.012em;
+  }
+  ::selection {
+    background-color: color-mix(in srgb, var(--accent) 28%, transparent);
   }
   :focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
+    outline: 3px solid var(--ring);
+    outline-offset: 1px;
+  }
+  button,
+  [role="button"],
+  a,
+  summary {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* The window backdrop: two soft washes behind the translucent sidebar, so its blur has
+   something to show. */
+.window-backdrop {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(40rem 32rem at 0% 0%, var(--backdrop-a), transparent 70%),
+    radial-gradient(36rem 28rem at 0% 100%, var(--backdrop-b), transparent 70%);
+  background-attachment: fixed;
+}
+
+/* A press sinks the control a little and springs back. */
+.pressable {
+  transition:
+    transform 320ms var(--ease-snappy),
+    background-color 120ms ease-out,
+    color 120ms ease-out,
+    box-shadow 120ms ease-out,
+    opacity 120ms ease-out;
+}
+.pressable:active:not(:disabled) {
+  transform: scale(0.97);
+  transition-duration: 80ms, 120ms, 120ms, 120ms, 120ms;
+}
+
+/* The chevron of a pop-up button, drawn with gradients: the CSP blocks data: images. */
+.select-chevron {
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 0.9rem) 55%,
+    calc(100% - 0.6rem) 55%;
+  background-size: 0.3rem 0.3rem;
+  background-repeat: no-repeat;
+}
+
+/* Skeleton blocks shimmer from right to left. */
+.skeleton {
+  background-color: var(--muted);
+  background-image: linear-gradient(90deg, transparent 0%, var(--shimmer) 50%, transparent 100%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: var(--animate-shimmer);
+}
+
+/* A running bar carries a light that sweeps across it. */
+.bar-running {
+  background-image: linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 35%) 50%, transparent 100%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: var(--animate-shimmer);
+}
+
+/* Native dialogs scale in with the backdrop, and fade out on close. */
+dialog.sheet {
+  opacity: 0;
+  transform: scale(0.97) translateY(6px);
+  transition:
+    opacity 160ms ease-out,
+    transform 360ms var(--ease-snappy),
+    overlay 180ms allow-discrete,
+    display 180ms allow-discrete;
+}
+dialog.sheet[open] {
+  opacity: 1;
+  transform: none;
+}
+@starting-style {
+  dialog.sheet[open] {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+}
+dialog.sheet::backdrop {
+  background-color: rgb(0 0 0 / 0%);
+  backdrop-filter: blur(0);
+  transition:
+    background-color 200ms ease-out,
+    backdrop-filter 200ms ease-out,
+    overlay 200ms allow-discrete,
+    display 200ms allow-discrete;
+}
+dialog.sheet[open]::backdrop {
+  background-color: rgb(0 0 0 / 28%);
+  backdrop-filter: blur(3px);
+}
+@starting-style {
+  dialog.sheet[open]::backdrop {
+    background-color: rgb(0 0 0 / 0%);
+    backdrop-filter: blur(0);
+  }
+}
+
+/* Radix popovers and tooltips open and close with their data-state. */
+.popover[data-state="open"],
+.popover[data-state="delayed-open"],
+.popover[data-state="instant-open"] {
+  animation: var(--animate-pop-in);
+}
+.popover[data-state="closed"] {
+  animation: var(--animate-pop-out);
+}
+
+/* Route changes: the sidebar stays; the page fades up into place. */
+@supports (view-transition-name: none) {
+  .page-transition {
+    view-transition-name: page;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+  ::view-transition-old(page) {
+    animation: 90ms ease-in both vt-fade-out;
+  }
+  ::view-transition-new(page) {
+    animation: 300ms var(--ease-smooth) 40ms both vt-enter;
+  }
+}
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vt-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
 }
 
@@ -100,7 +376,17 @@
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .pressable:active:not(:disabled) {
+    transform: none;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }
 

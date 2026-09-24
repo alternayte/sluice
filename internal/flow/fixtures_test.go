@@ -220,19 +220,22 @@ func TestSCN_FLOW_007_SchemaGeneratedAndApplied(t *testing.T) {
 	}
 }
 
-// TestSCN_DOC_001_FlowDocGenerated checks docs/reference/flow.md and that every
-// schema property has a description.
+// TestSCN_DOC_001_FlowDocGenerated checks that every schema property has a description and a
+// row on the flow page of the docs site. `just docs-ref-check` checks that the page is current.
 func TestSCN_DOC_001_FlowDocGenerated(t *testing.T) {
 	want, err := ReferenceDoc()
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := os.ReadFile("../../docs/reference/flow.md")
+	const page = "../../site/src/content/docs/reference/flow.md"
+	got, err := os.ReadFile(page)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(got) != want {
-		t.Fatal("docs/reference/flow.md is out of date: run `just gen`")
+	for _, line := range strings.Split(want, "\n") {
+		if key, _, ok := strings.Cut(strings.TrimPrefix(line, "| "), " |"); ok && strings.HasPrefix(line, "| `") && !strings.Contains(string(got), key) {
+			t.Errorf("%s misses %s: run `just gen`", page, key)
+		}
 	}
 	for _, s := range []string{"`depends_on`", "`catch_up`", "`inject_runner`", "NamespaceFile"} {
 		if !strings.Contains(want, s) {

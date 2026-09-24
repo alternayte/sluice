@@ -1,0 +1,114 @@
+---
+title: Retry, time out and limit executions
+description: Retry failed tasks with a backoff, stop tasks and executions that run too long, and limit how many executions and tasks run at the same time.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+This guide shows you how to make a flow recover from short failures and stay inside its limits. It covers retries, task and flow timeouts, the concurrency of executions and the parallel tasks of one execution.
+
+A flow that uses all four:
+
+```yaml flow
+id: sync-orders
+concurrency: { limit: 1, behavior: queue }
+max_parallel: 4
+timeout: 2h
+retry: { max_attempts: 3, backoff: exponential, initial: 30s, max: 10m }
+tasks:
+  - id: extract
+    type: script
+    file: pipelines/extract.py
+    timeout: 30m
+  - id: load
+    type: script
+    file: pipelines/load.py
+    depends_on: [extract]
+    retry: { max_attempts: 1 }
+```
+
+## Retry failed tasks
+
+A retry policy gives a task more attempts after a failure.
+
+| Field | Rule | Default |
+|---|---|---|
+| `max_attempts` | Attempts, with the first one. From 1 to 20. | `1`, that is no retry. |
+| `backoff` | `fixed` or `exponential`. | `fixed` |
+| `initial` | The first delay. | `10s` |
+| `max` | The longest delay. | `10m` |
+
+With `fixed`, each delay is `initial`. With `exponential`, the delay after attempt n is `initial` × 2^(n−1), up to `max`. With `initial: 30s`, the delays are 30 s, 60 s, 120 s and so on.
+
+Set the policy in one of three places. Sluice merges them field by field, and the later one wins:
+
+1. `defaults.retry` of `namespace.yaml`.
+2. The flow `retry`.
+3. The task `retry`.
+
+In the flow above, `extract` gets three attempts from the flow policy. `load` sets `max_attempts: 1`, so it does not retry. Use that for a task that is not safe to run twice, for example a task that sends money.
+
+### What a retry does
+
+A retry applies when an attempt ends `FAILED` or `TIMED_OUT`. Sluice creates a new task run with the next attempt number, in `PENDING`. After the delay, the attempt runs with the same definition and files. Sluice renders its templates and resolves its secrets again.
+
+| The attempt ended with | Retry |
+|---|---|
+| `FAILED`, for example `exit_code`, `http_status` or `template_error` | Yes. |
+| `FAILED` with `lost` or `instance_shutdown` | Yes. |
+| `TIMED_OUT` from the task timeout | Yes. |
+| `CANCELLED` | No. |
+| The end of the flow timeout | No. |
+
+The **Timeline** of the execution shows each attempt as its own bar, for example `extract #1` and `extract #2`. The variable `SLUICE_ATTEMPT` tells the task its attempt number.
+
+## Stop work that runs too long
+
+| Timeout | Set by | Default | Effect |
+|---|---|---|---|
+| Task | Task `timeout`, else `defaults.timeout` of `namespace.yaml` | `24h` | The runner sends SIGTERM to the process group, then SIGKILL after 10 seconds. The task ends `TIMED_OUT` with reason `timeout`. |
+| Execution | Flow `timeout` | No limit | Sluice stops all running tasks and starts no new ones. The execution ends `TIMED_OUT`. |
+
+A duration is a Go duration greater than zero, for example `90s`, `30m` or `2h`. Another value fails validation with `invalid_duration`.
+
+The task timeout starts when the task starts running, not when it queues. An `http` task uses its timeout for the request. A task that handles SIGTERM can write its partial outputs before it stops.
+
+<Aside type="caution">
+  The flow timeout ends an execution even when every task is inside its own timeout. Set it to the longest total time that the flow may take, with its retries.
+</Aside>
+
+## Limit executions of a flow
+
+`concurrency` limits the executions of one flow that run at the same time. Without the block, there is no limit.
+
+| `behavior` | A new execution when `limit` executions are active | Active means |
+|---|---|---|
+| `queue` (default) | Stays `QUEUED` until a slot is free. Then it starts, oldest first. | `RUNNING` and `CANCELLING`. |
+| `skip` | Ends at once as `SKIPPED` with reason `concurrency_limit`. | `QUEUED`, `RUNNING` and `CANCELLING`. |
+
+Use `limit: 1` with `queue` for a flow that writes to one target, so that two runs never overlap. Use `skip` for a frequent schedule where a late run has no value, for example a sync every five minutes. A skipped execution appears in the executions list, so you can see how often the limit applies.
+
+The limit counts executions of one flow. Executions of other flows do not count, also when they write to the same target.
+
+## Limit tasks of one execution
+
+`max_parallel` limits the tasks of one execution that run at the same time. `0`, the default, means no limit.
+
+A task that is ready but has no free place stays `PENDING`. It starts when another task of the execution ends. Use `max_parallel` when many independent tasks share a resource, for example a database that accepts a few connections.
+
+## Related limits
+
+The server has limits of its own. These apply to all flows:
+
+| Setting | Effect |
+|---|---|
+| `SLUICE_WORKER_SLOTS` | The `process` and `docker` tasks that one instance runs at the same time. Default `8`. |
+| `SLUICE_K8S_MAX_JOBS` | The `kubernetes` tasks of one pool that run at the same time. Default `50`. |
+
+A ready task waits in `QUEUED` until an instance of its pool has a free slot. [Executors, pools and the runner](/concepts/executors-pools-and-the-runner/) explains pools and slots.
+
+## Related pages
+
+- [Executions and states](/concepts/executions-and-states/)
+- [States and reasons](/reference/states-and-reasons/)
+- [Flow file: Retry](/reference/flow/#retry)

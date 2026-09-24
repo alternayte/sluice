@@ -27,9 +27,9 @@ export function ConfirmDialog({
 }) {
   return (
     <Dialog open={open} onClose={onClose} title={title}>
-      <div className="text-sm">{children}</div>
+      <div className="text-sm leading-relaxed text-muted-foreground [&_.font-mono]:text-foreground">{children}</div>
       <FormError>{error}</FormError>
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 pt-1">
         <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>

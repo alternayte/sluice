@@ -1,0 +1,171 @@
+---
+title: Run tasks in Docker
+description: Run script and command tasks in Docker containers, with your own image, pull policy, network and resource limits.
+---
+
+import { Steps, Aside } from "@astrojs/starlight/components";
+
+This guide shows you how to run `script` and `command` tasks in Docker containers. Each task attempt gets a new container from the image that you choose. Sluice removes the container when the task ends.
+
+`http` and `subflow` tasks always run inside the server. They cannot use the docker executor. For the reasons to choose Docker, see [Executors, pools and the runner](/concepts/executors-pools-and-the-runner/).
+
+## Before you start
+
+- The Sluice server can reach a Docker Engine. Sluice reads `DOCKER_HOST` and the other standard Docker client variables.
+- Task containers can reach the Sluice server over HTTP. The runner inside the container sends logs and the result to the server.
+- You have the editor role, so that you can change flow files.
+
+## Enable the docker executor
+
+<Steps>
+
+1. Start the server with the docker executor on.
+
+   With the default `SLUICE_EXECUTORS=auto`, the server turns the docker executor on when the Docker API answers a ping within 2 seconds. To turn it on without detection, name the executors:
+
+   ```sh
+   SLUICE_EXECUTORS=process,docker sluice server
+   ```
+
+   An explicit list gives exactly these executors. The `inline` executor is always on.
+
+2. Check the runner image.
+
+   Sluice copies its runner binary into each task container. It takes the binary from `/usr/local/bin/sluice` in the image that `SLUICE_RUNNER_IMAGE` names. A release build uses its own published image by default, for example `ghcr.io/alternayte/sluice:0.2.0`. A build from source uses `sluice:dev`, the image of `just build-images`. Set the variable only to use another image, for example a mirror in a private registry:
+
+   ```sh
+   export SLUICE_RUNNER_IMAGE=registry.example.com/sluice:0.2.0
+   ```
+
+3. Make sure that containers reach the server.
+
+   The runner calls `SLUICE_DOCKER_API_URL`. The default is `http://host.docker.internal:<port>`. Sluice adds the host `host.docker.internal:host-gateway` to each container, so this address also works on Linux. The server must listen on an address that containers can reach. The default listen address `:8080` listens on all interfaces.
+
+4. Check the executors of the instance.
+
+   Open **Settings → Instances**. The **Executors** column of your instance lists `docker`.
+
+</Steps>
+
+<Aside type="note">
+When the Sluice server itself runs in a container, give it the Docker socket or a `DOCKER_HOST` address. The server user is 65532, so this user needs access to the socket. Set `SLUICE_DOCKER_API_URL` to an address of the server that task containers can reach.
+</Aside>
+
+## Run a task in a container
+
+<Steps>
+
+1. Add an `executor` block to the flow or to one task. A flow block applies to all tasks of the flow.
+
+   ```yaml flow
+   id: docker-hello
+   description: Print the Python version in a container.
+   executor:
+     type: docker
+     image: python:3.12-slim
+   tasks:
+     - id: hello
+       type: command
+       command: ["python3", "-c", "import sys; print(sys.version)"]
+   ```
+
+2. Save the flow. On the flow page, click **Run**, then click **Run** in the dialog.
+
+3. Select the task in the timeline. The **Executor** field of the inspector shows `docker · default`.
+
+</Steps>
+
+A task block replaces only the fields that it sets. A task can thus set only `pool` and keep the type and the image of the flow. The resolution order is task, flow, `namespace.yaml`, then the instance default `process`.
+
+## Choose the image
+
+With `inject_runner: true`, the default, any Linux image can run a task. Sluice copies the runner into the container at `/sluice-bin/sluice` through the Engine API. It mounts no volume.
+
+With `inject_runner: false`, the container runs `sluice exec` from the image `PATH`. Sluice copies nothing. Use this option with an image that already holds the `sluice` binary, for example `ghcr.io/alternayte/sluice-uv`.
+
+A `script` task needs the tool of its runtime in the image:
+
+| Runtime | Command | Tool |
+|---|---|---|
+| `python` | `uv run <file> <args>` | `uv` |
+| `bash` | `bash <file> <args>` | `bash` |
+| `bun` | `bun run <file> <args>` | `bun` |
+| `node` | `node <file> <args>` | `node` |
+
+When the tool is not on `PATH`, the task fails with the reason `runtime_not_found`. The `sluice-uv` image has `uv`, a Python 3.12, `bash` and `bun`.
+
+## Set the pull policy, the network and the limits
+
+| Field | Default | Effect |
+|---|---|---|
+| `pull` | `if_not_present` | `if_not_present` pulls the image when the engine does not have it. `always` pulls before each task. `never` does not pull. |
+| `network` | the Docker default network | The container joins this Docker network. |
+| `resources.limits.cpu` | none | The CPU limit, for example `500m` or `1.5`. |
+| `resources.limits.memory` | none | The memory limit, for example `512Mi` or `1Gi`. |
+
+Docker ignores `resources.requests`. Only the kubernetes executor uses requests.
+
+```yaml flow
+id: docker-limits
+executor:
+  type: docker
+  image: python:3.12-slim
+  pull: always
+  network: etl
+  resources:
+    limits: { cpu: "1.5", memory: 1Gi }
+tasks:
+  - id: hello
+    type: command
+    command: ["python3", "-c", "print('hello')"]
+```
+
+When you set `network`, make sure that `SLUICE_DOCKER_API_URL` resolves from that network.
+
+## Make Docker the default of a namespace
+
+Put the executor in `defaults.executor` of `namespace.yaml`. Every flow of the namespace uses it, unless the flow or the task sets other values.
+
+```yaml namespace
+description: Tasks of this namespace run in containers.
+defaults:
+  executor:
+    type: docker
+    image: ghcr.io/alternayte/sluice-uv:0.1.2
+    inject_runner: false
+```
+
+## Install dependencies once
+
+Each task starts in a new container with an empty cache. A Python script with dependencies downloads them on each run. Build an image that already holds the packages:
+
+```dockerfile
+FROM ghcr.io/alternayte/sluice-uv:0.1.2
+RUN uv pip install --system --python 3.12 "dlt[postgres]==1.30.0" "sqlmesh==0.236.2"
+```
+
+Then set this image in the executor block. `uv` finds the installed packages and does not download them.
+
+## Keep a container to debug it
+
+Set `SLUICE_DOCKER_KEEP_CONTAINERS=true` on the server. Sluice then keeps each task container after the task ends. The container name is `sluice-<task_run_id>`. Inspect it with `docker inspect` or `docker logs`.
+
+A cancel still stops and removes the container, with a grace time of 10 seconds. At start, the server removes stopped containers with the label `sluice.dev/managed-by=sluice`, unless `SLUICE_DOCKER_KEEP_CONTAINERS` is `true`.
+
+## Fix common failures
+
+| Reason | Cause | Fix |
+|---|---|---|
+| `image_pull_failed` | The pull failed, or the image is absent with `pull: never`. | Check the image name and the registry login of the engine. |
+| `runtime_not_found` | The image has no tool for the script runtime. | Use an image with the tool, or a `command` task. |
+| `executor_error` | The executor did not start the container, or the instance has no docker executor. | Read the task error in the inspector. Check **Settings → Instances**. |
+| `no_instance_for_pool` | No online instance serves the pool with the docker executor. The task stays `QUEUED`. | Start an instance with this pool and the docker executor. |
+
+A task that stops without a result, for example after `docker kill`, ends `FAILED` with the reason `lost`. The retry policy of the task applies.
+
+## Related pages
+
+- [Run tasks on Kubernetes](/how-to/run-tasks-on-kubernetes/)
+- [Executors, pools and the runner](/concepts/executors-pools-and-the-runner/)
+- [Flow file reference](/reference/flow/)
+- [Environment variables](/reference/env/)

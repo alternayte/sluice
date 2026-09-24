@@ -74,7 +74,7 @@ test("SCN-UI-001 KPI values equal the API aggregates, the bucket totals match an
   const request = page.waitForRequest(
     (r) => r.url().includes("/api/v1/stats/dashboard") && r.url().includes("range=7d"),
   );
-  await page.getByLabel("Range").selectOption("7d");
+  await page.getByRole("radiogroup", { name: "Range" }).getByRole("radio", { name: "7 days" }).click();
   await request;
   await expect(table.getByRole("row")).toHaveCount(8);
 });

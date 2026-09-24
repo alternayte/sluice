@@ -1,19 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
-import { GitBranch } from "lucide-react";
+import { Lock } from "lucide-react";
 import { getNamespaceOptions } from "@/api/@tanstack/react-query.gen";
 import { DataState } from "@/components/data-state";
 import { NamespaceTree } from "@/features/namespaces/NamespaceTree";
 import { SourceBadges } from "@/features/namespaces/namespace-source";
 import { VersionsPanel } from "@/features/namespaces/VersionsPanel";
 import { GitSourcePanel } from "@/features/namespaces/GitSourcePanel";
-import type { ReactNode } from "react";
+import { useCallback, type ReactNode } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs } from "@/components/ui/tabs";
 import { useCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/roles";
 
 export type Tab = "files" | "versions" | "variables" | "secrets";
-export type NamespaceSearch = { tab?: Exclude<Tab, "files">; file?: string };
+/** new opens the new file dialog, for example from the command palette. */
+export type NamespaceSearch = { tab?: Exclude<Tab, "files">; file?: string; new?: boolean };
 
 const tabs: { value: Tab; label: string }[] = [
   { value: "files", label: "Files" },
@@ -30,32 +31,38 @@ export function NamespacePage({
 }: {
   namespace: string;
   search: NamespaceSearch;
-  navigate: (opts: { search: (prev: NamespaceSearch) => NamespaceSearch }) => void;
+  navigate: (opts: { search: (prev: NamespaceSearch) => NamespaceSearch; replace?: boolean }) => void;
   /** scopePanels are the variables and secrets views of the namespace. The route passes them from their features. */
   scopePanels: { variables: ReactNode; secrets: ReactNode };
 }) {
   const me = useCurrentUser();
   const info = useQuery(getNamespaceOptions({ path: { namespace } }));
   const tab: Tab = search.tab ?? "files";
+  const clearNew = useCallback(
+    () => navigate({ search: (prev) => ({ ...prev, new: undefined }), replace: true }),
+    [navigate],
+  );
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={namespace} description={info.data?.description || undefined} />
-      <DataState query={info}>
+      <PageHeader
+        title={namespace}
+        description={info.data?.description || undefined}
+        actions={info.data && <SourceBadges ns={info.data} />}
+      />
+      <DataState query={info} skeleton="panel">
         {(ns) => {
-          const isGit = ns.source_type === "git" || ns.read_only === true;
           const canEdit = can(me.role, "editor") && ns.source_type === "managed" && !ns.read_only;
           const canPush = can(me.role, "editor") && ns.source_type === "git";
           return (
             <>
-              <SourceBadges ns={ns} />
-              {isGit && (
+              {ns.read_only === true && ns.source_type !== "git" && (
                 <p
                   role="note"
-                  className="flex items-center gap-2 rounded-[8px] border bg-panel p-3 text-sm text-muted-foreground"
+                  className="flex items-center gap-2 rounded-panel border bg-panel px-3 py-2.5 text-sm text-muted-foreground shadow-panel"
                 >
-                  <GitBranch className="h-4 w-4 shrink-0" aria-hidden />
-                  This namespace comes from git. Edits go to a new branch.
+                  <Lock className="h-4 w-4 shrink-0 text-accent" aria-hidden />
+                  This namespace is read-only.
                 </p>
               )}
               {ns.source_type === "git" && <GitSourcePanel namespace={namespace} />}
@@ -72,6 +79,8 @@ export function NamespacePage({
                   canPush={canPush}
                   selected={search.file}
                   onSelect={(file) => navigate({ search: (prev) => ({ ...prev, file }) })}
+                  openNew={search.new === true}
+                  onNewOpened={clearNew}
                 />
               )}
               {tab === "versions" && (

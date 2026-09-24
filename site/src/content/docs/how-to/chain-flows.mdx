@@ -1,0 +1,140 @@
+---
+title: Chain flows
+description: Start one flow when another ends with a flow trigger, or run a flow as a step of another with a subflow task.
+---
+
+import { Tabs, TabItem, Aside } from "@astrojs/starlight/components";
+
+This guide shows you two ways to connect flows. A flow trigger starts a flow when another flow ends. A subflow task runs a flow as one step of another flow and can wait for its result.
+
+## Choose the method
+
+| | Flow trigger | Subflow task |
+|---|---|---|
+| Declared in | The downstream flow. | The parent flow. |
+| The upstream flow knows about the other flow | No. | Yes. |
+| Starts when | The upstream execution ends in a listed state. | The task starts. |
+| Data passes through | `trigger.outputs` of the upstream execution. | `inputs` of the task, and the outputs of the child. |
+| The parent waits | Not applicable. | With `wait: true`, the default. |
+| Cancel | Separate executions. | A cancel of the parent cancels a running child. |
+
+Use a flow trigger when the downstream flow belongs to another team, or when several flows react to one flow. Use a subflow task when the child is a step of a larger process and the parent needs its result.
+
+## Start a flow when another flow ends
+
+Add a trigger of type `flow` to the downstream flow. `flow` names the upstream flow as `<namespace>/<flow_id>`. `states` lists the end states that fire the trigger.
+
+```yaml flow
+id: weekly-report
+inputs:
+  - { id: orders, type: int, default: 0 }
+triggers:
+  - id: after-load
+    type: flow
+    flow: sales/nightly-load
+    states: [SUCCESS]
+    inputs: { orders: "${{ trigger.outputs.orders }}" }
+tasks:
+  - id: render
+    type: command
+    command: ["echo", "report for ${{ inputs.orders }} orders"]
+```
+
+When an execution of `sales/nightly-load` ends `SUCCESS`, Sluice starts `weekly-report`. The trigger type of the new execution is `flow`.
+
+| Field | Rule |
+|---|---|
+| `flow` | The upstream flow. Validation checks only the format, so the upstream flow can be in another namespace or not exist yet. |
+| `states` | Any of `SUCCESS`, `FAILED`, `TIMED_OUT` and `CANCELLED`. Without `states`, the trigger fires on every end state. |
+| `inputs` | Templates over `trigger.execution_id`, `trigger.state`, `trigger.outputs` and `trigger.flow`. |
+
+`trigger.outputs` holds the flow `outputs` of the upstream execution. Sluice renders flow outputs only when an execution succeeds. After another end state, `trigger.outputs` is empty, and a template that reads a key from it fails. [Pass data between tasks](/how-to/pass-data-between-tasks/) shows how to declare flow outputs.
+
+### Alert on a failure of another flow
+
+A flow trigger on `FAILED` and `TIMED_OUT` turns one flow into the alert of another:
+
+```yaml flow
+id: load-alert
+inputs:
+  - { id: failed_execution, type: string, required: true }
+  - { id: state, type: string, required: true }
+triggers:
+  - id: on-failure
+    type: flow
+    flow: sales/nightly-load
+    states: [FAILED, TIMED_OUT]
+    inputs:
+      failed_execution: "${{ trigger.execution_id }}"
+      state: "${{ trigger.state }}"
+tasks:
+  - id: post
+    type: http
+    method: POST
+    url: ${{ vars.ALERT_URL }}
+    headers: { Authorization: "Bearer ${{ secret('ALERT_TOKEN') }}" }
+    body: '{"text": "nightly-load ${{ inputs.state }}: ${{ inputs.failed_execution }}"}'
+```
+
+### When the downstream flow does not start
+
+Sluice fires flow triggers in the transaction that ends the upstream execution. The downstream flow must be valid and enabled. When the downstream execution cannot start, for example because an input fails its check, Sluice writes the audit event `trigger.failed`. The upstream execution ends as normal. Admins read audit events on **Settings → Audit log**.
+
+## Run a flow as a step
+
+A `subflow` task starts another flow as a child execution.
+
+```yaml flow
+id: month-end
+tasks:
+  - id: load
+    type: subflow
+    flow: sales/nightly-load
+    inputs: { run_date: "2026-09-30" }
+  - id: close
+    type: command
+    depends_on: [load]
+    command: ["echo", "closed with ${{ tasks.load.outputs.orders }} orders"]
+```
+
+| Field | Rule |
+|---|---|
+| `flow` | The child flow as `<namespace>/<flow_id>`. No templates. Required. |
+| `inputs` | Templates for the inputs of the child. Sluice checks them against the input types of the child when the task starts. |
+| `wait` | Default `true`. |
+
+The child flow must be valid. The **Enabled** switch of the child does not apply to subflow tasks.
+
+<Tabs>
+  <TabItem label="wait: true">
+    The task stays `RUNNING` until the child ends. When the child ends `SUCCESS`, the task succeeds, and its outputs are the flow `outputs` of the child. When the child ends in another state, the task fails with reason `child_failed`. A cancel of the parent cancels the child.
+  </TabItem>
+  <TabItem label="wait: false">
+    The task succeeds as soon as the child exists. Its output `execution_id` holds the ID of the child. The parent does not follow the child, and a cancel of the parent does not reach it.
+  </TabItem>
+</Tabs>
+
+The child execution shows **Parent execution** on its page, and the parent shows **Child executions**. The selected subflow task links to its child. The trigger payload of the child holds `parent_execution_id` and `parent_task`.
+
+A child that fails to start fails the task. A bad input gives reason `template_error`, and an invalid or missing child flow gives `executor_error`.
+
+## Chain depth
+
+Each execution has a `chain_depth`. A manual, schedule or webhook execution has depth 0. An execution from a flow trigger or a subflow task has the depth of its source plus 1.
+
+| Case | Limit | Result above the limit |
+|---|---|---|
+| Flow trigger | Depth 10 | The trigger does not fire. Sluice writes the audit event `trigger.chain_depth_exceeded`. |
+| Subflow task | Depth 10 | The task fails with reason `depth_exceeded`. |
+
+Flow triggers and subflows share the count. Thus a loop, for example flow A triggers flow B and B triggers A, stops after 11 executions.
+
+<Aside type="note">
+  A rerun or a restart of the upstream flow is also an execution of that flow. When it ends in a listed state, it fires the downstream flow again.
+</Aside>
+
+## Related pages
+
+- [Pass data between tasks](/how-to/pass-data-between-tasks/)
+- [Executions and states](/concepts/executions-and-states/)
+- [Templates](/reference/templates/)

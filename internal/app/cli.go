@@ -26,21 +26,49 @@ type command struct {
 	name    string
 	summary string
 	run     func(ctx context.Context, args []string, stdout, stderr io.Writer) int
+	group   string
 }
+
+// Command groups of the usage text, in order.
+const (
+	groupClient = "Client commands (read SLUICE_URL and SLUICE_TOKEN; --output json)"
+	groupLocal  = "Local commands"
+	groupServer = "Server commands"
+)
 
 func commands() []command {
 	return []command{
-		{"server", "Run the HTTP server, scheduler and executors.", runServer},
-		{"exec", "Run one task run (the runner). Reads SLUICE_API_URL, SLUICE_RUN_TOKEN, SLUICE_TASK_RUN_ID.", runExec},
-		{"runner-install", "Copy this binary into a directory (runner injection).", runRunnerInstall},
-		{"migrate", "Apply database migrations and exit.", runMigrate},
-		{"user create", "Create a user in the database.", runUserCreate},
-		{"user reset-password", "Set a new password for a user.", runUserResetPassword},
-		{"secrets rekey", "Re-encrypt all builtin secrets with the active master key.", runSecretsRekey},
-		{"validate", "Validate a namespace directory offline.", runValidate},
-		{"openapi", "Print the OpenAPI document of the API.", runOpenAPI},
-		{"version", "Print version, commit and build date.", runVersion},
+		{"run", "Start a flow as <namespace>/<flow>. --wait streams the logs and exits with the end state.", runRun, groupClient},
+		{"executions list", "List executions.", runExecutionsList, groupClient},
+		{"executions get", "Show one execution with its task runs.", runExecutionsGet, groupClient},
+		{"executions logs", "Print the logs of an execution.", runExecutionsLogs, groupClient},
+		{"executions cancel", "Cancel an execution.", runExecutionAction("cancel"), groupClient},
+		{"executions rerun", "Run an execution again with the same snapshot and inputs.", runExecutionAction("rerun"), groupClient},
+		{"executions restart", "Run the failed tasks of an execution again.", runExecutionAction("restart"), groupClient},
+		{"flows list", "List flows.", runFlowsList, groupClient},
+		{"flows get", "Show a flow as <namespace>/<flow> with its source.", runFlowsGet, groupClient},
+		{"namespaces push", "Upload a namespace directory as one new version.", runNamespacesPush, groupClient},
+		{"validate", "Validate a namespace directory offline.", runValidate, groupLocal},
+		{"init", "Write the Sluice agent skill and an AGENTS.md section into a repository.", runInit, groupLocal},
+		{"openapi", "Print the OpenAPI document of the API.", runOpenAPI, groupLocal},
+		{"version", "Print version, commit and build date.", runVersion, groupLocal},
+		{"server", "Run the HTTP server, scheduler and executors.", runServer, groupServer},
+		{"exec", "Run one task run (the runner). Reads SLUICE_API_URL, SLUICE_RUN_TOKEN, SLUICE_TASK_RUN_ID.", runExec, groupServer},
+		{"runner-install", "Copy this binary into a directory (runner injection).", runRunnerInstall, groupServer},
+		{"migrate", "Apply database migrations and exit.", runMigrate, groupServer},
+		{"user create", "Create a user in the database.", runUserCreate, groupServer},
+		{"user reset-password", "Set a new password for a user.", runUserResetPassword, groupServer},
+		{"secrets rekey", "Re-encrypt all builtin secrets with the active master key.", runSecretsRekey, groupServer},
 	}
+}
+
+// Commands returns the name and summary of each command, in usage order, for the reference docs.
+func Commands() [][2]string {
+	var out [][2]string
+	for _, c := range commands() {
+		out = append(out, [2]string{c.name, c.summary})
+	}
+	return out
 }
 
 // Main runs the CLI and returns the exit code.
@@ -66,17 +94,24 @@ func MainIO(args []string, stdout, stderr io.Writer) int {
 		defer stop()
 		return c.run(ctx, args[len(words):], stdout, stderr)
 	}
-	fmt.Fprintf(stderr, "unknown command %q\n\n", args[0])
+	fmt.Fprintf(stderr, "unknown command %q\n\n", strings.Join(args[:min(len(args), 2)], " "))
 	usage(stderr)
 	return exitConfig
 }
 
 func usage(w io.Writer) {
 	fmt.Fprintln(w, "Usage: sluice <command> [flags]")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Commands:")
-	for _, c := range commands() {
-		fmt.Fprintf(w, "  %-18s %s\n", c.name, c.summary)
+	for _, g := range []string{groupClient, groupLocal, groupServer} {
+		fmt.Fprintf(w, "\n%s:\n", g)
+		for _, c := range commands() {
+			if c.group == g {
+				fmt.Fprintf(w, "  %-20s %s\n", c.name, c.summary)
+			}
+		}
+	}
+	fmt.Fprintln(w, "\nExit codes:")
+	for _, e := range ExitCodes {
+		fmt.Fprintf(w, "  %-3d %s\n", e.Code, strings.ReplaceAll(e.Meaning, "`", ""))
 	}
 }
 

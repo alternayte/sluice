@@ -4,21 +4,27 @@ import { changePasswordMutation } from "@/api/@tanstack/react-query.gen";
 import { Button } from "@/components/ui/button";
 import { Field, FormError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/toast";
+import { SettingsActions, SettingsRow } from "@/components/ui/settings-group";
 import { errorMessage, fieldErrors } from "@/lib/errors";
 
-/** ChangePasswordForm posts to /api/v1/auth/password. */
+/**
+ * ChangePasswordForm posts to /api/v1/auth/password. The rows layout fills a settings group;
+ * the sheet layout stacks the fields in a sign-in sheet.
+ */
 export function ChangePasswordForm({
   onSuccess,
   submitLabel = "Change password",
+  layout = "rows",
 }: {
   onSuccess?: () => void;
   submitLabel?: string;
+  layout?: "rows" | "sheet";
 }) {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
   const [mismatch, setMismatch] = useState(false);
-  const [done, setDone] = useState(false);
 
   const mutation = useMutation({
     ...changePasswordMutation(),
@@ -26,7 +32,7 @@ export function ChangePasswordForm({
       setCurrent("");
       setNext("");
       setConfirm("");
-      setDone(true);
+      toast({ title: "Password changed", description: "Other sessions are signed out." });
       onSuccess?.();
     },
   });
@@ -35,7 +41,6 @@ export function ChangePasswordForm({
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    setDone(false);
     if (next !== confirm) {
       setMismatch(true);
       return;
@@ -44,9 +49,17 @@ export function ChangePasswordForm({
     mutation.mutate({ body: { current_password: current, new_password: next } });
   };
 
+  const sheet = layout === "sheet";
+  const Row = sheet ? Field : SettingsRow;
+  const submitButton = (
+    <Button type="submit" className={sheet ? "w-full" : undefined} disabled={mutation.isPending}>
+      {mutation.isPending ? "Saving" : submitLabel}
+    </Button>
+  );
+
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3">
-      <Field id="pw-current" label="Current password" error={fields.current_password}>
+    <form onSubmit={submit} className={sheet ? "flex flex-col gap-3" : "divide-y"}>
+      <Row id="pw-current" label="Current password" error={fields.current_password}>
         <Input
           type="password"
           autoComplete="current-password"
@@ -54,8 +67,8 @@ export function ChangePasswordForm({
           value={current}
           onChange={(e) => setCurrent(e.target.value)}
         />
-      </Field>
-      <Field id="pw-new" label="New password" hint="Use at least 10 characters." error={fields.new_password}>
+      </Row>
+      <Row id="pw-new" label="New password" hint="Use at least 10 characters." error={fields.new_password}>
         <Input
           type="password"
           autoComplete="new-password"
@@ -64,8 +77,8 @@ export function ChangePasswordForm({
           value={next}
           onChange={(e) => setNext(e.target.value)}
         />
-      </Field>
-      <Field id="pw-confirm" label="Confirm new password" error={mismatch ? "The passwords do not match." : undefined}>
+      </Row>
+      <Row id="pw-confirm" label="Confirm new password" error={mismatch ? "The passwords do not match." : undefined}>
         <Input
           type="password"
           autoComplete="new-password"
@@ -73,14 +86,18 @@ export function ChangePasswordForm({
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
         />
-      </Field>
-      {mutation.isError && <FormError>{errorMessage(mutation.error)}</FormError>}
-      {done && <p className="text-sm text-state-success">Password changed. Other sessions are signed out.</p>}
-      <div>
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? "Saving" : submitLabel}
-        </Button>
-      </div>
+      </Row>
+      {sheet ? (
+        <>
+          {mutation.isError && <FormError>{errorMessage(mutation.error)}</FormError>}
+          <div className="mt-1">{submitButton}</div>
+        </>
+      ) : (
+        <SettingsActions className={mutation.isError ? "justify-between" : undefined}>
+          {mutation.isError && <FormError>{errorMessage(mutation.error)}</FormError>}
+          {submitButton}
+        </SettingsActions>
+      )}
     </form>
   );
 }

@@ -4,7 +4,7 @@ package flow
 import "github.com/invopop/jsonschema"
 
 // Flow is one flow file (§6.3). The struct tags are the source of
-// schemas/flow.schema.json and docs/reference/flow.md.
+// schemas/flow.schema.json and site/src/content/docs/reference/flow.md.
 type Flow struct {
 	ID          string            `yaml:"id" json:"id" jsonschema:"required,pattern=^[a-z0-9][a-z0-9-]*$,maxLength=63" jsonschema_description:"Flow ID. Lower case letters, digits and hyphens. At most 63 characters. Unique in the namespace."`
 	Description string            `yaml:"description,omitempty" json:"description,omitempty" jsonschema:"maxLength=2000" jsonschema_description:"Free text description."`

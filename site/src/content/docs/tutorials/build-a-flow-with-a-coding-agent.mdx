@@ -1,0 +1,236 @@
+---
+title: Build a flow with a coding agent
+description: Give a coding agent the Sluice skill with sluice init, then let it write, validate, deploy, run and fix a flow.
+sidebar:
+  order: 3
+---
+
+import { Steps, Aside, LinkCard, CardGrid } from "@astrojs/starlight/components";
+
+In this tutorial, you prepare an empty repository for a coding agent with `sluice init`. Then you ask the agent for a flow. The agent writes the files, validates them, deploys them to your Sluice server, runs the flow and reads the result. When the run fails, the agent reads the logs and fixes the cause.
+
+The tutorial uses Claude Code. Another agent works the same way when it reads `AGENTS.md` or the skill file. [Use Sluice with coding agents](/how-to/use-sluice-with-coding-agents/) shows the setup for Cursor.
+
+## Before you start
+
+You need these things:
+
+- A running Sluice server. The stack of [Run your first flow](/tutorials/run-your-first-flow/) works.
+- The `sluice` binary on your `PATH`, from a release after v0.1.2. Install it with `curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh | sh`. `sluice version` prints its version.
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) or another coding agent.
+
+## Create an API token for the agent
+
+The agent deploys files and runs flows. Both actions need a token with the editor role.
+
+<Steps>
+
+1. In Sluice, click **API tokens** under **Settings** in the sidebar.
+2. Click **Create token**.
+3. Type `coding-agent` in **Name** and select **Editor** in **Role**.
+4. Type `30` in **Expiry in days**.
+5. Click **Create token**, then click **Copy**.
+
+</Steps>
+
+## Prepare the repository
+
+<Steps>
+
+1. Create an empty repository:
+
+   ```sh
+   mkdir my-flows
+   cd my-flows
+   git init
+   ```
+
+2. Write the skill and the agent instructions:
+
+   ```sh
+   sluice init
+   ```
+
+   The command prints the files that it wrote and the line that each flow file starts with:
+
+   ```text
+   wrote     .claude/skills/sluice/SKILL.md
+   wrote     AGENTS.md
+
+   Start each flow file with this line, so editors and agents validate it:
+   # yaml-language-server: $schema=https://sluice-docs.pages.dev/schemas/flow.schema.json
+   ```
+
+3. Set the URL of the server and the token in the shell that starts the agent:
+
+   ```sh
+   export SLUICE_URL=http://localhost:8080
+   export SLUICE_TOKEN=slu_paste-your-token-here
+   ```
+
+</Steps>
+
+`sluice init` writes two files:
+
+| File | Content |
+|---|---|
+| `.claude/skills/sluice/SKILL.md` | The Sluice skill: the work loop, the exit codes, the flow rules, the task types, the templates and the outputs. Claude Code loads it when a task touches a flow file or the `sluice` CLI. |
+| `AGENTS.md` | A Sluice section between `<!-- sluice:begin -->` and `<!-- sluice:end -->`. It tells every agent to read the skill and lists the three commands of the loop. |
+
+This is the section in `AGENTS.md`:
+
+```markdown
+<!-- sluice:begin -->
+## Sluice
+
+This repository holds Sluice flows. Read `.claude/skills/sluice/SKILL.md` before you change a `*.flow.yaml` file or `namespace.yaml`.
+
+- Validate a namespace directory: `sluice validate <dir> --json`.
+- Deploy it as a new version: `sluice namespaces push <dir> --namespace <name>`.
+- Run a flow and wait for the end: `sluice run <namespace>/<flow> --wait`.
+- The client commands read SLUICE_URL and SLUICE_TOKEN.
+<!-- sluice:end -->
+```
+
+When `AGENTS.md` exists, `sluice init` adds the section at the end and keeps the rest of the file. A second run prints `unchanged` for each file. A file that you changed stays as it is, unless you add `--force`.
+
+The skill matches the version of the `sluice` binary that wrote it. After you update the binary, run `sluice init` again.
+
+## Ask the agent for a flow
+
+Start Claude Code in the repository:
+
+```sh
+claude
+```
+
+Type a request with the directory, the namespace and the goal:
+
+```text
+Write a Sluice flow in the directory orders/ for the namespace orders.
+The flow counts the orders of a day with a Python script and prints a summary.
+The day is an input. Create the namespace if it does not exist. Run the flow when it is valid.
+```
+
+Claude Code asks before it runs a command. Allow the `sluice` commands.
+
+## Follow the loop
+
+The skill gives the agent one loop for each change: edit, validate, deploy, run, read, fix. A session looks like the steps below. The files and the text of your session differ.
+
+<Steps>
+
+1. The agent writes `orders/orders.flow.yaml` and `orders/count_orders.py`. The flow file starts with the `yaml-language-server` line.
+
+2. The agent validates the directory offline:
+
+   ```sh
+   sluice validate orders --json
+   ```
+
+   The first attempt has a task ID with a hyphen. The command exits with `1` and prints each error with its line and code:
+
+   ```json
+   {
+     "code": "invalid_format",
+     "path": "tasks[0].id",
+     "line": 4,
+     "column": 9,
+     "message": "'count-orders' does not match pattern '^[a-z][a-z0-9_]*$'"
+   }
+   ```
+
+   The agent renames the task to `count_orders` and validates again. The command exits with `0`.
+
+3. The agent deploys the directory as a new version of the namespace:
+
+   ```sh
+   sluice namespaces push orders --namespace orders --create
+   ```
+
+   ```text
+   created namespace orders
+   orders version 1: 2 added, 0 updated, 0 deleted
+     + count_orders.py
+     + orders.flow.yaml
+   ```
+
+4. The agent runs the flow and waits for the end:
+
+   ```sh
+   sluice run orders/orders --wait
+   ```
+
+   The script reads a variable that nobody set. The log lines stream to stderr, and the command exits with `10`:
+
+   ```text
+   [count_orders#1] KeyError: 'ORDER_COUNT'
+   FAILED orders/orders 01a0d510-755e-7753-902c-f3730ff8f33a in 371ms
+   http://localhost:8080/executions/01a0d510-755e-7753-902c-f3730ff8f33a
+   task count_orders failed: exit code 1: KeyError: 'ORDER_COUNT'
+   ```
+
+5. The agent reads the failed execution and the logs of the failed task:
+
+   ```sh
+   sluice executions get 01a0d510-755e-7753-902c-f3730ff8f33a
+   sluice executions logs 01a0d510-755e-7753-902c-f3730ff8f33a --task count_orders
+   ```
+
+   ```text
+   TASK          ATTEMPT  STATE    DURATION  EXIT  ERROR
+   count_orders  1        FAILED   352ms     1     exit code 1: KeyError: 'ORDER_COUNT'
+   summary       1        SKIPPED  —         —
+   ```
+
+6. The agent fixes the script, validates, pushes and runs again. `sluice namespaces push` sends only the changed file. The run exits with `0`:
+
+   ```text
+   [count_orders#1] counted 5 orders on 2026-09-24
+   [summary#1] orders on 2026-09-24: 5
+   SUCCESS orders/orders 01a0d510-54ac-7524-ac61-4a8d3a015a3c in 602ms
+   ```
+
+</Steps>
+
+The agent knows the end state from the exit code alone: `0` for `SUCCESS`, `10` for `FAILED`, `11` for `TIMED_OUT`. [Exit codes](/reference/exit-codes/) lists all codes.
+
+## Check the result
+
+Open Sluice and click **Namespaces**, then `orders`. The **Versions** tab shows one version for each push, with the message `Push from the sluice CLI`. Click **Executions** in the sidebar. The list shows the failed run and the successful run of `orders/orders`.
+
+This is a flow like the one the agent wrote:
+
+```yaml flow
+# yaml-language-server: $schema=https://sluice-docs.pages.dev/schemas/flow.schema.json
+id: orders
+description: Count the orders of a day, then print a summary.
+inputs:
+  - { id: day, type: string, default: "2026-09-24" }
+tasks:
+  - id: count_orders
+    type: script
+    file: count_orders.py
+    args: ["--day", "${{ inputs.day }}"]
+  - id: summary
+    type: command
+    depends_on: [count_orders]
+    command: ["echo", "orders on ${{ inputs.day }}: ${{ tasks.count_orders.outputs.orders }}"]
+outputs:
+  orders: ${{ tasks.count_orders.outputs.orders }}
+```
+
+The first line connects the file to the [flow JSON Schema](/reference/schemas/). An editor with a YAML language server completes the fields and marks errors while you type.
+
+<Aside type="caution">
+`sluice namespaces push` makes the namespace equal to the directory. It deletes a file on the server that the directory does not have. Keep one directory for each namespace.
+</Aside>
+
+## Next steps
+
+<CardGrid>
+  <LinkCard title="Use Sluice with coding agents" href="/how-to/use-sluice-with-coding-agents/" description="llms.txt, the skill in Cursor, the schemas, the JSON output and MCP." />
+  <LinkCard title="Run flows from GitHub Actions" href="/how-to/run-flows-from-github-actions/" description="Deploy the directory and run the flow from CI." />
+  <LinkCard title="Connect an MCP client" href="/how-to/connect-an-mcp-client/" description="Let an agent read executions and logs through MCP." />
+  <LinkCard title="CLI" href="/reference/cli/" description="Every command and flag of the sluice binary." />
+</CardGrid>

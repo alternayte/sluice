@@ -1,0 +1,100 @@
+---
+title: Back up and restore
+description: Back up the Postgres database, the object store and the master keys of a Sluice deployment, and restore them.
+sidebar:
+  order: 2
+---
+
+import { Steps, Aside, Tabs, TabItem } from "@astrojs/starlight/components";
+
+This guide shows you how to back up a Sluice deployment and how to restore it from a backup.
+
+## What to back up
+
+Postgres holds all state: users, namespaces, snapshots, flows, executions, secrets and settings. The object store holds file content, bundles, archived logs and artifacts. `SLUICE_STORAGE_TYPE` sets where the object store is.
+
+| `SLUICE_STORAGE_TYPE` | What to back up |
+|---|---|
+| `postgres` | The database only. The objects are in the tables `storage_objects` and `storage_chunks`. |
+| `fs` | The database and the directory `SLUICE_FS_ROOT`. |
+| `s3` | The database and the bucket, below `SLUICE_S3_PREFIX`. |
+| `azblob` | The database and the container, below `SLUICE_AZBLOB_PREFIX`. |
+
+Also keep a copy of `SLUICE_MASTER_KEYS` outside the database and outside the cluster. The builtin secrets in the database are AES-256-GCM ciphertext. Without the keys, nobody can decrypt them.
+
+<Aside type="caution">
+A database backup without the master keys restores every secret key and no secret value. Keep the keys in a secret store that does not depend on the Sluice deployment.
+</Aside>
+
+## Back up
+
+<Steps>
+
+1. Dump the database with `pg_dump`.
+
+   <Tabs>
+   <TabItem label="Docker Compose">
+
+   ```sh
+   docker compose -f deploy/compose/compose.yml exec -T postgres \
+     pg_dump -U sluice -d sluice -Fc > sluice-$(date +%F).dump
+   ```
+
+   </TabItem>
+   <TabItem label="Any Postgres">
+
+   ```sh
+   pg_dump "$SLUICE_DATABASE_URL" -Fc -f sluice-$(date +%F).dump
+   ```
+
+   </TabItem>
+   </Tabs>
+
+2. Copy the object store after the dump ends. Skip this step with the `postgres` storage driver.
+
+</Steps>
+
+Copy the object store after the dump, not before. A copy of the object store that is newer than the dump is safe. Storage GC deletes an object without a reference only after 1 hour. A copy that is older than the dump can miss objects that the dump refers to.
+
+`pg_dump` takes a consistent snapshot of the database while Sluice runs. You do not need to stop the instances for a backup.
+
+## Restore
+
+<Steps>
+
+1. Stop all instances.
+2. Restore the database into an empty database.
+
+   ```sh
+   pg_restore -d "$SLUICE_DATABASE_URL" --no-owner sluice-2026-09-24.dump
+   ```
+
+3. Restore the object store to the same bucket, container, prefix or directory.
+4. Set the same `SLUICE_MASTER_KEYS` as at the time of the backup.
+5. Start one instance. Make sure that `/readyz` returns 200.
+6. Start the other instances.
+
+</Steps>
+
+The database user needs the right to create the `citext` extension. The first migration runs `CREATE EXTENSION IF NOT EXISTS citext`.
+
+Start the same version of Sluice as the backup, or a newer one. A newer version applies its new migrations at start. An older binary fails its `migrations` readiness check on a newer database.
+
+## After a restore
+
+Executions that were `RUNNING` in the dump have no live work after the restore. The instance IDs in the dump belong to stopped processes, so the `maintenance` lease holder marks those task runs `FAILED` with the reason `lost`. The retry policy of each task applies.
+
+Check these points after the restore:
+
+| Check | How |
+|---|---|
+| Readiness | `/readyz` returns 200 on each instance. The `master_keys` check passes only when every stored key ID has a key. |
+| Secrets | On **Secrets**, select **Check** on one builtin secret. The check decrypts the value. |
+| Instances | **Settings → Instances** shows the new instances **Online**. The old rows go **Offline** and disappear after 24 hours. |
+| Schedules | The dashboard shows the next schedules. |
+
+## Related pages
+
+- [Upgrade](/operations/upgrade/): back up before each upgrade.
+- [Rotate the master key](/operations/rotate-the-master-key/): the key format and the rotation.
+- [Runbook](/operations/runbook/): storage GC and retention.

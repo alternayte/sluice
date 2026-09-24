@@ -1,0 +1,187 @@
+---
+title: Run tasks on Kubernetes
+description: Run script and command tasks as Kubernetes Jobs, with requests, limits, a service account, node placement and pull secrets.
+---
+
+import { Steps, Aside } from "@astrojs/starlight/components";
+
+This guide shows you how to run `script` and `command` tasks as Kubernetes Jobs. Sluice creates one Job for each task attempt. The Job runs your image and the Sluice runner.
+
+`http` and `subflow` tasks always run inside the server. They cannot use the kubernetes executor. For the reasons to choose Kubernetes, see [Executors, pools and the runner](/concepts/executors-pools-and-the-runner/).
+
+## Before you start
+
+- The Sluice server runs in the cluster, or it has a kubeconfig for the cluster.
+- The server can create Jobs in the Job namespace. The [Helm chart](/how-to/deploy-on-kubernetes/) grants the permissions below.
+- Pods in the Job namespace can reach the server over HTTP.
+- Your task image can run on the nodes of the cluster.
+
+The server needs these permissions in the Job namespace:
+
+| API group | Resource | Verbs |
+|---|---|---|
+| `batch` | `jobs` | create, get, list, watch, delete |
+| core | `pods` | get, list, watch |
+| core | `pods/log` | get |
+
+## Enable the kubernetes executor
+
+<Steps>
+
+1. Give the server access to the cluster.
+
+   In a pod, the server uses the in-cluster configuration. Outside the cluster, set `SLUICE_K8S_KUBECONFIG` to the path of a kubeconfig file.
+
+2. Choose the Job namespace.
+
+   `SLUICE_K8S_NAMESPACE` sets the namespace of the Jobs. When it is empty, Sluice uses the namespace of the server pod. Outside a pod, it uses `default`.
+
+3. Turn the executor on.
+
+   With the default `SLUICE_EXECUTORS=auto`, the server turns the kubernetes executor on when a Job create dry run in the Job namespace succeeds within 5 seconds. With the Helm chart and its Role, this check succeeds. To turn it on without detection, name the executors, for example `SLUICE_EXECUTORS=process,kubernetes`. A client without a cluster configuration then stops the start.
+
+4. Set the runner image.
+
+   An init container copies the runner from `SLUICE_RUNNER_IMAGE` into the pod. The Helm chart sets this variable to the server image. Without the chart, a release build uses its own published image, for example `ghcr.io/alternayte/sluice:0.2.0`. Set the variable to use a mirror in a private registry.
+
+5. Set the URL that pods call.
+
+   The runner calls `SLUICE_INTERNAL_URL`. The Helm chart sets it to the URL of the Service, for example `http://sluice.sluice-system.svc:8080`. Without the chart, set it to an address of the server that pods can reach.
+
+6. Check the executors of the instance.
+
+   Open **Settings → Instances**. The **Executors** column of your instance lists `kubernetes`.
+
+</Steps>
+
+## Run a task as a Job
+
+<Steps>
+
+1. Add an `executor` block with `type: kubernetes` and an image.
+
+   ```yaml flow
+   id: k8s-hello
+   description: Print the Python version in a Kubernetes Job.
+   executor:
+     type: kubernetes
+     image: python:3.12-slim
+   tasks:
+     - id: hello
+       type: command
+       command: ["python3", "-c", "import sys; print(sys.version)"]
+   ```
+
+2. Save the flow. On the flow page, click **Run**, then click **Run** in the dialog.
+
+3. Select the task in the timeline. The **Executor** field of the inspector shows `kubernetes · default`.
+
+4. List the Job in the cluster:
+
+   ```sh
+   kubectl get jobs -l sluice.dev/managed-by=sluice
+   ```
+
+</Steps>
+
+## Set the pod fields
+
+The executor block maps its fields to the pod of the Job:
+
+| Flow field | Pod field |
+|---|---|
+| `resources.requests` | `resources.requests` of the task container |
+| `resources.limits` | `resources.limits` of the task container |
+| `kubernetes.service_account` | `serviceAccountName` |
+| `kubernetes.node_selector` | `nodeSelector` |
+| `kubernetes.tolerations` | `tolerations`, with `key`, `operator`, `value`, `effect` and `toleration_seconds` |
+| `kubernetes.image_pull_secrets` | `imagePullSecrets` |
+| `kubernetes.labels` | Labels of the Job and the pod |
+| `kubernetes.annotations` | Annotations of the Job and the pod |
+
+```yaml flow
+id: nightly-model
+executor:
+  type: kubernetes
+  pool: default
+  image: ghcr.io/acme/elt:1.4.0
+  resources:
+    requests: { cpu: 500m, memory: 512Mi }
+    limits: { cpu: "2", memory: 2Gi }
+  kubernetes:
+    service_account: elt
+    node_selector: { workload: batch }
+    tolerations:
+      - { key: batch, operator: Equal, value: "true", effect: NoSchedule }
+    image_pull_secrets: [ghcr]
+    labels: { team: data }
+    annotations: { cost-center: "42" }
+tasks:
+  - id: train
+    type: script
+    file: pipelines/train.py
+```
+
+A Sluice label replaces a user label with the same key. Sluice does not set `imagePullPolicy`, so the Kubernetes default applies. The `pull` field is for the docker executor only. On a kubernetes block, it gives the validation error `field_not_allowed`.
+
+## Know what the Job holds
+
+| Property | Value |
+|---|---|
+| Name | `sluice-<task_run_id>` |
+| `backoffLimit` | `0`. Sluice retries with the retry policy of the task, not with the Job. |
+| `restartPolicy` | `Never` |
+| `activeDeadlineSeconds` | The task timeout. The default task timeout is 24 hours. |
+| `ttlSecondsAfterFinished` | `SLUICE_K8S_JOB_TTL`, default `600s`. |
+| Init container | `sluice-runner` from `SLUICE_RUNNER_IMAGE`, only with `inject_runner: true`. |
+| Task container | `task` from `executor.image`. |
+| Volumes | An `emptyDir` at `/workdir`. With the runner injection, also an `emptyDir` at `/sluice-bin`. |
+| Environment | `SLUICE_API_URL`, `SLUICE_RUN_TOKEN`, `SLUICE_TASK_RUN_ID` and `SLUICE_WORKDIR`. |
+
+The Job holds no secret values. The runner reads the secrets of the task from the server at run time. The run token in the Job is valid for this task run only, and it expires.
+
+With `inject_runner: false`, the pod has no init container. The task container runs `sluice exec` from the image `PATH`.
+
+## Limit the number of Jobs
+
+`SLUICE_K8S_MAX_JOBS` limits the running Jobs of one pool. The default is 50. Sluice counts the running kubernetes task runs of the pool in the database, over all instances. A task over the limit stays `QUEUED` until a Job ends.
+
+## Run tasks in a second cluster
+
+A pool routes tasks to the instances that serve it. To run tasks in a second cluster, deploy a Sluice instance there with its own pool:
+
+```sh
+SLUICE_POOLS=cluster-b SLUICE_EXECUTORS=kubernetes sluice server
+```
+
+With the Helm chart, set `pools: [cluster-b]` in the values.
+
+The instance uses the same database, the same object storage and the same master keys as the other instances. Then set `pool: cluster-b` in the executor block of the tasks. Only instances with this pool claim them.
+
+## Know what happens on a restart or a cancel
+
+- A Job continues when the server stops. The runner sends its data to any instance.
+- A cancel deletes the Job with background propagation. Kubernetes then removes the pod.
+- A Job that ends stays until `ttlSecondsAfterFinished` passes.
+
+## Fix common failures
+
+| Reason | Cause | Fix |
+|---|---|---|
+| `image_pull_failed` | A container of the pod waits with `ErrImagePull`, `ImagePullBackOff`, `InvalidImageName` or `ErrImageNeverPull`. Sluice deletes the Job. | Check the image name and `image_pull_secrets`. |
+| `pod_pending_timeout` | The pod stayed `Pending` longer than `SLUICE_K8S_PENDING_TIMEOUT`, default `10m`. | Check the node selector, the tolerations and the free capacity of the cluster. |
+| `lost` | The Job disappeared before the runner sent a result, for example after an eviction or a manual delete. | Read the events of the pod. The retry policy applies. |
+| `no_instance_for_pool` | No online instance serves the pool with the kubernetes executor. The task stays `QUEUED`. | Start an instance with this pool and the kubernetes executor. |
+| `executor_error` | The Job create failed, or the instance has no kubernetes executor. | Read the task error in the inspector. Check the Role of the server. |
+
+<Aside type="note">
+The reconciler checks the Jobs of each pool every 60 seconds. A `pod_pending_timeout` failure can thus come up to 60 seconds after the limit.
+</Aside>
+
+## Related pages
+
+- [Deploy on Kubernetes with Helm](/how-to/deploy-on-kubernetes/)
+- [Run tasks in Docker](/how-to/run-tasks-in-docker/)
+- [Executors, pools and the runner](/concepts/executors-pools-and-the-runner/)
+- [Flow file reference](/reference/flow/)
+- [Environment variables](/reference/env/)

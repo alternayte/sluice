@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Ban, CheckCircle2, KeyRound, Plus } from "lucide-react";
+import { Ban, CheckCircle2, KeyRound, Plus, Users } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import {
   createUserMutation,
@@ -17,6 +17,7 @@ import { Field, FormError } from "@/components/ui/field";
 import { Input, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
+import { toast } from "@/components/ui/toast";
 import { useCurrentUser } from "@/lib/auth";
 import { errorMessage, fieldErrors } from "@/lib/errors";
 import { roleLabels, roles, type Role } from "@/lib/roles";
@@ -39,6 +40,11 @@ export function UsersPage() {
 
   const update = useMutation({
     ...updateUserMutation(),
+    onSuccess: (u, vars) => {
+      if (vars.body.role !== undefined)
+        toast({ title: "Role changed", description: `${u.email} is now ${roleLabels[u.role]}.` });
+      else toast({ title: u.disabled ? "User disabled" : "User enabled", description: u.email });
+    },
     onSettled: () => void qc.invalidateQueries({ queryKey: usersQueryKey }),
   });
 
@@ -55,7 +61,7 @@ export function UsersPage() {
         }
       />
       {update.isError && <FormError>{errorMessage(update.error)}</FormError>}
-      <DataState query={users} empty={(d) => d.length === 0} emptyText="No users exist.">
+      <DataState query={users} empty={(d) => d.length === 0} emptyText="No users exist." emptyIcon={Users}>
         {(items) => (
           <>
             <Table>
@@ -66,7 +72,7 @@ export function UsersPage() {
                   <Th>Role</Th>
                   <Th>State</Th>
                   <Th>Last login</Th>
-                  <Th>
+                  <Th className="relative">
                     <span className="sr-only">Actions</span>
                   </Th>
                 </Tr>
@@ -74,11 +80,19 @@ export function UsersPage() {
               <TBody>
                 {items.map((u) => (
                   <Tr key={u.id}>
-                    <Td className="font-medium">
-                      {u.email}
-                      {u.id === me.id && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
+                    <Td>
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          aria-hidden
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground"
+                        >
+                          {(u.name || u.email).slice(0, 1).toUpperCase()}
+                        </span>
+                        <span className="font-medium">{u.email}</span>
+                        {u.id === me.id && <span className="text-xs text-muted-foreground">(you)</span>}
+                      </div>
                     </Td>
-                    <Td>{u.name || "—"}</Td>
+                    <Td className={u.name ? undefined : "text-muted-foreground"}>{u.name || "—"}</Td>
                     <Td>
                       <Select
                         aria-label={`Role of ${u.email}`}
@@ -97,24 +111,26 @@ export function UsersPage() {
                       </Select>
                     </Td>
                     <Td>
-                      {u.disabled ? (
-                        <Badge tone="failed" icon={Ban}>
-                          Disabled
-                        </Badge>
-                      ) : (
-                        <Badge tone="success" icon={CheckCircle2}>
-                          Enabled
-                        </Badge>
-                      )}
-                      {u.must_change_password && (
-                        <span className="ml-2">
+                      <div className="flex items-center gap-3">
+                        {u.disabled ? (
+                          <Badge tone="failed" icon={Ban}>
+                            Disabled
+                          </Badge>
+                        ) : (
+                          <Badge tone="success" icon={CheckCircle2}>
+                            Enabled
+                          </Badge>
+                        )}
+                        {u.must_change_password && (
                           <Badge tone="warning" icon={KeyRound}>
                             Temporary password
                           </Badge>
-                        </span>
-                      )}
+                        )}
+                      </div>
                     </Td>
-                    <Td>{u.last_login_at ? formatTime(u.last_login_at) : "Never"}</Td>
+                    <Td className="text-muted-foreground tabular-nums">
+                      {u.last_login_at ? formatTime(u.last_login_at) : "Never"}
+                    </Td>
                     <Td className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button
@@ -156,8 +172,9 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
   const [password, setPassword] = useState("");
   const mutation = useMutation({
     ...createUserMutation(),
-    onSuccess: () => {
+    onSuccess: (u) => {
       void qc.invalidateQueries({ queryKey: usersQueryKey });
+      toast({ title: "User created", description: u.email });
       onDone();
     },
   });
@@ -218,6 +235,7 @@ function ResetPasswordForm({ user, onDone }: { user: User; onDone: () => void })
     ...resetUserPasswordMutation(),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: usersQueryKey });
+      toast({ title: "Password reset", description: `${user.email} must change it at the next sign-in.` });
       onDone();
     },
   });

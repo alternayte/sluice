@@ -395,7 +395,9 @@ func (e *Engine) finishTaskTx(ctx context.Context, tx pgx.Tx, taskRunID uuid.UUI
 	if !allowed {
 		return nil // already ended
 	}
-	if tr.CancelRequested && state != TaskSuccess {
+	// A cancel request ends the task run CANCELLED. The task timeout of the leader also sets
+	// the request, to stop the process, but that task run ends TIMED_OUT (DI-20).
+	if tr.CancelRequested && state != TaskSuccess && reason != ReasonTimeout {
 		state, reason = TaskCancelled, ReasonCancelled
 	}
 	if err := CheckTask(tr.State, state); err != nil {

@@ -59,7 +59,7 @@ gen:
 # Fail when generated files differ from the committed files.
 gen-check: gen
     git diff --exit-code
-    test -z "$(git status --porcelain --untracked-files=all -- api/openapi.yaml internal/*/*db ui/src/api schemas docs/reference)"
+    test -z "$(git status --porcelain --untracked-files=all -- api/openapi.yaml internal/*/*db ui/src/api schemas site/src/content/docs/reference)"
 
 lint: forbid
     golangci-lint run ./...
@@ -106,5 +106,30 @@ perf:
 trace:
     go run ./tools/buildtool trace
 
+# Fail when a generated docs page is stale, a YAML sample is invalid, a sample runs a sluice
+# command that does not exist, the env page misses a SLUICE_ variable, or a handwritten page
+# breaks the Sluice Vale style.
+docs-ref-check:
+    go run ./tools/buildtool docs-ref-check
+    go tool vale --config site/.vale.ini --glob='!**/reference/{cli,env,exit-codes,flow,github-action,mcp-tools}.md' site/src/content/docs
+
+# Build the docs site into site/dist.
+docs:
+    cd site && bun install --frozen-lockfile && bun run build
+
+# Run the docs site with live reload on http://localhost:4321.
+docs-dev:
+    cd site && bun install --frozen-lockfile && bun run dev
+
+# Deploy site/dist to the Cloudflare Pages project sluice-docs with the logged-in wrangler.
+# main is the production branch: https://sluice-docs.pages.dev.
+docs-deploy: docs
+    npx --yes wrangler@4 pages deploy site/dist --project-name=sluice-docs --branch=main
+
+# Capture the screenshots and the quickstart GIF of the docs site from the real UI into
+# site/src/assets/shots. Needs Docker, agent-browser and ffmpeg.
+docs-shots: build-ui build-go
+    go run ./tools/buildtool docs-shots
+
 # Fast loop.
-check: gen-check lint test
+check: gen-check lint test docs-ref-check

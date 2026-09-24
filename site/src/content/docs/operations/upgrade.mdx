@@ -1,0 +1,122 @@
+---
+title: Upgrade
+description: Upgrade a Sluice deployment to a new version, with the database migrations and a rolling rollout.
+sidebar:
+  order: 3
+---
+
+import { Steps, Aside, Tabs, TabItem } from "@astrojs/starlight/components";
+
+This guide shows you how to upgrade a Sluice deployment to a new version. The server applies the database migrations itself, so an upgrade is a backup and a rollout of the new image.
+
+## Versions and the changelog
+
+Sluice uses [Semantic Versioning](https://semver.org/). Before 1.0.0, a minor version can break compatibility. The [CHANGELOG](https://github.com/alternayte/sluice/blob/main/CHANGELOG.md) lists the changes of each version under **Added**, **Changed** and **Fixed**. Read the entries of every version between your version and the new one before you upgrade.
+
+Each release pushes two images to the GitHub Container Registry, for `linux/amd64` and `linux/arm64`:
+
+| Image | Tags |
+|---|---|
+| `ghcr.io/alternayte/sluice` | `<version>`, `<major>.<minor>`, `latest` |
+| `ghcr.io/alternayte/sluice-uv` | `<version>`, `<major>.<minor>`, `latest` |
+
+Pin the full version tag, for example `0.1.2`. The `latest` and `<major>.<minor>` tags move with each release. `sluice version` prints the version, the commit and the build date of a binary.
+
+## How migrations run
+
+The migrations are in the binary. `sluice server` applies every migration that the database does not have when it starts. `sluice migrate` applies them and exits.
+
+| Property | Behaviour |
+|---|---|
+| Transaction | All new migrations run in one transaction, behind a transaction-scoped advisory lock. |
+| Concurrent starts | When several instances start at the same time, each migration applies once. |
+| Record | The table `schema_migrations` holds the applied versions. |
+| Readiness | The `migrations` check of `/readyz` fails when the database and the binary have different migrations. |
+| Pooler | Migrations run in the simple query protocol, so a transaction-mode pooler such as PgBouncer works. |
+
+After a new version adds a migration, an instance of the old version fails its `migrations` check with `migrations not current`. A load balancer or a Kubernetes Service that reads `/readyz` then stops sending requests to the old instance.
+
+<Aside type="caution">
+Before 1.0.0, the schema is one migration file, `00001_init.sql`. A change to that file does not reach a database that already has version 1. When a changelog entry says that the schema changed in place, create a new database for the new version.
+</Aside>
+
+## Upgrade
+
+<Steps>
+
+1. Back up the database and the object store. See [Back up and restore](/operations/back-up-and-restore/).
+2. Optional: apply the migrations with the new image before the rollout. The server also migrates at start, so this step only moves the migration time.
+
+   ```sh
+   docker run --rm -e SLUICE_DATABASE_URL="$SLUICE_DATABASE_URL" \
+     ghcr.io/alternayte/sluice:0.1.2 migrate
+   ```
+
+   The command prints `applied <n> migrations`.
+
+3. Roll out the new version.
+
+   <Tabs>
+   <TabItem label="Helm">
+
+   ```sh
+   helm upgrade sluice deploy/helm/sluice -n sluice --reuse-values \
+     --set image.tag=0.1.2
+   kubectl -n sluice rollout status deployment/sluice
+   ```
+
+   Use the chart of the same release as the image. An empty `image.tag` uses the `appVersion` of the chart.
+
+   </TabItem>
+   <TabItem label="Docker Compose">
+
+   ```sh
+   git pull
+   docker compose -f deploy/compose/compose.yml up -d --build
+   ```
+
+   The compose file builds the `sluice-uv` image from the repository. The `postgres-data` volume keeps the database.
+
+   </TabItem>
+   <TabItem label="Single container">
+
+   ```sh
+   docker pull ghcr.io/alternayte/sluice-uv:0.1.2
+   docker stop sluice && docker rm sluice
+   ```
+
+   Start the new image with the same environment variables as before. Keep the same `SLUICE_MASTER_KEYS`.
+
+   </TabItem>
+   </Tabs>
+
+4. Make sure that `/readyz` returns 200 on each instance.
+5. Run `sluice version` in the new image, or read the **Version** column on **Settings → Instances**.
+
+</Steps>
+
+## What happens during a rolling upgrade
+
+Old and new instances share one database while the rollout runs. An instance does this work when it gets SIGTERM:
+
+| Work | What happens |
+|---|---|
+| New claims | The instance stops claiming task runs. The other instances claim them. |
+| Process and inline task runs | The instance stops them. They end `FAILED` with the reason `instance_shutdown`, and the retry policy of the task applies. |
+| Docker and kubernetes task runs | They continue without the instance. They become `lost` only when their runner sends no heartbeat for `SLUICE_HEARTBEAT_TIMEOUT`. |
+| Leases | The instance releases its leases. Another instance takes each lease at its next attempt, within 5 seconds. |
+| Exit | The process exits within `SLUICE_SHUTDOWN_GRACE`. |
+
+The Helm chart sets `terminationGracePeriodSeconds` to `shutdownGraceSeconds` plus 10 seconds, so Kubernetes does not kill a pod before its shutdown ends.
+
+To keep a long task safe across an upgrade, run it on the `docker` or `kubernetes` executor, or give it a retry policy. See [Retry, time out and limit executions](/how-to/retry-time-out-and-limit/).
+
+## Roll back
+
+A rollback to an older version works only when the new version added no migration. When the new version added a migration, the old binary fails its `migrations` readiness check on the new database. To go back in that case, restore the backup of step 1 and start the old version.
+
+## Related pages
+
+- [Runbook](/operations/runbook/): health checks and common errors.
+- [Deploy on Kubernetes with Helm](/how-to/deploy-on-kubernetes/): the chart values.
+- [Deploy with Docker Compose](/how-to/deploy-with-docker-compose/): the compose file.

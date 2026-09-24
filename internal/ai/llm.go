@@ -26,6 +26,9 @@ const (
 	BlockText       = "text"
 	BlockToolUse    = "tool_use"
 	BlockToolResult = "tool_result"
+	// BlockAttachment is an object that the user attached to a message, for example a flow.
+	// The model gets it as text.
+	BlockAttachment = "attachment"
 )
 
 // Block is one part of a message: text, a tool call of the model, or a tool result.
@@ -36,6 +39,8 @@ type Block struct {
 	ToolName  string          `json:"tool_name,omitempty"`
 	Input     json.RawMessage `json:"input,omitempty"`
 	IsError   bool            `json:"is_error,omitempty"`
+	// Label names an attachment, for example "flow sales/nightly-load".
+	Label string `json:"label,omitempty"`
 }
 
 // Message is one turn of a conversation. Role is user or assistant. Tool results are

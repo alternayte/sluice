@@ -12,6 +12,7 @@ import (
 	"github.com/alternayte/sluice/internal/ai"
 	"github.com/alternayte/sluice/internal/execution"
 	"github.com/alternayte/sluice/internal/execution/executiondb"
+	"github.com/alternayte/sluice/internal/flow"
 	"github.com/alternayte/sluice/internal/gitsync"
 	"github.com/alternayte/sluice/internal/namespace"
 	"github.com/alternayte/sluice/internal/platform/masking"
@@ -148,6 +149,41 @@ func (d aiData) Trigger(ctx context.Context, ns, flowID string, inputs map[strin
 }
 
 func (d aiData) Cancel(ctx context.Context, id uuid.UUID) error { return d.e.Cancel(ctx, id) }
+
+func (d aiData) Rerun(ctx context.Context, id uuid.UUID) (any, error) {
+	nid, err := d.e.Rerun(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return d.e.Detail(ctx, nid)
+}
+
+func (d aiData) Restart(ctx context.Context, id uuid.UUID) (any, error) {
+	nid, err := d.e.Restart(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return d.e.Detail(ctx, nid)
+}
+
+func (d aiData) FailedAttempts(ctx context.Context, id uuid.UUID) ([]ai.TaskAttempt, error) {
+	det, err := d.e.Detail(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	var out []ai.TaskAttempt
+	for _, r := range det.TaskRuns {
+		if r.State == execution.TaskFailed || r.State == execution.TaskTimedOut {
+			out = append(out, ai.TaskAttempt{TaskKey: r.TaskKey, Attempt: r.Attempt})
+		}
+	}
+	return out, nil
+}
+
+func (d aiData) FlowSchema() (json.RawMessage, error) {
+	b, err := flow.FlowSchema()
+	return json.RawMessage(b), err
+}
 
 func (d aiData) SourceType(ctx context.Context, ns string) (string, error) {
 	row, err := d.ns.Get(ctx, ns)

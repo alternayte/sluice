@@ -9,7 +9,13 @@ export function LoadMore({
   if (!query.hasNextPage) return null;
   return (
     <div className="flex justify-center pt-3">
-      <Button variant="secondary" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
+      <Button
+        variant="secondary"
+        size="sm"
+        className="min-w-28"
+        disabled={query.isFetchingNextPage}
+        onClick={() => void query.fetchNextPage()}
+      >
         {query.isFetchingNextPage ? "Loading" : "Load more"}
       </Button>
     </div>

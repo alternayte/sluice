@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Ban, Check, CheckCircle2, Clock, Copy, Plus } from "lucide-react";
+import { Ban, Check, CheckCircle2, Clock, Copy, KeyRound, Plus, TriangleAlert } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { createTokenMutation, listTokensInfiniteOptions, revokeTokenMutation } from "@/api/@tanstack/react-query.gen";
 import type { CreatedToken, Token } from "@/api/types.gen";
@@ -11,7 +11,9 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, FormError } from "@/components/ui/field";
 import { Input, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { SegmentedControl } from "@/components/ui/segmented";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
+import { toast } from "@/components/ui/toast";
 import { useCurrentUser } from "@/lib/auth";
 import { errorMessage, fieldErrors } from "@/lib/errors";
 import { can, roleLabels, rolesUpTo, type Role } from "@/lib/roles";
@@ -68,17 +70,18 @@ export function TokensPage() {
         }
       />
       {isAdmin && (
-        <label className="flex w-fit items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={all}
-            onChange={(e) => setAll(e.target.checked)}
-            className="h-4 w-4 accent-accent"
-          />
-          All users
-        </label>
+        <SegmentedControl
+          label="Owner"
+          size="sm"
+          options={[
+            { value: "mine", label: "My tokens" },
+            { value: "all", label: "All users" },
+          ]}
+          value={all ? "all" : "mine"}
+          onChange={(v) => setAll(v === "all")}
+        />
       )}
-      <DataState query={tokens} empty={(d) => d.length === 0} emptyText="No API tokens exist.">
+      <DataState query={tokens} empty={(d) => d.length === 0} emptyText="No API tokens exist." emptyIcon={KeyRound}>
         {(items) => (
           <>
             <Table>
@@ -92,7 +95,7 @@ export function TokensPage() {
                   <Th>Expires</Th>
                   <Th>Last used</Th>
                   <Th>State</Th>
-                  <Th>
+                  <Th className="relative">
                     <span className="sr-only">Actions</span>
                   </Th>
                 </Tr>
@@ -102,11 +105,15 @@ export function TokensPage() {
                   <Tr key={t.id}>
                     <Td className="font-medium">{t.name}</Td>
                     {showAll && <Td>{t.user_email}</Td>}
-                    <Td className="font-mono text-xs">{t.prefix}</Td>
+                    <Td className="font-mono text-xs text-muted-foreground">{t.prefix}</Td>
                     <Td>{roleLabels[t.role]}</Td>
-                    <Td>{formatTime(t.created_at)}</Td>
-                    <Td>{t.expires_at ? formatTime(t.expires_at) : "Never"}</Td>
-                    <Td>{t.last_used_at ? formatTime(t.last_used_at) : "Never"}</Td>
+                    <Td className="text-muted-foreground tabular-nums">{formatTime(t.created_at)}</Td>
+                    <Td className="text-muted-foreground tabular-nums">
+                      {t.expires_at ? formatTime(t.expires_at) : "Never"}
+                    </Td>
+                    <Td className="text-muted-foreground tabular-nums">
+                      {t.last_used_at ? formatTime(t.last_used_at) : "Never"}
+                    </Td>
                     <Td>{tokenState(t)}</Td>
                     <Td className="text-right">
                       {!t.revoked_at && (
@@ -155,13 +162,18 @@ function CreateTokenForm({ role, onDone }: { role: Role; onDone: () => void }) {
       try {
         await navigator.clipboard.writeText(created.secret);
         setCopied(true);
+        toast({ title: "Copied", description: "The token is on the clipboard." });
       } catch {
         setCopied(false);
+        toast({ title: "Copy failed", description: "Select the token and copy it by hand.", tone: "error" });
       }
     };
     return (
-      <div className="flex flex-col gap-3">
-        <p className="text-sm">Copy this token now. It is not shown again.</p>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-start gap-2.5 rounded-control bg-muted px-3 py-2.5 text-sm">
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-state-timed-out" aria-hidden />
+          <p>Copy this token now. It is not shown again.</p>
+        </div>
         <div className="flex gap-2">
           <Input
             aria-label="Token secret"
@@ -171,7 +183,11 @@ function CreateTokenForm({ role, onDone }: { role: Role; onDone: () => void }) {
             onFocus={(e) => e.currentTarget.select()}
           />
           <Button variant="secondary" onClick={() => void copy()}>
-            {copied ? <Check className="h-4 w-4" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
+            {copied ? (
+              <Check className="h-4 w-4 text-state-success" aria-hidden />
+            ) : (
+              <Copy className="h-4 w-4" aria-hidden />
+            )}
             {copied ? "Copied" : "Copy"}
           </Button>
         </div>
@@ -229,6 +245,7 @@ function RevokeConfirm({ token, onDone }: { token: Token; onDone: () => void }) 
     ...revokeTokenMutation(),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: tokensQueryKey });
+      toast({ title: "Token revoked", description: token.name });
       onDone();
     },
   });

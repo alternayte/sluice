@@ -1,10 +1,12 @@
 # Sluice
 
-Sluice runs flows of tasks: Python, shell and bun scripts, commands, HTTP calls and subflows. It runs them on a process, docker or kubernetes executor, with schedules, webhooks, secrets, logs, metrics and a web UI. It is one Go binary with Postgres.
+Sluice runs flows of tasks: Python, shell and bun scripts, commands, HTTP calls and subflows. It runs them on a process, docker or kubernetes executor, with schedules, webhooks, secrets, logs, metrics and a web UI. It is one Go binary with Postgres. It has a CLI and an MCP server for CI jobs and coding agents.
 
-![Sign in, open a flow, run it and watch the execution](docs/images/quickstart.gif)
+**Documentation: [sluice-docs.pages.dev](https://sluice-docs.pages.dev)**
 
-## Getting started
+![Open a flow, run it and watch the execution](site/src/assets/shots/quickstart.gif)
+
+## Quickstart
 
 You need Docker and [just](https://just.systems).
 
@@ -33,36 +35,48 @@ You need Docker and [just](https://just.systems).
        command: ["echo", "hello from sluice"]
    ```
 
-5. Save the file, open **Flows**, select the flow, and click **Run**. The execution page shows the timeline and the logs.
+5. Save the file, open **Flows**, select the flow, and click **Run**. The execution page shows the tasks and their logs live.
 
-| Dashboard | Flow |
+[Run your first flow](https://sluice-docs.pages.dev/tutorials/run-your-first-flow/) is the full tutorial.
+
+## From a terminal, CI or a coding agent
+
+Install the `sluice` binary. The installer checks the download against the published checksum:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh | sh
+```
+
+```sh
+export SLUICE_URL=http://localhost:8080 SLUICE_TOKEN=<api token>
+sluice namespaces push ./flows/sales --namespace sales   # deploy the files as one new version
+sluice run sales/nightly-load --wait                     # stream the logs; the exit code is the end state
+sluice init                                              # give a coding agent the Sluice skill
+```
+
+- [Run flows from GitHub Actions](https://sluice-docs.pages.dev/how-to/run-flows-from-github-actions/) with the action in this repository.
+- [Use Sluice with coding agents](https://sluice-docs.pages.dev/how-to/use-sluice-with-coding-agents/): the skill, the MCP server, `llms.txt` and the JSON Schemas.
+
+| Dashboard | Execution |
 |---|---|
-| ![Dashboard](docs/images/dashboard.png) | ![Flow overview](docs/images/flow.png) |
-| **Editor** | **Execution** |
-| ![Namespace editor](docs/images/editor.png) | ![Execution](docs/images/execution.png) |
+| ![Dashboard](site/src/assets/shots/dashboard-light.png) | ![Execution](site/src/assets/shots/execution-failed-light.png) |
+| **Editor** | **Command palette** |
+| ![Namespace editor](site/src/assets/shots/editor-light.png) | ![Command palette](site/src/assets/shots/palette-light.png) |
 
 ## Documentation
 
+The docs site has tutorials, how-to guides, concepts, reference and operations pages. Its source is in [`site/`](site/). Every page is also available as Markdown at its URL plus `.md`, and the whole site is in [llms-full.txt](https://sluice-docs.pages.dev/llms-full.txt).
+
 | Document | What it holds |
 |---|---|
-| [docs/getting-started.md](docs/getting-started.md) | The full walkthrough: start Sluice, write a flow, run it and read the execution. |
-| [docs/flows.md](docs/flows.md) | How to write flows: tasks, inputs, templates, outputs, metrics, retries and concurrency. |
-| [docs/triggers.md](docs/triggers.md) | Schedules, webhooks and flow triggers. |
-| [docs/executors.md](docs/executors.md) | The process, docker and kubernetes executors, pools and the runner. |
-| [docs/secrets-and-variables.md](docs/secrets-and-variables.md) | Secrets, providers, variables, scopes and masking. |
-| [docs/git-sync.md](docs/git-sync.md) | Git sources, mappings, sync and push to a branch. |
-| [docs/ai.md](docs/ai.md) | The assistant, flow authoring, failure triage and the MCP server. |
-| [docs/deployment.md](docs/deployment.md) | Single container, compose, Kubernetes with Helm, storage and the CLI. |
-| [docs/architecture.md](docs/architecture.md) | The components, the execution lifecycle, snapshots and leases. |
-| [docs/api.md](docs/api.md) | The HTTP API, authentication, errors, pagination and event streams. |
-| [docs/operations/runbook.md](docs/operations/runbook.md) | Health, logs, backups, upgrades and common errors. |
-| [docs/operations/metrics.md](docs/operations/metrics.md) | Every metric of `/metrics` and the dashboard figures. |
-| [docs/operations/security.md](docs/operations/security.md) | Authentication, roles, secret handling and hardening. |
-| [docs/reference/flow.md](docs/reference/flow.md) | The flow file reference. |
-| [docs/reference/env.md](docs/reference/env.md) | Every environment variable. |
-| [examples/elt](examples/elt/README.md) | An ELT example with dlt and SQLMesh, with demo data. |
 | [docs/sluice-sdd.md](docs/sluice-sdd.md) | The design: requirements, scenarios and decisions. |
+| [docs/specs/](docs/specs/) | The specs of changes after the design. |
+| [examples/elt](examples/elt/README.md) | An ELT example with dlt and SQLMesh, with demo data. |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to build, test and submit a change. |
 | [TESTING.md](TESTING.md) | The test layers, the local substitutes and the definition of done. |
 | [SECURITY.md](SECURITY.md) | How to report a security defect. |
 | [CHANGELOG.md](CHANGELOG.md) | What changed. |
+
+## License
+
+Sluice is free software under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-only). If you run a changed version of Sluice as a network service, you must offer its source code to the users of that service.

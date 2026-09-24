@@ -1,10 +1,10 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { FileClock, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { listAuditEventsInfiniteOptions } from "@/api/@tanstack/react-query.gen";
 import { DataState } from "@/components/data-state";
 import { LoadMore } from "@/components/load-more";
 import { Button } from "@/components/ui/button";
-import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
@@ -41,7 +41,12 @@ export function AuditPage({ search, onApply }: { search: AuditSearch; onApply: (
     <div className="flex flex-col gap-4">
       <PageHeader title="Audit log" description="Changes and sign-ins, newest first." />
       <Filters key={JSON.stringify(search)} initial={search} onApply={onApply} />
-      <DataState query={events} empty={(d) => d.length === 0} emptyText="No audit events match the filters.">
+      <DataState
+        query={events}
+        empty={(d) => d.length === 0}
+        emptyText="No audit events match the filters."
+        emptyIcon={FileClock}
+      >
         {(items) => (
           <>
             <Table>
@@ -60,14 +65,17 @@ export function AuditPage({ search, onApply }: { search: AuditSearch; onApply: (
                   const details = Object.keys(e.details ?? {}).length ? JSON.stringify(e.details) : "";
                   return (
                     <Tr key={e.id}>
-                      <Td>{formatTime(e.ts)}</Td>
+                      <Td className="text-muted-foreground tabular-nums">{formatTime(e.ts)}</Td>
                       <Td title={`${e.actor_type}:${e.actor_id}`}>{e.actor_label}</Td>
-                      <Td className="font-mono text-xs">{e.action}</Td>
-                      <Td className="font-mono text-xs">
-                        {e.target_type}:{e.target_id}
+                      <Td>
+                        <span className="rounded-inner bg-muted px-1.5 py-px font-mono text-xs">{e.action}</span>
                       </Td>
-                      <Td className="font-mono text-xs">{e.ip || "—"}</Td>
-                      <Td className="max-w-80 truncate font-mono text-xs" title={details}>
+                      <Td className="max-w-72 truncate font-mono text-xs" title={`${e.target_type}:${e.target_id}`}>
+                        <span className="text-muted-foreground">{e.target_type}:</span>
+                        {e.target_id}
+                      </Td>
+                      <Td className="font-mono text-xs text-muted-foreground">{e.ip || "—"}</Td>
+                      <Td className="max-w-80 truncate font-mono text-xs text-muted-foreground" title={details}>
                         {details || "—"}
                       </Td>
                     </Tr>
@@ -109,30 +117,48 @@ function Filters({ initial, onApply }: { initial: AuditSearch; onApply: (s: Audi
     onApply(out);
   };
 
+  const active = filterKeys.some((k) => initial[k]);
+
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3 rounded-[8px] border bg-panel p-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {filterKeys.map((k) => (
-          <Field key={k} id={`audit-${k}`} label={labels[k]}>
+    <form
+      onSubmit={submit}
+      aria-label="Filters"
+      className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-panel border bg-panel px-3 py-2 shadow-panel"
+    >
+      {filterKeys.map((k) => {
+        const time = k === "from" || k === "to";
+        return (
+          <div key={k} className="flex w-full items-center gap-2 sm:w-auto">
+            <label htmlFor={`audit-${k}`} className="w-12 shrink-0 text-xs text-muted-foreground sm:w-auto">
+              {labels[k]}
+            </label>
             <Input
-              type={k === "from" || k === "to" ? "datetime-local" : "text"}
-              placeholder={hints[k]}
+              id={`audit-${k}`}
+              type={time ? "datetime-local" : "text"}
+              placeholder={hints[k] ?? (time ? undefined : "Any")}
               value={values[k] ?? ""}
               onChange={(e) => setValues({ ...values, [k]: e.target.value })}
+              className={time ? "h-7 flex-1 text-xs sm:w-48 sm:flex-none" : "h-7 flex-1 sm:w-36 sm:flex-none"}
             />
-          </Field>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <Button type="submit">Apply filters</Button>
-        <Button
-          variant="secondary"
-          onClick={() => {
-            setValues({});
-            onApply({});
-          }}
-        >
-          Clear
+          </div>
+        );
+      })}
+      <div className="ml-auto flex items-center gap-1.5">
+        {active && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setValues({});
+              onApply({});
+            }}
+          >
+            <X className="h-3.5 w-3.5" aria-hidden />
+            Clear
+          </Button>
+        )}
+        <Button type="submit" size="sm">
+          Apply filters
         </Button>
       </div>
     </form>

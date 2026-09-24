@@ -6,6 +6,7 @@ import { ApiError } from "@/api-client";
 import { Button } from "@/components/ui/button";
 import { Field, FormError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { AuthSheet } from "@/features/auth/auth-sheet";
 import { meQueryKey, useMe } from "@/lib/auth";
 import { errorMessage } from "@/lib/errors";
 
@@ -50,34 +51,32 @@ export function LoginPage({ redirect }: { redirect?: string }) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="flex w-full max-w-sm flex-col gap-4 rounded-[8px] border bg-panel p-6">
-        <h1 className="text-lg font-semibold">Sign in to Sluice</h1>
-        <form onSubmit={submit} className="flex flex-col gap-3">
-          <Field id="login-email" label="Email">
-            <Input
-              type="email"
-              autoComplete="username"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </Field>
-          <Field id="login-password" label="Password">
-            <Input
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </Field>
-          <FormError>{error}</FormError>
-          <Button type="submit" disabled={login.isPending}>
-            {login.isPending ? "Signing in" : "Sign in"}
-          </Button>
-        </form>
-      </div>
-    </div>
+    <AuthSheet title="Sign in to Sluice" description="Use the email and password of your Sluice account.">
+      <form onSubmit={submit} className="flex flex-col gap-3">
+        <Field id="login-email" label="Email">
+          <Input
+            type="email"
+            autoComplete="username"
+            required
+            autoFocus
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </Field>
+        <Field id="login-password" label="Password">
+          <Input
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </Field>
+        <FormError>{error}</FormError>
+        <Button type="submit" className="mt-1 w-full" disabled={login.isPending}>
+          {login.isPending ? "Signing in" : "Sign in"}
+        </Button>
+      </form>
+    </AuthSheet>
   );
 }

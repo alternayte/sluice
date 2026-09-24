@@ -1,0 +1,174 @@
+---
+title: Run flows from GitHub Actions
+description: Deploy a namespace directory with sluice namespaces push and run a flow with the Sluice GitHub Action, with the result in the job summary.
+---
+
+import { Steps, Aside } from "@astrojs/starlight/components";
+
+This guide shows you how to deploy a namespace from a GitHub repository and run one of its flows in the same workflow. The job fails when the flow does not succeed.
+
+The workflow has two parts:
+
+- A step runs `sluice namespaces push` with an editor token. It uploads the changed files of a directory as one new version of the namespace.
+- The action `alternayte/sluice` runs the flow with an operator token. It streams the logs into the job log and writes the result to the job summary. The step fails with the exit code of the run.
+
+<Aside type="caution">
+The action installs the `sluice` CLI from a GitHub release. It needs a release that has the client commands, and v0.1.2 and older releases do not have them. With such a release, the step fails because `sluice run` does not exist.
+</Aside>
+
+## Before you start
+
+- The Sluice server has a URL that the runner can reach. A GitHub-hosted runner needs a public URL. For a private server, use a self-hosted runner in the same network.
+- The repository holds the namespace as a directory, for example `orders/` with `orders.flow.yaml`.
+- The namespace in Sluice is a managed namespace. A namespace that Sluice syncs from git is read-only, and `sluice namespaces push` fails for it.
+
+## Create the tokens
+
+Give each step a token with the lowest role that it needs. A push needs the editor role. A run needs the operator role.
+
+<Steps>
+
+1. In Sluice, click **API tokens** under **Settings** in the sidebar.
+2. Click **Create token**. Type `github-deploy` in **Name**, select **Editor** in **Role**, and set **Expiry in days**.
+3. Click **Create token**, copy the token and click **Done**.
+4. Do steps 2 and 3 again for a token `github-run` with the role **Operator**.
+
+</Steps>
+
+## Store the URL and the tokens in GitHub
+
+<Steps>
+
+1. In the GitHub repository, open **Settings**, then **Secrets and variables**, then **Actions**.
+2. Add the repository secret `DEPLOY_TOKEN` with the editor token.
+3. Add the repository secret `RUN_TOKEN` with the operator token.
+4. On the **Variables** tab, add the variable `SLUICE_URL` with the base URL of the server, for example `https://sluice.example.com`.
+
+</Steps>
+
+## Add the workflow
+
+Create `.github/workflows/sluice.yml`:
+
+```yaml workflow
+name: Deploy and run orders
+
+on:
+  push:
+    branches: [main]
+    paths: ["orders/**"]
+  workflow_dispatch:
+
+env:
+  # The release of the sluice CLI. Use the same release for both steps.
+  CLI_VERSION: v0.2.0
+
+jobs:
+  deploy-and-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository.
+        uses: actions/checkout@v7
+
+      - name: Install the sluice CLI.
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh |
+            SLUICE_VERSION="$CLI_VERSION" SLUICE_BIN_DIR="$RUNNER_TEMP/bin" sh
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Validate the namespace.
+        run: sluice validate orders
+
+      - name: Deploy the namespace.
+        env:
+          SLUICE_URL: ${{ vars.SLUICE_URL }}
+          SLUICE_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: sluice namespaces push orders --namespace orders --message "Deploy ${{ github.sha }}"
+
+      - name: Run the flow.
+        id: flow
+        uses: alternayte/sluice@v0
+        with:
+          url: ${{ vars.SLUICE_URL }}
+          token: ${{ secrets.RUN_TOKEN }}
+          flow: orders/orders
+          inputs: |
+            day=2026-09-24
+          labels: |
+            commit=${{ github.sha }}
+          timeout: 30m
+          version: ${{ env.CLI_VERSION }}
+
+      - name: Print the result.
+        if: always()
+        run: echo "${{ steps.flow.outputs.state }} ${{ steps.flow.outputs.url }}"
+```
+
+The steps do this:
+
+| Step | Effect |
+|---|---|
+| Install the sluice CLI | Downloads the CLI of `CLI_VERSION` for the deploy step. |
+| Validate the namespace | Runs `sluice validate` offline. An invalid file fails the job before the deploy. |
+| Deploy the namespace | Sends only the files that differ from the head version. It creates no version when nothing changed. It deletes a file on the server that the directory does not have. |
+| Run the flow | Starts `orders/orders` with an input and a label, streams the logs and waits up to 30 minutes. |
+| Print the result | Reads the outputs of the action, also after a failure. |
+
+A label with the commit SHA connects each execution to the commit that deployed it. The **Executions** page filters by labels.
+
+## Read the result
+
+The action writes a table to the job summary:
+
+| State | Duration | Execution |
+|---|---|---|
+| SUCCESS | 0.602 s | `01a0d510-54ac-7524-ac61-4a8d3a015a3c`, a link to the execution page |
+
+When the execution has an error, the summary also shows the error text. The job log holds the log lines of all tasks, one line each as `[task#attempt] text`.
+
+The action has three outputs:
+
+| Output | Value |
+|---|---|
+| `execution-id` | The ID of the execution. |
+| `state` | The end state, for example `SUCCESS` or `FAILED`. It is empty when the run did not start. |
+| `url` | The URL of the execution page. |
+
+## Exit codes
+
+The step fails with the exit code of `sluice run --wait`:
+
+| Code | Cause |
+|---|---|
+| 0 | The execution ended `SUCCESS`. The step succeeds. |
+| 1 | An API or network error, for example a wrong URL or a flow that does not exist. |
+| 2 | A usage or configuration error, for example an empty `url` or `token`. |
+| 10 | The execution ended `FAILED`. |
+| 11 | The execution ended `TIMED_OUT`. |
+| 12 | The execution ended `CANCELLED`. |
+| 13 | The execution ended `SKIPPED`, for example by a concurrency limit with `behavior: skip`. |
+| 14 | The `timeout` of the action ended the wait. |
+
+With code 14, the execution continues on the server. The summary shows the state as `RUNNING (the wait timed out; the execution continues)`. To stop the execution, cancel it on its page or with `sluice executions cancel`. Without `timeout`, the action waits until the execution ends, up to the time limit of the job.
+
+## Pin the version
+
+The action installs the CLI from a release of `alternayte/sluice` and checks the archive against the `checksums.txt` of the release. The `version` input selects the release:
+
+| `version` | Action ref | CLI release |
+|---|---|---|
+| set, for example `v0.2.0` | any | The release of `version`. |
+| empty | a full tag, for example `alternayte/sluice@v0.2.0` | The release of that tag. |
+| empty | any other ref, for example `v0`, a branch or a commit SHA | The newest release. |
+
+The newest release changes without a change to your workflow. Set `version`, or use a full tag as the ref, to get the same CLI in each run.
+
+The action runs on Linux and macOS runners, on x64 and ARM64. It fails on Windows runners.
+
+## Keep the tokens safe
+
+- Store each token as a secret. GitHub masks secret values in the job log.
+- Give the run token the operator role. It can start and cancel executions, but it cannot change files.
+- Set an expiry on each token. Revoke a token on the **API tokens** page when you no longer use it.
+
+[GitHub Action](/reference/github-action/) lists all inputs and outputs. [Exit codes](/reference/exit-codes/) lists the exit codes of the CLI.

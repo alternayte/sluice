@@ -1,11 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { Play } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { runFileMutation, triggerFlowMutation } from "@/api/@tanstack/react-query.gen";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, FormError } from "@/components/ui/field";
-import { Input, Select } from "@/components/ui/input";
+import { Input, Select, Textarea } from "@/components/ui/input";
 import { errorMessage, fieldErrors } from "@/lib/errors";
 import {
   coerceInputs,
@@ -17,8 +18,7 @@ import {
   type FlowInput,
 } from "@/lib/executions";
 
-const textarea =
-  "min-h-24 w-full min-w-0 rounded-[6px] border border-input bg-background px-3 py-2 font-mono text-sm text-foreground aria-[invalid=true]:border-destructive";
+const textarea = "min-h-20 resize-y font-mono text-xs leading-5";
 
 function InputControl({
   input,
@@ -37,11 +37,11 @@ function InputControl({
   if (input.type === "boolean") {
     return (
       <div className="flex flex-col gap-1">
-        <label className="flex items-center gap-2 text-sm font-medium">
+        <label className="flex w-fit items-center gap-2 text-sm font-medium">
           <input
             id={id}
             type="checkbox"
-            className="h-4 w-4"
+            className="h-4 w-4 rounded-inner accent-accent"
             checked={value === true}
             onChange={(e) => onChange(e.target.checked)}
           />
@@ -65,7 +65,7 @@ function InputControl({
           ))}
         </Select>
       ) : input.type === "json" ? (
-        <textarea className={textarea} value={text} onChange={(e) => onChange(e.target.value)} spellCheck={false} />
+        <Textarea className={textarea} value={text} onChange={(e) => onChange(e.target.value)} spellCheck={false} />
       ) : (
         <Input
           type={input.type === "int" || input.type === "number" ? "number" : "text"}
@@ -78,17 +78,22 @@ function InputControl({
   );
 }
 
-/** RunFlowDialog renders a run form from the flow inputs and starts an execution (REQ-FLOW-008). */
+/**
+ * RunFlowDialog renders a run form from the flow inputs and starts an execution (REQ-FLOW-008).
+ * It opens the new execution, unless onStarted takes the execution ID.
+ */
 export function RunFlowDialog({
   namespace,
   flowId,
   definition,
   onClose,
+  onStarted,
 }: {
   namespace: string;
   flowId: string;
   definition: Record<string, unknown> | null | undefined;
   onClose: () => void;
+  onStarted?: (executionId: string) => void;
 }) {
   const navigate = useNavigate();
   const inputs = flowInputs(definition);
@@ -101,7 +106,8 @@ export function RunFlowDialog({
 
   const trigger = useMutation({
     ...triggerFlowMutation(),
-    onSuccess: (e) => void navigate({ to: "/executions/$executionId", params: { executionId: e.id } }),
+    onSuccess: (e) =>
+      onStarted ? onStarted(e.id) : void navigate({ to: "/executions/$executionId", params: { executionId: e.id } }),
     onError: (err) => {
       const { byInput } = inputFieldErrors(fieldErrors(err));
       setErrors(byInput);
@@ -126,20 +132,31 @@ export function RunFlowDialog({
 
   return (
     <Dialog open onClose={onClose} title={`Run ${flowId}`}>
-      <form onSubmit={submit} noValidate className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto">
-        {inputs.length === 0 && <p className="text-sm text-muted-foreground">This flow has no inputs.</p>}
-        {inputs.map((input) => (
-          <InputControl
-            key={input.id}
-            input={input}
-            value={values[input.id] ?? ""}
-            error={errors[input.id]}
-            onChange={(v) => setValues((prev) => ({ ...prev, [input.id]: v }))}
-          />
-        ))}
-        <Field id="run-labels" label="Labels" hint="Optional. One key=value per line." error={labelsError}>
-          <textarea className={textarea} value={labelsText} onChange={(e) => setLabelsText(e.target.value)} />
-        </Field>
+      <form onSubmit={submit} noValidate className="flex flex-col gap-4">
+        {/* The fields scroll; the buttons stay in view. The padding keeps the focus glow unclipped. */}
+        <div className="-mx-1 flex max-h-[60vh] flex-col gap-4 overflow-y-auto px-1 pb-1">
+          {inputs.length === 0 && (
+            <p className="rounded-control bg-muted px-3 py-2 text-sm text-muted-foreground">This flow has no inputs.</p>
+          )}
+          {inputs.map((input) => (
+            <InputControl
+              key={input.id}
+              input={input}
+              value={values[input.id] ?? ""}
+              error={errors[input.id]}
+              onChange={(v) => setValues((prev) => ({ ...prev, [input.id]: v }))}
+            />
+          ))}
+          <Field id="run-labels" label="Labels" hint="Optional. One key=value per line." error={labelsError}>
+            <Textarea
+              className={textarea}
+              value={labelsText}
+              placeholder="team=data"
+              spellCheck={false}
+              onChange={(e) => setLabelsText(e.target.value)}
+            />
+          </Field>
+        </div>
         {trigger.isError && (shownOther.length > 0 || Object.keys(fieldErrors(trigger.error)).length === 0) && (
           <FormError>{shownOther.length ? shownOther.join(" ") : errorMessage(trigger.error)}</FormError>
         )}
@@ -148,6 +165,7 @@ export function RunFlowDialog({
             Cancel
           </Button>
           <Button type="submit" disabled={trigger.isPending}>
+            <Play className="h-3.5 w-3.5" aria-hidden />
             {trigger.isPending ? "Starting" : "Run"}
           </Button>
         </div>
@@ -177,7 +195,13 @@ export function RunFileDialog({ namespace, path, onClose }: { namespace: string;
         className="flex flex-col gap-4"
       >
         <Field id="run-args" label="Arguments" hint="Optional. One argument per line." error={argsError}>
-          <textarea className={textarea} value={args} onChange={(e) => setArgs(e.target.value)} autoFocus />
+          <Textarea
+            className={textarea}
+            value={args}
+            spellCheck={false}
+            onChange={(e) => setArgs(e.target.value)}
+            autoFocus
+          />
         </Field>
         {run.isError && !argsError && <FormError>{errorMessage(run.error)}</FormError>}
         <div className="flex justify-end gap-2">
@@ -185,6 +209,7 @@ export function RunFileDialog({ namespace, path, onClose }: { namespace: string;
             Cancel
           </Button>
           <Button type="submit" disabled={run.isPending}>
+            <Play className="h-3.5 w-3.5" aria-hidden />
             {run.isPending ? "Starting" : "Run"}
           </Button>
         </div>

@@ -10,7 +10,10 @@ export function LabelBadges({ labels }: { labels: Record<string, string> | null 
   return (
     <span className="flex flex-wrap gap-1">
       {entries.map(([k, v]) => (
-        <span key={k} className="rounded-[6px] border bg-muted px-1.5 font-mono text-xs whitespace-nowrap">
+        <span
+          key={k}
+          className="rounded-control bg-muted px-1.5 font-mono text-xs leading-5 whitespace-nowrap text-foreground/85 shadow-[inset_0_0_0_0.5px_var(--border)]"
+        >
           {k}={v}
         </span>
       ))}
@@ -28,23 +31,27 @@ export function CompactExecutionTable({ items }: { items: Row[] }) {
         <Tr>
           <Th>State</Th>
           <Th>Created</Th>
-          <Th>Duration</Th>
+          <Th className="text-right">Duration</Th>
         </Tr>
       </THead>
       <TBody>
         {items.map((e) => (
           <Tr key={e.id}>
             <Td>
-              <Link to="/executions/$executionId" params={{ executionId: e.id }} className="hover:underline">
+              <Link to="/executions/$executionId" params={{ executionId: e.id }} className="inline-flex">
                 <ExecutionStateBadge state={e.state} />
               </Link>
             </Td>
             <Td>
-              <Link to="/executions/$executionId" params={{ executionId: e.id }} className="hover:underline">
+              <Link
+                to="/executions/$executionId"
+                params={{ executionId: e.id }}
+                className="tabular-nums hover:underline"
+              >
                 {formatTime(e.created_at)}
               </Link>
             </Td>
-            <Td className="tabular-nums">{formatDuration(e.duration_ms)}</Td>
+            <Td className="text-right text-muted-foreground tabular-nums">{formatDuration(e.duration_ms)}</Td>
           </Tr>
         ))}
       </TBody>

@@ -34,3 +34,40 @@ export async function loadLogs<T>({
   openStream();
   return "live";
 }
+
+/** TextPart is a piece of a log line: plain text, a URL or a search match. */
+export type TextPart = { kind: "text" | "url" | "match"; text: string };
+
+const urlPattern = /\bhttps?:\/\/[^\s<>"'`]+[^\s<>"'`.,;:!?)\]}]/g;
+
+/**
+ * splitLogText splits a log line into URLs and search matches, so the viewer can link the
+ * URLs and mark the matches. A match inside a URL stays part of the URL.
+ */
+export function splitLogText(text: string, search: string): TextPart[] {
+  const parts: TextPart[] = [];
+  const q = search.trim().toLowerCase();
+  const pushText = (t: string) => {
+    if (!t) return;
+    if (!q) {
+      parts.push({ kind: "text", text: t });
+      return;
+    }
+    const lower = t.toLowerCase();
+    let i = 0;
+    for (let at = lower.indexOf(q); at >= 0; at = lower.indexOf(q, i)) {
+      if (at > i) parts.push({ kind: "text", text: t.slice(i, at) });
+      parts.push({ kind: "match", text: t.slice(at, at + q.length) });
+      i = at + q.length;
+    }
+    if (i < t.length) parts.push({ kind: "text", text: t.slice(i) });
+  };
+  let last = 0;
+  for (const m of text.matchAll(urlPattern)) {
+    pushText(text.slice(last, m.index));
+    parts.push({ kind: "url", text: m[0] });
+    last = m.index + m[0].length;
+  }
+  pushText(text.slice(last));
+  return parts;
+}

@@ -1,4 +1,5 @@
-import { lazy, Suspense } from "react";
+import { ChartNoAxesColumn } from "lucide-react";
+import { lazy, Suspense, type ReactNode } from "react";
 import type { ChartRow, Series } from "./charts-impl";
 
 export type { ChartRow, Series } from "./charts-impl";
@@ -7,16 +8,20 @@ export type { ChartRow, Series } from "./charts-impl";
 const StackedImpl = lazy(() => import("./charts-impl").then((m) => ({ default: m.StackedBars })));
 const LinesImpl = lazy(() => import("./charts-impl").then((m) => ({ default: m.Lines })));
 
-/** chartColors are series colors for groups without a state color. */
+/**
+ * chartColors are series colors for groups without a state color, in a fixed order: the
+ * accent, two state hues, then Apple system teal, purple, pink and indigo. light-dark()
+ * picks the system hue of the current theme. The order keeps neighbours apart for color
+ * vision deficiencies.
+ */
 export const chartColors = [
   "var(--accent)",
-  "var(--state-success)",
   "var(--state-timed-out)",
-  "var(--state-failed)",
-  "var(--state-cancelled)",
-  "#8b5cf6",
-  "#0ea5e9",
-  "#d946ef",
+  "light-dark(#30b0c7, #40c8e0)",
+  "light-dark(#af52de, #bf5af2)",
+  "var(--state-success)",
+  "light-dark(#ff2d55, #ff375f)",
+  "light-dark(#5856d6, #5e5ce6)",
 ];
 
 function ChartFrame({
@@ -24,24 +29,47 @@ function ChartFrame({
   rows,
   series,
   format,
+  emptyText = "No data in this range.",
+  toolbar,
   children,
 }: {
   title: string;
   rows: ChartRow[];
   series: Series[];
   format?: (v: number) => string;
-  children: React.ReactNode;
+  emptyText?: string;
+  toolbar?: ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <figure className="flex min-w-0 flex-col gap-2 rounded-[8px] border bg-panel p-3">
-      <figcaption className="text-sm font-medium">{title}</figcaption>
-      <div aria-hidden className="min-w-0">
+    <figure className="flex min-w-0 flex-col gap-3 rounded-panel border bg-panel p-4 shadow-panel">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <figcaption className="text-sm font-semibold">{title}</figcaption>
+        {toolbar}
+      </div>
+      <div aria-hidden className="flex min-w-0 flex-col gap-2">
         {rows.length === 0 ? (
-          <p className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
-            No data in this range.
-          </p>
+          <div className="flex h-[220px] flex-col items-center justify-center gap-2 text-center">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <ChartNoAxesColumn className="h-4 w-4" />
+            </span>
+            <p className="text-sm text-muted-foreground">{emptyText}</p>
+          </div>
         ) : (
-          <Suspense fallback={<div className="h-[220px] animate-pulse rounded-[6px] bg-muted" />}>{children}</Suspense>
+          <>
+            <Suspense fallback={<div className="skeleton h-[220px] rounded-control" />}>{children}</Suspense>
+            {/* One series needs no legend: the title names it. */}
+            {series.length > 1 && (
+              <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                {series.map((s) => (
+                  <li key={s.key} className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full" style={{ background: s.color }} />
+                    {s.label}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
         )}
       </div>
       {/* The data as a table, for screen readers and exact values. A table ignores the 1 px
@@ -84,21 +112,25 @@ export function StackedChart({ title, rows, series }: { title: string; rows: Cha
   );
 }
 
-/** LineChart is a line chart with a data table. */
+/** LineChart is a line chart with a data table. A toolbar sits next to the title. */
 export function LineChart({
   title,
   rows,
   series,
   format,
+  emptyText,
+  toolbar,
 }: {
   title: string;
   rows: ChartRow[];
   series: Series[];
   format?: (v: number) => string;
+  emptyText?: string;
+  toolbar?: ReactNode;
 }) {
   return (
-    <ChartFrame title={title} rows={rows} series={series} format={format}>
-      <LinesImpl rows={rows} series={series} />
+    <ChartFrame title={title} rows={rows} series={series} format={format} emptyText={emptyText} toolbar={toolbar}>
+      <LinesImpl rows={rows} series={series} format={format} />
     </ChartFrame>
   );
 }

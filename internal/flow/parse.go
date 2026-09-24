@@ -19,19 +19,18 @@ import (
 )
 
 var (
-	schemaOnce   sync.Once
-	flowSchema   *jsonschema.Schema
-	nsSchema     *jsonschema.Schema
-	schemaErr    error
-	printer      = message.NewPrinter(language.English)
-	yamlLineRe   = regexp.MustCompile(`line (\d+)`)
-	namespaceURL = "https://sluice.dev/schemas/namespace.json"
+	schemaOnce sync.Once
+	flowSchema *jsonschema.Schema
+	nsSchema   *jsonschema.Schema
+	schemaErr  error
+	printer    = message.NewPrinter(language.English)
+	yamlLineRe = regexp.MustCompile(`line (\d+)`)
 )
 
 func compiledSchemas() (*jsonschema.Schema, *jsonschema.Schema, error) {
 	schemaOnce.Do(func() {
 		c := jsonschema.NewCompiler()
-		for url, gen := range map[string]func() ([]byte, error){SchemaID: FlowSchema, namespaceURL: NamespaceSchema} {
+		for url, gen := range map[string]func() ([]byte, error){SchemaID: FlowSchema, NamespaceSchemaID: NamespaceSchema} {
 			b, err := gen()
 			if err != nil {
 				schemaErr = err
@@ -50,7 +49,7 @@ func compiledSchemas() (*jsonschema.Schema, *jsonschema.Schema, error) {
 		if flowSchema, schemaErr = c.Compile(SchemaID); schemaErr != nil {
 			return
 		}
-		nsSchema, schemaErr = c.Compile(namespaceURL)
+		nsSchema, schemaErr = c.Compile(NamespaceSchemaID)
 	})
 	return flowSchema, nsSchema, schemaErr
 }

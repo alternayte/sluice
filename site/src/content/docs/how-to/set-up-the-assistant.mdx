@@ -1,0 +1,103 @@
+---
+title: Set up the assistant
+description: Connect Sluice to Anthropic or to an OpenAI-compatible model server, test it, and turn on automatic failure triage.
+---
+
+import { Steps, Tabs, TabItem, Aside } from "@astrojs/starlight/components";
+
+This guide shows you how to connect Sluice to a model provider. The provider powers three features: the assistant panel, flow authoring in the assistant, and failure triage. The MCP server at `/mcp` does not need a provider.
+
+## Before you start
+
+- You have the admin role. Only an admin can change the provider and the global secrets.
+- You have an API key of the provider, and the ID of the model that you want to use.
+- The server has `SLUICE_MASTER_KEYS`, so that it can store a builtin secret. A secret from another provider, for example Vault, also works.
+
+## Connect the provider
+
+<Steps>
+
+1. Store the API key as a global secret.
+
+   Open **Secrets** and click **Add secret**. Enter a key, for example `ANTHROPIC_API_KEY`. Keep the provider `builtin`, paste the API key into **Value**, and save. The page never shows the value again.
+
+2. Open **Settings → AI provider**.
+
+3. Fill in the fields of the provider:
+
+   <Tabs>
+   <TabItem label="Anthropic">
+
+   | Field | Value |
+   |---|---|
+   | **Type** | Anthropic |
+   | **Base URL** | Empty. Sluice uses `https://api.anthropic.com`. |
+   | **Model** | The model ID from the model list of Anthropic. |
+   | **API key secret key** | `ANTHROPIC_API_KEY` |
+
+   </TabItem>
+   <TabItem label="OpenAI compatible">
+
+   | Field | Value |
+   |---|---|
+   | **Type** | OpenAI compatible |
+   | **Base URL** | Empty for OpenAI. Sluice uses `https://api.openai.com/v1`. For another server, the URL before `/chat/completions`, for example `http://localhost:11434/v1`. |
+   | **Model** | The model name that the server expects. |
+   | **API key secret key** | The key of the global secret, for example `OPENAI_API_KEY`. |
+
+   A server without API keys still needs a global secret. Store any value in it.
+
+   </TabItem>
+   </Tabs>
+
+4. Click **Save**. The **Status** row changes to a green badge.
+
+5. Click **Test provider**. Sluice sends one short request. The page shows "The provider answered." or the error of the provider.
+
+6. Click **Assistant** at the bottom right of any page, and ask a question about your flows.
+
+</Steps>
+
+## Follow the base URL rules
+
+- An empty base URL uses the default URL of the type.
+- A base URL must use `https://`.
+- Plain `http://` works only for a loopback host: `localhost`, `127.0.0.1` or `::1`.
+- A base URL cannot hold a user name or a password.
+
+The Sluice server sends the requests, not the browser. A loopback host thus means the host of the server. When Sluice runs in a container, `localhost` is the container itself.
+
+## Turn on automatic triage
+
+Under **Failure triage**, select **Triage failed and timed out executions automatically**, then click **Save**. Sluice then queues a triage when an execution ends `FAILED` or `TIMED_OUT`. Without this option, an operator clicks **Triage** on the execution page.
+
+Every instance takes queued triages. A triage has 3 minutes. See [Triage a failed execution](/how-to/triage-a-failed-execution/).
+
+## Limit the size of the triage context
+
+`SLUICE_AI_MAX_CONTEXT_CHARS` limits the characters of one triage request. The default is `120000`, and the minimum is `1000`. A smaller value costs less per triage and keeps fewer log lines. Set the same value on all instances.
+
+## Know what happens on errors
+
+| Case | Result |
+|---|---|
+| The provider answers 429 or 5xx, or the network fails | Sluice tries 3 times in total, 0.5 and 1 second apart. Then the feature shows the error. |
+| The API key secret does not resolve | The operation answers `409 ai_key_unavailable`. **Test provider** shows the message. |
+| No provider exists | The UI hides the assistant and the triage card. The AI operations answer `409 ai_disabled`. MCP still works. |
+
+`GET /api/v1/ai/status` tells a client whether AI is on and whether triage is automatic.
+
+## Remove the provider
+
+On **Settings → AI provider**, click **Remove**, then confirm. The UI hides the AI features again. The global secret stays. Delete it on **Secrets** when you no longer need it.
+
+<Aside type="note">
+Sluice records `ai.provider.update` and `ai.provider.delete` in the audit log. The audit event holds the type, the model and the base URL, never the key.
+</Aside>
+
+## Related pages
+
+- [The assistant and MCP](/concepts/the-assistant-and-mcp/)
+- [Triage a failed execution](/how-to/triage-a-failed-execution/)
+- [Connect an MCP client](/how-to/connect-an-mcp-client/)
+- [Use secrets and variables](/how-to/use-secrets-and-variables/)

@@ -10,11 +10,17 @@ import (
 	"github.com/invopop/jsonschema"
 )
 
+// SchemaBaseURL is where the docs site serves the schemas. Each $id is a URL there.
+const SchemaBaseURL = "https://sluice-docs.pages.dev/schemas/"
+
 // SchemaID is the $id of the flow schema.
-const SchemaID = "https://sluice.dev/schemas/flow.json"
+const SchemaID = SchemaBaseURL + "flow.schema.json"
+
+// NamespaceSchemaID is the $id of the namespace.yaml schema.
+const NamespaceSchemaID = SchemaBaseURL + "namespace.schema.json"
 
 // ValidateResultSchemaID is the $id of the `sluice validate --json` result schema.
-const ValidateResultSchemaID = "https://sluice.dev/schemas/validate-result.json"
+const ValidateResultSchemaID = SchemaBaseURL + "validate-result.schema.json"
 
 func reflector() *jsonschema.Reflector {
 	return &jsonschema.Reflector{RequiredFromJSONSchemaTags: true, AllowAdditionalProperties: false, DoNotReference: false}
@@ -32,7 +38,7 @@ func FlowSchema() ([]byte, error) {
 // NamespaceSchema returns the JSON Schema of namespace.yaml.
 func NamespaceSchema() ([]byte, error) {
 	s := reflector().Reflect(&NamespaceFile{})
-	s.ID = "https://sluice.dev/schemas/namespace.json"
+	s.ID = NamespaceSchemaID
 	s.Title = "Sluice namespace.yaml"
 	return marshalSchema(s)
 }
@@ -53,7 +59,8 @@ func marshalSchema(s *jsonschema.Schema) ([]byte, error) {
 	return append(b, '\n'), nil
 }
 
-// ReferenceDoc renders docs/reference/flow.md from the schema descriptions (REQ-DOC-002).
+// ReferenceDoc renders the flow reference from the schema descriptions (REQ-DOC-002). `just gen`
+// writes it into site/src/content/docs/reference/flow.md.
 // It fails when a property has no description.
 func ReferenceDoc() (string, error) {
 	var b strings.Builder

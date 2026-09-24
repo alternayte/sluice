@@ -1,0 +1,69 @@
+---
+title: How Sluice compares
+description: A factual comparison of Sluice with Kestra, Airflow, Dagster, Prefect, Windmill and Temporal, for a reader who chooses a tool.
+sidebar:
+  order: 8
+---
+
+This page compares Sluice with six other orchestration tools: Kestra, Airflow, Dagster, Prefect, Windmill and Temporal. It states what Sluice is and is not, and when another tool fits better.
+
+## What Sluice is
+
+Sluice is a self-hosted flow orchestrator. It is one Go binary that holds the server, the web UI, the CLI, the runner and an MCP server. Postgres holds all state. It needs no other service.
+
+A flow is a YAML file in a namespace, next to the scripts that it runs. A task is a script (Python through uv, bash, bun or node), a command, an HTTP call or a subflow. Sluice runs tasks inline, as a process, in a Docker container or as a Kubernetes Job. Schedules, webhooks and the end of another flow start executions. The UI shows each execution live, with a waterfall of the task runs and their logs.
+
+Sluice gives coding agents and CI jobs the same access as people. The CLI prints JSON and exits with the end state of an execution. The MCP server reads, runs and triages executions. `sluice init` writes an agent skill into a repository. The docs publish `llms.txt` and a Markdown copy of each page.
+
+## What Sluice is not
+
+- It is not a durable execution engine. It does not replay workflow code after a crash. A lost task run fails, and its retry policy applies.
+- It has no data asset model. It does not track tables, lineage or the freshness of data.
+- It has no plugin catalog. A task calls your own script, a command or an HTTP endpoint.
+- It has no single sign-on. It has its own user accounts and four fixed roles, with no roles for each namespace.
+- It is one environment for each deployment. It has no tenants.
+- It is before version 1.0.0. A minor version can break compatibility.
+
+## Comparison table
+
+The facts about the other tools come from their public documentation in September 2026. A dash means that this page makes no claim.
+
+| Tool | Deployment footprint | Flow definition | Where tasks run | UI | CLI | MCP and agent support | License model |
+|---|---|---|---|---|---|---|---|
+| **Sluice** | One Go binary and Postgres. | YAML flow files in namespaces. Tasks are scripts, commands, HTTP calls and subflows. | Inline, process, Docker and Kubernetes executors, in named pools. | Web UI in the binary. | `sluice`, the same binary. | MCP server at `/mcp`, MCP server card, an assistant in the UI, an agent skill from `sluice init`, `llms.txt`. | Open source under the GNU AGPL 3.0. |
+| **Kestra** | A Java server on the JVM, with a database. | YAML flows in namespaces. Tasks come from plugins. | Plugins and task runners. | Web UI with a flow editor and a Copilot sidebar. | `kestra` | MCP server, Copilot sidebar, `llms.txt`. | Open source core, with a commercial enterprise edition. |
+| **Windmill** | A Rust server and workers, with Postgres. | Scripts in many languages, and flows that chain scripts. | Workers in worker groups. | Web UI with script and flow editors. | `wmill` | An MCP gateway for each instance. | Open source core, with a commercial enterprise edition. |
+| **Prefect** | A Python server with a database, and workers. A hosted service exists. | Python functions with `@flow` and `@task` decorators. | Workers in work pools. | Web UI. | `prefect` | A read-only MCP server. | Open source, with a hosted commercial service. |
+| **Dagster** | A web server, a daemon and code locations, with a database. A hosted service exists. | Python. The unit is the data asset. | Run launchers and executors. | Web UI with the asset graph. | `dagster`, `dg` | An MCP server. | Open source, with a hosted commercial service. |
+| **Airflow 3** | A scheduler, an API server, a DAG processor, workers and a metadata database. | Python DAGs. | Executors, for example Celery or Kubernetes. | React web UI. | `airflow` | No first-party agent tooling. | Open source, an Apache Software Foundation project. |
+| **Temporal** | The Temporal service with a persistence store, and your workers. A hosted service exists. | Durable workflows as code in an SDK. It is not a scheduler of scripts. | Your worker processes. | Web UI for workflow histories. | `temporal` | — | Open source, with a hosted commercial service. |
+
+## When to choose Sluice
+
+Sluice fits these cases:
+
+- You have scripts and commands, and you want them on a schedule or a webhook with logs, retries and secrets.
+- You want one binary and one Postgres database, with no message broker and no separate scheduler or worker services.
+- You want flows as reviewable YAML files in git, next to the scripts, with a validator that runs offline in CI.
+- You want coding agents and CI jobs to run and debug flows through a CLI with JSON output, MCP tools and an agent skill.
+- You run on Kubernetes and want each task as a Job, or on one host and want each task as a process or a container.
+
+## When to choose another tool
+
+Another tool fits these cases better:
+
+- **Kestra**: you want YAML flows with a catalog of ready-made plugins for databases, clouds and SaaS products. Its enterprise edition adds features such as single sign-on.
+- **Airflow**: your team writes Python DAGs, uses the Airflow provider packages, or runs Airflow already.
+- **Dagster**: you think in data assets, and you need lineage, freshness and asset checks across a data platform.
+- **Prefect**: your workflows are Python code, and you want to add orchestration to existing Python functions with decorators.
+- **Windmill**: you want scripts in many languages with generated UIs and internal apps on top of them.
+- **Temporal**: you need durable, long-running workflows as code that survive process crashes and continue from the last step, for example in business transactions.
+
+Sluice also does not fit when you need single sign-on, namespace-level roles or several isolated tenants in one deployment.
+
+## Related pages
+
+- [Architecture](/concepts/architecture/): the components of Sluice.
+- [Executors, pools and the runner](/concepts/executors-pools-and-the-runner/): where tasks run.
+- [The assistant and MCP](/concepts/the-assistant-and-mcp/): the agent features.
+- [Run your first flow](/tutorials/run-your-first-flow/): start Sluice and run a flow.

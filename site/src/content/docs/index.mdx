@@ -1,0 +1,83 @@
+---
+title: Sluice
+description: Sluice runs flows of scripts, commands, HTTP calls and subflows on process, docker or kubernetes executors. One Go binary with Postgres, a web UI, a CLI and an MCP server.
+template: splash
+hero:
+  image:
+    light: ../../assets/shots/execution-live-light.png
+    dark: ../../assets/shots/execution-live-dark.png
+    alt: An execution of the flow sales/nightly-load while it runs, with the waterfall of its tasks and the live log.
+  tagline: Flows are YAML files. Tasks are your scripts. Sluice runs them on a schedule, a webhook or a click, on a process, a container or a Kubernetes Job, and shows every run live. One Go binary with Postgres.
+  actions:
+    - text: Run your first flow
+      link: /tutorials/run-your-first-flow/
+      icon: right-arrow
+    - text: Use Sluice with coding agents
+      link: /how-to/use-sluice-with-coding-agents/
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+import Shot from "../../components/Shot.astro";
+
+Sluice is one binary: the server, the web UI, the CLI and an MCP server. It needs only Postgres.
+
+```sh
+export SLUICE_BOOTSTRAP_ADMIN_PASSWORD=change-me-now-1
+export SLUICE_MASTER_KEYS="k1:$(openssl rand -base64 32)"
+docker compose -f deploy/compose/compose.yml up -d
+```
+
+Open [http://localhost:8080](http://localhost:8080), sign in as `admin@local.test`, and run a flow.
+
+<Shot name="execution-failed" alt="A failed execution: the failure triage with its cause and fix, the failed task selected in the waterfall, and its error in the log." />
+
+<CardGrid>
+  <Card title="Flows are files" icon="document">
+    A flow is a YAML file next to the scripts it runs. Edit it in the browser, sync it from git, or push it from CI with `sluice namespaces push`. Every save is a version.
+  </Card>
+  <Card title="Watch every run" icon="seti:graphql">
+    The execution page shows a live waterfall of the tasks. Select a task to see its attempts, outputs, metrics and logs. A failed run takes you to the failed task in one click.
+  </Card>
+  <Card title="Built for agents" icon="rocket">
+    `sluice init` gives a coding agent the flow rules. The CLI prints JSON and exits with the end state. The MCP server reads, runs and triages executions. The docs are in llms.txt.
+  </Card>
+  <Card title="Runs where your code runs" icon="setting">
+    Tasks run as a local process, in a Docker container or as a Kubernetes Job. Pools route tasks to the instances that can run them.
+  </Card>
+</CardGrid>
+
+## A flow
+
+```yaml flow
+id: nightly-load
+description: Load orders, then build the report.
+triggers:
+  - { id: nightly, type: schedule, cron: "0 2 * * *", timezone: Europe/Zurich }
+tasks:
+  - id: extract
+    type: command
+    command: ["python3", "pipelines/extract.py"]
+    env:
+      DB_URL: ${{ secret('DB_URL') }}
+  - id: report
+    type: command
+    depends_on: [extract]
+    command: ["echo", "rows: ${{ tasks.extract.outputs.rows }}"]
+```
+
+Install the CLI, then run the flow from a terminal, a CI job or an agent. The exit code is the end state:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh | sh
+sluice run sales/nightly-load --wait
+```
+
+## Where to go next
+
+<CardGrid>
+  <LinkCard title="Tutorials" href="/tutorials/run-your-first-flow/" description="Start Sluice, write a flow, run it and read the execution. Then build an ELT pipeline." />
+  <LinkCard title="How-to guides" href="/how-to/run-flows-from-github-actions/" description="Schedules, webhooks, secrets, git sync, Docker and Kubernetes, CI, coding agents and MCP." />
+  <LinkCard title="Concepts" href="/concepts/architecture/" description="How flows, executions, namespaces, executors and the assistant work, and why." />
+  <LinkCard title="Reference" href="/reference/flow/" description="The flow file, the CLI, the environment variables, the MCP tools and the HTTP API." />
+</CardGrid>

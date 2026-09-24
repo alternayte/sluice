@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sluice.dev/schemas/validate-result.json",
+  "$id": "https://sluice-docs.pages.dev/schemas/validate-result.schema.json",
   "$ref": "#/$defs/ValidateResult",
   "$defs": {
     "FileResult": {

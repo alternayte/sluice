@@ -1,0 +1,167 @@
+---
+title: Templates
+description: Every template expression, the fields that accept templates and secret(), the rendering rules and the error codes.
+---
+
+This page lists the template expressions of a flow file, the fields that accept them, how Sluice renders them and the errors that they give. [Flows, tasks and templates](/concepts/flows-and-tasks/) explains how templates fit into a flow.
+
+## Syntax
+
+A template is a string that holds one or more `${{ expr }}` blocks. Sluice replaces each block with the value of its expression. Text outside the blocks stays as it is.
+
+| Rule | Value |
+|---|---|
+| Block | `${{`, then an expression, then `}}`. Spaces inside the block do not count. |
+| Expression | A lookup only. No operators, no filters, no function calls except `secret()`. |
+| Path | Parts joined by dots. Each part matches `^[A-Za-z_][A-Za-z0-9_-]*$`. |
+| Literal `${{` | Write `$${{`. Sluice writes `${{` and does not read an expression. |
+
+The path rule has two effects. A part cannot start with a digit, so a template cannot select a list item. A part can hold a hyphen, so `trigger.headers.X-Source` is a valid path.
+
+## Expressions
+
+| Expression | Value | Validation checks |
+|---|---|---|
+| `inputs.<id>` | The value of a flow input. | The flow declares the input. |
+| `vars.<KEY>` | A variable. See [Variable precedence](#variable-precedence). | Nothing. The key resolves at dispatch. |
+| `secret('<KEY>')` | A secret value. `secret("<KEY>")` also works. | The field accepts `secret()`. |
+| `tasks.<task_id>.outputs.<key>` | An output of another task. | The task exists and is a dependency. |
+| `trigger.<path>` | A field of the trigger payload. See [Trigger payload](#trigger-payload). | Nothing. The path resolves when the value renders. |
+| `execution.id` | The execution ID. | — |
+| `execution.namespace` | The namespace of the flow. | — |
+| `execution.flow_id` | The flow ID. | — |
+| `execution.created_at` | The creation time of the execution, RFC 3339 in UTC. | — |
+
+`inputs.<id>` and `vars.<KEY>` take exactly one part after the prefix. `tasks` takes exactly three parts, and the middle part is `outputs`. `execution` accepts only the four fields in the table.
+
+A flow file with templates:
+
+```yaml flow
+id: templates-demo
+inputs:
+  - { id: run_date, type: string, default: "2026-09-24" }
+variables: { DATASET: raw }
+env:
+  DATASET: ${{ vars.DATASET }}
+  RUN_ID: ${{ execution.id }}
+tasks:
+  - id: extract
+    type: script
+    file: pipelines/extract.py
+    args: ["--date=${{ inputs.run_date }}"]
+    env:
+      PG_URL: ${{ secret('PG_URL') }}
+  - id: report
+    type: command
+    depends_on: [extract]
+    command: ["echo", "rows=${{ tasks.extract.outputs.rows }}", "price=$${{ not a template }}"]
+outputs:
+  rows: ${{ tasks.extract.outputs.rows }}
+```
+
+The `report` task prints `price=${{ not a template }}` as literal text.
+
+## Where templates render
+
+| Field | Templates | `secret()` | Rendered |
+|---|---|---|---|
+| Flow `env` values | yes | yes | When each task starts. |
+| Task `env` values | yes | yes | When the task starts. |
+| `defaults.env` values of `namespace.yaml` | yes | yes | When each task starts. |
+| `files` values of `script` and `command` tasks | yes | yes | When the task starts. |
+| `args` of `script` tasks | yes | no | When the task starts. |
+| `command` of `command` tasks | yes | no | When the task starts. |
+| `url`, `headers` values and `body` of `http` tasks | yes | yes | When the task starts. |
+| `inputs` values of `subflow` tasks | yes | no | When the task starts. |
+| Trigger `inputs` values | `trigger.<path>` only | no | When the trigger fires. |
+| Flow `outputs` values | yes | no | When the execution succeeds. |
+| `file`, `workdir`, subflow `flow` | no | no | Never. A `${{` block fails validation. |
+| `files` keys | no | no | Never. A `${{` block fails validation. |
+
+Sluice does not read templates in any other field. The text of such a field, for example `description`, stays as it is.
+
+## Rules for task outputs
+
+- A task template can read `tasks.X.outputs` only when X is a dependency of the task, direct or through other tasks.
+- Flow `env` cannot read task outputs.
+- Flow `outputs` can read the outputs of every task.
+- When a task has several attempts, the template reads the outputs of the last attempt.
+- Only a dependency that ended `SUCCESS` has outputs for templates. A `run_if: always` task that reads the outputs of a failed dependency fails with `template_error`.
+
+## Rules for trigger inputs
+
+A trigger input renders when the trigger fires, before the execution exists. Thus it can read only `trigger.<path>`. Every other reference, for example `vars`, `inputs`, `execution`, `tasks` or `secret()`, fails validation with `trigger_input_reference`.
+
+## Rendering
+
+| Value of the expression | Rendered text |
+|---|---|
+| A string | The string as it is. |
+| A number, boolean, object or list | Compact JSON, for example `42`, `true` or `{"a":1}`. |
+| JSON `null` | `null` |
+
+Some fields turn the rendered text back into a typed value:
+
+| Field | Conversion |
+|---|---|
+| Trigger `inputs` | For an input of type `int`, `number`, `boolean` or `json`, Sluice parses the text as JSON when it can. The text `42` becomes the number 42. |
+| Subflow `inputs` | Sluice parses a JSON number, boolean, object or list. Other text stays a string. Then Sluice checks the value against the input type of the child flow. |
+| Flow `outputs` | Sluice parses a JSON number, boolean, object or list. Other text stays a string. |
+
+## Trigger payload
+
+`trigger.<path>` reads the payload that the trigger stored on the execution. The execution API shows the payload as `trigger_payload`.
+
+| Trigger type | Payload fields |
+|---|---|
+| `manual` | None. |
+| `schedule` | `scheduled_for`: the fire time, RFC 3339 in UTC. |
+| `webhook` | `body`: the request body, parsed when it is JSON, else the text. `headers`: the request headers with lower-case names, first value only. |
+| `flow` | `execution_id`, `state`, `outputs` and `flow` of the upstream execution. |
+| `subflow` | `parent_execution_id` and `parent_task`. |
+| `file` | `path` and `args`. |
+| `rerun`, `restart` | The payload of the original execution. |
+
+A lookup of a map key first tries the exact key. Then it tries a match that ignores case. Thus `trigger.headers.X-Source` finds the header `x-source`.
+
+## Variable precedence
+
+`vars.<KEY>` takes the first definition in this order:
+
+1. The `variables` map of the flow.
+2. The namespace of the flow.
+3. Each parent namespace, nearest first.
+4. The global scope.
+
+`secret('<KEY>')` searches the same scopes, without step 1. [Use secrets and variables](/how-to/use-secrets-and-variables/) shows how to set them.
+
+## Errors
+
+### Validation codes
+
+The editor, the server and `sluice validate` report these codes. A flow with one of them is invalid, and its triggers do not fire.
+
+| Code | Cause |
+|---|---|
+| `invalid_template` | A syntax error. Examples: an unclosed `${{`, an empty expression, an operator, an unknown prefix, a wrong number of path parts, a bad `secret()` call. Also a task output in flow `env`. |
+| `template_not_allowed` | A `${{` block in `file`, `workdir`, a subflow `flow` or a `files` key. |
+| `secret_not_allowed` | `secret()` in a field that does not accept it. |
+| `unknown_input` | `inputs.<id>` names an input that the flow does not declare. |
+| `unknown_task` | `tasks.<task_id>` names a task that the flow does not have. |
+| `output_reference_not_dependency` | A task reads the outputs of a task that is not one of its dependencies. |
+| `trigger_input_reference` | A trigger input reads something other than `trigger.<path>`. |
+
+### Reasons at run time
+
+A lookup that fails at run time fails the task or the execution before any process starts. The retry policy of the task applies to a failed task.
+
+| Reason | Cause |
+|---|---|
+| `template_error` | A lookup failed, for example an input without a value, an undefined variable, a missing task output or a missing trigger field. The error names the field and the expression. |
+| `secret_not_found` | No scope defines the secret key, or the provider has no value for the reference. The error names the key and the scopes it searched. |
+| `secret_provider_error` | The provider of the secret failed, for example with access denied or a network error. |
+| `output_error` | A flow output failed to render. The execution ends `FAILED`. |
+
+A trigger input that fails to render starts no execution. A webhook call then returns 422 `validation_failed`. A schedule or flow trigger writes the audit event `trigger.failed`.
+
+[States and reasons](/reference/states-and-reasons/) lists every reason.

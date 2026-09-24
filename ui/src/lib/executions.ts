@@ -264,10 +264,15 @@ export type GanttRun = {
 
 export type GanttRow = {
   id: string;
+  taskKey: string;
+  attempt: number;
   label: string;
   state: string;
   left: number;
   width: number;
+  /** waitLeft and waitWidth place the time between queued and started, in percent. */
+  waitLeft: number;
+  waitWidth: number;
   durationMs: number | null;
   reused: boolean;
   started: boolean;
@@ -295,18 +300,31 @@ export function ganttLayout(runs: GanttRun[], now: number): { rows: GanttRow[]; 
   if (!Number.isFinite(start)) start = now;
   if (!Number.isFinite(end) || end < start) end = start;
   const span = Math.max(end - start, 1);
-  const rows = runs.map((r): GanttRow => {
+  // Rows follow the order in which the runs queued or started, like a waterfall.
+  const order = (r: GanttRun) => ms(r.queued_at) ?? ms(r.started_at) ?? Infinity;
+  const sorted = [...runs].sort(
+    (a, b) => order(a) - order(b) || a.task_key.localeCompare(b.task_key) || a.attempt - b.attempt,
+  );
+  const rows = sorted.map((r): GanttRow => {
     const s = ms(r.started_at);
     const e = ms(r.ended_at) ?? (s !== undefined && !isTerminal(r.state) ? now : s);
     const left = s === undefined ? 0 : ((s - start) / span) * 100;
     const width = s === undefined || e === undefined ? 0 : ((Math.max(e, s) - s) / span) * 100;
     const durationMs = r.duration_ms ?? (s !== undefined && e !== undefined ? Math.max(e - s, 0) : null);
+    const q = ms(r.queued_at);
+    const waitEnd = s ?? (q !== undefined && !isTerminal(r.state) ? Math.max(now, q) : q);
+    const waitLeft = q === undefined ? 0 : ((q - start) / span) * 100;
+    const waitWidth = q === undefined || waitEnd === undefined ? 0 : ((waitEnd - q) / span) * 100;
     return {
       id: r.id,
+      taskKey: r.task_key,
+      attempt: r.attempt,
       label: `${r.task_key} #${r.attempt}`,
       state: r.state,
       left: clamp(left),
       width: clamp(width),
+      waitLeft: clamp(waitLeft),
+      waitWidth: clamp(Math.min(waitWidth, 100 - clamp(waitLeft))),
       durationMs,
       reused: !!r.reused_from_id,
       started: s !== undefined,
@@ -317,6 +335,27 @@ export function ganttLayout(runs: GanttRun[], now: number): { rows: GanttRow[]; 
 
 function clamp(n: number): number {
   return Math.min(100, Math.max(0, n));
+}
+
+const tickSteps = [
+  100, 250, 500, 1_000, 2_000, 5_000, 10_000, 15_000, 30_000, 60_000, 120_000, 300_000, 600_000, 900_000, 1_800_000,
+  3_600_000, 7_200_000, 21_600_000, 43_200_000, 86_400_000,
+];
+
+/** axisTicks returns offsets in milliseconds for about `count` evenly spaced ticks on an axis of span ms. */
+export function axisTicks(span: number, count = 4): number[] {
+  if (span <= 0) return [0];
+  const step = tickSteps.find((s) => span / s <= count) ?? tickSteps[tickSteps.length - 1]!;
+  const out: number[] = [];
+  for (let t = 0; t <= span; t += step) out.push(t);
+  return out;
+}
+
+/** firstFailedRun returns the earliest failed or timed out task run. */
+export function firstFailedRun<T extends GanttRun>(runs: T[]): T | undefined {
+  const failed = runs.filter((r) => r.state === "FAILED" || r.state === "TIMED_OUT");
+  const at = (r: T) => ms(r.started_at) ?? ms(r.queued_at) ?? Infinity;
+  return failed.sort((a, b) => at(a) - at(b))[0];
 }
 
 /** LogLine is the part of a log entry that the log filter uses. */

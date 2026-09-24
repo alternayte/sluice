@@ -73,6 +73,7 @@ func Routes(api huma.API, r chi.Router, s *Service) {
 	viewer := httpx.MinRole(kernel.Viewer)
 	admin := httpx.MinRole(kernel.Admin)
 	r.Handle(MCPPath, mcpHandler(s))
+	r.Method(http.MethodGet, MCPCardPath, mcpCardHandler(s))
 	registerAssistant(api, r, s)
 
 	huma.Register(api, httpx.Op("getAIStatus", http.MethodGet, "/api/v1/ai/status", viewer),

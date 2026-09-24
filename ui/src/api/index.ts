@@ -115,6 +115,7 @@ export type {
   AiTestResult,
   Artifact,
   ArtifactList,
+  Attachment,
   AuditEvent,
   AuditList,
   Block,

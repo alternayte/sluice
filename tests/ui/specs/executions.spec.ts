@@ -221,7 +221,7 @@ test("SCN-UI-002 executions list filters, sort, pagination and filters from the 
     await expect(rows.first()).toContainText("File run");
     await expect(rows.nth(1)).toContainText("fast");
     await expect(rows.nth(2)).toContainText("quick");
-    await filters.getByLabel("Sort").selectOption({ label: "Duration" });
+    await filters.getByRole("radiogroup", { name: "Sort" }).getByRole("radio", { name: "Duration" }).click();
     await expect(page).toHaveURL(/sort=duration/);
     await expect(rows.first()).toContainText("quick");
 

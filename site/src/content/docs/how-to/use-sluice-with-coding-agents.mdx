@@ -1,0 +1,173 @@
+---
+title: Use Sluice with coding agents
+description: Give a coding agent the Sluice docs, the skill, the flow schema, a CLI with JSON output and exit codes, and the MCP server.
+---
+
+import { Steps, Tabs, TabItem, LinkCard, CardGrid } from "@astrojs/starlight/components";
+
+This guide shows you how to set up a coding agent, such as Claude Code or Cursor, to write and run Sluice flows. Each section adds one source of facts or one tool. Use the ones that your agent supports.
+
+| Part | What the agent gets |
+|---|---|
+| llms.txt and the `.md` pages | The docs as plain Markdown. |
+| `sluice init` and the skill | The work loop and the flow rules, in the repository. |
+| The flow JSON Schema | Completion and errors in the editor, before a run. |
+| The CLI | Commands with JSON output and exit codes for each end state. |
+| The MCP server | Tools that read executions and logs, and run flows. |
+
+## Give the agent the docs
+
+The docs site publishes its pages as plain text for language models:
+
+| URL | Content |
+|---|---|
+| [/llms.txt](https://sluice-docs.pages.dev/llms.txt) | The index. It names the two files below. |
+| [/llms-full.txt](https://sluice-docs.pages.dev/llms-full.txt) | All pages in one Markdown file. |
+| [/llms-small.txt](https://sluice-docs.pages.dev/llms-small.txt) | All pages in a compact form, for a small context window. |
+
+Each page also has a Markdown copy. Add `.md` to the path of the page, for example [/reference/flow.md](https://sluice-docs.pages.dev/reference/flow.md) for [the flow file](/reference/flow/).
+
+The **Copy page** menu at the top right of each page has four entries:
+
+| Entry | Effect |
+|---|---|
+| **Copy as Markdown** | Puts the Markdown of the page on the clipboard. Paste it into a chat or an agent prompt. |
+| **View as Markdown** | Opens the `.md` copy of the page. |
+| **Open in Claude** | Opens a Claude chat that reads the page. |
+| **Open in ChatGPT** | Opens a ChatGPT chat that reads the page. |
+
+## Add the skill to the repository
+
+`sluice init` writes the Sluice skill and an agent section into a repository. Run it in the root of the repository that holds your namespace directories:
+
+```sh
+sluice init
+```
+
+It writes two files:
+
+- `.claude/skills/sluice/SKILL.md`: the skill. It holds the work loop, the exit codes, the flow rules, the task types, the templates, the outputs and a list of mistakes to avoid.
+- `AGENTS.md`: a Sluice section between `<!-- sluice:begin -->` and `<!-- sluice:end -->`. It points to the skill and lists the validate, push and run commands.
+
+`sluice init` keeps the rest of an existing `AGENTS.md`. A file that you changed stays, unless you add `--force`. To write into another directory, give it as the first argument: `sluice init path/to/repo`.
+
+The skill matches the version of the binary that wrote it. Run `sluice init` again after you update `sluice`.
+
+<Tabs>
+  <TabItem label="Claude Code">
+    Claude Code finds the skill in `.claude/skills/`. It loads the skill when a task touches a flow file, the `sluice` CLI or an execution. No other step is necessary.
+  </TabItem>
+  <TabItem label="Cursor">
+    Cursor reads rules from `.cursor/rules/`. Copy the skill into a rule file:
+
+    ```sh
+    mkdir -p .cursor/rules
+    cp .claude/skills/sluice/SKILL.md .cursor/rules/sluice.mdc
+    ```
+
+    Cursor reads the `description` in the front matter of the file and attaches the rule when a request matches it. Copy the file again after each `sluice init`.
+  </TabItem>
+  <TabItem label="Other agents">
+    An agent that reads `AGENTS.md` finds the Sluice section and the path of the skill. For an agent without `AGENTS.md` support, add the content of `SKILL.md` to its instructions file.
+  </TabItem>
+</Tabs>
+
+The skill tells the agent to work in this loop for each change:
+
+<Steps>
+
+1. Edit the files.
+2. Validate offline with `sluice validate <dir> --json`.
+3. Deploy with `sluice namespaces push <dir> --namespace <name>`.
+4. Run with `sluice run <namespace>/<flow> --wait`.
+5. On a failure, read `sluice executions get <id>` and `sluice executions logs <id> --task <task>`.
+6. Fix the cause and go back to step 2.
+
+</Steps>
+
+[Build a flow with a coding agent](/tutorials/build-a-flow-with-a-coding-agent/) shows the loop in a real session.
+
+## Connect flow files to the schema
+
+Put this line first in each flow file:
+
+```text
+# yaml-language-server: $schema=https://sluice-docs.pages.dev/schemas/flow.schema.json
+```
+
+An editor with a YAML language server reads the line. It completes the field names and marks a wrong field or type while the agent or you type. For `namespace.yaml`, use `https://sluice-docs.pages.dev/schemas/namespace.schema.json`. [JSON Schemas](/reference/schemas/) lists all schemas and the VS Code settings.
+
+The schema checks the structure of one file. `sluice validate` also checks the rules across files, for example `depends_on` targets, cycles and template references. Run both.
+
+## Use the CLI from an agent
+
+The client commands talk to a Sluice server. They read two environment variables:
+
+| Variable | Value |
+|---|---|
+| `SLUICE_URL` | The base URL of the server, for example `https://sluice.example.com`. |
+| `SLUICE_TOKEN` | An API token. Create one on **Settings → API tokens**. The role of the token limits what the commands can do. |
+
+Give the agent a token with the lowest role that it needs:
+
+| Role | Commands |
+|---|---|
+| Viewer | `sluice flows list`, `sluice flows get`, `sluice executions list`, `sluice executions get`, `sluice executions logs` |
+| Operator | The viewer commands, `sluice run`, `sluice executions cancel`, `sluice executions rerun`, `sluice executions restart` |
+| Editor | The operator commands and `sluice namespaces push` |
+
+`sluice validate` and `sluice init` work offline. They need no URL and no token.
+
+### Read JSON
+
+Add `--output json`, or `-o json`, to a client command. The command prints the API JSON on stdout:
+
+```sh
+sluice executions list --state FAILED --limit 5 -o json | jq -r '.items[] | "\(.id) \(.namespace)/\(.flow_id)"'
+sluice run orders/orders --wait -o json | jq '{state, duration_ms, outputs}'
+```
+
+With `--wait`, the log lines go to stderr, and the JSON of the ended execution goes to stdout. `sluice validate --json` prints the result in the format of `validate-result.schema.json`: each file with its errors, and each error with `code`, `path`, `line`, `column` and `message`.
+
+### Branch on the exit code
+
+The exit code tells the agent the result without a parse of the text:
+
+| Code | Meaning |
+|---|---|
+| 0 | Success. With `--wait`: the execution ended `SUCCESS`. |
+| 1 | An API or network error. `sluice validate`: at least one file is invalid. |
+| 2 | A usage or configuration error, for example a missing `SLUICE_URL` or `SLUICE_TOKEN`. |
+| 10 | With `--wait`: the execution ended `FAILED`. |
+| 11 | With `--wait`: the execution ended `TIMED_OUT`. |
+| 12 | With `--wait`: the execution ended `CANCELLED`. |
+| 13 | With `--wait`: the execution ended `SKIPPED`. |
+| 14 | With `--wait`: `--timeout` ended the wait. The execution continues. |
+
+`--wait` is a flag of `sluice run`, `sluice executions rerun` and `sluice executions restart`. Give a long flow a `--timeout`, so that the agent does not wait without end.
+
+## Connect the MCP server
+
+The Sluice server serves MCP at `/mcp`. An agent with MCP support reads flows, executions, logs, metrics and failure triage, and it runs flows, without the CLI. The tools run with the role of the API token.
+
+These tools help most in an agent loop:
+
+| Tool | Use |
+|---|---|
+| `get_flow_schema` | Read the flow schema before the agent writes a flow. |
+| `validate_flow` | Check a file against the head version of the namespace. |
+| `get_execution` | Read an execution with its task runs. |
+| `get_logs` | Read log lines. `failed_only: true` keeps the lines of the failed tasks. `grep` keeps the lines that contain a text. |
+| `get_insight` | Read the failure triage of an execution. |
+| `restart_execution` | Run the failed tasks again and reuse the successful ones. |
+
+[Connect an MCP client](/how-to/connect-an-mcp-client/) shows the setup. [MCP tools](/reference/mcp-tools/) lists all tools.
+
+## Next steps
+
+<CardGrid>
+  <LinkCard title="Build a flow with a coding agent" href="/tutorials/build-a-flow-with-a-coding-agent/" description="A full session from sluice init to a successful run." />
+  <LinkCard title="Run flows from GitHub Actions" href="/how-to/run-flows-from-github-actions/" description="Deploy and run the flows that the agent wrote from CI." />
+  <LinkCard title="CLI" href="/reference/cli/" description="Every command and flag." />
+  <LinkCard title="Exit codes" href="/reference/exit-codes/" description="The exit codes of the sluice binary." />
+</CardGrid>

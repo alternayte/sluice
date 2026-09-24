@@ -13,7 +13,7 @@ import {
 } from "@codemirror/language";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { linter, lintGutter } from "@codemirror/lint";
-import { Compartment, EditorState, type Extension } from "@codemirror/state";
+import { Compartment, EditorState, Prec, type Extension } from "@codemirror/state";
 import {
   EditorView,
   drawSelection,
@@ -36,6 +36,10 @@ export type CodeEditorProps = {
   /** validate returns the server issues for the content. When set, the editor lints the content. */
   validate?: (content: string) => Promise<Issue[]>;
   onIssues?: (issues: Issue[]) => void;
+  /** onSave runs on Mod-s. The browser save dialog never opens from the editor. */
+  onSave?: () => void;
+  /** onRun runs on Mod-Enter. Without it, Mod-Enter keeps its editing command. */
+  onRun?: () => void;
 };
 
 function languageExtension(id: LanguageId): Extension {
@@ -76,50 +80,95 @@ function useHtmlDark(): boolean {
   );
 }
 
-const lightHighlight = HighlightStyle.define([
-  { tag: [t.keyword, t.controlKeyword, t.modifier], color: "#a626a4" },
-  { tag: [t.string, t.special(t.string)], color: "#3f8f3a" },
-  { tag: [t.number, t.bool, t.null, t.atom], color: "#986801" },
-  { tag: [t.comment, t.lineComment, t.blockComment], color: "#6b7280", fontStyle: "italic" },
-  { tag: [t.propertyName, t.definition(t.propertyName)], color: "#2f5fc4" },
-  { tag: [t.typeName, t.className], color: "#b45309" },
-  { tag: [t.function(t.variableName), t.function(t.propertyName)], color: "#0f6fa8" },
-  { tag: [t.operator, t.punctuation], color: "#57534e" },
-  { tag: t.invalid, color: "#d64545" },
-]);
+// Syntax colors in the manner of the Xcode default themes. Each color reaches 4.5:1 on the
+// panel and on the active line in its theme (REQ-UI-011).
+const palette = {
+  light: {
+    keyword: "#9b2393",
+    string: "#c41a16",
+    number: "#1c00cf",
+    comment: "#5d6c79",
+    type: "#1c6e77",
+    property: "#6c36a9",
+    fn: "#0f68a0",
+    attribute: "#815f03",
+  },
+  dark: {
+    keyword: "#ff7ab2",
+    string: "#ff8170",
+    number: "#d9c97c",
+    comment: "#8a97a3",
+    type: "#5dd8ff",
+    property: "#4eb0cc",
+    fn: "#67b7a4",
+    attribute: "#cc9768",
+  },
+};
 
-const darkHighlight = HighlightStyle.define([
-  { tag: [t.keyword, t.controlKeyword, t.modifier], color: "#c678dd" },
-  { tag: [t.string, t.special(t.string)], color: "#98c379" },
-  { tag: [t.number, t.bool, t.null, t.atom], color: "#d19a66" },
-  { tag: [t.comment, t.lineComment, t.blockComment], color: "#7f848e", fontStyle: "italic" },
-  { tag: [t.propertyName, t.definition(t.propertyName)], color: "#61afef" },
-  { tag: [t.typeName, t.className], color: "#e5c07b" },
-  { tag: [t.function(t.variableName), t.function(t.propertyName)], color: "#56b6c2" },
-  { tag: [t.operator, t.punctuation], color: "#a3aab1" },
-  { tag: t.invalid, color: "#ef6b6b" },
-]);
+function highlight(c: (typeof palette)["light"]) {
+  return HighlightStyle.define([
+    { tag: [t.keyword, t.controlKeyword, t.modifier, t.operatorKeyword, t.bool, t.null, t.self], color: c.keyword },
+    { tag: [t.string, t.special(t.string), t.character, t.regexp, t.escape], color: c.string },
+    { tag: [t.number, t.integer, t.float, t.atom], color: c.number },
+    { tag: [t.comment, t.lineComment, t.blockComment, t.docComment], color: c.comment },
+    { tag: [t.typeName, t.className, t.namespace, t.standard(t.typeName)], color: c.type },
+    {
+      tag: [t.propertyName, t.definition(t.propertyName), t.attributeName, t.special(t.variableName)],
+      color: c.property,
+    },
+    {
+      tag: [
+        t.function(t.variableName),
+        t.function(t.propertyName),
+        t.definition(t.variableName),
+        t.standard(t.variableName),
+      ],
+      color: c.fn,
+    },
+    { tag: [t.meta, t.annotation, t.labelName, t.attributeValue], color: c.attribute },
+    { tag: t.invalid, color: c.string, textDecoration: "underline wavy" },
+  ]);
+}
 
+const lightHighlight = highlight(palette.light);
+const darkHighlight = highlight(palette.dark);
+
+/** The editor chrome takes the panel tokens, so it follows the app theme without its own colors. */
 function editorTheme(dark: boolean): Extension {
   const theme = EditorView.theme(
     {
-      "&": { backgroundColor: "var(--panel)", color: "var(--foreground)", fontSize: "13px", height: "100%" },
+      "&": { backgroundColor: "var(--panel)", color: "var(--foreground)", fontSize: "12.5px", height: "100%" },
       "&.cm-focused": { outline: "none" },
-      ".cm-scroller": { fontFamily: "var(--font-mono)", lineHeight: "1.55" },
-      ".cm-content": { caretColor: "var(--foreground)" },
-      ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--foreground)" },
+      ".cm-scroller": { fontFamily: "var(--font-mono)", lineHeight: "1.65" },
+      ".cm-content": { caretColor: "var(--accent)", padding: "6px 0" },
+      ".cm-line": { padding: "0 12px 0 6px" },
+      ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--accent)", borderLeftWidth: "2px" },
       ".cm-gutters": {
-        backgroundColor: "var(--muted)",
+        backgroundColor: "var(--panel)",
         color: "var(--muted-foreground)",
         border: "none",
-        borderRight: "1px solid var(--border)",
       },
-      ".cm-activeLine": { backgroundColor: dark ? "#ffffff08" : "#0000000a" },
-      ".cm-activeLineGutter": { backgroundColor: dark ? "#ffffff10" : "#00000010" },
-      "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground": {
-        backgroundColor: dark ? "#2f6feb55" : "#2f6feb33",
+      ".cm-lineNumbers .cm-gutterElement": { padding: "0 6px 0 14px", minWidth: "36px" },
+      ".cm-activeLine": { backgroundColor: "color-mix(in srgb, var(--muted) 70%, transparent)" },
+      ".cm-activeLineGutter": { backgroundColor: "transparent", color: "var(--foreground)" },
+      ".cm-selectionBackground": { backgroundColor: "color-mix(in srgb, var(--accent) 16%, transparent)" },
+      "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
+        backgroundColor: "color-mix(in srgb, var(--accent) 26%, transparent)",
       },
-      ".cm-tooltip": { backgroundColor: "var(--panel)", border: "1px solid var(--border)", color: "var(--foreground)" },
+      ".cm-matchingBracket, &.cm-focused .cm-matchingBracket": {
+        backgroundColor: "color-mix(in srgb, var(--accent) 18%, transparent)",
+        outline: "none",
+        borderRadius: "2px",
+      },
+      ".cm-tooltip": {
+        backgroundColor: "var(--panel)",
+        border: "1px solid var(--border)",
+        borderRadius: "8px",
+        boxShadow: "var(--shadow-float)",
+        color: "var(--foreground)",
+        overflow: "hidden",
+      },
+      ".cm-diagnostic": { padding: "6px 10px", fontFamily: "var(--font-sans)", fontSize: "12px" },
     },
     { dark },
   );
@@ -135,16 +184,18 @@ export default function CodeEditorImpl({
   onChange,
   validate,
   onIssues,
+  onSave,
+  onRun,
 }: CodeEditorProps) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const themeSlot = useRef(new Compartment());
   const dark = useHtmlDark();
-  const callbacks = useRef({ onChange, validate, onIssues });
+  const callbacks = useRef({ onChange, validate, onIssues, onSave, onRun });
   const initial = useRef({ value, dark, path, label, readOnly, lint: validate !== undefined });
 
   useEffect(() => {
-    callbacks.current = { onChange, validate, onIssues };
+    callbacks.current = { onChange, validate, onIssues, onSave, onRun };
   });
 
   useEffect(() => {
@@ -161,6 +212,28 @@ export default function CodeEditorImpl({
       EditorView.updateListener.of((u) => {
         if (u.docChanged) callbacks.current.onChange?.(u.state.doc.toString());
       }),
+      // The default keymap binds Mod-Enter to a blank line, so these bindings take precedence.
+      Prec.highest(
+        keymap.of([
+          {
+            key: "Mod-s",
+            preventDefault: true,
+            run: () => {
+              callbacks.current.onSave?.();
+              return true;
+            },
+          },
+          {
+            key: "Mod-Enter",
+            run: () => {
+              const run = callbacks.current.onRun;
+              if (!run) return false;
+              run();
+              return true;
+            },
+          },
+        ]),
+      ),
     ];
     if (init.readOnly) {
       extensions.push(EditorState.readOnly.of(true), EditorView.editable.of(false));

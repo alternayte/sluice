@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { loadLogs, type LogPageLike } from "./logs";
+import { loadLogs, splitLogText, type LogPageLike } from "./logs";
 
 /** pages returns a fetchPage stub that gives the pages in order and records the cursors. */
 function pages(list: LogPageLike<number>[]) {
@@ -62,5 +62,19 @@ describe("loadLogs", () => {
     expect(result).toBe("stopped");
     expect(onLines).not.toHaveBeenCalled();
     expect(openStream).not.toHaveBeenCalled();
+  });
+});
+
+describe("splitLogText", () => {
+  it("links URLs without trailing punctuation and marks search matches", () => {
+    expect(splitLogText("see https://example.com/runs/42. Done done", "done")).toEqual([
+      { kind: "text", text: "see " },
+      { kind: "url", text: "https://example.com/runs/42" },
+      { kind: "text", text: ". " },
+      { kind: "match", text: "Done" },
+      { kind: "text", text: " " },
+      { kind: "match", text: "done" },
+    ]);
+    expect(splitLogText("plain", "")).toEqual([{ kind: "text", text: "plain" }]);
   });
 });

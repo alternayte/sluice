@@ -59,6 +59,12 @@ type LogLine struct {
 	Text    string `json:"text"`
 }
 
+// TaskAttempt names one task run of an execution.
+type TaskAttempt struct {
+	TaskKey string `json:"task"`
+	Attempt int    `json:"attempt"`
+}
+
 // FileChange is one file of a proposed change. Delete removes the file.
 type FileChange struct {
 	Path    string `json:"path"`
@@ -94,6 +100,14 @@ type Data interface {
 	Masker(ctx context.Context, id uuid.UUID) (*masking.Masker, error)
 	Trigger(ctx context.Context, namespace, flowID string, inputs map[string]any, labels map[string]string) (any, error)
 	Cancel(ctx context.Context, id uuid.UUID) error
+	// Rerun creates a new execution with the same snapshot and inputs, and returns its detail.
+	Rerun(ctx context.Context, id uuid.UUID) (any, error)
+	// Restart creates a new execution that reuses the SUCCESS task runs, and returns its detail.
+	Restart(ctx context.Context, id uuid.UUID) (any, error)
+	// FailedAttempts returns the task runs of an execution that ended FAILED or TIMED_OUT.
+	FailedAttempts(ctx context.Context, id uuid.UUID) ([]TaskAttempt, error)
+	// FlowSchema returns the JSON Schema of flow files.
+	FlowSchema() (json.RawMessage, error)
 	// SourceType returns managed or git.
 	SourceType(ctx context.Context, namespace string) (string, error)
 	// Save creates a managed version and returns its number.
@@ -134,6 +148,27 @@ func decode[T any](in json.RawMessage) (T, error) {
 		return v, httpx.Errorf(http.StatusUnprocessableEntity, "validation_failed", "invalid tool arguments: %v", err)
 	}
 	return v, nil
+}
+
+// executionID decodes the execution_id argument of a tool.
+func executionID(raw json.RawMessage) (uuid.UUID, error) {
+	in, err := decode[struct {
+		ExecutionID string `json:"execution_id"`
+	}](raw)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return parseID(in.ExecutionID)
+}
+
+func filterLines(lines []LogLine, keep func(LogLine) bool) []LogLine {
+	out := lines[:0:0]
+	for _, l := range lines {
+		if keep(l) {
+			out = append(out, l)
+		}
+	}
+	return out
 }
 
 func required(fields map[string]string) error {
@@ -373,14 +408,19 @@ func Tools() []Tool {
 				}
 				return s.masked(ctx, id, d)
 			}},
-		{Name: "get_logs", Description: "Read the last log lines of an execution, optionally of one task. tail is 1 to 1000, default 200.",
-			Schema: json.RawMessage(`{"type":"object","properties":{"execution_id":{"type":"string"},"task":{"type":"string"},"tail":{"type":"integer","minimum":1,"maximum":1000}},"required":["execution_id"]}`),
-			Role:   kernel.Viewer,
+		{Name: "get_logs", Description: "Read the last log lines of an execution, optionally of one task. tail is 1 to 1000, default 200. " +
+			"grep keeps the lines that contain the text, case-insensitive. failed_only keeps the lines of the task runs that failed or timed out.",
+			Schema: json.RawMessage(`{"type":"object","properties":{"execution_id":{"type":"string"},"task":{"type":"string"},"tail":{"type":"integer","minimum":1,"maximum":1000},` +
+				`"grep":{"type":"string","description":"Keep the lines that contain this text, case-insensitive."},` +
+				`"failed_only":{"type":"boolean","description":"Keep the lines of failed and timed out task runs."}},"required":["execution_id"]}`),
+			Role: kernel.Viewer,
 			run: func(ctx context.Context, s *Service, raw json.RawMessage) (any, error) {
 				in, err := decode[struct {
 					ExecutionID string `json:"execution_id"`
 					Task        string `json:"task"`
 					Tail        int    `json:"tail"`
+					Grep        string `json:"grep"`
+					FailedOnly  bool   `json:"failed_only"`
 				}](raw)
 				if err != nil {
 					return nil, err
@@ -395,6 +435,30 @@ func Tools() []Tool {
 				lines, err := s.Data.Logs(ctx, id, in.Task)
 				if err != nil {
 					return nil, err
+				}
+				if in.FailedOnly {
+					failed, err := s.Data.FailedAttempts(ctx, id)
+					if err != nil {
+						return nil, err
+					}
+					lines = filterLines(lines, func(l LogLine) bool {
+						for _, f := range failed {
+							if f.TaskKey == l.TaskKey && f.Attempt == l.Attempt {
+								return true
+							}
+						}
+						return false
+					})
+				}
+				if q := strings.ToLower(in.Grep); q != "" {
+					// The search runs on the masked text, so a secret value never matches.
+					m, err := s.Data.Masker(ctx, id)
+					if err != nil {
+						return nil, err
+					}
+					lines = filterLines(lines, func(l LogLine) bool {
+						return strings.Contains(strings.ToLower(m.String(l.Text)), q)
+					})
 				}
 				total := len(lines)
 				if total > in.Tail {
@@ -475,6 +539,28 @@ func Tools() []Tool {
 				}
 				return map[string]any{"execution_id": id, "cancel_requested": true}, nil
 			}},
+		{Name: "rerun_execution", Description: "Start a new execution with the same snapshot, definition and inputs as another execution. The other execution can still run.",
+			Schema: json.RawMessage(schemaExecution), Role: kernel.Operator, Mutating: true,
+			run: func(ctx context.Context, s *Service, raw json.RawMessage) (any, error) {
+				id, err := executionID(raw)
+				if err != nil {
+					return nil, err
+				}
+				return s.Data.Rerun(ctx, id)
+			}},
+		{Name: "restart_execution", Description: "Start a new execution that reuses the successful task runs of an ended execution that did not succeed. " +
+			"Only the failed, timed out, cancelled and skipped tasks run again.",
+			Schema: json.RawMessage(schemaExecution), Role: kernel.Operator, Mutating: true,
+			run: func(ctx context.Context, s *Service, raw json.RawMessage) (any, error) {
+				id, err := executionID(raw)
+				if err != nil {
+					return nil, err
+				}
+				return s.Data.Restart(ctx, id)
+			}},
+		{Name: "get_flow_schema", Description: "Read the JSON Schema of flow files (*.flow.yaml). Use it to write a valid flow.",
+			Schema: json.RawMessage(schemaNone), Role: kernel.Viewer,
+			run: func(_ context.Context, s *Service, _ json.RawMessage) (any, error) { return s.Data.FlowSchema() }},
 		{Name: "propose_change", Description: "Propose file changes of a namespace. The result has the validation issues and a diff. Nothing is written.",
 			Schema: json.RawMessage(schemaChange), Role: kernel.Editor, AssistantOnly: true,
 			run: func(ctx context.Context, s *Service, raw json.RawMessage) (any, error) {

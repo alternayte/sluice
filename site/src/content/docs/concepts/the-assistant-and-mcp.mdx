@@ -1,0 +1,121 @@
+---
+title: The assistant and MCP
+description: How the assistant in the web UI and the MCP server share one tool registry, and how roles, confirmation, masking, attachments and limits apply to each.
+sidebar:
+  order: 7
+---
+
+This page explains the two ways an AI model works with Sluice. The assistant is a chat panel in the web UI. The MCP server at `/mcp` gives the same tools to an external client, for example a coding agent. Both use one tool registry, so a tool behaves the same in both places.
+
+## One tool registry
+
+Each tool has a name, an input schema, a minimum role and a mutating flag. [MCP tools](/reference/mcp-tools/) lists all of them.
+
+| Group | Tools | Minimum role |
+|---|---|---|
+| Read | `list_namespaces`, `list_flows`, `get_flow`, `list_files`, `read_file`, `validate_flow`, `get_flow_schema` | viewer |
+| Read executions | `list_executions`, `get_execution`, `get_logs`, `get_metrics`, `get_insight` | viewer |
+| Run | `trigger_execution`, `cancel_execution`, `rerun_execution`, `restart_execution` | operator |
+| Change files | `propose_change`, `apply_change` | editor |
+
+A tool is mutating when it changes Sluice: the run tools and `apply_change`. `propose_change` validates files and returns a diff, but it writes nothing. Only the assistant has `propose_change`. An MCP client uses `validate_flow` and then `apply_change`.
+
+A tool call always checks the role of the caller. A caller without the role gets the tool error `forbidden`. The assistant offers the model only the tools that your role allows.
+
+## Two front ends
+
+| | Assistant | MCP server |
+|---|---|---|
+| Where | The **Assistant** panel on every page of the web UI. | `/mcp`, streamable HTTP, stateless, JSON answers. |
+| Who calls the model | Sluice, with the configured AI provider. | The client, with its own model. Sluice needs no provider. |
+| Credential | Your session. | An API token. A session cookie gets `401`. |
+| Role | Your role. | The effective role of the token. |
+| Mutating tools | Wait for your **Confirm**. | Run at once. |
+| Audit | `ai.action.confirmed` or `ai.action.rejected`, and the event of the change itself. | `ai.tool.call`, and the event of the change itself. |
+
+`/.well-known/mcp.json` describes the MCP server for discovery. It names the endpoint and the `Authorization` header, and holds no data.
+
+## Confirm before a change
+
+The assistant never changes Sluice on its own. When the model calls a mutating tool, the call does not run. The panel shows it with **Confirm** and **Reject**:
+
+- **Confirm** runs the tool as you, with your role. The change has you as its actor.
+- **Reject** tells the model that you refused. The model continues the turn with this fact.
+- While an action waits, you cannot send a new message.
+
+An MCP client has no such step. Sluice cannot ask a person inside an MCP call, so a mutating tool runs when the client calls it. The client can ask its own user first. Control an MCP client with its token: give it the lowest role that it needs, and an expiry. A viewer token gets only the read tools.
+
+## Masking
+
+Execution data can hold secret values, for example in a log line. The tools `get_execution`, `get_logs`, `get_metrics` and `get_insight` mask their results with the secret values of every task run of the execution. A secret shows as `***`. The `grep` of `get_logs` searches the masked text, so a secret value never matches.
+
+The same masking applies to the triage context and to attachments. No model request and no MCP result holds a secret value that Sluice knows.
+
+## Attachments
+
+In the assistant, type `@` to attach a flow, a recent execution or a namespace file to a message. A message holds at most 5 attachments. Sluice reads each attachment with the read tools, as you. Your role, the masking and the size limit of the tools thus apply. A message with an object that you cannot read fails.
+
+| Attachment | Content for the model |
+|---|---|
+| Flow | `get_flow`: the flow with its YAML source. |
+| File | `read_file`: the file of the head version of the namespace. |
+| Execution | `get_execution`, `get_insight`, and `get_logs` with `failed_only` and the last 100 lines. |
+
+**Fix with assistant** on a failed execution starts a new conversation with the execution attached. See [Triage a failed execution](/how-to/triage-a-failed-execution/).
+
+## Flow authoring
+
+When you ask the assistant for a flow change, it calls `propose_change`. The panel shows the diff of each file and the validation issues. When the proposal is invalid, the model gets the issues and can try again. When it is valid, the model calls `apply_change`, and you confirm.
+
+| Namespace source | Result of `apply_change` |
+|---|---|
+| Managed | A new version of the namespace. |
+| Git | A new branch `sluice/<user>/<time>` from the last synced commit. The tracked branch does not change. |
+
+`apply_change` refuses a change with an invalid flow, also over MCP.
+
+## Failure triage
+
+A triage explains why an execution failed. It has a summary, a probable cause, evidence log lines, a suggested fix and a confidence of `low`, `medium` or `high`. Sluice stores it as an insight of the execution.
+
+An operator requests a triage with **Triage** on a `FAILED` or `TIMED_OUT` execution. With automatic triage on, Sluice queues one when such an execution ends. Every instance takes queued triages. A triage has 3 minutes. A running triage older than 15 minutes, for example of a stopped instance, becomes `failed`.
+
+The model gets this context, all of it masked:
+
+- the flow source and the spec of the failed task;
+- the error, the exit code, the outputs and the metrics of the execution;
+- the first 50 and the last 400 log lines of the failed attempt;
+- the file diff against the last successful execution of the flow, at most 200 lines;
+- the durations of the last 10 executions of the flow.
+
+`SLUICE_AI_MAX_CONTEXT_CHARS` limits the context, 120 000 characters by default. The facts, the flow source and the diff get at most half of the limit. The log lines get the rest, a quarter for the first lines and the remainder for the last lines. A cut shows as `…(N lines omitted)`.
+
+The model must quote evidence lines exactly. Sluice removes an evidence line whose text is not in a log line of the failed task, and it corrects the line number. The evidence that you see is thus always a real log line.
+
+## Limits
+
+| Limit | Value | Result |
+|---|---|---|
+| Model answers with tool calls in one assistant turn | 20 | The turn stops with `step_limit_reached`. |
+| Invalid proposals in one turn | 3 | `propose_change` answers `retry_limit_reached`. |
+| Tool result for the model | 20 000 bytes | Sluice cuts the rest. |
+| Tool result in the panel | 4 000 characters | The panel shows a shorter text. The model gets the full result. |
+| One message | 20 000 characters | Validation error. |
+| Attachments of one message | 5 | The panel does not add more. |
+| Rows of `list_executions` | 50 | |
+| Lines of `get_logs` | 1 to 1 000, default 200 | |
+| Triage context | `SLUICE_AI_MAX_CONTEXT_CHARS` | Sluice cuts log lines first. |
+
+A provider answer of 429 or 5xx, or a network error, gets 3 attempts in total.
+
+## Conversations
+
+The assistant keeps your conversations in Postgres. Other users do not see them. A conversation stays after a page reload. It holds the messages, the tool calls and the actions that wait or that you confirmed or rejected.
+
+## Related pages
+
+- [Set up the assistant](/how-to/set-up-the-assistant/)
+- [Connect an MCP client](/how-to/connect-an-mcp-client/)
+- [Use Sluice with coding agents](/how-to/use-sluice-with-coding-agents/)
+- [MCP tools](/reference/mcp-tools/)
+- [Security model](/concepts/security-model/)

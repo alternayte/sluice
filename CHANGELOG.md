@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- A command palette (Cmd+K or Ctrl+K) searches flows, namespaces, executions, files and pages, and runs actions such as run flow, rerun, restart from failed, new file and theme.
+- Keyboard shortcuts: `?` shows the sheet, `g` chords open pages, and `j`, `k` and Enter move through lists.
+- The execution page shows a live waterfall of the task runs and a resizable inspector with the attempts, outputs, metrics and logs of the selected task. It has "Jump to first failure" and "Download JSON".
+- The log viewer follows new lines, reconnects after a lost stream, links URLs, marks search matches, colours stderr and wraps lines on request.
+- The executions list shows the duration of the loaded executions over time.
+- Client commands for a remote server: `sluice run`, `sluice executions list|get|logs|cancel|rerun|restart`, `sluice flows list|get` and `sluice namespaces push`. They read `SLUICE_URL` and `SLUICE_TOKEN`, take `--output json` and exit with the end state of the execution (10 FAILED, 11 TIMED_OUT, 12 CANCELLED, 13 SKIPPED, 14 wait timeout).
+- A GitHub Action (`alternayte/sluice`) runs a flow, streams its logs and writes the result to the job summary.
+- `sluice init` writes the Sluice agent skill and an AGENTS.md section into a repository.
+- MCP tools `rerun_execution`, `restart_execution` and `get_flow_schema`, and the `grep` and `failed_only` options of `get_logs`. `/.well-known/mcp.json` describes the MCP endpoint.
+- The assistant takes `@` mentions of flows, executions and files as attachments. "Fix with assistant" on a failed execution starts a conversation with the execution, its triage and the failed task logs.
+
+- `install.sh` installs the `sluice` binary for Linux and macOS in one line: `curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh | sh`. It checks the download against the published checksum. The GitHub Action installs with it.
+- Sluice is licensed under the GNU AGPL 3.0 (`LICENSE`).
+
+### Fixed
+
+- A task run that the engine ends after its timeout and the grace time is `TIMED_OUT` with reason `timeout`, not `CANCELLED`, and its retry policy applies.
+- A subflow input of type `string` keeps the rendered text. A value such as `42` or `true` no longer fails with "must be a string".
+- The default runner image exists: a release uses `ghcr.io/alternayte/sluice:<version>`, and a build from source uses `sluice:dev`. Before, the default was `sluice:<version>`, which no registry had.
+
+### Changed
+
+- The web UI has a new visual system: Inter, a translucent sidebar, hairline panels, spring motion that stops under reduced motion, toasts, skeletons and empty states.
+- The JSON Schema `$id`s are URLs on the docs site, `https://sluice-docs.pages.dev/schemas/`. `schemas/namespace.schema.json` is new.
+
 ## [0.1.2] - 2026-09-15
 
 ### Changed

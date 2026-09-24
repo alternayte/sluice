@@ -1,4 +1,5 @@
-// Command buildtool implements the checks of SDD §10: gen, forbid, trace, size-check and setup.
+// Command buildtool implements the checks of SDD §10 (gen, forbid, trace, size-check and setup)
+// and the docs tools (docs-ref-check and docs-shots).
 package main
 
 import (
@@ -8,7 +9,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: buildtool <gen|forbid|trace|size-check|setup>")
+		fmt.Fprintln(os.Stderr, "usage: buildtool <gen|forbid|trace|size-check|setup|docs-ref-check|docs-shots>")
 		os.Exit(2)
 	}
 	var err error
@@ -23,6 +24,10 @@ func main() {
 		err = cmdSizeCheck()
 	case "setup":
 		err = cmdSetup()
+	case "docs-ref-check":
+		err = cmdDocsRefCheck()
+	case "docs-shots":
+		err = cmdDocsShots()
 	default:
 		err = fmt.Errorf("unknown command %q", os.Args[1])
 	}

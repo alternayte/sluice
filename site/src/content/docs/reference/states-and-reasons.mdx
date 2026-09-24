@@ -1,0 +1,106 @@
+---
+title: States and reasons
+description: Every state of an execution and a task run, the allowed transitions, and every reason value with its cause.
+---
+
+This page lists the states of executions and task runs, their transitions, and the `reason` values of both. [Executions and states](/concepts/executions-and-states/) explains the lifecycle.
+
+## Execution states
+
+| State | End state | Meaning |
+|---|---|---|
+| `QUEUED` | no | The execution waits. A flow `concurrency.limit` with `behavior: queue` holds it here. |
+| `RUNNING` | no | The engine queues and runs its tasks. |
+| `CANCELLING` | no | A cancel arrived. The engine waits for the running task runs to stop. |
+| `SUCCESS` | yes | Each task ended `SUCCESS`, or `SKIPPED` with the reason `run_if_not_met`, and the flow outputs resolved. |
+| `FAILED` | yes | At least one task ended in another state, or the flow outputs did not resolve. |
+| `TIMED_OUT` | yes | The flow `timeout` passed. |
+| `CANCELLED` | yes | A user, a token or an MCP client cancelled the execution. |
+| `SKIPPED` | yes | The flow `concurrency.limit` with `behavior: skip` had no free place when the trigger fired. |
+
+### Execution transitions
+
+| From | To |
+|---|---|
+| (new) | `QUEUED`, or `SKIPPED` with `concurrency_limit` |
+| `QUEUED` | `RUNNING`, `SKIPPED`, `CANCELLED` |
+| `RUNNING` | `SUCCESS`, `FAILED`, `TIMED_OUT`, `CANCELLING` |
+| `CANCELLING` | `CANCELLED` |
+
+A cancel of a `RUNNING` execution always goes through `CANCELLING`. A cancel of an ended execution gets 409 `execution_ended`.
+
+## Task run states
+
+A task run is one attempt of one task. A retry creates a new task run with the next attempt number.
+
+| State | End state | Meaning |
+|---|---|---|
+| `PENDING` | no | The task run waits for its dependencies, or for the retry delay of its attempt. |
+| `QUEUED` | no | The task run waits for a free slot on an instance that serves its pool and executor type. |
+| `RUNNING` | no | An instance claimed the task run, and the executor runs it. |
+| `SUCCESS` | yes | The task ended with success. |
+| `FAILED` | yes | The task failed. The `reason` tells why. |
+| `TIMED_OUT` | yes | The task passed its `timeout`. |
+| `CANCELLED` | yes | The execution got a cancel, or the flow `timeout` stopped the task. |
+| `SKIPPED` | yes | The engine did not run the task, because of its `run_if` rule and the states of its dependencies. |
+
+### Task run transitions
+
+| From | To |
+|---|---|
+| (new) | `PENDING`, or `SUCCESS` with `reused` for a restart |
+| `PENDING` | `QUEUED`, `SKIPPED`, `CANCELLED` |
+| `QUEUED` | `RUNNING`, `CANCELLED` |
+| `RUNNING` | `SUCCESS`, `FAILED`, `TIMED_OUT`, `CANCELLED` |
+
+When an attempt ends `FAILED` or `TIMED_OUT` and the task has attempts left, the engine creates the next attempt in `PENDING`. The execution must still be `RUNNING`, and its flow timeout must not have passed.
+
+## Execution reasons
+
+| Reason | State | Cause |
+|---|---|---|
+| (empty) | `SUCCESS`, `FAILED` | A normal end. For `FAILED`, the `error` field names the first failed task, its state and its error. |
+| `concurrency_limit` | `SKIPPED` | The flow concurrency limit with `behavior: skip` was full at creation. |
+| `cancelled` | `CANCELLING`, `CANCELLED` | A cancel request. |
+| `timeout` | `RUNNING`, `TIMED_OUT` | The flow `timeout` passed. The engine stops the tasks, and the execution then ends `TIMED_OUT`. |
+| `output_error` | `FAILED` | All tasks succeeded, but a flow output template did not resolve. |
+
+## Task run reasons
+
+| Reason | State | Cause | Retry applies |
+|---|---|---|---|
+| (empty) | any | A normal state change, or a normal end. | — |
+| `exit_code` | `FAILED` | The task process exited with a code other than 0. `exit_code` holds the code. | yes |
+| `http_status` | `FAILED` | An `http` task got a status outside its `expect_status` list. | yes |
+| `child_failed` | `FAILED` | A `subflow` task with `wait` got a child execution that did not end `SUCCESS`. | yes |
+| `depth_exceeded` | `FAILED` | A `subflow` task passed the limit of 10 nested subflows. | yes |
+| `template_error` | `FAILED` | A template of the task did not resolve at dispatch, a `subflow` reference or its inputs are invalid, or a script has no runtime. | yes |
+| `secret_not_found` | `FAILED` | No scope defines the secret key, or the provider does not have the value. | yes |
+| `secret_provider_error` | `FAILED` | The provider of a defined secret failed, for example with no access. | yes |
+| `runtime_not_found` | `FAILED` | The task image or host has no `uv`, `bash`, `bun` or `node` for the script. | yes |
+| `image_pull_failed` | `FAILED` | Docker or Kubernetes did not pull the task image. | yes |
+| `pod_pending_timeout` | `FAILED` | The pod of a kubernetes task stayed pending longer than `SLUICE_K8S_PENDING_TIMEOUT`. | yes |
+| `executor_error` | `FAILED` | The executor did not start the task, the runner did not prepare the workdir, or an `http` request failed. | yes |
+| `lost` | `FAILED` | The work of the task run is gone: the runner stopped, the container or Job is gone, or the instance is offline. | yes |
+| `instance_shutdown` | `FAILED` | The instance that ran a process or inline task got SIGTERM. | yes |
+| `timeout` | `TIMED_OUT` | The task passed its `timeout`. | yes |
+| `timeout` | `RUNNING` | The flow `timeout` passed. The task run then ends `CANCELLED`. | no |
+| `cancelled` | `CANCELLED` | The execution got a cancel, or the flow `timeout` stopped the task. | no |
+| `upstream_failed` | `SKIPPED` | A dependency ended `FAILED`, `TIMED_OUT` or `CANCELLED`, or a dependency has this reason. The task has the default `run_if: success`. | no |
+| `run_if_not_met` | `SKIPPED` | The `run_if` rule did not match, for example `run_if: failure` and no dependency failed. The execution counts this state as a success. | no |
+| `no_instance_for_pool` | `QUEUED` | No online instance serves the pool and the executor type of the task. The reason clears when such an instance comes online. | — |
+| `reused` | `SUCCESS` | A restart copied the successful task run of the old execution. | — |
+
+A task run that ends with a reason also has an `error` text. Secret values in the error text show as `***`.
+
+## Where to read the state and the reason
+
+| Tool | How |
+|---|---|
+| UI | The execution page shows the state of the execution and of each task. The inspector shows the reason and the error of the selected attempt. |
+| CLI | `sluice executions get <id>` prints each task run with its state, exit code and error. `--output json` prints the full record with the reasons. |
+| API | `GET /api/v1/executions/{executionId}` returns `state`, `reason` and `error` for the execution and each task run. |
+| MCP | The `get_execution` tool returns the same record. |
+| Metrics | `sluice_executions` and `sluice_task_runs` count the rows in each state. See [Metrics](/operations/metrics/). |
+
+With `--wait`, `sluice run` exits with the end state of the execution. See [Exit codes](/reference/exit-codes/).

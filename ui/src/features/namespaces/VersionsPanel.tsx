@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { RotateCcw } from "lucide-react";
+import { History, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { listVersionsOptions, revertVersionMutation } from "@/api/@tanstack/react-query.gen";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -8,6 +8,7 @@ import { invalidateNamespace } from "@/features/namespaces/namespace-source";
 import { SourcePanel } from "@/features/namespaces/SourcePanel";
 import { Button } from "@/components/ui/button";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
+import { toast } from "@/components/ui/toast";
 import { errorMessage } from "@/lib/errors";
 import { formatTime } from "@/lib/utils";
 
@@ -16,10 +17,15 @@ export function VersionsPanel({ namespace, canEdit, head }: { namespace: string;
   const versions = useQuery(listVersionsOptions({ path: { namespace }, query: { limit: 100 } }));
 
   return (
-    <DataState query={versions} empty={(d) => d.items.length === 0} emptyText="This namespace has no versions.">
+    <DataState
+      query={versions}
+      empty={(d) => d.items.length === 0}
+      emptyText="This namespace has no versions."
+      emptyIcon={History}
+    >
       {(d) => (
         <div className="flex flex-col gap-6">
-          <Table>
+          <Table aria-label="Versions">
             <THead>
               <Tr>
                 <Th>Version</Th>
@@ -36,21 +42,23 @@ export function VersionsPanel({ namespace, canEdit, head }: { namespace: string;
             <TBody>
               {d.items.map((s) => (
                 <Tr key={s.id}>
-                  <Td className="font-mono text-xs">
+                  <Td className="font-mono text-xs tabular-nums">
                     {s.version != null ? `v${s.version}` : (s.git_sha ?? "").slice(0, 12)}
                     {s.version != null && s.version === head && (
-                      <span className="ml-2 font-sans text-muted-foreground">Head</span>
+                      <span className="ml-2 rounded-full bg-accent-soft px-1.5 py-0.5 font-sans text-xs font-medium text-accent-text">
+                        Head
+                      </span>
                     )}
                   </Td>
-                  <Td>{s.author}</Td>
+                  <Td className="text-muted-foreground">{s.author}</Td>
                   <Td className="max-w-96 truncate" title={s.message}>
                     {s.message}
                   </Td>
-                  <Td>{formatTime(s.created_at)}</Td>
+                  <Td className="text-muted-foreground tabular-nums">{formatTime(s.created_at)}</Td>
                   {canEdit && (
                     <Td className="text-right">
                       {s.version != null && s.version !== head && (
-                        <Button size="sm" variant="secondary" onClick={() => setRevert(s.version ?? null)}>
+                        <Button size="sm" variant="ghost" onClick={() => setRevert(s.version ?? null)}>
                           <RotateCcw className="h-3.5 w-3.5" aria-hidden />
                           Revert to this version
                         </Button>
@@ -76,8 +84,12 @@ function RevertDialog({ namespace, version, onClose }: { namespace: string; vers
   const qc = useQueryClient();
   const revert = useMutation({
     ...revertVersionMutation(),
-    onSuccess: () => {
+    onSuccess: (snapshot) => {
       invalidateNamespace(qc, namespace);
+      toast({
+        title: `Reverted to version ${version}`,
+        description: snapshot.version != null ? `Version ${snapshot.version}` : undefined,
+      });
       onClose();
     },
   });

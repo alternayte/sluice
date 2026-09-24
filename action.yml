@@ -1,0 +1,126 @@
+name: Run a Sluice flow
+description: Start a flow on a Sluice server, stream its logs, and fail the job when the flow does not succeed.
+author: alternayte
+branding:
+  icon: play-circle
+  color: blue
+
+inputs:
+  url:
+    description: Base URL of the Sluice server, for example https://sluice.example.com.
+    required: true
+  token:
+    description: Sluice API token with at least the operator role. Store it as a repository secret.
+    required: true
+  flow:
+    description: Flow to run, as <namespace>/<flow>.
+    required: true
+  inputs:
+    description: Flow inputs, one key=value per line. A JSON value keeps its type (7, true, {"a":1}).
+    required: false
+    default: ""
+  labels:
+    description: Execution labels, one key=value per line.
+    required: false
+    default: ""
+  timeout:
+    description: Stop waiting after this duration, for example 30m. The job then fails with exit code 14, and the execution continues. Empty waits until the end.
+    required: false
+    default: ""
+  version:
+    description: Release tag of the sluice CLI, for example v0.2.0. Empty uses the tag of this action, or the newest release when the action ref is not a tag.
+    required: false
+    default: ""
+
+outputs:
+  execution-id:
+    description: ID of the execution.
+    value: ${{ steps.run.outputs.execution-id }}
+  state:
+    description: State of the execution, for example SUCCESS or FAILED. Empty when the run did not start.
+    value: ${{ steps.run.outputs.state }}
+  url:
+    description: URL of the execution page.
+    value: ${{ steps.run.outputs.url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install the sluice CLI.
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        ACTION_REF: ${{ github.action_ref }}
+      run: |
+        set -euo pipefail
+        tag="$VERSION"
+        if [ -z "$tag" ] && [[ "$ACTION_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then tag="$ACTION_REF"; fi
+        # install.sh of this action checks the download against the published checksum.
+        # Without a tag it installs the newest release.
+        SLUICE_VERSION="$tag" SLUICE_BIN_DIR="$RUNNER_TEMP/sluice-cli" sh "$GITHUB_ACTION_PATH/install.sh"
+        echo "$RUNNER_TEMP/sluice-cli" >> "$GITHUB_PATH"
+
+    - name: Run the flow.
+      id: run
+      shell: bash
+      env:
+        SLUICE_URL: ${{ inputs.url }}
+        SLUICE_TOKEN: ${{ inputs.token }}
+        FLOW: ${{ inputs.flow }}
+        FLOW_INPUTS: ${{ inputs.inputs }}
+        FLOW_LABELS: ${{ inputs.labels }}
+        WAIT_TIMEOUT: ${{ inputs.timeout }}
+      run: |
+        set -uo pipefail
+        args=(run "$FLOW" --wait --output json)
+        while IFS= read -r line; do
+          [ -n "${line//[[:space:]]/}" ] && args+=(--input "$line")
+        done <<< "$FLOW_INPUTS"
+        while IFS= read -r line; do
+          [ -n "${line//[[:space:]]/}" ] && args+=(--label "$line")
+        done <<< "$FLOW_LABELS"
+        if [ -n "$WAIT_TIMEOUT" ]; then args+=(--timeout "$WAIT_TIMEOUT"); fi
+
+        result="$RUNNER_TEMP/sluice-result.json"
+        sluice "${args[@]}" > "$result"
+        code=$?
+
+        id=$(jq -r '.id // empty' "$result" 2>/dev/null || true)
+        state=$(jq -r '.state // empty' "$result" 2>/dev/null || true)
+        duration=$(jq -r 'if .duration_ms then "\(.duration_ms / 1000) s" else "-" end' "$result" 2>/dev/null || echo "-")
+        error=$(jq -r '.error // empty' "$result" 2>/dev/null || true)
+        url=""
+        if [ -n "$id" ]; then url="${SLUICE_URL%/}/executions/${id}"; fi
+        shown="$state"
+        case "$code" in
+          14) shown="${state:-RUNNING} (the wait timed out; the execution continues)" ;;
+          1|2) shown="${state:-NOT STARTED}" ;;
+        esac
+        {
+          echo "execution-id=$id"
+          echo "state=$state"
+          echo "url=$url"
+        } >> "$GITHUB_OUTPUT"
+
+        {
+          echo "### Sluice: \`$FLOW\`"
+          echo
+          echo "| State | Duration | Execution |"
+          echo "|---|---|---|"
+          if [ -n "$id" ]; then
+            echo "| $shown | $duration | [$id]($url) |"
+          else
+            echo "| $shown | - | - |"
+          fi
+          if [ -n "$error" ]; then
+            echo
+            echo '```text'
+            echo "$error"
+            echo '```'
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"
+
+        if [ "$code" -ne 0 ]; then
+          echo "::error title=Sluice flow ${FLOW}::the run ended with exit code $code: ${shown}"
+        fi
+        exit "$code"

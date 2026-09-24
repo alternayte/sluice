@@ -1,5 +1,6 @@
 --- FAIL: TestSCN_CORE_001_VersionAndConfigErrors
 --- FAIL: TestSCN_CORE_007_GracefulShutdown
+--- PASS: TestCLIClient
 --- PASS: TestExecutionSmoke
 --- PASS: TestSCN_API_002_ErrorEnvelope
 --- PASS: TestSCN_API_003_StablePagination

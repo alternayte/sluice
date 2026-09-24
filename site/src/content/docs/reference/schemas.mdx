@@ -1,0 +1,89 @@
+---
+title: JSON Schemas
+description: The three JSON Schemas of Sluice, their URLs, and how to use them in an editor, in VS Code and from the server.
+---
+
+This page lists the JSON Schemas of Sluice and the ways to use them. All three use JSON Schema draft 2020-12.
+
+## Schemas
+
+| Schema | URL | Describes |
+|---|---|---|
+| Flow | [https://sluice-docs.pages.dev/schemas/flow.schema.json](https://sluice-docs.pages.dev/schemas/flow.schema.json) | A flow file, `*.flow.yaml`. |
+| Namespace | [https://sluice-docs.pages.dev/schemas/namespace.schema.json](https://sluice-docs.pages.dev/schemas/namespace.schema.json) | The file `namespace.yaml` at the root of a namespace. |
+| Validate result | [https://sluice-docs.pages.dev/schemas/validate-result.schema.json](https://sluice-docs.pages.dev/schemas/validate-result.schema.json) | The output of `sluice validate --json`. |
+
+The URL of each schema is also its `$id`. The docs site serves the files with the content type `application/schema+json`. The source files are in `schemas/` of the repository. `just gen` writes them from the Go definitions of the validator, so they match the code of the same commit.
+
+[The flow file](/reference/flow/) describes each field of a flow in a table.
+
+## The yaml-language-server line
+
+An editor with a YAML language server reads a `$schema` comment in the first line of a file. It then completes the fields and marks errors while you type.
+
+| File | First line |
+|---|---|
+| `*.flow.yaml` | `# yaml-language-server: $schema=https://sluice-docs.pages.dev/schemas/flow.schema.json` |
+| `namespace.yaml` | `# yaml-language-server: $schema=https://sluice-docs.pages.dev/schemas/namespace.schema.json` |
+
+A flow file with the line:
+
+```yaml flow
+# yaml-language-server: $schema=https://sluice-docs.pages.dev/schemas/flow.schema.json
+id: nightly-load
+tasks:
+  - id: extract
+    type: command
+    command: ["echo", "hello"]
+```
+
+`sluice init` prints the line for flow files. The Sluice skill tells a coding agent to put it first in each flow file.
+
+## VS Code settings
+
+With the YAML extension of Red Hat (`redhat.vscode-yaml`), map the schemas to file patterns in `.vscode/settings.json`. Then no file needs the comment line.
+
+```json
+{
+  "yaml.schemas": {
+    "https://sluice-docs.pages.dev/schemas/flow.schema.json": "**/*.flow.yaml",
+    "https://sluice-docs.pages.dev/schemas/namespace.schema.json": "**/namespace.yaml"
+  }
+}
+```
+
+## The schema on the server
+
+| Source | Schema | Authentication |
+|---|---|---|
+| `GET /api/v1/schemas/flow.json` | The flow schema of the running server. | None. |
+| MCP tool `get_flow_schema` | The flow schema of the running server. | A bearer API token with the viewer role. |
+
+Use the server schema when the server runs another version than the docs site describes. The content has the same `$id` as the file on the docs site.
+
+```sh
+curl -s http://localhost:8080/api/v1/schemas/flow.json
+```
+
+[HTTP API](/reference/api/) lists all operations. [MCP tools](/reference/mcp-tools/) lists all tools.
+
+## Validate result
+
+`sluice validate <dir> --json` prints one object:
+
+| Field | Type | Description |
+|---|---|---|
+| `valid` | boolean | True when every file is valid. |
+| `files` | array | One entry for each flow file and `namespace.yaml`, in path order. |
+| `files[].path` | string | The file path relative to the namespace root. |
+| `files[].kind` | string | `flow` for a flow file, `namespace` for `namespace.yaml`. |
+| `files[].flow_id` | string | The flow ID when the file declares one. |
+| `files[].valid` | boolean | True when the file has no errors. |
+| `files[].errors` | array | The errors of the file. |
+| `files[].errors[].code` | string | The error code, for example `invalid_format` or `unknown_dependency`. |
+| `files[].errors[].path` | string | The YAML path, for example `tasks[1].depends_on[0]`. Empty for the document root. |
+| `files[].errors[].line` | integer | The line, from 1. `0` when unknown. |
+| `files[].errors[].column` | integer | The column, from 1. `0` when unknown. |
+| `files[].errors[].message` | string | The message for a person. |
+
+The command exits with `0` when `valid` is true and with `1` when it is false.

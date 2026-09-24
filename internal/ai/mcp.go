@@ -2,8 +2,10 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -15,7 +17,17 @@ import (
 // MCPPath is the MCP endpoint (REQ-AI-004).
 const MCPPath = "/mcp"
 
+// MCPCardPath is the MCP server card, the discovery document of SEP-2127.
+const MCPCardPath = "/.well-known/mcp.json"
+
+// mcpProtocolVersions are the protocol versions of the MCP SDK in go.mod, newest first.
+var mcpProtocolVersions = []string{"2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"}
+
 const mcpInstructions = "Sluice orchestrates flows of tasks. Read tools list namespaces, flows, files and executions. " +
+	"To write a flow, read get_flow_schema, then check the file with validate_flow before apply_change. " +
+	"To triage a failure, read get_execution, get_insight and get_logs with failed_only. " +
+	"rerun_execution and restart_execution reuse the files of the old execution: use them for a cause outside the files. " +
+	"After a change to a flow or a script, start a new execution with trigger_execution. " +
 	"Mutating tools run with the role of the API token."
 
 // mcpHandler serves MCP over streamable HTTP. Only bearer API tokens authenticate. Each
@@ -32,6 +44,53 @@ func mcpHandler(s *Service) http.Handler {
 			return
 		}
 		h.ServeHTTP(w, r)
+	})
+}
+
+// mcpCardHandler serves the server card. It is public: it names the endpoint and the bearer
+// header, and holds no data. The endpoint URL uses SLUICE_PUBLIC_URL, or the request host.
+func mcpCardHandler(s *Service) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		base := ""
+		if s != nil {
+			base = strings.TrimRight(s.PublicURL, "/")
+		}
+		if base == "" {
+			scheme := "http"
+			if r.TLS != nil {
+				scheme = "https"
+			}
+			base = scheme + "://" + r.Host
+		}
+		version := "dev"
+		if s != nil && s.Version != "" {
+			version = s.Version
+		}
+		card := map[string]any{
+			"$schema":     "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
+			"name":        "io.github.alternayte/sluice",
+			"title":       "Sluice",
+			"version":     version,
+			"description": "Read, run and triage Sluice flows and executions. Tools run with the role of the API token.",
+			"websiteUrl":  "https://sluice-docs.pages.dev",
+			"repository":  map[string]string{"url": "https://github.com/alternayte/sluice", "source": "github"},
+			"remotes": []map[string]any{{
+				"type":                      "streamable-http",
+				"url":                       base + MCPPath,
+				"supportedProtocolVersions": mcpProtocolVersions,
+				"headers": []map[string]any{{
+					"name":        "Authorization",
+					"description": "Bearer <API token>. Create a token on Settings, API tokens.",
+					"isRequired":  true,
+					"isSecret":    true,
+				}},
+			}},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		enc := json.NewEncoder(w)
+		enc.SetEscapeHTML(false)
+		_ = enc.Encode(card)
 	})
 }
 

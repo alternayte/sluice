@@ -1,0 +1,160 @@
+---
+title: Harden a deployment
+description: Put TLS in front of Sluice, limit roles and tokens, keep the security headers, protect the network and keep secrets out of the database.
+sidebar:
+  order: 5
+---
+
+import { Steps, Aside } from "@astrojs/starlight/components";
+
+This guide shows you how to harden a Sluice deployment before users rely on it. The [security model](/concepts/security-model/) explains the rules behind each step.
+
+## Checklist
+
+<Steps>
+
+1. Put TLS in front of Sluice, and set `SLUICE_PUBLIC_URL` to the `https://` URL.
+2. Load `SLUICE_MASTER_KEYS` from a secret store. Keep a copy of the keys outside the cluster.
+3. Sign in as the bootstrap admin and change the password. Remove the bootstrap variables from the environment.
+4. Create one user for each person. Give each user the lowest role that the work needs.
+5. Give each script, CI job and MCP client its own API token, with an expiry and the lowest role.
+6. Keep the security headers. Do not let the reverse proxy remove or change them.
+7. Keep `SLUICE_INTERNAL_URL`, `/metrics` and Postgres on the internal network.
+8. Prefer an external secret provider for production secrets.
+9. Set `known_hosts` on each SSH git source, and a webhook secret on each git source that gets webhooks.
+10. Run the Helm chart with its default security context.
+11. Read the audit log at regular intervals.
+
+</Steps>
+
+## TLS and the public URL
+
+Sluice serves plain HTTP on `SLUICE_LISTEN_ADDR` (default `:8080`). It has no TLS settings. Terminate TLS at an Ingress, a load balancer or a reverse proxy.
+
+`sluice server` needs `SLUICE_PUBLIC_URL`, an absolute `http` or `https` URL. Another value stops the server with exit code 2. Sluice uses the URL for these purposes:
+
+| Use | Effect of an `https://` URL |
+|---|---|
+| Session cookie | The cookie `sluice_session` gets the `Secure` flag. A browser then sends it only over TLS. |
+| Same-origin check | Cookie requests must come from this origin, or from the host of the request. |
+| Webhook URLs | The URLs of webhook triggers and git sources start with it. |
+| MCP card | `/.well-known/mcp.json` names `<public-url>/mcp`. |
+
+Set `SLUICE_PUBLIC_URL` to the exact URL that the browsers use. When the host differs, each change in the UI gets 403 `csrf_failed`.
+
+The session cookie also has `HttpOnly`, `SameSite=Lax` and `Path=/`. `SLUICE_SESSION_TTL` sets its lifetime (default `168h`). Each use of the session extends the lifetime.
+
+## Users and roles
+
+Sluice has its own user accounts. It has no OIDC, SAML or SCIM. Each user has one of four fixed roles, and each role has all permissions of the lower roles.
+
+| Role | Adds these permissions |
+|---|---|
+| `viewer` | Read dashboards, flows, files, executions, logs, metrics, variables and secret keys. Use the assistant with read tools. Manage the own profile and tokens. |
+| `operator` | Trigger, cancel, rerun and restart executions. Run files. Request a triage. Start a git sync. |
+| `editor` | Edit managed files, enable and disable flows, rotate webhook keys. Write namespace secrets and variables. Create managed namespaces. |
+| `admin` | Manage users, all tokens, global secrets and variables, secret providers, git sources, the AI provider, storage and instances. Read the audit log. Delete namespaces. |
+
+The server checks the role of each operation before it reads the request. The UI hides the actions that a role cannot do, but the server enforces each rule.
+
+After the first start, remove `SLUICE_BOOTSTRAP_ADMIN_EMAIL` and `SLUICE_BOOTSTRAP_ADMIN_PASSWORD` from the environment. Sluice reads them only when the `users` table is empty, so a later change of these variables has no effect.
+
+Sluice limits failed logins to 10 for one email and 50 for one IP address in 15 minutes. Sluice reads the client IP address from the TCP connection, not from `X-Forwarded-For`. Behind a reverse proxy, all clients share the address of the proxy for the per-IP limit and in the audit log.
+
+## API tokens
+
+Create tokens on **Settings → API tokens**.
+
+| Rule | Value |
+|---|---|
+| Format | `slu_` and 43 base62 characters. Sluice shows the token once and stores only its SHA-256 hash. |
+| Role | At most the role of the owner. The effective role is the lower of the token role and the current role of the owner. |
+| Expiry | Optional, from 1 to 365 days. A token without an expiry stays valid until somebody revokes it. |
+| Revoke | The owner or an admin revokes a token. The change applies on all instances within 5 seconds. |
+
+Give each client its own token, so that you can revoke one client without the others. Set an expiry on each token.
+
+`/mcp` accepts only a bearer API token. An MCP tool that changes data runs at once, with no confirmation, and writes the audit event `ai.tool.call`. Give an MCP client a `viewer` token when it only reads. A `viewer` token gets only the read tools.
+
+## Security headers
+
+Every response of the UI and the API has these headers:
+
+| Header | Value |
+|---|---|
+| `Content-Security-Policy` | `default-src 'self'; frame-ancestors 'none'` |
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+
+The policy lets the UI load scripts, styles, fonts and images only from its own origin. The fonts are in the binary. No other site can show Sluice in a frame. A reverse proxy must keep these headers as they are. You can add `Strict-Transport-Security` at the proxy.
+
+## Network
+
+| Path or service | Who needs it | Advice |
+|---|---|---|
+| UI and `/api/v1` | Users, scripts, CI jobs | Expose it through TLS. |
+| `/mcp` | MCP clients | Expose it through TLS. It needs a bearer token. |
+| `/hooks/` | Senders of webhooks | Expose it when you use webhook triggers or git webhooks. A wrong key gets 404. |
+| `/api/runner/v1` through `SLUICE_INTERNAL_URL` | The runner in each task | Keep it on the internal network. The Helm chart uses the Service URL. |
+| `/metrics`, `/healthz`, `/readyz` | Prometheus, probes | They need no credential. Block `/metrics` at the Ingress and scrape the pods. |
+| Postgres | All instances | Use TLS, for example `sslmode=require` or `sslmode=verify-full` in `SLUICE_DATABASE_URL`. |
+
+A run token authenticates the runner. It works only for its own task run, only while the task run is `RUNNING`, and only on `/api/runner/v1`. Sluice deletes the token hash when the task run ends.
+
+## Secrets and master keys
+
+`SLUICE_MASTER_KEYS` holds the keys that encrypt builtin secrets with AES-256-GCM. Without master keys, a write of a builtin secret gets 409 `builtin_provider_disabled`, and the other providers still work.
+
+- Load the keys from a secret store. With the Helm chart, set `masterKeys.existingSecret`. The chart never puts the keys in the pod spec as plain values.
+- Keep a copy of the keys outside the cluster. Without them, a database backup has no usable secret values.
+- Rotate the key when a person with access to it leaves. See [Rotate the master key](/operations/rotate-the-master-key/).
+
+An external secret provider keeps the secret values out of the Sluice database. Sluice stores only the reference, and a provider configuration holds no credential.
+
+| Provider type | Values come from |
+|---|---|
+| `builtin` | The Sluice database, encrypted with the master keys. |
+| `env` | `SLUICE_SECRET_<KEY>` in the environment of the server. |
+| `kubernetes` | Kubernetes Secrets. The chart adds `get` on Secrets with `kubernetesSecretProvider.enabled: true`. |
+| `vault` | HashiCorp Vault, with `SLUICE_VAULT_TOKEN` or the Kubernetes auth role `SLUICE_VAULT_K8S_ROLE`. |
+| `azure_key_vault` | Azure Key Vault, with the Azure credential chain of the server. |
+
+The runner masks secret values in logs, outputs and errors, and the server masks them again before it stores them. A task process still gets the values in its environment. Sluice cannot stop a script that sends a value somewhere else, so review the scripts that use production secrets. See [Connect a secret provider](/how-to/connect-a-secret-provider/).
+
+## Git sources
+
+| Setting | Why |
+|---|---|
+| `known_hosts` on an SSH source | Without it, Sluice does not check the host key of the server, and each sync run records a warning. |
+| Webhook secret | A global secret with the webhook secret lets Sluice check the signature or the token of each push webhook. |
+| Credential | Store the deploy key or the token as a global secret. Give it write access only when editors push branches from Sluice. |
+
+## Containers and pods
+
+Both images run as the non-root user 65532. The `sluice` image is distroless and has no shell. The Helm chart sets these values:
+
+| Item | Value |
+|---|---|
+| `runAsNonRoot`, `runAsUser`, `runAsGroup`, `fsGroup` | `true`, `65532`, `65532`, `65532` |
+| `seccompProfile` | `RuntimeDefault` |
+| `readOnlyRootFilesystem` | `true` |
+| `allowPrivilegeEscalation` | `false` |
+| `capabilities` | Drop `ALL`. |
+| Writable path | `/tmp`, an `emptyDir`. No PersistentVolumeClaim. |
+| RBAC | Jobs: create, get, list, watch, delete. Pods: get, list, watch. `pods/log`: get. Secrets: get, only with `kubernetesSecretProvider.enabled: true`. |
+
+Give the database URL, the master keys and the bootstrap admin to the chart as Kubernetes Secrets: `database.existingSecret`, `masterKeys.existingSecret` and `bootstrapAdmin.existingSecret`.
+
+<Aside type="caution">
+A task on the `process` executor runs inside the server container, with the same user and the same network access as the server. Run untrusted or heavy tasks on the `docker` or `kubernetes` executor.
+</Aside>
+
+## Audit log
+
+An admin reads the audit log on **Settings → Audit log**, or with `GET /api/v1/audit`. The log records sign-ins, user and token changes, secret, variable and provider changes, git and namespace changes, execution actions and AI tool calls. Events hold keys and provider names, never secret values. Sluice keeps audit events for 365 days.
+
+## Related pages
+
+- [Security model](/concepts/security-model/): the rules behind each step.
+- [Runbook](/operations/runbook/): the common errors of authentication and CSRF.
+- [HTTP API basics](/reference/http-api-basics/): cookies, tokens and the Origin check.

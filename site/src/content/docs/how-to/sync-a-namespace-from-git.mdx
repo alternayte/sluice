@@ -1,0 +1,216 @@
+---
+title: Sync a namespace from git
+description: Map a directory of a git branch to a namespace, sync it on a poll or a webhook, and push edits from Sluice to a new branch.
+---
+
+import { Steps, Tabs, TabItem, Aside } from "@astrojs/starlight/components";
+
+This guide shows you how to keep the files of a namespace in a git repository. Sluice reads one branch, turns each commit into a version of the namespace, and sends edits back as new branches.
+
+| Term | Meaning |
+|---|---|
+| Git source | One branch of one repository, with its credentials, poll interval and webhook secret. |
+| Mapping | A directory of the branch and the namespace that gets its files. One source has 1 to 100 mappings. |
+| Sync run | One read of the branch head. Sluice records each run with its result. |
+| Git namespace | A namespace whose files come only from sync. Sluice shows it as read-only. |
+
+## Before you start
+
+- You need the admin role to create a git source.
+- Store the credential as a **global** secret, for example `GIT_TOKEN`. Sluice reads the credential and the webhook secret from the global scope only. The secret can use any provider. See [Use secrets and variables](/how-to/use-secrets-and-variables/).
+- Run `sluice validate` on the directory. A sync stores invalid flows too, but their triggers do not fire.
+
+## Create a git source
+
+<Steps>
+
+1. Open **Settings → Git sources** and click **Add git source**.
+
+2. Fill in the form:
+
+   | Field | Value |
+   |---|---|
+   | **Name** | A unique name, for example `pipelines`. It cannot change later. |
+   | **Repository URL** | `https://…`, `ssh://…` or `user@host:path`. Plain `http://` works only for `localhost` and loopback addresses. |
+   | **Branch** | The branch to track, for example `main`. |
+   | **Authentication** | `none`, `https_token` or `ssh_key`. |
+   | **Credential secret key** | The key of the global secret with the token or the private key. |
+   | **Known hosts** | For `ssh_key`: lines in OpenSSH `known_hosts` format. |
+   | **Poll interval in seconds** | From 15 to 86 400. Default 60. |
+   | **Webhook secret key** | Optional. The key of the global secret for webhook calls. |
+
+3. Under **Mappings**, add a **Repository path** and a **Namespace** for each directory. An empty path is the repository root.
+
+4. Click **Add git source**. The first sync starts within about one second.
+
+</Steps>
+
+The API takes the same fields:
+
+```sh
+curl -X POST "$SLUICE_URL/api/v1/git-sources" \
+  -H "Authorization: Bearer $SLUICE_TOKEN" -H "Content-Type: application/json" \
+  -d '{
+    "name": "pipelines",
+    "repo_url": "https://github.com/acme/pipelines.git",
+    "branch": "main",
+    "auth_type": "https_token",
+    "credential_secret_key": "GIT_TOKEN",
+    "poll_interval": 300,
+    "webhook_secret_key": "GIT_WEBHOOK_SECRET",
+    "mappings": [{"repo_path": "pipelines/elt", "namespace": "data.elt"}]
+  }'
+```
+
+The response holds the secret keys, never the secret values. It also holds `webhook_url`, `last_synced_sha`, `last_sync_at`, `last_sync_status` and `last_error`.
+
+### Credentials
+
+| `auth_type` | URL | Credential in the secret | How Sluice uses it |
+|---|---|---|---|
+| `none` | Any allowed URL. | None. | No authentication. |
+| `https_token` | `https://`, or loopback `http://`. | An access token, for example of GitHub or GitLab. | HTTP basic auth with the user `x-access-token`. |
+| `ssh_key` | `ssh://` or `user@host:path`. | A private key in PEM format, without a passphrase. | The SSH user comes from the URL. Without a user, it is `git`. |
+
+<Aside type="caution">
+  Without **Known hosts**, Sluice does not check the host key of an SSH server. Each sync run then records the warning `no known_hosts: the host key was not checked`. For production, set **Known hosts**. `ssh-keyscan github.com` prints the lines.
+</Aside>
+
+### Mappings
+
+- A mapped namespace that does not exist becomes a new git namespace.
+- A mapping to a managed namespace returns 409 `namespace_managed`. A namespace keeps its source for its whole life.
+- A mapping to a namespace of another source returns 409 `namespace_mapped`.
+- In one source, two mappings cannot share a path or a namespace.
+- An update of a source replaces all mappings. A namespace that loses its mapping keeps its versions, stays read-only and does not sync again. A delete of the source has the same effect.
+
+## How a sync works
+
+The instance that holds the git sync lease checks the sources every second. A source syncs in three cases. It has never synced, a user or a webhook asked for a sync, or `poll_interval` seconds have passed since the last sync started.
+
+A sync does these steps:
+
+1. It fetches the head of the branch as a shallow clone with depth 1, into a temporary directory. It checks out no files.
+2. For each mapping, it reads the files below the repository path from the git object store.
+3. It compares the files with the head version of the namespace. It creates a new version only when a file changed.
+4. It refreshes the flows and triggers of the namespace from the new version.
+5. It records the sync run and deletes the temporary directory.
+
+The message of a version is `git <first 12 characters of the SHA>: <commit subject>`, and the version records the SHA. A commit that changes only one mapping gives a new version of that namespace only.
+
+A flow file that you remove in git removes the flow and stops its triggers. Old executions of the flow stay visible.
+
+Sluice reads only regular and executable files. It skips symbolic links, submodules and invalid paths, and records a warning for each. A file larger than `SLUICE_MAX_FILE_BYTES` fails the sync.
+
+### Watch the sync
+
+The page of a git namespace shows a **Git source** panel. It lists the repository, the branch, the path, **Last sync** with the commit, and **Last error**. Below it, a table lists the last 50 sync runs with **State**, **Commit**, **Snapshots** and **Details**. The **Details** column shows the error or the number of warnings.
+
+A failed sync keeps the previous version as the head, so new executions use the last good files. `last_synced_sha` changes only after a successful sync. A run that stays `running` for more than 30 minutes becomes `failed` with the error `the sync stopped before it ended`.
+
+### Sync now
+
+**Sync now** on **Settings → Git sources**, or on the **Git source** panel of a namespace, asks for a sync at once. You need the operator role or a higher role.
+
+```sh
+curl -X POST "$SLUICE_URL/api/v1/git-sources/<source_id>/sync" \
+  -H "Authorization: Bearer $SLUICE_TOKEN"
+```
+
+The answer is 202. The sync starts at the next check of the lease holder, normally within one second.
+
+## Sync on push with a webhook
+
+A webhook makes a push sync at once, so you can set a long poll interval.
+
+<Steps>
+
+1. Create a global secret, for example `GIT_WEBHOOK_SECRET`, with a long random value.
+
+2. Set **Webhook secret key** of the source to `GIT_WEBHOOK_SECRET`.
+
+3. Copy the `webhook_url` of the source: `SLUICE_PUBLIC_URL` followed by `/hooks/git/<source_id>`.
+
+4. Configure the git host with one of the tabs below.
+
+</Steps>
+
+<Tabs>
+  <TabItem label="GitHub">
+    1. In the repository, open **Settings → Webhooks → Add webhook**.
+    2. Set **Payload URL** to the `webhook_url` of the source.
+    3. Set **Content type** to `application/json`.
+    4. Set **Secret** to the value of `GIT_WEBHOOK_SECRET`.
+    5. Select the push event and save.
+
+    GitHub signs each call with `X-Hub-Signature-256`. Sluice checks the HMAC-SHA256 of the body with the secret.
+  </TabItem>
+  <TabItem label="Other hosts and CI">
+    Send the secret itself in the header `X-Sluice-Token`:
+
+    ```sh
+    curl -X POST "https://sluice.example.com/hooks/git/<source_id>" \
+      -H "X-Sluice-Token: $GIT_WEBHOOK_SECRET"
+    ```
+  </TabItem>
+</Tabs>
+
+| Request | Answer |
+|---|---|
+| Unknown source ID | 404 `git_source_not_found` |
+| No webhook secret on the source, or a wrong signature or token | 401 `invalid_signature` |
+| A body larger than 1 MiB | 413 `body_too_large` |
+| A valid GitHub `ping` event | 202 `{"queued":false}` |
+| A valid JSON body whose `ref` is not `refs/heads/<branch>` | 202 `{"queued":false}` |
+| Any other valid request | 202 `{"queued":true}`, and a sync starts |
+
+## Change files of a git namespace
+
+A git namespace is read-only. A save, upload, rename or delete returns 409 `namespace_read_only`. The repository stays the only source of the files. To change a file, commit to the tracked branch, or push an edit from Sluice to a new branch.
+
+### Push to a branch from the editor
+
+You need the editor role.
+
+<Steps>
+
+1. Open the git namespace and select the file on the **Files** tab. The editor shows the file, and you can type in it.
+
+2. Edit the file. The server validates flow files and `namespace.yaml` while you type.
+
+3. Click **Push to branch**, or press Cmd+S or Ctrl+S.
+
+4. Type a **Commit message** and click **Push**. The dialog shows the name of the new branch.
+
+5. Open a pull request for the branch in your git host, and merge it. The next sync brings the change into Sluice.
+
+</Steps>
+
+Sluice builds the commit from the last synced commit, not from the newest commit of the branch. It pushes only a new branch, `sluice/<user-slug>/<yyyymmdd-hhmmss>`. The tracked branch and the namespace do not change.
+
+| Part | Value |
+|---|---|
+| `<user-slug>` | The part of the user email before `@`, in lower case. Each run of characters other than `a-z` and `0-9` becomes one `-`. |
+| `<yyyymmdd-hhmmss>` | The push time in UTC. |
+| Author and committer | The user slug as the name, and the user email. |
+
+For example, `dana@example.com` at 14:03:07 UTC on 24 September 2026 pushes the branch `sluice/dana/20260924-140307`.
+
+| Error | Cause |
+|---|---|
+| 404 `git_source_not_found` | No git source maps the namespace. |
+| 409 `not_synced` | The source has not synced yet, so no base commit exists. |
+| 413 `file_too_large` | A file is larger than `SLUICE_MAX_FILE_BYTES`. |
+| 422 `validation_failed` | A bad path, a missing file, or changes that change no file. |
+
+The API is `POST /api/v1/namespaces/{namespace}/git/push` with a `message` and a list of `changes`. Each successful push writes the audit event `git.push`.
+
+### Push from the assistant
+
+The assistant writes a change to a git namespace in the same way. It proposes the files, and it refuses a change with validation errors. After you confirm the change, Sluice pushes a new branch and the assistant names it. See [Set up the assistant](/how-to/set-up-the-assistant/).
+
+## Related pages
+
+- [Namespaces and versions](/concepts/namespaces-and-versions/)
+- [Use secrets and variables](/how-to/use-secrets-and-variables/)
+- [Run flows from GitHub Actions](/how-to/run-flows-from-github-actions/)

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Plus, Trash2 } from "lucide-react";
+import { FolderTree, Plus, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import {
   createNamespaceMutation,
@@ -16,12 +16,13 @@ import { Field, FormError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
+import { toast } from "@/components/ui/toast";
 import { useCurrentUser } from "@/lib/auth";
 import { errorMessage, fieldErrors } from "@/lib/errors";
 import { namespaceTree } from "@/features/namespaces/namespaces";
 import { can } from "@/lib/roles";
 
-const indent = ["pl-3", "pl-7", "pl-11", "pl-15", "pl-19", "pl-23"];
+const indent = ["pl-4", "pl-9", "pl-14", "pl-19", "pl-24", "pl-29"];
 
 export function NamespacesPage() {
   const me = useCurrentUser();
@@ -43,7 +44,19 @@ export function NamespacesPage() {
           )
         }
       />
-      <DataState query={namespaces} empty={(d) => d.items.length === 0} emptyText="There are no namespaces yet.">
+      <DataState
+        query={namespaces}
+        empty={(d) => d.items.length === 0}
+        emptyText="There are no namespaces yet."
+        emptyIcon={FolderTree}
+        emptyAction={
+          can(me.role, "editor") && (
+            <Button size="sm" variant="secondary" onClick={() => setCreateOpen(true)}>
+              Create a namespace
+            </Button>
+          )
+        }
+      >
         {(d) => (
           <Table>
             <THead>
@@ -62,30 +75,39 @@ export function NamespacesPage() {
               {namespaceTree(d.items).map(({ item, depth }) => (
                 <Tr key={item.name}>
                   <Td className={indent[Math.min(depth, indent.length - 1)]}>
-                    {item.implicit ? (
-                      <span className="text-muted-foreground">{item.name}</span>
-                    ) : (
-                      <Link
-                        to="/namespaces/$namespace"
-                        params={{ namespace: item.name }}
-                        className="font-medium text-accent-text hover:underline"
-                      >
-                        {item.name}
-                      </Link>
-                    )}
+                    <span className="flex items-center gap-2">
+                      {depth > 0 && <span aria-hidden className="-ml-3 h-px w-2 bg-border" />}
+                      {item.implicit ? (
+                        <span className="text-muted-foreground">{item.name}</span>
+                      ) : (
+                        <Link
+                          to="/namespaces/$namespace"
+                          params={{ namespace: item.name }}
+                          className="font-medium text-foreground hover:text-accent-text hover:underline"
+                        >
+                          {item.name}
+                        </Link>
+                      )}
+                    </span>
                   </Td>
                   <Td>
                     <SourceBadges ns={item} />
                   </Td>
-                  <Td className="max-w-96 truncate text-muted-foreground" title={item.description}>
+                  <Td className="max-w-96 truncate text-muted-foreground" title={item.description || undefined}>
                     {item.description || "—"}
                   </Td>
                   {can(me.role, "admin") && (
-                    <Td className="text-right">
+                    <Td className="w-0 text-right">
                       {item.source_type === "managed" && !item.implicit && (
-                        <Button size="sm" variant="ghost" onClick={() => setDeleting(item.name)}>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 hover:text-destructive"
+                          aria-label={`Delete ${item.name}`}
+                          title="Delete"
+                          onClick={() => setDeleting(item.name)}
+                        >
                           <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                          Delete
                         </Button>
                       )}
                     </Td>
@@ -110,6 +132,7 @@ function CreateNamespaceDialog({ onClose }: { onClose: () => void }) {
     ...createNamespaceMutation(),
     onSuccess: (ns: Namespace) => {
       invalidateNamespace(qc, ns.name);
+      toast({ title: `Created ${ns.name}`, link: { label: "Open namespace", href: `/namespaces/${ns.name}` } });
       onClose();
     },
   });
@@ -155,6 +178,7 @@ function DeleteNamespaceDialog({ name, onClose }: { name: string; onClose: () =>
     ...deleteNamespaceMutation(),
     onSuccess: () => {
       invalidateNamespace(qc, name);
+      toast({ title: `Deleted ${name}` });
       onClose();
     },
   });

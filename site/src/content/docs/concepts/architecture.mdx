@@ -1,0 +1,160 @@
+---
+title: Architecture
+description: The parts of Sluice, the path of an execution through them, and how many instances share one database.
+sidebar:
+  order: 1
+---
+
+This page explains the parts of Sluice and how an execution moves through them. It also explains how several server instances share the work without a coordinator.
+
+## One binary, one database
+
+Sluice is one Go binary, `sluice`. The same binary is the server, the runner inside a task and the CLI. The server embeds the web UI.
+
+Postgres holds all state: users, namespaces, flows, executions, task runs, secrets and the task queue. An object store holds the large objects: file contents, bundles, archived logs and artifacts. The default object store is Postgres itself, so a deployment needs only a database. The server reads its configuration only from environment variables.
+
+You can run any number of server instances on one database. Each instance serves the UI and the API, claims tasks and runs executors. No instance has a special role that you configure.
+
+<figure>
+  <svg viewBox="0 0 760 430" role="img" aria-labelledby="arch-title" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;color:var(--sl-color-gray-2)">
+    <title id="arch-title">Clients call the HTTP API of a sluice server instance. The executors of the instance start tasks, and the runner in each task calls the runner API. Every instance keeps state in Postgres and objects in object storage.</title>
+    <defs>
+      <marker id="arch-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="currentColor" />
+      </marker>
+    </defs>
+    <g font-family="inherit" font-size="14" fill="currentColor" text-anchor="middle">
+      <rect x="10" y="40" width="160" height="44" rx="8" fill="currentColor" fill-opacity="0.05" stroke="currentColor" />
+      <text x="90" y="67">Browser, web UI</text>
+      <rect x="10" y="104" width="160" height="44" rx="8" fill="currentColor" fill-opacity="0.05" stroke="currentColor" />
+      <text x="90" y="131">CLI and CI jobs</text>
+      <rect x="10" y="168" width="160" height="44" rx="8" fill="currentColor" fill-opacity="0.05" stroke="currentColor" />
+      <text x="90" y="195">MCP clients</text>
+      <rect x="10" y="232" width="160" height="44" rx="8" fill="currentColor" fill-opacity="0.05" stroke="currentColor" />
+      <text x="90" y="259">Webhooks, git hosts</text>
+      <rect x="210" y="10" width="320" height="318" rx="12" fill="none" stroke="currentColor" stroke-dasharray="6 4" />
+      <text x="370" y="34" font-weight="600">sluice server, instance 1 of N</text>
+      <rect x="230" y="48" width="280" height="50" rx="8" fill="currentColor" fill-opacity="0.05" stroke="currentColor" />
+      <text x="370" y="69">HTTP: /, /api/v1, /mcp, /hooks</text>
+      <text x="370" y="89" font-size="12">/api/runner/v1</text>
+      <rect x="230" y="110" width="280" height="42" rx="8" fill="currentColor" fill-opacity="0.05" stroke="currentColor" />
+      <text x="370" y="136">Engine and dispatcher</text>
+      <rect x="230" y="164" width="280" height="70" rx="8" fill="currentColor" fill-opacity="0.05" stroke="currentColor" />
+      <text x="370" y="187">Lease leaders</text>
+      <text x="370" y="206" font-size="12">scheduler, maintenance,</text>
+      <text x="370" y="223" font-size="12">git-sync, k8s-reconcile</text>
+      <rect x="230" y="246" width="280" height="66" rx="8" fill="currentColor" fill-opacity="0.05" stroke="currentColor" />
+      <text x="370" y="272">Executors</text>
+      <text x="370" y="294" font-size="12">inline, process, docker, kubernetes</text>
+      <rect x="580" y="246" width="170" height="66" rx="8" fill="currentColor" fill-opacity="0.05" stroke="currentColor" />
+      <text x="665" y="270">Task: process,</text>
+      <text x="665" y="288">container or Job</text>
+      <text x="665" y="305" font-size="12">runs sluice exec</text>
+      <text x="554" y="270" font-size="12">starts</text>
+      <text x="655" y="140" font-size="12" text-anchor="end">runner API:</text>
+      <text x="655" y="158" font-size="12" text-anchor="end">logs, heartbeat,</text>
+      <text x="655" y="176" font-size="12" text-anchor="end">complete</text>
+      <rect x="215" y="360" width="150" height="62" rx="8" fill="currentColor" fill-opacity="0.05" stroke="currentColor" />
+      <text x="290" y="386" font-weight="600">Postgres</text>
+      <text x="290" y="406" font-size="12">all state, the queue</text>
+      <rect x="375" y="360" width="150" height="62" rx="8" fill="currentColor" fill-opacity="0.05" stroke="currentColor" />
+      <text x="450" y="386" font-weight="600">Object storage</text>
+      <text x="450" y="406" font-size="12">files, logs, artifacts</text>
+    </g>
+    <g stroke="currentColor" stroke-width="1.5" fill="none">
+      <path d="M170 62 L228 64" marker-end="url(#arch-arrow)" />
+      <path d="M170 126 L228 72" marker-end="url(#arch-arrow)" />
+      <path d="M170 190 L228 80" marker-end="url(#arch-arrow)" />
+      <path d="M170 254 L228 88" marker-end="url(#arch-arrow)" />
+      <path d="M510 279 L578 279" marker-end="url(#arch-arrow)" />
+      <path d="M665 246 L665 73 L512 73" marker-end="url(#arch-arrow)" stroke-dasharray="5 4" />
+      <path d="M290 328 L290 358" marker-end="url(#arch-arrow)" />
+      <path d="M450 328 L450 358" marker-end="url(#arch-arrow)" />
+    </g>
+  </svg>
+  <figcaption>Clients and tasks call the HTTP API of any instance. Every instance uses the same Postgres and the same object storage.</figcaption>
+</figure>
+
+## Components
+
+| Component | Runs on | What it does |
+|---|---|---|
+| HTTP API and UI | every instance | Serves the web UI at `/`, the API at `/api/v1`, MCP at `/mcp`, webhooks at `/hooks` and the runner API at `/api/runner/v1`. |
+| Engine and dispatcher | every instance | Starts queued executions, queues ready tasks, claims task runs and ends executions. |
+| Executors | the instance that claimed the task run | Start, wait for, cancel and check the work of a task run. |
+| Runner | the task process, container or Job | `sluice exec` gets the task spec and the files, runs the command, and reports to the server. |
+| Scheduler | the holder of the `scheduler` lease | Fires due schedules once each second. |
+| Git sync | the holder of the `git-sync` lease | Syncs due git sources once each second. |
+| Maintenance | the holder of the `maintenance` lease | Checks deadlines and lost work every 2 seconds, and cleans up every hour. |
+| Kubernetes reconciler | the holder of the `k8s-reconcile:<pool>` lease | Compares the Jobs and the task runs of one pool every 60 seconds. |
+| Instance registry | every instance | Records the instance with its pools and executors, and writes a heartbeat every 10 seconds. |
+| Storage | every instance | One interface for objects, with the drivers `postgres`, `fs`, `s3` and `azblob`. |
+
+## The path of an execution
+
+A trigger creates an execution: a schedule, a webhook, a flow trigger, a click in the UI, `sluice run` or an MCP tool. The new execution row pins the current flow revision and the snapshot of the namespace. The execution starts in the state `QUEUED`.
+
+The engine moves the execution to `RUNNING` when the concurrency limit of the flow allows it. It creates one `PENDING` task run for each task. A task run becomes `QUEUED` when its dependencies have ended and its `run_if` condition is true.
+
+The dispatcher of any instance can claim a `QUEUED` task run. The claim is one database transaction with `SELECT … FOR UPDATE SKIP LOCKED`, in queue order. Two instances thus never claim the same task run. The claim sets the task run to `RUNNING` and creates a run token for it.
+
+The executor of the claiming instance then starts the work. It passes three variables to the runner: `SLUICE_API_URL`, `SLUICE_RUN_TOKEN` and `SLUICE_TASK_RUN_ID`. The runner runs the task and posts the result to the runner API. In one transaction, the engine sets the task state and applies the retry policy. It also queues the next tasks, and it ends the execution when all tasks have ended. The server then revokes the run token and archives the logs of the task run.
+
+`http` and `subflow` tasks follow the same states. They run inside the claiming instance, on the inline executor, with no runner. For the states and the reasons, see [Executions and states](/concepts/executions-and-states/).
+
+## The runner protocol
+
+The runner is `sluice exec`. It calls the runner API of the server with its run token. The run token is valid for one task run only, and only while the task run is `RUNNING`.
+
+| Call | Purpose |
+|---|---|
+| `GET …/spec` | The command, the resolved environment with the secrets, and the values to mask. |
+| `GET …/bundle` | The files of the pinned snapshot, as one archive. |
+| `POST …/logs` | Log lines in batches of at most 500 ms or 256 KiB. |
+| `POST …/events` | Outputs and metrics that the task writes to `SLUICE_OUTPUTS`. |
+| `PUT …/artifacts/{name}` | One artifact file. |
+| `POST …/heartbeat` | A liveness signal every 10 seconds. The answer tells the runner to stop when a user cancels. |
+| `POST …/complete` | The exit code, the error and the reason. |
+
+The paths start with `/api/runner/v1/task-runs/{taskRunId}`. The runner masks secret values before it sends logs, and the server masks them again before it stores them.
+
+This design keeps secrets out of the task definition. The server gives the resolved secrets to the runner at run time. They are not in a process environment of the server, a Docker container configuration or a Kubernetes object. For more, see [Executors, pools and the runner](/concepts/executors-pools-and-the-runner/).
+
+## Snapshots and bundles
+
+A snapshot is one immutable version of the files of a namespace. Sluice stores each file content once, by its SHA-256 hash. A snapshot is a manifest of paths, hashes, sizes and executable flags. A save in a managed namespace creates a snapshot. A git sync creates one when the files changed.
+
+An execution pins the head snapshot of its namespace when Sluice creates it. Later changes to the files do not change a pinned execution. Rerun and restart from failed use the snapshot and the flow definition of the old execution.
+
+The bundle of a snapshot is a `tar.gz` of all its files. The server builds it the first time a runner asks for it, and stores it for later tasks. The runner extracts the bundle into its work directory. The extraction rejects absolute paths, `..` segments, links and special files.
+
+## Leases and leaders
+
+Some work must run on one instance only, for example the scheduler. Sluice elects a leader for each such job with a row in the `leases` table. A lease has a time to live of 15 seconds, and its holder renews it every 5 seconds. When a holder stops, another instance takes the lease after it expires.
+
+| Lease | Work of the holder |
+|---|---|
+| `scheduler` | Fires due schedules. Each schedule time creates at most one execution. |
+| `maintenance` | Checks flow and task deadlines, lost tasks and `no_instance_for_pool` every 2 seconds. Deletes old instances, sessions, audit events and executions, and collects unused storage objects. |
+| `git-sync` | Polls and syncs git sources. |
+| `k8s-reconcile:<pool>` | Reconciles the Jobs of one pool. Only instances with the kubernetes executor take it. |
+
+A write that only the leader may do checks the lease in the same SQL statement. A former leader thus cannot write after it lost the lease. Sluice uses no session advisory locks and no `LISTEN`, so it works behind a transaction-mode pooler such as PgBouncer.
+
+## Heartbeats and lost work
+
+Each instance writes a heartbeat every 10 seconds. An instance is offline after 60 seconds without a heartbeat. Each runner sends a heartbeat every 10 seconds.
+
+Sluice finds lost work in three ways. The claiming instance checks each task run without a heartbeat for `SLUICE_HEARTBEAT_TIMEOUT` with its executor. The maintenance leader fails the task runs of offline instances. The Kubernetes reconciler fails a task run whose Job is gone. A lost attempt ends `FAILED` with the reason `lost`, and the retry policy applies.
+
+## Logs
+
+The runner sends log lines in batches. Each batch has a sequence number, so a repeated batch does not duplicate lines. The server masks each batch, numbers the lines, and stores the batch in Postgres. When the task run ends, the server writes all its lines to object storage as one compressed file and deletes the batches. The log API and the live log stream read both places and merge them by line number.
+
+## Related pages
+
+- [Executors, pools and the runner](/concepts/executors-pools-and-the-runner/)
+- [Namespaces and versions](/concepts/namespaces-and-versions/)
+- [Security model](/concepts/security-model/)
+- [Deploy on Kubernetes with Helm](/how-to/deploy-on-kubernetes/)
+- [Runbook](/operations/runbook/)

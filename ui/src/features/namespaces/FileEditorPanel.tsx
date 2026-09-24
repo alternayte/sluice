@@ -1,21 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { GitBranch, Pencil, Play, Save, Trash2 } from "lucide-react";
-import { useCallback, useState, type FormEvent } from "react";
+import { ChevronRight, GitBranch, Pencil, Play, Save, Trash2, XCircle } from "lucide-react";
+import { Fragment, useCallback, useState, type FormEvent } from "react";
 import { pushNamespaceBranchMutation, saveChangesMutation } from "@/api/@tanstack/react-query.gen";
 import { validateFile } from "@/api/sdk.gen";
-import type { SaveChangesRequest } from "@/api/types.gen";
+import type { SaveChangesRequest, Snapshot } from "@/api/types.gen";
 import { ApiError, rawFetch } from "@/api-client";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DataState } from "@/components/data-state";
 import { CodeEditor, type Issue } from "@/components/editor/code-editor";
 import { isValidatedPath } from "@/components/editor/languages";
+import { fileIcon } from "@/features/namespaces/FileTree";
 import { invalidateNamespace } from "@/features/namespaces/namespace-source";
 import { RunFileDialog } from "@/components/run-dialogs";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, FormError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/toast";
 import { useCurrentUser } from "@/lib/auth";
 import { errorMessage } from "@/lib/errors";
 import { runnableFile } from "@/lib/executions";
@@ -26,18 +27,27 @@ export function useSaveChanges(namespace: string) {
   const mutation = useMutation(saveChangesMutation());
   return {
     ...mutation,
-    mutate: (body: SaveChangesRequest, options?: { onSuccess?: () => void }) =>
+    mutate: (body: SaveChangesRequest, options?: { onSuccess?: (snapshot: Snapshot) => void }) =>
       mutation.mutate(
         { path: { namespace }, body },
         {
-          onSuccess: () => {
+          onSuccess: (snapshot) => {
             invalidateNamespace(qc, namespace);
-            options?.onSuccess?.();
+            options?.onSuccess?.(snapshot);
           },
         },
       ),
   };
 }
+
+/** savedToast confirms a new version of the namespace. */
+export function savedToast(title: string, snapshot: Snapshot) {
+  toast({ title, description: snapshot.version != null ? `Version ${snapshot.version}` : undefined });
+}
+
+/** isMac picks the shortcut labels. */
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+const mod = isMac ? "⌘" : "Ctrl+";
 
 /** fileContentKey is the query key of the head content of a file. */
 export const fileContentKey = (namespace: string, path: string) => ["namespace", namespace, "file", path];
@@ -103,59 +113,95 @@ export function FileEditorPanel({
   const body = (saved: string) => {
     const value = draft ?? saved;
     const dirty = isNew || (draft !== undefined && draft !== saved);
+    // Cmd+S does what the Save button does: the file's save dialog, or the push dialog of a git namespace.
+    const saveShortcut =
+      dirty && canEdit ? () => setDialog("save") : dirty && gitPush ? () => setDialog("push") : undefined;
     return (
-      <div className="flex min-h-0 flex-1 flex-col gap-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2">
-            <h2 id="editor-label" className="truncate font-mono text-sm" title={path}>
-              {path}
-            </h2>
-            {dirty && <Badge tone="warning">Unsaved changes</Badge>}
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-10 shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b px-3 py-1.5">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <PathCrumbs path={path} />
+            {dirty && (
+              <span className="flex shrink-0 animate-enter items-center gap-1.5 text-xs text-muted-foreground">
+                <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent" />
+                Unsaved changes
+              </span>
+            )}
           </div>
           {(canEdit || canRun || gitPush) && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex shrink-0 items-center gap-1">
+              {canEdit &&
+                (isNew ? (
+                  <Button size="sm" variant="ghost" onClick={onDiscard}>
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                    Discard
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      aria-label="Rename"
+                      title="Rename"
+                      onClick={() => setDialog("rename")}
+                    >
+                      <Pencil className="h-3.5 w-3.5" aria-hidden />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      aria-label="Delete"
+                      title="Delete"
+                      onClick={() => setDialog("delete")}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                    </Button>
+                  </>
+                ))}
+              {(canEdit || gitPush) && canRun && <span aria-hidden className="mx-1 h-4 w-px bg-border" />}
               {canRun && (
-                <Button size="sm" variant="secondary" onClick={() => setDialog("run")}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  title={`Run (${mod}Enter)`}
+                  aria-keyshortcuts="Meta+Enter Control+Enter"
+                  onClick={() => setDialog("run")}
+                >
                   <Play className="h-3.5 w-3.5" aria-hidden />
                   Run
                 </Button>
               )}
               {gitPush && (
-                <Button size="sm" disabled={!dirty} onClick={() => setDialog("push")}>
+                <Button
+                  size="sm"
+                  disabled={!dirty}
+                  title={`Push to branch (${mod}S)`}
+                  aria-keyshortcuts="Meta+S Control+S"
+                  onClick={() => setDialog("push")}
+                >
                   <GitBranch className="h-3.5 w-3.5" aria-hidden />
                   Push to branch
                 </Button>
               )}
               {canEdit && (
-                <>
-                  {isNew ? (
-                    <Button size="sm" variant="ghost" onClick={onDiscard}>
-                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                      Discard
-                    </Button>
-                  ) : (
-                    <>
-                      <Button size="sm" variant="ghost" onClick={() => setDialog("rename")}>
-                        <Pencil className="h-3.5 w-3.5" aria-hidden />
-                        Rename
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setDialog("delete")}>
-                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                        Delete
-                      </Button>
-                    </>
-                  )}
-                  <Button size="sm" disabled={!dirty} onClick={() => setDialog("save")}>
-                    <Save className="h-3.5 w-3.5" aria-hidden />
-                    Save
-                  </Button>
-                </>
+                <Button
+                  size="sm"
+                  disabled={!dirty}
+                  title={`Save (${mod}S)`}
+                  aria-keyshortcuts="Meta+S Control+S"
+                  onClick={() => setDialog("save")}
+                >
+                  <Save className="h-3.5 w-3.5" aria-hidden />
+                  Save
+                </Button>
               )}
             </div>
           )}
         </div>
         <CodeEditor
-          className="min-h-0 flex-1"
+          className="min-h-0 flex-1 rounded-none border-0 shadow-none"
           value={value}
           path={path}
           label={`Content of ${path}`}
@@ -163,24 +209,27 @@ export function FileEditorPanel({
           onChange={(text) => onDraft(!isNew && text === saved ? null : text)}
           validate={validated ? validate : undefined}
           onIssues={setIssues}
+          onSave={() => saveShortcut?.()}
+          onRun={canRun ? () => setDialog("run") : undefined}
         />
         {validated && issues.length > 0 && (
           <div
             role="alert"
             aria-label="Validation errors"
-            className="flex max-h-40 shrink-0 flex-col overflow-hidden rounded-[8px] border bg-panel"
+            className="flex max-h-40 shrink-0 animate-enter flex-col overflow-hidden border-t"
           >
-            <div className="border-b px-3 py-2 text-sm font-medium text-state-failed">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium">
+              <XCircle className="h-3.5 w-3.5 text-state-failed" aria-hidden />
               {issues.length === 1 ? "1 validation error" : `${issues.length} validation errors`}
             </div>
-            <ul className="flex flex-col overflow-y-auto text-sm">
+            <ul className="flex flex-col overflow-y-auto pb-1 text-xs">
               {issues.map((i, n) => (
-                <li key={n} className="flex flex-wrap gap-x-3 border-b px-3 py-1.5 last:border-0">
-                  <span className="font-mono text-xs text-muted-foreground">
+                <li key={n} className="flex flex-wrap items-baseline gap-x-3 px-3 py-1 hover:bg-muted/60">
+                  <span className="w-12 shrink-0 font-mono text-muted-foreground tabular-nums">
                     {i.line}:{i.column}
                   </span>
-                  <span className="font-mono text-xs">{i.code}</span>
-                  <span>{i.message}</span>
+                  <span className="font-mono text-muted-foreground">{i.code}</span>
+                  <span className="min-w-0">{i.message}</span>
                 </li>
               ))}
             </ul>
@@ -194,7 +243,8 @@ export function FileEditorPanel({
             isNew={isNew}
             baseVersion={baseVersion}
             onClose={() => setDialog(null)}
-            onSaved={() => {
+            onSaved={(snapshot) => {
+              savedToast(`Saved ${path}`, snapshot);
               qc.setQueryData(contentKey, value);
               onDraft(null);
               setDialog(null);
@@ -228,7 +278,10 @@ export function FileEditorPanel({
               base_version: baseVersion,
               changes: [{ op: "rename", path, new_path: newPath }],
             })}
-            onDone={(newPath) => onSelect(newPath)}
+            onDone={(newPath, snapshot) => {
+              savedToast(`Renamed to ${newPath}`, snapshot);
+              onSelect(newPath);
+            }}
           />
         )}
         {dialog === "delete" && (
@@ -243,7 +296,12 @@ export function FileEditorPanel({
             onConfirm={() =>
               del.mutate(
                 { message: `Delete ${path}`, base_version: baseVersion, changes: [{ op: "delete", path }] },
-                { onSuccess: () => onSelect(undefined) },
+                {
+                  onSuccess: (snapshot) => {
+                    savedToast(`Deleted ${path}`, snapshot);
+                    onSelect(undefined);
+                  },
+                },
               )
             }
           >
@@ -254,7 +312,37 @@ export function FileEditorPanel({
     );
   };
 
-  return isNew ? body("") : <DataState query={content}>{body}</DataState>;
+  if (isNew) return body("");
+  if (content.isSuccess) return body(content.data);
+  return (
+    <div className="p-4">
+      <DataState query={content} skeleton="lines">
+        {body}
+      </DataState>
+    </div>
+  );
+}
+
+/** PathCrumbs is the jump bar of the editor: the folders and the file of the path. */
+function PathCrumbs({ path }: { path: string }) {
+  const parts = path.split("/");
+  const name = parts.pop() ?? path;
+  const Icon = fileIcon(name);
+  return (
+    <h2 id="editor-label" className="flex min-w-0 items-center text-sm" title={path}>
+      <span className="sr-only">{path}</span>
+      <span aria-hidden className="flex min-w-0 items-center gap-1">
+        {parts.map((p, i) => (
+          <Fragment key={i}>
+            <span className="max-w-32 min-w-0 truncate text-muted-foreground">{p}</span>
+            <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+          </Fragment>
+        ))}
+        <Icon className="h-3.5 w-3.5 shrink-0 text-accent" />
+        <span className="min-w-0 truncate font-medium">{name}</span>
+      </span>
+    </h2>
+  );
 }
 
 function SaveDialog({
@@ -273,7 +361,7 @@ function SaveDialog({
   isNew: boolean;
   baseVersion?: number;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (snapshot: Snapshot) => void;
   onReload: () => void;
 }) {
   const [message, setMessage] = useState(`${isNew ? "Create" : "Update"} ${path}`);
@@ -384,7 +472,7 @@ export function PathDialog({
   namespace: string;
   build: (path: string) => SaveChangesRequest;
   onClose: () => void;
-  onDone: (path: string) => void;
+  onDone: (path: string, snapshot: Snapshot) => void;
 }) {
   const [path, setPath] = useState(initial);
   const save = useSaveChanges(namespace);
@@ -392,7 +480,7 @@ export function PathDialog({
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    save.mutate(build(trimmed), { onSuccess: () => onDone(trimmed) });
+    save.mutate(build(trimmed), { onSuccess: (snapshot) => onDone(trimmed, snapshot) });
   };
 
   return (

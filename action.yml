@@ -56,7 +56,7 @@ runs:
         tag="$VERSION"
         if [ -z "$tag" ] && [[ "$ACTION_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then tag="$ACTION_REF"; fi
         # install.sh of this action checks the download against the published checksum.
-        # Without a tag it installs the newest release.
+        # Without a tag it installs the latest release.
         SLUICE_VERSION="$tag" SLUICE_BIN_DIR="$RUNNER_TEMP/sluice-cli" sh "$GITHUB_ACTION_PATH/install.sh"
         echo "$RUNNER_TEMP/sluice-cli" >> "$GITHUB_PATH"
 

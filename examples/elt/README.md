@@ -11,8 +11,7 @@ The tasks install their Python packages with `uv` at run time. The image `sluice
 
 `compose.yml` starts Sluice and a demo warehouse. `seed.sql` fills the schema `source` with 3 customers and 5 orders. `setup.py` loads the example into Sluice and runs it.
 
-1. Build the images: `just build-images`.
-2. Start the stack from the repository root:
+1. Start the stack from the repository root. It uses the released `sluice-uv` image. To run your own build, run `just build-images` and set `SLUICE_IMAGE=sluice-uv:dev`.
 
    ```sh
    export SLUICE_BOOTSTRAP_ADMIN_PASSWORD=change-me-now-1
@@ -20,9 +19,9 @@ The tasks install their Python packages with `uv` at run time. The image `sluice
    docker compose -f examples/elt/compose.yml up -d
    ```
 
-3. Load and run the example: `python3 examples/elt/setup.py`.
-4. Open <http://localhost:8080>. The execution shows the logs of dlt and SQLMesh. The metric `rows_loaded` shows 3 customers and 5 orders.
-5. See the result in the warehouse:
+2. Load and run the example: `python3 examples/elt/setup.py`.
+3. Open <http://localhost:8080>. The execution shows the logs of dlt and SQLMesh. The metric `rows_loaded` shows 3 customers and 5 orders.
+4. See the result in the warehouse:
 
    ```sh
    docker compose -f examples/elt/compose.yml exec warehouse psql -U elt -d warehouse -c "SELECT * FROM analytics.customer_orders"

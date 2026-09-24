@@ -36,7 +36,7 @@ A database backup without the master keys restores every secret key and no secre
    <TabItem label="Docker Compose">
 
    ```sh
-   docker compose -f deploy/compose/compose.yml exec -T postgres \
+   docker compose exec -T postgres \
      pg_dump -U sluice -d sluice -Fc > sluice-$(date +%F).dump
    ```
 

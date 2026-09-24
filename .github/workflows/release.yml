@@ -34,6 +34,13 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
+      # The Helm chart deploys the image of its appVersion, so a release must bump it.
+      - name: Check the chart version.
+        run: |
+          want="${GITHUB_REF_NAME#v}"
+          grep -qx "version: ${want}" deploy/helm/sluice/Chart.yaml || { echo "::error::deploy/helm/sluice/Chart.yaml version is not ${want}"; exit 1; }
+          grep -qx "appVersion: \"${want}\"" deploy/helm/sluice/Chart.yaml || { echo "::error::deploy/helm/sluice/Chart.yaml appVersion is not ${want}"; exit 1; }
+
       - name: Build the UI.
         run: cd ui && bun install --frozen-lockfile && bun run build
 
@@ -70,9 +77,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          prerelease=""
-          case "${GITHUB_REF_NAME}" in v0.*|*-*) prerelease="--prerelease" ;; esac
-          gh release create "${GITHUB_REF_NAME}" dist/* --title "${GITHUB_REF_NAME}" --notes-file build/notes.md $prerelease
+          # A tag with a suffix, such as v1.2.0-rc.1, is a prerelease. Any other tag becomes the
+          # latest release, which /releases/latest and install.sh use.
+          flags="--latest"
+          case "${GITHUB_REF_NAME}" in *-*) flags="--prerelease" ;; esac
+          gh release create "${GITHUB_REF_NAME}" dist/* --title "${GITHUB_REF_NAME}" --notes-file build/notes.md $flags
 
       # The GitHub Action is used as alternayte/sluice@v0 (or @v1 later). Move that major tag to this release.
       - name: Move the major version tag.
@@ -80,6 +89,16 @@ jobs:
           major="${GITHUB_REF_NAME%%.*}"
           git tag -f "$major" "${GITHUB_SHA}"
           git push -f origin "refs/tags/${major}"
+
+  chart:
+    name: chart
+    needs: binaries
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/chart.yml
+    with:
+      tag: ${{ github.ref_name }}
 
   images:
     name: images

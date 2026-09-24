@@ -131,7 +131,7 @@ description: Tasks of this namespace run in containers.
 defaults:
   executor:
     type: docker
-    image: ghcr.io/alternayte/sluice-uv:0.1.2
+    image: ghcr.io/alternayte/sluice-uv:0.2.0
     inject_runner: false
 ```
 
@@ -140,7 +140,7 @@ defaults:
 Each task starts in a new container with an empty cache. A Python script with dependencies downloads them on each run. Build an image that already holds the packages:
 
 ```dockerfile
-FROM ghcr.io/alternayte/sluice-uv:0.1.2
+FROM ghcr.io/alternayte/sluice-uv:0.2.0
 RUN uv pip install --system --python 3.12 "dlt[postgres]==1.30.0" "sqlmesh==0.236.2"
 ```
 

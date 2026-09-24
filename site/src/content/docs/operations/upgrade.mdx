@@ -20,7 +20,7 @@ Each release pushes two images to the GitHub Container Registry, for `linux/amd6
 | `ghcr.io/alternayte/sluice` | `<version>`, `<major>.<minor>`, `latest` |
 | `ghcr.io/alternayte/sluice-uv` | `<version>`, `<major>.<minor>`, `latest` |
 
-Pin the full version tag, for example `0.1.2`. The `latest` and `<major>.<minor>` tags move with each release. `sluice version` prints the version, the commit and the build date of a binary.
+Pin the full version tag, for example `0.2.0`. The `latest` and `<major>.<minor>` tags move with each release. `sluice version` prints the version, the commit and the build date of a binary.
 
 ## How migrations run
 
@@ -49,7 +49,7 @@ Before 1.0.0, the schema is one migration file, `00001_init.sql`. A change to th
 
    ```sh
    docker run --rm -e SLUICE_DATABASE_URL="$SLUICE_DATABASE_URL" \
-     ghcr.io/alternayte/sluice:0.1.2 migrate
+     ghcr.io/alternayte/sluice:0.2.0 migrate
    ```
 
    The command prints `applied <n> migrations`.
@@ -60,28 +60,29 @@ Before 1.0.0, the schema is one migration file, `00001_init.sql`. A change to th
    <TabItem label="Helm">
 
    ```sh
-   helm upgrade sluice deploy/helm/sluice -n sluice --reuse-values \
-     --set image.tag=0.1.2
+   helm upgrade sluice oci://ghcr.io/alternayte/charts/sluice --version 0.2.0 -n sluice --reuse-values
    kubectl -n sluice rollout status deployment/sluice
    ```
 
-   Use the chart of the same release as the image. An empty `image.tag` uses the `appVersion` of the chart.
+   The chart version is the Sluice version. An empty `image.tag` uses the image of that version.
 
    </TabItem>
    <TabItem label="Docker Compose">
 
+   Set `SLUICE_IMAGE` in `.env` to the new release, for example `ghcr.io/alternayte/sluice-uv:0.2.0`, or keep `latest`. Then, in the directory of the compose file:
+
    ```sh
-   git pull
-   docker compose -f deploy/compose/compose.yml up -d --build
+   docker compose pull
+   docker compose up -d
    ```
 
-   The compose file builds the `sluice-uv` image from the repository. The `postgres-data` volume keeps the database.
+   The `postgres-data` volume keeps the database.
 
    </TabItem>
    <TabItem label="Single container">
 
    ```sh
-   docker pull ghcr.io/alternayte/sluice-uv:0.1.2
+   docker pull ghcr.io/alternayte/sluice-uv:0.2.0
    docker stop sluice && docker rm sluice
    ```
 

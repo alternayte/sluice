@@ -3,7 +3,7 @@ title: Deploy with Docker Compose
 description: Start Sluice and Postgres on one host with Docker Compose, keep the master key, and upgrade the stack.
 ---
 
-import { Steps, Tabs, TabItem, Aside } from "@astrojs/starlight/components";
+import { Steps, Aside } from "@astrojs/starlight/components";
 
 This guide shows you how to run Sluice and Postgres on one host with Docker Compose. The stack fits a trial, a laptop or a small server. For a cluster, see [Deploy on Kubernetes with Helm](/how-to/deploy-on-kubernetes/).
 
@@ -18,18 +18,15 @@ Sluice itself needs no volume. It keeps all state in Postgres, and the default s
 
 ## Start the stack
 
-<Tabs>
-<TabItem label="From a checkout">
-
-The repository holds `deploy/compose/compose.yml`. It builds the `sluice-uv` image from the source.
+The compose file uses the released image from GitHub Container Registry. It needs no checkout.
 
 <Steps>
 
-1. Clone the repository and go to its root:
+1. Download the compose file into an empty directory:
 
    ```sh
-   git clone https://github.com/alternayte/sluice.git
-   cd sluice
+   mkdir sluice/ && cd sluice/
+   curl -fsSLO https://raw.githubusercontent.com/alternayte/sluice/main/deploy/compose/compose.yml
    ```
 
 2. Set the two required variables. Compose stops when one of them is empty.
@@ -42,73 +39,16 @@ The repository holds `deploy/compose/compose.yml`. It builds the `sluice-uv` ima
 3. Start the stack:
 
    ```sh
-   docker compose -f deploy/compose/compose.yml up -d --build
+   docker compose up -d
    ```
 
 4. Open [http://localhost:8080](http://localhost:8080). Sign in as `admin@local.test` with the password of step 2.
 
 </Steps>
 
-</TabItem>
-<TabItem label="With the released image">
+The image is `ghcr.io/alternayte/sluice-uv:latest`. Pin a release with `SLUICE_IMAGE`, for example `SLUICE_IMAGE=ghcr.io/alternayte/sluice-uv:0.2.0`.
 
-This compose file uses the released image from GitHub Container Registry. It needs no checkout. Put it in an empty directory as `compose.yml`, and pin the image tag to a release.
-
-```yaml compose
-name: sluice
-services:
-  postgres:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_USER: sluice
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sluice}
-      POSTGRES_DB: sluice
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sluice -d sluice"]
-      interval: 2s
-      timeout: 2s
-      retries: 30
-  sluice:
-    image: ghcr.io/alternayte/sluice-uv:0.1.2
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      SLUICE_DATABASE_URL: postgres://sluice:${POSTGRES_PASSWORD:-sluice}@postgres:5432/sluice?sslmode=disable
-      SLUICE_PUBLIC_URL: ${SLUICE_PUBLIC_URL:-http://localhost:8080}
-      SLUICE_BOOTSTRAP_ADMIN_EMAIL: ${SLUICE_BOOTSTRAP_ADMIN_EMAIL:-admin@local.test}
-      SLUICE_BOOTSTRAP_ADMIN_PASSWORD: ${SLUICE_BOOTSTRAP_ADMIN_PASSWORD:?set SLUICE_BOOTSTRAP_ADMIN_PASSWORD}
-      SLUICE_MASTER_KEYS: ${SLUICE_MASTER_KEYS:?set SLUICE_MASTER_KEYS}
-      SLUICE_EXECUTORS: process
-    ports:
-      - "${SLUICE_PORT:-8080}:8080"
-volumes:
-  postgres-data:
-```
-
-<Steps>
-
-1. Set the two required variables:
-
-   ```sh
-   export SLUICE_BOOTSTRAP_ADMIN_PASSWORD='change-me-now-1'
-   export SLUICE_MASTER_KEYS="k1:$(openssl rand -base64 32)"
-   ```
-
-2. Start the stack in the directory of the file:
-
-   ```sh
-   docker compose up -d
-   ```
-
-3. Open [http://localhost:8080](http://localhost:8080). Sign in as `admin@local.test` with the password of step 1.
-
-</Steps>
-
-</TabItem>
-</Tabs>
+To run your own build, run `just build-images` in a checkout of the repository. Then start the stack with `SLUICE_IMAGE=sluice-uv:dev docker compose -f deploy/compose/compose.yml up -d`.
 
 Check that the server is ready. The answer lists the checks `database`, `master_keys`, `migrations` and `storage`:
 
@@ -127,6 +67,7 @@ The compose file reads these variables from the shell or from a `.env` file next
 | `SLUICE_BOOTSTRAP_ADMIN_EMAIL` | `admin@local.test` | The email of the first admin. |
 | `SLUICE_PUBLIC_URL` | `http://localhost:8080` | The URL that browsers use. |
 | `SLUICE_PORT` | `8080` | A variable of the compose file only: the host port. Sluice does not read it. |
+| `SLUICE_IMAGE` | `ghcr.io/alternayte/sluice-uv:latest` | A variable of the compose file only: the image of the `sluice` service. |
 | `POSTGRES_PASSWORD` | `sluice` | The password of the Postgres user. |
 
 To set more server variables, add them under `environment` of the `sluice` service. [Environment variables](/reference/env/) lists all of them.
@@ -164,14 +105,14 @@ When `SLUICE_PUBLIC_URL` and the host in the browser differ, every change from t
 | `docker compose down` | Removes the containers. The volume `postgres-data` stays. |
 | `docker compose down -v` | Removes the containers and the volume with all data. |
 
-To upgrade, back up the database first. Then change the image tag and start the stack again:
+To upgrade, back up the database first. Then set `SLUICE_IMAGE` to the new release, or keep `latest`, and start the stack again:
 
 ```sh
 docker compose pull
 docker compose up -d
 ```
 
-In a checkout, pull the new source and run `docker compose -f deploy/compose/compose.yml up -d --build`. The server applies the new database migrations at start. See [Upgrade](/operations/upgrade/) and [Back up and restore](/operations/back-up-and-restore/).
+The server applies the new database migrations at start. See [Upgrade](/operations/upgrade/) and [Back up and restore](/operations/back-up-and-restore/).
 
 ## Related pages
 

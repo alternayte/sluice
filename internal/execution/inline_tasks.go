@@ -151,6 +151,14 @@ func (e *Engine) runSubflow(ctx context.Context, p *Plan) {
 		e.finish(ctx, tr.ID, TaskFailed, ReasonExecutor, err.Error(), nil)
 		return
 	}
+	// A disabled flow does not start from another flow, as it does not start from its
+	// triggers. Only a manual trigger starts it (REQ-FLOW-006).
+	if ref.Flow.Disabled {
+		msg := "subflow " + p.Cfg.Task.Flow + " is disabled"
+		e.SystemLog(ctx, tr, "[sluice] "+msg)
+		e.finish(ctx, tr.ID, TaskFailed, ReasonFlowDisabled, msg, nil)
+		return
+	}
 	given := map[string]any{}
 	for k, v := range p.SubflowInputs {
 		given[k] = parseMaybeJSON(v)

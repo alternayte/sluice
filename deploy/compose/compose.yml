@@ -21,7 +21,7 @@ services:
       retries: 30
   sluice:
     # The released image. sluice-uv runs Python, bash and bun tasks on the process executor.
-    # Pin a release in production, for example SLUICE_IMAGE=ghcr.io/alternayte/sluice-uv:0.2.1.
+    # Pin a release in production, for example SLUICE_IMAGE=ghcr.io/alternayte/sluice-uv:0.2.2.
     # For a build from source, run `just build-images` and set SLUICE_IMAGE=sluice-uv:dev.
     image: ${SLUICE_IMAGE:-ghcr.io/alternayte/sluice-uv:latest}
     depends_on:

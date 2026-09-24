@@ -6,7 +6,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh | sh
 #
 # Environment:
-#   SLUICE_VERSION   the version to install, such as 0.2.1. The default is the latest release.
+#   SLUICE_VERSION   the version to install, such as 0.2.2. The default is the latest release.
 #   SLUICE_BIN_DIR   where the binary goes. The default is /usr/local/bin, or ~/.local/bin
 #                    when /usr/local/bin needs a password and sudo is not there.
 set -eu

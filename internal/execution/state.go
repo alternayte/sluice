@@ -48,6 +48,7 @@ const (
 	ReasonHTTPStatus        = "http_status"
 	ReasonChildFailed       = "child_failed"
 	ReasonExecutor          = "executor_error"
+	ReasonFlowDisabled      = "flow_disabled"
 )
 
 // ExecutionStates lists all execution states.

@@ -61,7 +61,7 @@ on:
 
 env:
   # The release of the sluice CLI. Use the same release for both steps.
-  CLI_VERSION: v0.2.1
+  CLI_VERSION: v0.2.2
 
 jobs:
   deploy-and-run:
@@ -157,8 +157,8 @@ The action installs the CLI from a release of `alternayte/sluice` and checks the
 
 | `version` | Action ref | CLI release |
 |---|---|---|
-| set, for example `v0.2.1` | any | The release of `version`. |
-| empty | a full tag, for example `alternayte/sluice@v0.2.1` | The release of that tag. |
+| set, for example `v0.2.2` | any | The release of `version`. |
+| empty | a full tag, for example `alternayte/sluice@v0.2.2` | The release of that tag. |
 | empty | any other ref, for example `v0`, a branch or a commit SHA | The newest release. |
 
 The newest release changes without a change to your workflow. Set `version`, or use a full tag as the ref, to get the same CLI in each run.

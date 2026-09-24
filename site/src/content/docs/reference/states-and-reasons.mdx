@@ -74,6 +74,7 @@ When an attempt ends `FAILED` or `TIMED_OUT` and the task has attempts left, the
 | `http_status` | `FAILED` | An `http` task got a status outside its `expect_status` list. | yes |
 | `child_failed` | `FAILED` | A `subflow` task with `wait` got a child execution that did not end `SUCCESS`. | yes |
 | `depth_exceeded` | `FAILED` | A `subflow` task passed the limit of 10 nested subflows. | yes |
+| `flow_disabled` | `FAILED` | A `subflow` task names a disabled flow. A disabled flow starts only from a manual trigger. | yes |
 | `template_error` | `FAILED` | A template of the task did not resolve at dispatch, a `subflow` reference or its inputs are invalid, or a script has no runtime. | yes |
 | `secret_not_found` | `FAILED` | No scope defines the secret key, or the provider does not have the value. | yes |
 | `secret_provider_error` | `FAILED` | The provider of a defined secret failed, for example with no access. | yes |

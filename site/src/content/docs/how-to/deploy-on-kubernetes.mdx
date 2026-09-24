@@ -67,11 +67,11 @@ This guide shows you how to install Sluice in a Kubernetes cluster with the Helm
 6. Install the chart:
 
    ```sh
-   helm install sluice oci://ghcr.io/alternayte/charts/sluice --version 0.2.1 \
+   helm install sluice oci://ghcr.io/alternayte/charts/sluice --version 0.2.2 \
      --namespace sluice-system -f values.yaml
    ```
 
-   The source of the chart is `deploy/helm/sluice` in the repository. `helm show values oci://ghcr.io/alternayte/charts/sluice --version 0.2.1` prints its values.
+   The source of the chart is `deploy/helm/sluice` in the repository. `helm show values oci://ghcr.io/alternayte/charts/sluice --version 0.2.2` prints its values.
 
 7. Wait until the pods are ready:
 

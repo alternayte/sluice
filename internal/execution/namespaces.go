@@ -22,9 +22,11 @@ type NamespaceInfo struct {
 // FlowInfo is the part of a flow record the execution feature needs.
 // Execution owns this type for the same reason as NamespaceInfo.
 type FlowInfo struct {
-	ID                uuid.UUID
-	NamespaceID       uuid.UUID
-	Valid             bool
+	ID          uuid.UUID
+	NamespaceID uuid.UUID
+	Valid       bool
+	// Disabled flows start only from a manual trigger (REQ-FLOW-006).
+	Disabled          bool
 	CurrentRevisionID *uuid.UUID
 }
 

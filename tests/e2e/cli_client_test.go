@@ -52,6 +52,11 @@ func TestCLIClient(t *testing.T) {
 		if code != 0 || json.Unmarshal([]byte(out), &lines) != nil {
 			t.Fatalf("logs exit %d: %s", code, out)
 		}
+		// The text output names the reason of each task run, for example exit_code.
+		out, _, code = runCLI(t, env, "executions", "get", d.ID)
+		if code != 0 || !strings.Contains(out, "REASON") || !strings.Contains(out, "exit_code") {
+			t.Fatalf("get exit %d:\n%s", code, out)
+		}
 	})
 
 	t.Run("an API error exits 1 with its code", func(t *testing.T) {

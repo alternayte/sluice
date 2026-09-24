@@ -413,18 +413,25 @@ func runExecutionsGet(ctx context.Context, args []string, stdout, stderr io.Writ
 	}
 	fmt.Fprintf(stdout, "%s %s %s\n", d.State, flowTitle(d.ExecutionSummary), d.ID)
 	fmt.Fprintf(stdout, "trigger:  %s\ncreated:  %s\nduration: %s\n", d.TriggerType, d.CreatedAt.Local().Format(time.DateTime), fmtDuration(d.DurationMs))
+	if d.Reason != "" {
+		fmt.Fprintf(stdout, "reason:   %s\n", d.Reason)
+	}
 	if d.Error != "" {
 		fmt.Fprintf(stdout, "error:    %s\n", d.Error)
 	}
 	fmt.Fprintf(stdout, "url:      %s\n\n", r.executionURL(d.ID.String()))
 	tw := tabwriter.NewWriter(stdout, 0, 2, 2, ' ', 0)
-	fmt.Fprintln(tw, "TASK\tATTEMPT\tSTATE\tDURATION\tEXIT\tERROR")
+	fmt.Fprintln(tw, "TASK\tATTEMPT\tSTATE\tREASON\tDURATION\tEXIT\tERROR")
 	for _, t := range d.TaskRuns {
 		exit := "—"
 		if t.ExitCode != nil {
 			exit = strconv.Itoa(*t.ExitCode)
 		}
-		fmt.Fprintf(tw, "%s\t%d\t%s\t%s\t%s\t%s\n", t.TaskKey, t.Attempt, t.State, fmtDuration(t.DurationMs), exit, t.Error)
+		reason := t.Reason
+		if reason == "" {
+			reason = "—"
+		}
+		fmt.Fprintf(tw, "%s\t%d\t%s\t%s\t%s\t%s\t%s\n", t.TaskKey, t.Attempt, t.State, reason, fmtDuration(t.DurationMs), exit, t.Error)
 	}
 	_ = tw.Flush()
 	return exitOK

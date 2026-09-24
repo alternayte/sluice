@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-24
+
 ### Added
 
 - A command palette (Cmd+K or Ctrl+K) searches flows, namespaces, executions, files and pages, and runs actions such as run flow, rerun, restart from failed, new file and theme.
@@ -151,7 +153,8 @@ The first version of Sluice. It is one Go binary with an embedded React UI, and 
 - A CI workflow with the jobs `check`, `e2e` and `image`.
 - A release workflow. A `v*.*.*` tag attaches the binaries for Linux and macOS to a GitHub release, and pushes the `sluice` and `sluice-uv` images to `ghcr.io/alternayte` for amd64 and arm64.
 
-[Unreleased]: https://github.com/alternayte/sluice/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/alternayte/sluice/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/alternayte/sluice/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/alternayte/sluice/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/alternayte/sluice/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/alternayte/sluice/releases/tag/v0.1.0

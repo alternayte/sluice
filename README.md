@@ -28,7 +28,7 @@ curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh |
 **Kubernetes** with Helm:
 
 ```sh
-helm install sluice oci://ghcr.io/alternayte/charts/sluice --version 0.2.0 -n sluice-system -f values.yaml
+helm install sluice oci://ghcr.io/alternayte/charts/sluice --version 0.2.1 -n sluice-system -f values.yaml
 ```
 
 [Install Sluice](https://sluice-docs.pages.dev/how-to/install-sluice/) has every option: Docker with your own Postgres, the Helm values, a pinned version and a build from source.

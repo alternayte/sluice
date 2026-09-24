@@ -28,7 +28,7 @@ inputs:
     required: false
     default: ""
   version:
-    description: Release tag of the sluice CLI, for example v0.2.0. Empty uses the tag of this action, or the newest release when the action ref is not a tag.
+    description: Release tag of the sluice CLI, for example v0.2.1. Empty uses the tag of this action, or the latest release when the action ref is not a tag.
     required: false
     default: ""
 

@@ -55,8 +55,9 @@ func MinIO(t testing.TB) *MinIOServer {
 
 // StartMinIO starts a new MinIO container. The caller terminates it.
 func StartMinIO(ctx context.Context) (*MinIOServer, error) {
-	// Docker Hub no longer serves minio/minio. quay.io is the other official registry of MinIO.
-	c, err := minio.Run(ctx, "quay.io/minio/minio:latest", minio.WithUsername("sluiceminio"), minio.WithPassword("sluiceminio-secret"))
+	// MinIO no longer serves its images without a login, on Docker Hub or on quay.io.
+	// Chainguard publishes a MinIO build whose latest tag needs no login.
+	c, err := minio.Run(ctx, "cgr.dev/chainguard/minio:latest", minio.WithUsername("sluiceminio"), minio.WithPassword("sluiceminio-secret"))
 	if err != nil {
 		return nil, err
 	}

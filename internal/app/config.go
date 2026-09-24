@@ -42,7 +42,7 @@ type Config struct {
 	InternalURL            string        "env:\"SLUICE_INTERNAL_URL\" docDefault:\"`http://127.0.0.1:<port>`\" desc:\"Base URL that runners call. Use the Service URL in Kubernetes.\""
 	MasterKeys             string        `env:"SLUICE_MASTER_KEYS" desc:"Master keys for builtin secrets as kid:base64key pairs separated by commas. The first key is active."`
 	BootstrapAdminEmail    string        `env:"SLUICE_BOOTSTRAP_ADMIN_EMAIL" desc:"Email of the first admin. Used only when the users table is empty."`
-	BootstrapAdminPassword string        `env:"SLUICE_BOOTSTRAP_ADMIN_PASSWORD" secret:"true" desc:"Password of the first admin. Used only when the users table is empty."`
+	BootstrapAdminPassword string        `env:"SLUICE_BOOTSTRAP_ADMIN_PASSWORD" secret:"true" desc:"Password of the first admin, at least 10 characters. Used only when the users table is empty."`
 	SessionTTL             time.Duration `env:"SLUICE_SESSION_TTL" envDefault:"168h" desc:"Sliding session lifetime."`
 	LogLevel               string        `env:"SLUICE_LOG_LEVEL" envDefault:"info" desc:"Server log level."`
 	LogFormat              string        `env:"SLUICE_LOG_FORMAT" envDefault:"json" desc:"Server log format."`

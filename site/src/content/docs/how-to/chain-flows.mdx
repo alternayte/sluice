@@ -103,7 +103,7 @@ tasks:
 | `inputs` | Templates for the inputs of the child. Sluice checks them against the input types of the child when the task starts. |
 | `wait` | Default `true`. |
 
-The child flow must be valid. The **Enabled** switch of the child does not apply to subflow tasks.
+The child flow must be valid and enabled. A subflow task that names a disabled flow fails with reason `flow_disabled`, and Sluice starts no child execution. A disabled flow starts only from a manual trigger.
 
 <Tabs>
   <TabItem label="wait: true">

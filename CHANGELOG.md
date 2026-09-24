@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- The first admin gets the password policy: a `SLUICE_BOOTSTRAP_ADMIN_PASSWORD` of fewer than 10 characters stops the first start and creates no user. An existing deployment is not affected.
+- A `subflow` task that names a disabled flow fails with reason `flow_disabled` and starts no child execution. A disabled flow starts only from a manual trigger (REQ-FLOW-006).
+- `sluice executions get` shows the reason of the execution and of each task run.
+
 ## [0.2.1] - 2026-09-25
 
 ### Added

@@ -32,7 +32,7 @@ func (a namespacesAdapter) GetFlow(ctx context.Context, ns, flowID string) (exec
 	if err != nil {
 		return execution.FlowInfo{}, err
 	}
-	return execution.FlowInfo{ID: f.ID, NamespaceID: f.NamespaceID, Valid: f.Valid, CurrentRevisionID: f.CurrentRevisionID}, nil
+	return execution.FlowInfo{ID: f.ID, NamespaceID: f.NamespaceID, Valid: f.Valid, Disabled: f.Disabled, CurrentRevisionID: f.CurrentRevisionID}, nil
 }
 
 func (a namespacesAdapter) Manifest(ctx context.Context, db platformdb.DBTX, snapshotID uuid.UUID) (snapshot.Manifest, error) {

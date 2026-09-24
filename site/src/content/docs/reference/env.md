@@ -19,7 +19,7 @@ This page lists every environment variable that Sluice reads.
 | `SLUICE_INTERNAL_URL` | `http://127.0.0.1:<port>` | Base URL that runners call. Use the Service URL in Kubernetes. |
 | `SLUICE_MASTER_KEYS` | empty | Master keys for builtin secrets as kid:base64key pairs separated by commas. The first key is active. |
 | `SLUICE_BOOTSTRAP_ADMIN_EMAIL` | empty | Email of the first admin. Used only when the users table is empty. |
-| `SLUICE_BOOTSTRAP_ADMIN_PASSWORD` | empty | Password of the first admin. Used only when the users table is empty. |
+| `SLUICE_BOOTSTRAP_ADMIN_PASSWORD` | empty | Password of the first admin, at least 10 characters. Used only when the users table is empty. |
 | `SLUICE_SESSION_TTL` | `168h` | Sliding session lifetime. |
 | `SLUICE_LOG_LEVEL` | `info` | Server log level. |
 | `SLUICE_LOG_FORMAT` | `json` | Server log format. |

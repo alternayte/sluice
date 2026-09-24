@@ -264,6 +264,30 @@ func TestSubflowStringInputKeepsDigits(t *testing.T) {
 	}
 }
 
+// TestSubflowOfADisabledFlowFails checks REQ-FLOW-006 for subflows: a disabled flow does not
+// start from another flow. The subflow task fails with reason flow_disabled and creates no
+// child execution. A manual trigger of the disabled flow still works.
+func TestSubflowOfADisabledFlowFails(t *testing.T) {
+	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
+	c := adminClient(t, p)
+	saveFiles(t, c, "dis.child", map[string]string{
+		"child.flow.yaml": "id: child\ntasks:\n  - {id: t, type: command, command: [\"true\"]}\n",
+	})
+	saveFiles(t, c, "dis", map[string]string{
+		"parent.flow.yaml": "id: parent\ntasks:\n  - {id: c, type: subflow, flow: dis.child/child}\n",
+	})
+	c.do(t, http.MethodPatch, "/api/v1/flows/dis.child/child", map[string]any{"disabled": true}, http.StatusOK, nil)
+
+	d := waitTerminal(t, c, triggerFlow(t, c, "dis", "parent", nil, nil).ID, 60*time.Second)
+	ct := d.last("c")
+	if d.State != "FAILED" || ct.State != "FAILED" || ct.Reason != "flow_disabled" || ct.ChildExecutionID != nil {
+		t.Fatalf("parent %s, task c %s %q child %v", d.State, ct.State, ct.Reason, ct.ChildExecutionID)
+	}
+	if m := waitTerminal(t, c, triggerFlow(t, c, "dis.child", "child", nil, nil).ID, 60*time.Second); m.State != "SUCCESS" {
+		t.Fatalf("manual run of the disabled flow: %s", m.State)
+	}
+}
+
 type execList struct {
 	Items []struct {
 		ID     string            `json:"id"`

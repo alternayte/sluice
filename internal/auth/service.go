@@ -81,6 +81,11 @@ func (s *Service) Bootstrap(ctx context.Context, email, password string) (bool, 
 	if err != nil || n > 0 {
 		return false, err
 	}
+	// The first admin gets the policy of every other password. The check runs only when
+	// the users table is empty, so a set variable does not stop an existing deployment.
+	if err := ValidatePassword(password); err != nil {
+		return false, fmt.Errorf("SLUICE_BOOTSTRAP_ADMIN_PASSWORD: %w", err)
+	}
 	hash, err := HashPassword(password)
 	if err != nil {
 		return false, err

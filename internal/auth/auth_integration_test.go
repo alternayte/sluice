@@ -77,3 +77,24 @@ func TestSCN_AUTH_012_SecretsStoredAsHashes(t *testing.T) {
 		t.Fatalf("%d rows contain a plaintext secret", n)
 	}
 }
+
+// TestBootstrapAdminPasswordPolicy checks that the first admin gets the same password policy
+// as any other user: a short bootstrap password creates no user and fails the start.
+func TestBootstrapAdminPasswordPolicy(t *testing.T) {
+	pool, _ := pgtest.Shared(t).NewPool(t)
+	ctx := context.Background()
+	clk := clock.Real{}
+	svc := &auth.Service{Pool: pool, Clock: clk, Audit: &audit.Writer{Pool: pool, Clock: clk},
+		Log: logging.New(io.Discard, "error", "text"), SessionTTL: time.Hour}
+	created, err := svc.Bootstrap(ctx, "admin@example.com", "short")
+	if err == nil || created {
+		t.Fatalf("short password: created %v, err %v", created, err)
+	}
+	var n int
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM users").Scan(&n); err != nil || n != 0 {
+		t.Fatalf("users after a refused bootstrap: %d, %v", n, err)
+	}
+	if created, err := svc.Bootstrap(ctx, "admin@example.com", "long-enough-password"); err != nil || !created {
+		t.Fatalf("valid password: created %v, err %v", created, err)
+	}
+}

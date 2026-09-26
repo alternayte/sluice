@@ -147,7 +147,7 @@ export function RunChart({ items, now }: { items: ExecutionSummary[]; now: numbe
                   y={t.y}
                   dy="0.32em"
                   textAnchor="end"
-                  fontSize={11}
+                  fontSize={12}
                   fill="var(--muted-foreground)"
                 >
                   {tickLabel(t.v)}
@@ -155,7 +155,7 @@ export function RunChart({ items, now }: { items: ExecutionSummary[]; now: numbe
               </g>
             ))}
             {model.clipped && (
-              <text x={pad.left} y={pad.top + 2} dx={-4} textAnchor="end" fontSize={11} fill="var(--muted-foreground)">
+              <text x={pad.left} y={pad.top + 2} dx={-4} textAnchor="end" fontSize={12} fill="var(--muted-foreground)">
                 older
               </text>
             )}
@@ -165,7 +165,7 @@ export function RunChart({ items, now }: { items: ExecutionSummary[]; now: numbe
                 x={t.x}
                 y={height - 6}
                 textAnchor={i === 0 ? "start" : i === model.xTicks.length - 1 ? "end" : "middle"}
-                fontSize={11}
+                fontSize={12}
                 fill="var(--muted-foreground)"
               >
                 {timeLabel(t.t)}

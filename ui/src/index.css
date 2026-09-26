@@ -110,15 +110,16 @@
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* The macOS type ramp: 11, 13, 15, 17, 22 and 28 px, a ratio near 1.2 around a 13 px body. */
-  --text-xs: 0.6875rem;
+  /* A web app ramp: 12, 14, 16, 18, 22 and 28 px around a 14 px body. Inter in a browser reads
+     smaller than SF Pro at the same size, so the macOS 13 px body is too small here. */
+  --text-xs: 0.75rem;
   --text-xs--line-height: 1rem;
-  --text-sm: 0.8125rem;
+  --text-sm: 0.875rem;
   --text-sm--line-height: 1.25rem;
-  --text-base: 0.9375rem;
-  --text-base--line-height: 1.375rem;
-  --text-lg: 1.0625rem;
-  --text-lg--line-height: 1.5rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.625rem;
   --text-xl: 1.375rem;
   --text-xl--line-height: 1.75rem;
   --text-2xl: 1.75rem;
@@ -214,12 +215,15 @@
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
-    font-size: var(--text-sm);
-    line-height: var(--text-sm--line-height);
     font-optical-sizing: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+  }
+  /* Only body: a font size on html changes the root that every rem size and spacing uses. */
+  body {
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
   }
   h1,
   h2 {

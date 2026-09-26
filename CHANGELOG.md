@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-09-26
+
+### Fixed
+
+- The web UI renders at its intended size. The body font size was also set on the root element, so every size and spacing was 81 % of its value, for example 10.6 px body text.
+- The web UI uses a 14 px body and 12 px small text. Chart axis labels are 12 px.
+- Log lines in the log viewer have no gaps between them.
+
 ## [0.2.2] - 2026-09-25
 
 ### Fixed
@@ -178,7 +186,8 @@ The first version of Sluice. It is one Go binary with an embedded React UI, and 
 - A CI workflow with the jobs `check`, `e2e` and `image`.
 - A release workflow. A `v*.*.*` tag attaches the binaries for Linux and macOS to a GitHub release, and pushes the `sluice` and `sluice-uv` images to `ghcr.io/alternayte` for amd64 and arm64.
 
-[Unreleased]: https://github.com/alternayte/sluice/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/alternayte/sluice/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/alternayte/sluice/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/alternayte/sluice/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/alternayte/sluice/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/alternayte/sluice/compare/v0.1.2...v0.2.0

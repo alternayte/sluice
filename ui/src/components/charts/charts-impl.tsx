@@ -20,7 +20,7 @@ export type Series = { key: string; label: string; color: string };
 export type ChartRow = { label: string } & Record<string, number | string | null>;
 
 const height = 220;
-const axis = { fill: "var(--muted-foreground)", fontSize: 11 };
+const axis = { fill: "var(--muted-foreground)", fontSize: 12 };
 const grid = { stroke: "var(--border)", strokeWidth: 0.5 };
 // Axis ticks without a unit format use compact numbers, for example 100K; the tooltip shows the exact value.
 const compact = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 });

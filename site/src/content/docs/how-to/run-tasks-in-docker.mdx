@@ -31,10 +31,10 @@ This guide shows you how to run `script` and `command` tasks in Docker container
 
 2. Check the runner image.
 
-   Sluice copies its runner binary into each task container. It takes the binary from `/usr/local/bin/sluice` in the image that `SLUICE_RUNNER_IMAGE` names. A release build uses its own published image by default, for example `ghcr.io/alternayte/sluice:0.2.2`. A build from source uses `sluice:dev`, the image of `just build-images`. Set the variable only to use another image, for example a mirror in a private registry:
+   Sluice copies its runner binary into each task container. It takes the binary from `/usr/local/bin/sluice` in the image that `SLUICE_RUNNER_IMAGE` names. A release build uses its own published image by default, for example `ghcr.io/alternayte/sluice:0.2.3`. A build from source uses `sluice:dev`, the image of `just build-images`. Set the variable only to use another image, for example a mirror in a private registry:
 
    ```sh
-   export SLUICE_RUNNER_IMAGE=registry.example.com/sluice:0.2.2
+   export SLUICE_RUNNER_IMAGE=registry.example.com/sluice:0.2.3
    ```
 
 3. Make sure that containers reach the server.
@@ -131,7 +131,7 @@ description: Tasks of this namespace run in containers.
 defaults:
   executor:
     type: docker
-    image: ghcr.io/alternayte/sluice-uv:0.2.2
+    image: ghcr.io/alternayte/sluice-uv:0.2.3
     inject_runner: false
 ```
 
@@ -140,7 +140,7 @@ defaults:
 Each task starts in a new container with an empty cache. A Python script with dependencies downloads them on each run. Build an image that already holds the packages:
 
 ```dockerfile
-FROM ghcr.io/alternayte/sluice-uv:0.2.2
+FROM ghcr.io/alternayte/sluice-uv:0.2.3
 RUN uv pip install --system --python 3.12 "dlt[postgres]==1.30.0" "sqlmesh==0.236.2"
 ```
 

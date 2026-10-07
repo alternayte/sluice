@@ -27,8 +27,12 @@ The client commands talk to a Sluice server. They read `SLUICE_URL` and `SLUICE_
 | `sluice flows list` | List flows. |
 | `sluice flows get` | Show a flow as &lt;namespace&gt;/&lt;flow&gt; with its source. |
 | `sluice namespaces push` | Upload a namespace directory as one new version. |
+| `sluice secrets list` | List secrets. The value is never shown. |
+| `sluice secrets set` | Set a secret from --from-file or --stdin. |
+| `sluice secrets check` | Check that the provider can resolve a secret. |
+| `sluice secrets delete` | Delete a secret. |
 | `sluice validate` | Validate a namespace directory offline. |
-| `sluice init` | Write the Sluice agent skill and an AGENTS.md section into a repository. |
+| `sluice init` | Write the Sluice agent skill, an AGENTS.md section and a starter .sluiceignore into a repository. |
 | `sluice openapi` | Print the OpenAPI document of the API. |
 | `sluice version` | Print version, commit and build date. |
 | `sluice server` | Run the HTTP server, scheduler and executors. |
@@ -48,7 +52,7 @@ usage: sluice run <namespace>/<flow> [--input k=v]... [--label k=v]... [--wait] 
 
 Flags:
   -input value
-    	an input as key=value; repeat for more. A JSON value keeps its type.
+    	an input as key=value; repeat for more. A string or select input takes the value as text. For other inputs a JSON value keeps its type.
   -label value
     	a label as key=value; repeat for more
   -o string
@@ -218,7 +222,7 @@ The command reads SLUICE_URL and SLUICE_TOKEN.
 Upload a namespace directory as one new version.
 
 ```text
-usage: sluice namespaces push <dir> [--namespace name] [--message text] [--create]
+usage: sluice namespaces push <dir> [--namespace name] [--message text] [--create] [--verbose]
 
 Flags:
   -create
@@ -231,6 +235,8 @@ Flags:
     	short for --output (default "text")
   -output string
     	output format: text or json (default "text")
+  -verbose
+    	print each path that an ignore rule skips
 
 The command reads SLUICE_URL and SLUICE_TOKEN.
 ```
@@ -243,16 +249,18 @@ Validate a namespace directory offline.
 Usage of validate:
   -json
     	print the result as JSON (schemas/validate-result.schema.json)
+  -verbose
+    	print each path that an ignore rule skips
 ```
 
 ## sluice init
 
-Write the Sluice agent skill and an AGENTS.md section into a repository.
+Write the Sluice agent skill, an AGENTS.md section and a starter .sluiceignore into a repository.
 
 ```text
 usage: sluice init [dir] [--force]
 
-Writes .claude/skills/sluice/SKILL.md and a Sluice section in AGENTS.md.
+Writes .claude/skills/sluice/SKILL.md, a Sluice section in AGENTS.md and a starter .sluiceignore.
 
 Flags:
   -force

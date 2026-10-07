@@ -333,9 +333,18 @@ func (e *Engine) RunnerSpec(ctx context.Context, tr executiondb.TaskRun) (*runne
 		return nil, err
 	}
 	return &runnerproto.Spec{TaskRunID: tr.ID.String(), ExecutionID: tr.ExecutionID.String(), Namespace: p.Def.Namespace, FlowID: p.Def.FlowKey,
-		TaskID: tr.TaskKey, Attempt: int(tr.Attempt), Command: p.Command, Workdir: p.Cfg.Task.Workdir, Env: p.Env, Files: p.Files, Runtime: p.Runtime,
+		TaskID: tr.TaskKey, Attempt: int(tr.Attempt), Command: p.Command, Workdir: p.Cfg.Task.Workdir, Env: p.Env, Files: p.Files,
+		Artifacts: artifactInputs(p.Cfg.Task.Artifacts), Runtime: p.Runtime,
 		TimeoutSeconds: int(p.Cfg.Timeout.Seconds()), MaskValues: nonNilStrings(p.MaskValues), BundleHash: sn.ManifestHash,
 		Limits: runnerproto.Limits{MaxArtifactBytes: e.Cfg.MaxArtifactBytes, MaxBundleBytes: e.Cfg.MaxBundleBytes}}, nil
+}
+
+func artifactInputs(in []flow.ArtifactInput) []runnerproto.ArtifactInput {
+	var out []runnerproto.ArtifactInput
+	for _, a := range in {
+		out = append(out, runnerproto.ArtifactInput{From: a.From, Name: a.Name, Path: a.Dest()})
+	}
+	return out
 }
 
 func nonNilStrings(s []string) []string {

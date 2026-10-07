@@ -260,6 +260,8 @@ import type {
   RunnerCompleteResponses,
   RunnerGetBundleData,
   RunnerGetBundleResponses,
+  RunnerGetInputArtifactData,
+  RunnerGetInputArtifactResponses,
   RunnerGetSpecData,
   RunnerGetSpecErrors,
   RunnerGetSpecResponses,
@@ -382,6 +384,14 @@ export const runnerHeartbeat = <ThrowOnError extends boolean = false>(
 ): RequestResult<RunnerHeartbeatResponses, RunnerHeartbeatErrors, ThrowOnError> =>
   (options.client ?? client).post<RunnerHeartbeatResponses, RunnerHeartbeatErrors, ThrowOnError>({
     url: "/api/runner/v1/task-runs/{taskRunId}/heartbeat",
+    ...options,
+  });
+
+export const runnerGetInputArtifact = <ThrowOnError extends boolean = false>(
+  options: Options<RunnerGetInputArtifactData, ThrowOnError>,
+): RequestResult<RunnerGetInputArtifactResponses, unknown, ThrowOnError> =>
+  (options.client ?? client).get<RunnerGetInputArtifactResponses, unknown, ThrowOnError>({
+    url: "/api/runner/v1/task-runs/{taskRunId}/inputs/{from}/{name}",
     ...options,
   });
 

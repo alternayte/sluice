@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/alternayte/sluice/internal/execution/executiondb"
 	"github.com/alternayte/sluice/internal/platform/httpx"
@@ -132,6 +133,45 @@ func (e *Engine) PutArtifact(ctx context.Context, tr executiondb.TaskRun, name, 
 	id, _ := uuid.NewV7()
 	return executiondb.New(e.Pool).UpsertArtifact(ctx, executiondb.UpsertArtifactParams{ID: id, ExecutionID: tr.ExecutionID, TaskRunID: tr.ID, Name: name,
 		StorageKey: key, Size: n, ContentType: contentType, CreatedAt: e.Clock.Now()})
+}
+
+// InputArtifact opens an artifact of a dependency for the task run. The task must declare
+// the artifact, so a run token reads no other artifact (SI-04).
+func (e *Engine) InputArtifact(ctx context.Context, tr executiondb.TaskRun, from, name string) (io.ReadCloser, executiondb.Artifact, error) {
+	q := executiondb.New(e.Pool)
+	ex, err := q.GetExecution(ctx, tr.ExecutionID)
+	if err != nil {
+		return nil, executiondb.Artifact{}, err
+	}
+	def, err := ParseDefinition(ex.Definition)
+	if err != nil {
+		return nil, executiondb.Artifact{}, err
+	}
+	declared := false
+	if t, ok := def.Task(tr.TaskKey); ok {
+		for _, a := range t.Artifacts {
+			declared = declared || (a.From == from && a.Name == name)
+		}
+	}
+	if !declared {
+		return nil, executiondb.Artifact{}, httpx.Errorf(http.StatusForbidden, "forbidden", "task %q does not declare artifact %q of task %q", tr.TaskKey, name, from)
+	}
+	a, err := q.GetInputArtifact(ctx, executiondb.GetInputArtifactParams{ExecutionID: tr.ExecutionID, TaskKey: from, Name: name})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, executiondb.Artifact{}, errInputArtifactNotFound(from, name)
+	}
+	if err != nil {
+		return nil, executiondb.Artifact{}, err
+	}
+	rc, err := e.Store.Get(ctx, a.StorageKey)
+	if errors.Is(err, storage.ErrNotFound) {
+		return nil, executiondb.Artifact{}, errInputArtifactNotFound(from, name)
+	}
+	return rc, a, err
+}
+
+func errInputArtifactNotFound(from, name string) error {
+	return httpx.Errorf(http.StatusNotFound, runnerproto.ReasonArtifactNotFound, "task %q has no artifact %q", from, name)
 }
 
 type countingReader struct {

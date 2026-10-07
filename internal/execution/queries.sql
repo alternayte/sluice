@@ -110,6 +110,17 @@ SELECT a.*, t.task_key FROM artifacts a JOIN task_runs t ON t.id = a.task_run_id
 -- name: GetArtifact :one
 SELECT * FROM artifacts WHERE id = $1 AND execution_id = $2;
 
+-- The artifact of the latest task run of a task in an execution. A task run that restart
+-- reused holds no artifacts: reused_from_id leads to the task run that does.
+-- name: GetInputArtifact :one
+WITH RECURSIVE src AS (
+    (SELECT t.id, t.reused_from_id FROM task_runs t
+     WHERE t.execution_id = sqlc.arg(execution_id) AND t.task_key = sqlc.arg(task_key) ORDER BY t.attempt DESC LIMIT 1)
+    UNION ALL
+    SELECT t.id, t.reused_from_id FROM task_runs t JOIN src ON t.id = src.reused_from_id
+)
+SELECT a.* FROM artifacts a JOIN src ON a.task_run_id = src.id WHERE a.name = sqlc.arg(name) LIMIT 1;
+
 -- name: ListChildExecutions :many
 SELECT id, state, created_at FROM executions WHERE parent_execution_id = $1 ORDER BY created_at;
 

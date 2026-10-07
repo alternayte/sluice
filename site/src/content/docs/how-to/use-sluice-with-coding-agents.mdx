@@ -44,10 +44,11 @@ The **Copy page** menu at the top right of each page has four entries:
 sluice init
 ```
 
-It writes two files:
+It writes three files:
 
 - `.claude/skills/sluice/SKILL.md`: the skill. It holds the work loop, the exit codes, the flow rules, the task types, the templates, the outputs and a list of mistakes to avoid.
 - `AGENTS.md`: a Sluice section between `<!-- sluice:begin -->` and `<!-- sluice:end -->`. It points to the skill and lists the validate, push and run commands.
+- `.sluiceignore`: a starter list of the files that `sluice validate` and `sluice namespaces push` skip. `sluice init` writes it only when the directory has none. Move it to the root of the namespace directory when that is not the root of the repository. See [Namespaces and versions](/concepts/namespaces-and-versions/).
 
 `sluice init` keeps the rest of an existing `AGENTS.md`. A file that you changed stays, unless you add `--force`. To write into another directory, give it as the first argument: `sluice init path/to/repo`.
 
@@ -114,7 +115,8 @@ Give the agent a token with the lowest role that it needs:
 |---|---|
 | Viewer | `sluice flows list`, `sluice flows get`, `sluice executions list`, `sluice executions get`, `sluice executions logs` |
 | Operator | The viewer commands, `sluice run`, `sluice executions cancel`, `sluice executions rerun`, `sluice executions restart` |
-| Editor | The operator commands and `sluice namespaces push` |
+| Editor | The operator commands, `sluice namespaces push`, and `sluice secrets set` and `sluice secrets delete` with `--namespace` |
+| Admin | The editor commands, and `sluice secrets set` and `sluice secrets delete` for global secrets |
 
 `sluice validate` and `sluice init` work offline. They need no URL and no token.
 
@@ -128,6 +130,22 @@ sluice run orders/orders --wait -o json | jq '{state, duration_ms, outputs}'
 ```
 
 With `--wait`, the log lines go to stderr, and the JSON of the ended execution goes to stdout. `sluice validate --json` prints the result in the format of `validate-result.schema.json`: each file with its errors, and each error with `code`, `path`, `line`, `column` and `message`.
+
+### Pass inputs
+
+`sluice run --input key=value` reads the declared type of the input from the flow. The value of a `string` or `select` input stays text, so `--input year=2026` gives the string `2026`. For an `int`, `number`, `boolean` or `json` input, a value that is JSON keeps its JSON type.
+
+### Read errors
+
+An API error prints its code and its message on stderr, then one line for each detail:
+
+```console
+$ sluice run insights/report --input space=zzz
+error: validation_failed: validation failed
+  inputs.space: must be one of [all 1 979]
+```
+
+With `--output json`, the command also prints the error envelope of the API on stdout: `{"error":{"code","message","details"}}`.
 
 ### Branch on the exit code
 

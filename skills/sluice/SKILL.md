@@ -16,7 +16,7 @@ Do these steps in this order for every change to a namespace directory:
 1. Edit the files.
 2. Validate offline: `sluice validate <dir> --json`. Exit 0 means valid. Exit 1 lists each error with `path`, `line`, `column`, `code` and `message`. Fix every error before the next step.
 3. Deploy: `sluice namespaces push <dir> --namespace <name>`. It sends only the changed files as one new version. It creates no version when nothing changed. Add `--create` the first time, when the namespace does not exist yet.
-4. Run: `sluice run <namespace>/<flow> --wait --input key=value`. The logs stream to stderr. The exit code is the end state.
+4. Run: `sluice run <namespace>/<flow> --wait --input key=value`. The logs stream to stderr. The exit code is the end state. A `string` or `select` input takes the value as text, so `--input year=2026` is the string `2026`. For other input types a JSON value keeps its type.
 5. On a failure, read the failed task: `sluice executions get <id>`, then `sluice executions logs <id> --task <task>`.
 6. Fix the files, then go to step 2 and start a new run with `sluice run`. `sluice executions rerun <id>` and `sluice executions restart <id>` reuse the files of the old execution. Use them only when the cause is outside the files, for example a network error. `restart` keeps the successful tasks and runs only the rest.
 
@@ -34,6 +34,26 @@ The client commands read `SLUICE_URL` (for example `https://sluice.example.com`)
 | 12 | The execution ended CANCELLED. |
 | 13 | The execution ended SKIPPED (a concurrency limit with `behavior: skip`). |
 | 14 | `--timeout` ended the wait. The execution continues. |
+
+An API error prints its code, its message and one line for each detail, for example `inputs.space: must be one of [all 1]`. With `--output json`, stdout holds the error envelope `{"error":{"code","message","details"}}`.
+
+## Ignored files
+
+`sluice validate` and `sluice namespaces push` skip `.git/`, `__pycache__/`, `*.pyc`, `.venv/`, `node_modules/` and `.DS_Store`. Add more rules to `.sluiceignore` at the root of the namespace directory. The syntax is that of `.gitignore`. Sluice does not read `.gitignore`. `--verbose` prints each skipped path.
+
+`push` refuses a file that looks like a secret (`.env`, `.env.*`, `*.pem`, `*.key`, `*.p12`) and sends nothing. Add the path to `.sluiceignore` to skip the file. Add `!<path>` to permit a file that is not a secret, for example `!.env.example`.
+
+## Secrets
+
+```sh
+sluice secrets list [--namespace <ns>]
+sluice secrets set <KEY> --from-file <path> [--namespace <ns>] [--description <text>]
+printf '%s' "$VALUE" | sluice secrets set <KEY> --stdin
+sluice secrets check <KEY>
+sluice secrets delete <KEY>
+```
+
+Without `--namespace` the secret is global, and a write needs the admin role. The value comes from a file or stdin only and is stored as it is, with a final newline when the input has one. No command prints a value.
 
 ## Flow file
 
@@ -83,7 +103,7 @@ Rules that validation enforces:
 
 A `command` has no shell. For pipes or `&&`, use `command: ["sh", "-c", "a | b"]`.
 
-Every task also takes `depends_on`, `run_if`, `timeout` (default `24h`), `retry`, `env` and `executor`. `script` and `command` take `files`: a map from a path to a template that Sluice writes before the task starts.
+Every task also takes `depends_on`, `run_if`, `timeout` (default `24h`), `retry`, `env` and `executor`. `script` and `command` take `files`: a map from a path to a template that Sluice writes before the task starts. They also take `artifacts`: files that a dependency emitted.
 
 ## Templates
 
@@ -110,6 +130,21 @@ echo '{"type":"metric","name":"rows_loaded","value":42,"unit":"rows"}' >> "$SLUI
 echo '{"type":"artifact","path":"report.html","name":"report"}' >> "$SLUICE_OUTPUTS"
 ```
 
+Outputs of one task are limited to 1 MiB. To pass a file to a later task, emit it as an artifact and declare it on the task that reads it:
+
+```yaml
+- id: render
+  type: script
+  file: scripts/render.py
+  depends_on: [transform]
+  artifacts:
+    - from: transform           # a script or command task in depends_on
+      name: report.duckdb       # the artifact name that transform emitted
+      path: data/report.duckdb  # optional; default is the name
+```
+
+Sluice writes the artifact to `path` in the workdir before the task starts. `from`, `name` and `path` are literals, not templates. When the artifact does not exist, the task fails with reason `artifact_not_found` and its command does not start. `sluice executions restart` keeps the artifacts of the reused tasks.
+
 Other variables of every task: `SLUICE_EXECUTION_ID`, `SLUICE_TASK_ID`, `SLUICE_ATTEMPT`, `SLUICE_NAMESPACE`, `SLUICE_FLOW_ID` and `SLUICE_WORKDIR`.
 
 ## namespace.yaml
@@ -133,5 +168,6 @@ The server serves MCP at `<SLUICE_URL>/mcp` with a bearer API token. `<SLUICE_UR
 ## Do not
 
 - Do not put a secret value in a flow file, a script or a label. Use `secret('KEY')` in `env` and read the variable.
+- Do not call the secrets API by hand or pass a value as an argument. Use `sluice secrets set` with `--from-file` or `--stdin`.
 - Do not skip `sluice validate` before a push. An invalid flow gets no active triggers, and a run returns 422 `flow_invalid`.
 - Do not push to a namespace that comes from git. It is read-only; change the git repository instead.

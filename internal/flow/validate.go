@@ -110,6 +110,7 @@ func Semantic(f *Flow, pos Positions, files map[string]bool, nsDefaults *Default
 	v.inputs()
 	taskIdx := v.tasks()
 	v.dependencies(taskIdx)
+	v.artifacts(taskIdx)
 	v.triggers()
 	v.templates(taskIdx)
 	v.durations()
@@ -141,8 +142,8 @@ func (v *validation) inputs() {
 
 // fieldRule lists the task fields that belong to one task type.
 var typeFields = map[string][]string{
-	"script":  {"file", "runtime", "args", "files"},
-	"command": {"command", "workdir", "files"},
+	"script":  {"file", "runtime", "args", "files", "artifacts"},
+	"command": {"command", "workdir", "files", "artifacts"},
 	"http":    {"method", "url", "headers", "body", "expect_status"},
 	"subflow": {"flow", "inputs", "wait"},
 }
@@ -160,6 +161,7 @@ func taskFieldSet(t Task) map[string]bool {
 	mark("command", len(t.Command) > 0)
 	mark("workdir", t.Workdir != "")
 	mark("files", len(t.Files) > 0)
+	mark("artifacts", len(t.Artifacts) > 0)
 	mark("method", t.Method != "")
 	mark("url", t.URL != "")
 	mark("headers", len(t.Headers) > 0)
@@ -324,6 +326,56 @@ func (v *validation) executorFields(p string, e *Executor) {
 	check("network", e.Network != "", "docker")
 	check("resources", e.Resources != nil, "docker", "kubernetes")
 	check("kubernetes", e.Kubernetes != nil, "kubernetes")
+}
+
+// artifactNameRe is the artifact name rule of the runner protocol (§6.9).
+var artifactNameRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$`)
+
+// artifacts checks the artifact inputs of each task: from is a script or command task in
+// depends_on, name is an artifact name, and each destination path is used once.
+func (v *validation) artifacts(idx map[string]int) {
+	for i, t := range v.f.Tasks {
+		if t.Type != "script" && t.Type != "command" {
+			continue
+		}
+		deps := map[string]bool{}
+		for _, d := range t.DependsOn {
+			deps[d] = true
+		}
+		dests := map[string]bool{}
+		for j, a := range t.Artifacts {
+			p := IndexPath(JoinPath(IndexPath("tasks", i), "artifacts"), j)
+			switch src, known := idx[a.From]; {
+			case !known:
+				v.add(CodeUnknownTask, JoinPath(p, "from"), "artifact source %q is not a task of the flow", a.From)
+			case !deps[a.From]:
+				v.add(CodeArtifactNotDependency, JoinPath(p, "from"), "task %q reads an artifact of %q: add %q to depends_on", t.ID, a.From, a.From)
+			case v.f.Tasks[src].Type != "script" && v.f.Tasks[src].Type != "command":
+				v.add(CodeInvalidReference, JoinPath(p, "from"), "%s task %q emits no artifacts", v.f.Tasks[src].Type, a.From)
+			}
+			if !artifactNameRe.MatchString(a.Name) {
+				v.add(CodeInvalidValue, JoinPath(p, "name"), "name %q is not an artifact name", a.Name)
+			}
+			at := JoinPath(p, "name")
+			if a.Path != "" {
+				at = JoinPath(p, "path")
+			}
+			dest := a.Dest()
+			switch err := ValidPath(dest); {
+			case strings.Contains(dest, "${{"):
+				v.add(CodeTemplateNotAllowed, at, "templates are not allowed in artifact paths")
+			case err != nil:
+				v.add(CodeInvalidPath, at, "path: %v", err)
+			case dests[dest]:
+				v.add(CodeInvalidValue, at, "two artifacts have the path %q", dest)
+			default:
+				if _, ok := t.Files[dest]; ok {
+					v.add(CodeInvalidValue, at, "the path %q is also a key of files", dest)
+				}
+			}
+			dests[dest] = true
+		}
+	}
 }
 
 func (v *validation) dependencies(idx map[string]int) {

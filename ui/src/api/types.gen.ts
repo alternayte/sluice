@@ -769,6 +769,13 @@ export type RunOut = {
   [key: string]: unknown;
 };
 
+export type RunnerArtifact = {
+  from: string;
+  name: string;
+  path: string;
+  [key: string]: unknown;
+};
+
 export type RunnerComplete = {
   error: string;
   exit_code: number;
@@ -820,6 +827,7 @@ export type RunnerLogLine = {
 };
 
 export type RunnerSpec = {
+  artifacts?: Array<RunnerArtifact>;
   attempt: number;
   bundle_hash: string;
   command: Array<string>;
@@ -1291,6 +1299,26 @@ export type RunnerHeartbeatResponses = {
 };
 
 export type RunnerHeartbeatResponse2 = RunnerHeartbeatResponses[keyof RunnerHeartbeatResponses];
+
+export type RunnerGetInputArtifactData = {
+  body?: never;
+  path: {
+    taskRunId: string;
+    from: string;
+    name: string;
+  };
+  query?: never;
+  url: "/api/runner/v1/task-runs/{taskRunId}/inputs/{from}/{name}";
+};
+
+export type RunnerGetInputArtifactResponses = {
+  /**
+   * Artifact of a dependency.
+   */
+  200: Blob | File;
+};
+
+export type RunnerGetInputArtifactResponse = RunnerGetInputArtifactResponses[keyof RunnerGetInputArtifactResponses];
 
 export type RunnerPostLogsData = {
   body: RunnerLogBatch;

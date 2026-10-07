@@ -84,3 +84,45 @@ func TestTaskFiles(t *testing.T) {
 		t.Error("http task with files: want invalid")
 	}
 }
+
+// TestTaskArtifacts checks the artifact inputs of a task: from is a script or command task
+// in depends_on, name is an artifact name, and path is a literal path in the workdir.
+func TestTaskArtifacts(t *testing.T) {
+	const head = "id: f\ntasks:\n  - {id: a, type: command, command: [\"true\"]}\n  - {id: h, type: http, url: \"http://x\"}\n" +
+		"  - id: b\n    type: command\n    command: [\"true\"]\n    depends_on: [a, h]\n    files: {conf.ini: v}\n    artifacts:\n      - "
+	cases := map[string]string{
+		`{from: a, name: data.parquet}`:                                    "",
+		`{from: a, name: data.parquet, path: in/data.parquet}`:             "",
+		`{from: h, name: x}`:                                               CodeInvalidReference,
+		`{from: zz, name: x}`:                                              CodeUnknownTask,
+		`{from: b, name: x}`:                                               CodeArtifactNotDependency,
+		`{from: a, name: "a b"}`:                                           CodeInvalidValue,
+		`{from: a, name: x, path: "../x"}`:                                 CodeInvalidPath,
+		`{from: a, name: x, path: "${{ vars.p }}"}`:                        CodeTemplateNotAllowed,
+		`{from: a, name: x, path: conf.ini}`:                               CodeInvalidValue,
+		"{from: a, name: x, path: p}\n      - {from: a, name: y, path: p}": CodeInvalidValue,
+		`{name: x}`: CodeMissingField,
+	}
+	for entry, code := range cases {
+		res := ValidateNamespace(map[string][]byte{"f.flow.yaml": []byte(head + entry + "\n")})
+		pf := res.Flows[0]
+		if code == "" {
+			if !pf.Valid() {
+				t.Errorf("%s: want valid, got %v", entry, pf.Issues)
+			}
+			continue
+		}
+		found := false
+		for _, is := range pf.Issues {
+			found = found || is.Code == code
+		}
+		if !found {
+			t.Errorf("%s: want %s, got %v", entry, code, pf.Issues)
+		}
+	}
+	res := ValidateNamespace(map[string][]byte{"f.flow.yaml": []byte("id: f\ntasks:\n  - {id: a, type: command, command: [\"true\"]}\n" +
+		"  - id: h\n    type: http\n    url: http://x\n    depends_on: [a]\n    artifacts:\n      - {from: a, name: x}\n")})
+	if res.Flows[0].Valid() {
+		t.Error("http task with artifacts: want invalid")
+	}
+}

@@ -28,6 +28,53 @@ type apiError struct {
 	Status  int
 	Code    string
 	Message string
+	// Details is error.details of the envelope, or nil.
+	Details json.RawMessage
+}
+
+// envelope returns the error as the API envelope {"error":{"code","message","details"}}.
+func (e *apiError) envelope() map[string]any {
+	body := map[string]any{"code": e.Code, "message": e.Message}
+	if len(e.Details) > 0 {
+		body["details"] = e.Details
+	}
+	return map[string]any{"error": body}
+}
+
+// detailLines returns one line for each detail. A field error is "field: message". Details
+// of another shape are one line of JSON.
+func (e *apiError) detailLines() []string {
+	if len(e.Details) == 0 || string(e.Details) == "null" {
+		return nil
+	}
+	var fields []struct {
+		Field   string `json:"field"`
+		Message string `json:"message"`
+	}
+	if json.Unmarshal(e.Details, &fields) == nil {
+		var out []string
+		for _, f := range fields {
+			switch {
+			case f.Field != "" && f.Message != "":
+				out = append(out, f.Field+": "+f.Message)
+			case f.Message != "":
+				out = append(out, f.Message)
+			default:
+				out = nil
+			}
+			if out == nil {
+				break
+			}
+		}
+		if len(out) == len(fields) && len(out) > 0 {
+			return out
+		}
+	}
+	var buf bytes.Buffer
+	if json.Compact(&buf, e.Details) != nil {
+		return nil
+	}
+	return []string{buf.String()}
 }
 
 func (e *apiError) Error() string { return fmt.Sprintf("%s: %s", e.Code, e.Message) }
@@ -101,12 +148,13 @@ func (c *remote) do(ctx context.Context, method, path string, body, out any) err
 func decodeAPIError(status int, b []byte) error {
 	var env struct {
 		Error struct {
-			Code    string `json:"code"`
-			Message string `json:"message"`
+			Code    string          `json:"code"`
+			Message string          `json:"message"`
+			Details json.RawMessage `json:"details"`
 		} `json:"error"`
 	}
 	if json.Unmarshal(b, &env) == nil && env.Error.Code != "" {
-		return &apiError{Status: status, Code: env.Error.Code, Message: env.Error.Message}
+		return &apiError{Status: status, Code: env.Error.Code, Message: env.Error.Message, Details: env.Error.Details}
 	}
 	return &apiError{Status: status, Code: "http_" + fmt.Sprint(status), Message: strings.TrimSpace(string(b))}
 }

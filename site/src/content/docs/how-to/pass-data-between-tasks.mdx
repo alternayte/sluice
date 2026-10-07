@@ -1,6 +1,6 @@
 ---
 title: Pass data between tasks
-description: Emit outputs, metrics and artifacts from a task through SLUICE_OUTPUTS, read outputs in later tasks, and declare flow outputs.
+description: Emit outputs, metrics and artifacts from a task through SLUICE_OUTPUTS, read outputs and artifacts in later tasks, and declare flow outputs.
 ---
 
 import Shot from "../../../components/Shot.astro";
@@ -12,7 +12,7 @@ This guide shows you how a task reports data to Sluice, and how later tasks and 
 |---|---|---|
 | Output | A named JSON value, for example a row count or a file name. | Templates of later tasks, the flow outputs, the **Outputs** tab. |
 | Metric | A named number with a unit and tags. | The **Metrics** tab and the metric chart of the flow page. |
-| Artifact | A file that the task wrote, for example a report. | The **Artifacts** tab, for download. |
+| Artifact | A file that the task wrote, for example a report. | Later tasks that declare it, and the **Artifacts** tab, for download. |
 
 ## Write to the outputs file
 
@@ -105,6 +105,42 @@ tasks:
 A string value renders as it is. A number, boolean, object or list renders as compact JSON. Thus `body` above sends `{"rows": 1234}`.
 
 A task that reads an output which the dependency did not emit fails with reason `template_error`, and its process does not start. When a dependency ran several attempts, the template reads the outputs of the last attempt.
+
+## Pass a file to a later task
+
+Each task run gets its own working directory, and Sluice removes it when the task run ends. All outputs of a task together have at most 1 MiB. To give a file to a later task, emit the file as an artifact and declare it in `artifacts` of the task that reads it.
+
+```yaml flow
+id: report
+tasks:
+  - id: transform
+    type: script
+    file: scripts/transform.py
+  - id: render
+    type: script
+    file: scripts/render.py
+    depends_on: [transform]
+    artifacts:
+      - from: transform
+        name: report.duckdb
+        path: data/report.duckdb
+```
+
+Here `scripts/transform.py` writes a file and emits the line `{"type":"artifact","path":"out/report.duckdb","name":"report.duckdb"}`. Before `scripts/render.py` starts, the runner downloads the artifact and writes it to `data/report.duckdb` in the working directory of `render`.
+
+| Field | Rule |
+|---|---|
+| `from` | The ID of a `script` or `command` task of the same flow. The task must be in `depends_on` of this task. Otherwise validation fails with `artifact_source_not_dependency`. |
+| `name` | The artifact name that the task in `from` emits. |
+| `path` | Optional. The destination, relative to the working directory. The default is `name`. The artifact replaces a namespace file at the same path. |
+
+The three fields are literal text. A `${{` block is not allowed in them. Only `script` and `command` tasks take `artifacts`. A task cannot read an artifact of a child execution of a `subflow` task.
+
+The artifact works the same on the process, docker and kubernetes executors, and when the two tasks run on different instances. Each task can then have its own retry policy, its own logs and its own bar in the timeline.
+
+When the artifact does not exist, the task that reads it fails with reason `artifact_not_found`, and its process does not start. This occurs when the task in `from` did not emit that name, or when its upload failed. The task in `from` keeps its state. Look for a warning in its log, for example a file above `SLUICE_MAX_ARTIFACT_BYTES`.
+
+When the task in `from` ran several attempts, the runner reads the artifact of the last attempt. After `sluice executions restart`, a task reads the artifact of a reused task from the execution that produced it. That artifact is gone when retention has deleted the old execution.
 
 ## Declare flow outputs
 

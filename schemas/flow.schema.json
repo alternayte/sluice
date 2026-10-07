@@ -3,6 +3,28 @@
   "$id": "https://sluice-docs.pages.dev/schemas/flow.schema.json",
   "$ref": "#/$defs/Flow",
   "$defs": {
+    "ArtifactInput": {
+      "properties": {
+        "from": {
+          "type": "string",
+          "description": "ID of the task that emits the artifact. A script or command task in depends_on of this task."
+        },
+        "name": {
+          "type": "string",
+          "description": "Artifact name, as the task in from emits it."
+        },
+        "path": {
+          "type": "string",
+          "description": "Destination path relative to the workdir. Default name."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "from",
+        "name"
+      ]
+    },
     "Concurrency": {
       "properties": {
         "limit": {
@@ -381,6 +403,14 @@
           },
           "type": "object",
           "description": "script and command: file templates. The key is a path relative to the namespace root. Sluice writes the rendered value to that path in the workdir before the task starts, and replaces a namespace file at the same path. secret() is allowed."
+        },
+        "artifacts": {
+          "items": {
+            "$ref": "#/$defs/ArtifactInput"
+          },
+          "type": "array",
+          "maxItems": 100,
+          "description": "script and command: artifacts of dependencies. Sluice downloads each artifact into the workdir before the task starts, and replaces a namespace file at the same path. The task fails before its command starts when an artifact does not exist."
         },
         "file": {
           "type": "string",

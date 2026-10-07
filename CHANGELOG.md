@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-07
+
+### Added
+
+- A `script` or `command` task reads files of its dependencies with `artifacts`. The runner downloads each declared artifact into the working directory before the task starts. A missing artifact fails the task with reason `artifact_not_found`. `sluice executions restart` reads the artifacts of reused tasks (#21).
+- `sluice secrets list`, `set`, `check` and `delete`. `set` takes the value from `--from-file` or `--stdin` only (#17).
+- `sluice namespaces push` and `sluice validate` skip `.git/`, `__pycache__/`, `*.pyc`, `.venv/`, `node_modules/`, `.DS_Store` and the paths of a `.sluiceignore` file at the namespace root. `--verbose` prints each skipped path. `sluice init` writes a starter `.sluiceignore` (#20).
+
+### Changed
+
+- `sluice namespaces push` refuses a directory with a file that looks like a secret (`.env`, `.env.*`, `*.pem`, `*.key`, `*.p12`) and sends nothing. Add the path to `.sluiceignore` to skip the file, or add `!` and the path to permit it (#20).
+- `sluice namespaces push` does not upload `.sluiceignore`, and the new version drops a file that the head version has and that a rule now skips.
+
+### Fixed
+
+- `sluice run --input` keeps the value of a `string` or `select` input as text. `--input space=1` no longer fails a `select` input with the value `"1"` (#19).
+- The CLI prints the details of an API error, one line for each, for example `inputs.space: must be one of [all 1 979]`. With `--output json`, stdout holds the error envelope (#18).
+
 ## [0.2.3] - 2026-09-26
 
 ### Fixed
@@ -186,7 +204,8 @@ The first version of Sluice. It is one Go binary with an embedded React UI, and 
 - A CI workflow with the jobs `check`, `e2e` and `image`.
 - A release workflow. A `v*.*.*` tag attaches the binaries for Linux and macOS to a GitHub release, and pushes the `sluice` and `sluice-uv` images to `ghcr.io/alternayte` for amd64 and arm64.
 
-[Unreleased]: https://github.com/alternayte/sluice/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/alternayte/sluice/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/alternayte/sluice/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/alternayte/sluice/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/alternayte/sluice/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/alternayte/sluice/compare/v0.2.0...v0.2.1

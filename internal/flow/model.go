@@ -112,6 +112,7 @@ type Task struct {
 	Env       map[string]string `yaml:"env,omitempty" json:"env,omitempty" jsonschema_description:"Environment templates. Override flow env by key."`
 	Executor  *Executor         `yaml:"executor,omitempty" json:"executor,omitempty" jsonschema_description:"Executor. Not allowed on http and subflow tasks."`
 	Files     map[string]string `yaml:"files,omitempty" json:"files,omitempty" jsonschema:"maxProperties=100" jsonschema_description:"script and command: file templates. The key is a path relative to the namespace root. Sluice writes the rendered value to that path in the workdir before the task starts, and replaces a namespace file at the same path. secret() is allowed."`
+	Artifacts []ArtifactInput   `yaml:"artifacts,omitempty" json:"artifacts,omitempty" jsonschema:"maxItems=100" jsonschema_description:"script and command: artifacts of dependencies. Sluice downloads each artifact into the workdir before the task starts, and replaces a namespace file at the same path. The task fails before its command starts when an artifact does not exist."`
 
 	// script
 	File    string   `yaml:"file,omitempty" json:"file,omitempty" jsonschema_description:"script: file path relative to the namespace root. Required for script."`
@@ -133,6 +134,21 @@ type Task struct {
 	Flow   string            `yaml:"flow,omitempty" json:"flow,omitempty" jsonschema_description:"subflow: child flow as <namespace>/<flow_id>. Required for subflow."`
 	Inputs map[string]string `yaml:"inputs,omitempty" json:"inputs,omitempty" jsonschema_description:"subflow: input templates of the child flow."`
 	Wait   *bool             `yaml:"wait,omitempty" json:"wait,omitempty" jsonschema_description:"subflow: wait for the child to end. Default true."`
+}
+
+// ArtifactInput is one artifact of a dependency that a task reads. All fields are literals.
+type ArtifactInput struct {
+	From string `yaml:"from" json:"from" jsonschema:"required" jsonschema_description:"ID of the task that emits the artifact. A script or command task in depends_on of this task."`
+	Name string `yaml:"name" json:"name" jsonschema:"required" jsonschema_description:"Artifact name, as the task in from emits it."`
+	Path string `yaml:"path,omitempty" json:"path,omitempty" jsonschema_description:"Destination path relative to the workdir. Default name."`
+}
+
+// Dest returns the destination path in the workdir.
+func (a ArtifactInput) Dest() string {
+	if a.Path != "" {
+		return a.Path
+	}
+	return a.Name
 }
 
 // NamespaceFile is namespace.yaml (§6.8).

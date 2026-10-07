@@ -9,17 +9,19 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
+
+	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 
 	"github.com/alternayte/sluice/internal/flow"
 )
 
-// runValidate implements `sluice validate <dir> [--json]` (REQ-FLOW-007). It exits
+// runValidate implements `sluice validate <dir> [--json] [--verbose]` (REQ-FLOW-007). It exits
 // 0 when the namespace is valid and 1 when it is invalid.
 func runValidate(_ context.Context, args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("validate", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	asJSON := fs.Bool("json", false, "print the result as JSON (schemas/validate-result.schema.json)")
+	verbose := fs.Bool("verbose", false, "print each path that an ignore rule skips")
 	// Accept the flag before or after the directory.
 	var dirs []string
 	rest := args
@@ -34,18 +36,19 @@ func runValidate(_ context.Context, args []string, stdout, stderr io.Writer) int
 		}
 	}
 	if len(dirs) != 1 {
-		fmt.Fprintln(stderr, "usage: sluice validate <dir> [--json]")
+		fmt.Fprintln(stderr, "usage: sluice validate <dir> [--json] [--verbose]")
 		return exitConfig
 	}
-	files, warnings, err := readNamespaceDir(dirs[0])
+	nd, err := readNamespaceDir(dirs[0])
 	if err != nil {
 		fmt.Fprintln(stderr, "validate:", err)
 		return exitConfig
 	}
-	for _, w := range warnings {
-		fmt.Fprintln(stderr, "warning:", w)
+	nd.report(stderr, *verbose)
+	for _, p := range nd.Secrets {
+		fmt.Fprintf(stderr, "warning: %s looks like a secret and sluice namespaces push refuses it: %s\n", p, secretHelp)
 	}
-	res := flow.ValidateNamespace(files).Result()
+	res := flow.ValidateNamespace(nd.Files).Result()
 	if *asJSON {
 		enc := json.NewEncoder(stdout)
 		enc.SetIndent("", "  ")
@@ -71,54 +74,90 @@ func runValidate(_ context.Context, args []string, stdout, stderr io.Writer) int
 	return exitOK
 }
 
-// readNamespaceDir reads a namespace directory. Symlinks and paths that fail
-// REQ-NS-005 are skipped with a warning. .git directories are skipped.
-func readNamespaceDir(dir string) (map[string][]byte, []string, error) {
+// namespaceDir is the content of a namespace directory that the CLI validates or uploads.
+type namespaceDir struct {
+	Files    map[string][]byte
+	Warnings []string
+	// Skipped are the paths that an ignore rule excludes. A directory ends with a slash.
+	Skipped []string
+	// Secrets are the files that look like a secret and that no ignore rule covers.
+	Secrets []string
+}
+
+// readNamespaceDir reads a namespace directory. Paths that the ignore rules exclude are
+// skipped. Symlinks and paths that fail REQ-NS-005 are skipped with a warning.
+func readNamespaceDir(dir string) (*namespaceDir, error) {
 	st, err := os.Stat(dir)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if !st.IsDir() {
-		return nil, nil, fmt.Errorf("%s is not a directory", dir)
+		return nil, fmt.Errorf("%s is not a directory", dir)
 	}
-	files := map[string][]byte{}
-	var warnings []string
+	rules, err := loadIgnore(dir)
+	if err != nil {
+		return nil, err
+	}
+	out := &namespaceDir{Files: map[string][]byte{}}
 	err = filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		rel, _ := filepath.Rel(dir, p)
 		rel = filepath.ToSlash(rel)
+		if rel == "." || rel == ignoreFile {
+			return nil
+		}
+		rule := rules.match(rel, d.IsDir())
 		if d.IsDir() {
-			if d.Name() == ".git" {
+			if rule == gitignore.Exclude {
+				out.Skipped = append(out.Skipped, rel+"/")
 				return filepath.SkipDir
 			}
 			return nil
 		}
+		if rule == gitignore.Exclude {
+			out.Skipped = append(out.Skipped, rel)
+			return nil
+		}
 		if d.Type()&fs.ModeSymlink != 0 {
-			warnings = append(warnings, "skipped symlink "+rel)
+			out.Warnings = append(out.Warnings, "skipped symlink "+rel)
 			return nil
 		}
 		if !d.Type().IsRegular() {
 			return nil
 		}
 		if err := flow.ValidPath(rel); err != nil {
-			warnings = append(warnings, fmt.Sprintf("skipped %s: %v", rel, err))
+			out.Warnings = append(out.Warnings, fmt.Sprintf("skipped %s: %v", rel, err))
 			return nil
+		}
+		if rule == gitignore.NoMatch && looksSecret(rel) {
+			out.Secrets = append(out.Secrets, rel)
 		}
 		b, err := os.ReadFile(p)
 		if err != nil {
 			return err
 		}
-		files[rel] = b
+		out.Files[rel] = b
 		return nil
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	if len(files) == 0 {
-		return files, warnings, nil
-	}
-	_ = strings.TrimSpace
-	return files, warnings, nil
+	return out, nil
 }
+
+// report prints the warnings of the directory and, with verbose, each skipped path.
+func (n *namespaceDir) report(stderr io.Writer, verbose bool) {
+	for _, w := range n.Warnings {
+		fmt.Fprintln(stderr, "warning:", w)
+	}
+	if verbose {
+		for _, p := range n.Skipped {
+			fmt.Fprintln(stderr, "skipped", p)
+		}
+	}
+}
+
+// secretHelp tells how to resolve a file that looks like a secret.
+const secretHelp = "add the path to " + ignoreFile + " to skip the file, or add a line with ! before the path to permit it"

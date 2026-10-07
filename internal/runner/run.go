@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -131,6 +132,10 @@ func (r *run) execute(ctx context.Context) int {
 	if err := writeFiles(workdir, r.spec.Files); err != nil {
 		r.sys("[sluice] files: %v", r.masker.String(err.Error()))
 		return r.complete(ctx, 1, "files: "+err.Error(), runnerapiReasonExecutor)
+	}
+	if reason, err := r.fetchArtifacts(ctx, workdir); err != nil {
+		r.sys("[sluice] artifacts: %v", err)
+		return r.complete(ctx, 1, "artifacts: "+err.Error(), reason)
 	}
 	outFile, err := os.CreateTemp("", "sluice-outputs-*.jsonl")
 	if err != nil {
@@ -367,6 +372,55 @@ func (r *run) fetchBundle(ctx context.Context, workdir string) error {
 		return err
 	}
 	return snapshot.ExtractBundle(f, workdir, r.spec.Limits.MaxBundleBytes)
+}
+
+// fetchArtifacts downloads the artifacts of dependencies into the workdir. A file of the
+// bundle at the same path is replaced. It returns the complete reason with the error.
+func (r *run) fetchArtifacts(ctx context.Context, workdir string) (string, error) {
+	for _, a := range r.spec.Artifacts {
+		if err := flow.ValidPath(a.Path); err != nil {
+			return runnerapiReasonExecutor, fmt.Errorf("%s: %w", a.Path, err)
+		}
+		dst := filepath.Join(workdir, filepath.FromSlash(a.Path))
+		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+			return runnerapiReasonExecutor, fmt.Errorf("%s: %w", a.Path, err)
+		}
+		if st, err := os.Lstat(dst); err == nil && !st.Mode().IsRegular() {
+			return runnerapiReasonExecutor, fmt.Errorf("%s: path exists and is not a regular file", a.Path)
+		}
+		err := r.fetchArtifact(ctx, a, dst)
+		var pe *PermanentError
+		if errors.As(err, &pe) && pe.Status == http.StatusNotFound {
+			return runnerproto.ReasonArtifactNotFound, fmt.Errorf("task %s has no artifact %s", a.From, a.Name)
+		}
+		if err != nil {
+			return runnerapiReasonExecutor, fmt.Errorf("%s of task %s: %w", a.Name, a.From, err)
+		}
+	}
+	return "", nil
+}
+
+// fetchArtifact downloads one artifact into a temporary file next to dst and renames it,
+// so the task never reads a partial file.
+func (r *run) fetchArtifact(ctx context.Context, a runnerproto.ArtifactInput, dst string) error {
+	f, err := os.CreateTemp(filepath.Dir(dst), ".sluice-artifact-*")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = f.Close()
+		_ = os.Remove(f.Name())
+	}()
+	if err := r.c.do(ctx, http.MethodGet, "/inputs/"+urlPathEscape(a.From)+"/"+urlPathEscape(a.Name), nil, "", &fileSink{f: f}); err != nil {
+		return err
+	}
+	if err := f.Chmod(0o644); err != nil {
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	return os.Rename(f.Name(), dst)
 }
 
 // writeFiles writes the rendered files of the task into the workdir. A file of the

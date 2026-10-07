@@ -153,6 +153,12 @@ func (c *clientCmd) fail(err error) int {
 		return exitConfig
 	case errors.As(err, &ae):
 		fmt.Fprintf(c.stderr, "error: %s: %s\n", ae.Code, ae.Message)
+		for _, l := range ae.detailLines() {
+			fmt.Fprintln(c.stderr, "  "+l)
+		}
+		if c.json() {
+			c.printJSON(ae.envelope())
+		}
 	default:
 		fmt.Fprintln(c.stderr, "error:", err)
 	}
@@ -175,9 +181,11 @@ func splitFlowRef(ref string) (string, string, error) {
 	return ref[:i], ref[i+1:], nil
 }
 
-// parseInputs turns k=v pairs into inputs. A value that is valid JSON keeps its JSON type
-// (7, true, {"a":1}); any other value is a string.
-func parseInputs(pairs []string) (map[string]any, error) {
+// parseInputs turns k=v pairs into inputs. types maps an input ID to its declared type. The
+// value of a string or select input stays a string, so 1, true and null are text there. For
+// each other input, a value that is valid JSON keeps its JSON type (7, true, {"a":1}) and
+// any other value is a string.
+func parseInputs(pairs []string, types map[string]string) (map[string]any, error) {
 	out := map[string]any{}
 	for _, p := range pairs {
 		k, v, ok := strings.Cut(p, "=")
@@ -185,7 +193,9 @@ func parseInputs(pairs []string) (map[string]any, error) {
 			return nil, fmt.Errorf("--input %q must have the form key=value", p)
 		}
 		var j any
-		if json.Unmarshal([]byte(v), &j) == nil {
+		if t := types[k]; t == "string" || t == "select" {
+			out[k] = v
+		} else if json.Unmarshal([]byte(v), &j) == nil {
 			out[k] = j
 		} else {
 			out[k] = v
@@ -230,7 +240,7 @@ func (r *remote) executionURL(id string) string { return r.base + "/executions/"
 func runRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	c := newClientCmd("run", "run <namespace>/<flow> [--input k=v]... [--label k=v]... [--wait] [--timeout 10m] [--output json]", stdout, stderr)
 	var inputs, labels multiFlag
-	c.fs.Var(&inputs, "input", "an input as key=value; repeat for more. A JSON value keeps its type.")
+	c.fs.Var(&inputs, "input", "an input as key=value; repeat for more. A string or select input takes the value as text. For other inputs a JSON value keeps its type.")
 	c.fs.Var(&labels, "label", "a label as key=value; repeat for more")
 	wait := c.fs.Bool("wait", false, "wait for the end, stream the logs to stderr, and exit with the code of the end state")
 	timeout := c.fs.Duration("timeout", 0, "with --wait: stop waiting after this time and exit 14 (the execution continues)")
@@ -243,7 +253,8 @@ func runRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "error:", err)
 		return exitConfig
 	}
-	in, err := parseInputs(inputs)
+	// Check the form of the pairs before any request.
+	_, err = parseInputs(inputs, nil)
 	if err == nil {
 		var lb map[string]string
 		lb, err = parseLabels(labels)
@@ -252,8 +263,16 @@ func runRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			if code >= 0 {
 				return code
 			}
+			flowPath := "/api/v1/flows/" + url.PathEscape(ns) + "/" + url.PathEscape(flowID)
+			var types map[string]string
+			if len(inputs) > 0 {
+				if types, err = r.inputTypes(ctx, flowPath); err != nil {
+					return c.fail(err)
+				}
+			}
+			in, _ := parseInputs(inputs, types)
 			var started execution.ExecutionDetail
-			path := "/api/v1/flows/" + url.PathEscape(ns) + "/" + url.PathEscape(flowID) + "/executions"
+			path := flowPath + "/executions"
 			if err := r.do(ctx, http.MethodPost, path, map[string]any{"inputs": in, "labels": lb}, &started); err != nil {
 				return c.fail(err)
 			}
@@ -270,6 +289,31 @@ func runRun(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	fmt.Fprintln(stderr, "error:", err)
 	return exitConfig
+}
+
+// inputTypes returns the declared type of each input of a flow. A flow without a valid
+// revision gives no types: the run request then reports the flow.
+func (r *remote) inputTypes(ctx context.Context, flowPath string) (map[string]string, error) {
+	var f struct {
+		Revision *struct {
+			Definition *struct {
+				Inputs []struct {
+					ID   string `json:"id"`
+					Type string `json:"type"`
+				} `json:"inputs"`
+			} `json:"definition"`
+		} `json:"revision"`
+	}
+	if err := r.do(ctx, http.MethodGet, flowPath, nil, &f); err != nil {
+		return nil, err
+	}
+	types := map[string]string{}
+	if f.Revision != nil && f.Revision.Definition != nil {
+		for _, in := range f.Revision.Definition.Inputs {
+			types[in.ID] = in.Type
+		}
+	}
+	return types, nil
 }
 
 // wait streams the logs of an execution to stderr until it ends, then prints the result.
@@ -633,10 +677,11 @@ func runFlowsGet(ctx context.Context, args []string, stdout, stderr io.Writer) i
 // runNamespacesPush implements `sluice namespaces push <dir>`. It sends the files that differ
 // from the head version as one new version, and creates no version when nothing differs.
 func runNamespacesPush(ctx context.Context, args []string, stdout, stderr io.Writer) int {
-	c := newClientCmd("namespaces push", "namespaces push <dir> [--namespace name] [--message text] [--create]", stdout, stderr)
+	c := newClientCmd("namespaces push", "namespaces push <dir> [--namespace name] [--message text] [--create] [--verbose]", stdout, stderr)
 	nsFlag := c.fs.String("namespace", "", "target namespace (default: the name of the directory)")
 	message := c.fs.String("message", "", "version message (default: \"Push from the sluice CLI\")")
 	create := c.fs.Bool("create", false, "create the namespace when it does not exist")
+	verbose := c.fs.Bool("verbose", false, "print each path that an ignore rule skips")
 	pos, code := c.parse(args, 1)
 	if code >= 0 {
 		return code
@@ -655,14 +700,22 @@ func runNamespacesPush(ctx context.Context, args []string, stdout, stderr io.Wri
 	if msg == "" {
 		msg = "Push from the sluice CLI"
 	}
-	files, warnings, err := readNamespaceDir(dir)
+	nd, err := readNamespaceDir(dir)
 	if err != nil {
 		fmt.Fprintln(stderr, "error:", err)
 		return exitConfig
 	}
-	for _, w := range warnings {
-		fmt.Fprintln(stderr, "warning:", w)
+	nd.report(stderr, *verbose)
+	if len(nd.Secrets) > 0 {
+		// A version is immutable, so the push stops before it sends a file.
+		fmt.Fprintln(stderr, "error: these files look like secrets, and nothing was pushed:")
+		for _, p := range nd.Secrets {
+			fmt.Fprintln(stderr, "  "+p)
+		}
+		fmt.Fprintln(stderr, "For each file, "+secretHelp+".")
+		return exitFail
 	}
+	files := nd.Files
 	r, code := c.remote()
 	if code >= 0 {
 		return code

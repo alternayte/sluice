@@ -95,6 +95,7 @@ import {
   runFile,
   runnerComplete,
   runnerGetBundle,
+  runnerGetInputArtifact,
   runnerGetSpec,
   runnerHeartbeat,
   runnerPostEvents,
@@ -355,6 +356,8 @@ import type {
   RunnerCompleteResponse,
   RunnerGetBundleData,
   RunnerGetBundleResponse,
+  RunnerGetInputArtifactData,
+  RunnerGetInputArtifactResponse,
   RunnerGetSpecData,
   RunnerGetSpecError,
   RunnerGetSpecResponse,
@@ -537,6 +540,28 @@ export const runnerHeartbeatMutation = (
   };
   return mutationOptions;
 };
+
+export const runnerGetInputArtifactQueryKey = (options: Options<RunnerGetInputArtifactData>) =>
+  createQueryKey("runnerGetInputArtifact", options);
+
+export const runnerGetInputArtifactOptions = (options: Options<RunnerGetInputArtifactData>) =>
+  queryOptions<
+    RunnerGetInputArtifactResponse,
+    DefaultError,
+    RunnerGetInputArtifactResponse,
+    ReturnType<typeof runnerGetInputArtifactQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await runnerGetInputArtifact({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: runnerGetInputArtifactQueryKey(options),
+  });
 
 export const runnerPostLogsMutation = (
   options?: Partial<Options<RunnerPostLogsData>>,

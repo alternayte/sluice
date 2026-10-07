@@ -115,9 +115,54 @@ sluice namespaces push ./namespace --namespace sales --create
 | Target | `--namespace`, or the name of the directory. |
 | New namespace | `--create` creates a managed namespace when it does not exist. Without it, the command fails. |
 | Removed files | The new version drops each file that the directory does not have. |
-| Skipped entries | `.git` directories, symbolic links and invalid paths. The command prints a warning for each. |
+| Skipped entries | Ignored files, symbolic links and invalid paths. The command prints a warning for each symbolic link and invalid path. `--verbose` prints each ignored path. |
+| Secret files | The command refuses a file that looks like a secret and sends nothing. |
 | Executable bit | The command keeps the executable bit of each local file. |
 | Conflict | The command sends the head version that it read. A save in between gives 409 `version_conflict`. |
+
+#### Ignored files
+
+`sluice namespaces push` and `sluice validate` skip the files that a local run leaves behind. These rules always apply:
+
+```text
+.git/
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+.DS_Store
+```
+
+To skip more files, add a `.sluiceignore` file at the root of the namespace directory. It has the syntax of `.gitignore`. Sluice does not upload the file itself. `sluice init` writes a starter file.
+
+```text
+out/
+*.log
+.env
+```
+
+Sluice does not read `.gitignore`. Git also reads the rules of parent directories, nested files and a global file, so one `.gitignore` gives a different result from git.
+
+A line that starts with `!` permits a path that another rule skips, also a path of the rules above.
+
+#### Files that look like secrets
+
+A version never changes, so a pushed credential stays in the history of the namespace. `sluice namespaces push` thus stops before it sends a file when the directory holds a file with one of these names, and no rule of `.sluiceignore` names it:
+
+```text
+.env
+.env.*
+*.pem
+*.key
+*.p12
+```
+
+The command prints each file and exits with code 1. For each file, do one of these:
+
+- Add the path to `.sluiceignore`. The push then skips the file.
+- Add `!` and the path to `.sluiceignore`, for example `!.env.example` or `!certs/ca.pem`. The push then uploads the file.
+
+`sluice validate` prints a warning for the same files and does not fail. Store a real credential as a secret. See [Use secrets and variables](/how-to/use-secrets-and-variables/).
 
 Run `sluice validate` on the directory first. The push does not stop for an invalid flow: the server stores it, marks it invalid and deactivates its triggers.
 

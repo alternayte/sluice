@@ -1777,6 +1777,20 @@ components:
         - warnings
         - snapshots_created
       type: object
+    RunnerArtifact:
+      additionalProperties: true
+      properties:
+        from:
+          type: string
+        name:
+          type: string
+        path:
+          type: string
+      required:
+        - from
+        - name
+        - path
+      type: object
     RunnerComplete:
       additionalProperties: true
       properties:
@@ -1890,6 +1904,10 @@ components:
     RunnerSpec:
       additionalProperties: true
       properties:
+        artifacts:
+          items:
+            $ref: "#/components/schemas/RunnerArtifact"
+          type: array
         attempt:
           format: int64
           type: integer
@@ -2777,6 +2795,33 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Error
+  /api/runner/v1/task-runs/{taskRunId}/inputs/{from}/{name}:
+    get:
+      operationId: runnerGetInputArtifact
+      parameters:
+        - in: path
+          name: taskRunId
+          required: true
+          schema:
+            format: uuid
+            type: string
+        - in: path
+          name: from
+          required: true
+          schema:
+            maxLength: 63
+            type: string
+        - in: path
+          name: name
+          required: true
+          schema:
+            maxLength: 200
+            type: string
+      responses:
+        "200":
+          content:
+            application/octet-stream: {}
+          description: Artifact of a dependency.
   /api/runner/v1/task-runs/{taskRunId}/logs:
     post:
       operationId: runnerPostLogs

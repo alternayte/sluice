@@ -39,11 +39,19 @@ type RunnerSpec struct {
 	Workdir        string            `json:"workdir"`
 	Env            map[string]string `json:"env"`
 	Files          map[string]string `json:"files,omitempty"`
+	Artifacts      []RunnerArtifact  `json:"artifacts,omitempty"`
 	Runtime        string            `json:"runtime,omitempty"`
 	TimeoutSeconds int               `json:"timeout_seconds"`
 	MaskValues     []string          `json:"mask_values"`
 	BundleHash     string            `json:"bundle_hash"`
 	Limits         RunnerLimits      `json:"limits"`
+}
+
+// RunnerArtifact is one artifact of a dependency that the runner downloads into the workdir.
+type RunnerArtifact struct {
+	From string `json:"from"`
+	Name string `json:"name"`
+	Path string `json:"path"`
 }
 
 // RunnerLogLine is one log line of a batch.
@@ -176,8 +184,12 @@ func RunnerRoutes(api huma.API, r chi.Router, e *Engine) {
 			if err != nil {
 				return nil, err
 			}
+			var arts []RunnerArtifact
+			for _, a := range s.Artifacts {
+				arts = append(arts, RunnerArtifact(a))
+			}
 			return &struct{ Body RunnerSpec }{Body: RunnerSpec{TaskRunID: s.TaskRunID, ExecutionID: s.ExecutionID, Namespace: s.Namespace,
-				FlowID: s.FlowID, TaskID: s.TaskID, Attempt: s.Attempt, Command: s.Command, Workdir: s.Workdir, Env: s.Env, Files: s.Files, Runtime: s.Runtime,
+				FlowID: s.FlowID, TaskID: s.TaskID, Attempt: s.Attempt, Command: s.Command, Workdir: s.Workdir, Env: s.Env, Files: s.Files, Artifacts: arts, Runtime: s.Runtime,
 				TimeoutSeconds: s.TimeoutSeconds, MaskValues: s.MaskValues, BundleHash: s.BundleHash, Limits: RunnerLimits(s.Limits)}}, nil
 		})
 
@@ -206,6 +218,36 @@ func RunnerRoutes(api huma.API, r chi.Router, e *Engine) {
 		if size > 0 {
 			w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.Copy(w, rc)
+	})
+
+	input := httpx.Op("runnerGetInputArtifact", http.MethodGet, base+"/inputs/{from}/{name}", httpx.RunToken)
+	maxFrom, maxName := 63, 200
+	input.Parameters = []*huma.Param{uuidParam("taskRunId"),
+		{Name: "from", In: "path", Required: true, Schema: &huma.Schema{Type: huma.TypeString, MaxLength: &maxFrom}},
+		{Name: "name", In: "path", Required: true, Schema: &huma.Schema{Type: huma.TypeString, MaxLength: &maxName}}}
+	input.Responses = httpx.RawResponse(http.StatusOK, "application/octet-stream", "Artifact of a dependency.")
+	httpx.Raw(api, r, input, func(w http.ResponseWriter, req *http.Request) {
+		var fields []httpx.FieldError
+		id := pathUUID(req, "taskRunId", &fields)
+		if len(fields) > 0 {
+			httpx.WriteError(w, req, httpx.Validation(fields...))
+			return
+		}
+		tr, err := runnerTaskRun(req.Context(), id)
+		if err != nil {
+			httpx.WriteError(w, req, err)
+			return
+		}
+		rc, a, err := e.InputArtifact(req.Context(), tr, chi.URLParam(req, "from"), chi.URLParam(req, "name"))
+		if err != nil {
+			httpx.WriteError(w, req, err)
+			return
+		}
+		defer func() { _ = rc.Close() }()
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Header().Set("Content-Length", strconv.FormatInt(a.Size, 10))
 		w.WriteHeader(http.StatusOK)
 		_, _ = io.Copy(w, rc)
 	})

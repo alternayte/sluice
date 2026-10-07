@@ -280,6 +280,40 @@ func (q *Queries) GetFlowRevision(ctx context.Context, id uuid.UUID) (FlowRevisi
 	return i, err
 }
 
+const getInputArtifact = `-- name: GetInputArtifact :one
+WITH RECURSIVE src AS (
+    (SELECT t.id, t.reused_from_id FROM task_runs t
+     WHERE t.execution_id = $2 AND t.task_key = $3 ORDER BY t.attempt DESC LIMIT 1)
+    UNION ALL
+    SELECT t.id, t.reused_from_id FROM task_runs t JOIN src ON t.id = src.reused_from_id
+)
+SELECT a.id, a.execution_id, a.task_run_id, a.name, a.storage_key, a.size, a.content_type, a.created_at FROM artifacts a JOIN src ON a.task_run_id = src.id WHERE a.name = $1 LIMIT 1
+`
+
+type GetInputArtifactParams struct {
+	Name        string
+	ExecutionID uuid.UUID
+	TaskKey     string
+}
+
+// The artifact of the latest task run of a task in an execution. A task run that restart
+// reused holds no artifacts: reused_from_id leads to the task run that does.
+func (q *Queries) GetInputArtifact(ctx context.Context, arg GetInputArtifactParams) (Artifact, error) {
+	row := q.db.QueryRow(ctx, getInputArtifact, arg.Name, arg.ExecutionID, arg.TaskKey)
+	var i Artifact
+	err := row.Scan(
+		&i.ID,
+		&i.ExecutionID,
+		&i.TaskRunID,
+		&i.Name,
+		&i.StorageKey,
+		&i.Size,
+		&i.ContentType,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getSnapshot = `-- name: GetSnapshot :one
 SELECT s.id, s.namespace_id, s.version, s.git_sha, s.manifest_hash, s.message, s.created_by, s.created_at, u.email AS author_email FROM snapshots s LEFT JOIN users u ON u.id = s.created_by WHERE s.id = $1
 `

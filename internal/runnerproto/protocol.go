@@ -53,6 +53,8 @@ type Spec struct {
 	Env         map[string]string `json:"env"`
 	// Files maps a path relative to the workdir to rendered file content.
 	Files map[string]string `json:"files,omitempty"`
+	// Artifacts are the artifacts of dependencies that the runner downloads into the workdir.
+	Artifacts []ArtifactInput `json:"artifacts,omitempty"`
 	// Runtime is the tool that must exist on PATH (uv, bash, bun, node) or "".
 	Runtime        string   `json:"runtime,omitempty"`
 	TimeoutSeconds int      `json:"timeout_seconds"`
@@ -60,6 +62,17 @@ type Spec struct {
 	BundleHash     string   `json:"bundle_hash"`
 	Limits         Limits   `json:"limits"`
 }
+
+// ArtifactInput is one artifact of a dependency. The runner gets it from
+// GET /task-runs/{id}/inputs/{from}/{name} and writes it to Path in the workdir.
+type ArtifactInput struct {
+	From string `json:"from"`
+	Name string `json:"name"`
+	Path string `json:"path"`
+}
+
+// ReasonArtifactNotFound is the complete reason when a declared artifact does not exist.
+const ReasonArtifactNotFound = "artifact_not_found"
 
 // Limits sent to the runner.
 type Limits struct {

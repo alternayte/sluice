@@ -129,6 +129,7 @@ A flow file matches `*.flow.yaml` or `*.flow.yml`. `namespace.yaml` at the names
 | `env` | map of string | Environment templates. Override flow env by key. |
 | `executor` | Executor | Executor. Not allowed on http and subflow tasks. |
 | `files` | map of string | script and command: file templates. The key is a path relative to the namespace root. Sluice writes the rendered value to that path in the workdir before the task starts, and replaces a namespace file at the same path. secret() is allowed. |
+| `artifacts` | list of ArtifactInput | script and command: artifacts of dependencies. Sluice downloads each artifact into the workdir before the task starts, and replaces a namespace file at the same path. The task fails before its command starts when an artifact does not exist. |
 | `file` | string | script: file path relative to the namespace root. Required for script. |
 | `runtime` | string | script: runtime. Default from the extension (.py, .sh, .ts, .js). |
 | `args` | list of string | script: argument templates. |
@@ -142,6 +143,14 @@ A flow file matches `*.flow.yaml` or `*.flow.yml`. `namespace.yaml` at the names
 | `flow` | string | subflow: child flow as &lt;namespace&gt;/&lt;flow_id&gt;. Required for subflow. |
 | `inputs` | map of string | subflow: input templates of the child flow. |
 | `wait` | boolean | subflow: wait for the child to end. Default true. |
+
+## ArtifactInput
+
+| Field | Type | Description |
+|---|---|---|
+| `from` | string | ID of the task that emits the artifact. A script or command task in depends_on of this task. Required. |
+| `name` | string | Artifact name, as the task in from emits it. Required. |
+| `path` | string | Destination path relative to the workdir. Default name. |
 
 ## NamespaceFile (namespace.yaml)
 

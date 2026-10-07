@@ -2,7 +2,11 @@
 // dispatcher and retention (REQ-EXE-*).
 package execution
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/alternayte/sluice/internal/runnerproto"
+)
 
 // Execution states (§6.6).
 const (
@@ -39,6 +43,7 @@ const (
 	ReasonDepthExceeded     = "depth_exceeded"
 	ReasonSecretNotFound    = "secret_not_found"
 	ReasonRuntimeNotFound   = "runtime_not_found"
+	ReasonArtifactNotFound  = runnerproto.ReasonArtifactNotFound
 	ReasonNoInstanceForPool = "no_instance_for_pool"
 	ReasonImagePullFailed   = "image_pull_failed"
 	ReasonPodPendingTimeout = "pod_pending_timeout"

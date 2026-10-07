@@ -30,6 +30,8 @@ This repository holds Sluice flows. Read ` + "`.claude/skills/sluice/SKILL.md`" 
 - Validate a namespace directory: ` + "`sluice validate <dir> --json`" + `.
 - Deploy it as a new version: ` + "`sluice namespaces push <dir> --namespace <name>`" + `.
 - Run a flow and wait for the end: ` + "`sluice run <namespace>/<flow> --wait`" + `.
+- Set a secret from a file or stdin, never from an argument: ` + "`sluice secrets set <KEY> --from-file <path>`" + `.
+- ` + "`.sluiceignore`" + ` at the root of a namespace directory lists the files that validate and push skip. Move the file that ` + "`sluice init`" + ` wrote when the namespace is not the repository root.
 - The client commands read SLUICE_URL and SLUICE_TOKEN.
 ` + agentsEnd + "\n"
 
@@ -40,7 +42,7 @@ func runInit(_ context.Context, args []string, stdout, stderr io.Writer) int {
 	fs.SetOutput(stderr)
 	force := fs.Bool("force", false, "replace the skill and the AGENTS.md section also when they were changed")
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, "usage: sluice init [dir] [--force]\n\nWrites .claude/skills/sluice/SKILL.md and a Sluice section in AGENTS.md.\n\nFlags:")
+		fmt.Fprintln(stderr, "usage: sluice init [dir] [--force]\n\nWrites .claude/skills/sluice/SKILL.md, a Sluice section in AGENTS.md and a starter .sluiceignore.\n\nFlags:")
 		fs.PrintDefaults()
 	}
 	var dirs []string
@@ -87,6 +89,19 @@ func runInit(_ context.Context, args []string, stdout, stderr io.Writer) int {
 		return exitFail
 	}
 	report(stdout, status, agentsPath)
+
+	// The ignore file belongs to the user after the first write: init never replaces it.
+	ignorePath := filepath.Join(dir, ignoreFile)
+	if _, err := os.Lstat(ignorePath); errors.Is(err, os.ErrNotExist) {
+		if err := os.WriteFile(ignorePath, []byte(starterIgnore), 0o644); err != nil {
+			fmt.Fprintln(stderr, "error:", err)
+			return exitFail
+		}
+		report(stdout, statusWritten, ignorePath)
+	} else if err != nil {
+		fmt.Fprintln(stderr, "error:", err)
+		return exitFail
+	}
 
 	fmt.Fprintf(stdout, "\nStart each flow file with this line, so editors and agents validate it:\n# yaml-language-server: $schema=%s\n", flow.SchemaID)
 	return exitOK

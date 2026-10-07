@@ -17,7 +17,7 @@ This page lists the inputs and outputs of the GitHub Action `alternayte/sluice`.
 | `inputs` | no | empty | Flow inputs, one key=value per line. A JSON value keeps its type (7, true, {"a":1}). |
 | `labels` | no | empty | Execution labels, one key=value per line. |
 | `timeout` | no | empty | Stop waiting after this duration, for example 30m. The job then fails with exit code 14, and the execution continues. Empty waits until the end. |
-| `version` | no | empty | Release tag of the sluice CLI, for example v0.2.3. Empty uses the tag of this action, or the latest release when the action ref is not a tag. |
+| `version` | no | empty | Release tag of the sluice CLI, for example v0.3.0. Empty uses the tag of this action, or the latest release when the action ref is not a tag. |
 
 ## Outputs
 

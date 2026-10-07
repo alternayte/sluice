@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-07
+
 ### Added
 
 - A `script` or `command` task reads files of its dependencies with `artifacts`. The runner downloads each declared artifact into the working directory before the task starts. A missing artifact fails the task with reason `artifact_not_found`. `sluice executions restart` reads the artifacts of reused tasks (#21).
@@ -202,7 +204,8 @@ The first version of Sluice. It is one Go binary with an embedded React UI, and 
 - A CI workflow with the jobs `check`, `e2e` and `image`.
 - A release workflow. A `v*.*.*` tag attaches the binaries for Linux and macOS to a GitHub release, and pushes the `sluice` and `sluice-uv` images to `ghcr.io/alternayte` for amd64 and arm64.
 
-[Unreleased]: https://github.com/alternayte/sluice/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/alternayte/sluice/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/alternayte/sluice/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/alternayte/sluice/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/alternayte/sluice/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/alternayte/sluice/compare/v0.2.0...v0.2.1

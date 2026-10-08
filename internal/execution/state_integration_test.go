@@ -69,7 +69,7 @@ func TestSCN_EXE_002_StateTransitions(t *testing.T) {
 		exec, ns, snap); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO task_runs (id, execution_id, task_key, state) VALUES ($1, $2, 't', 'WAITING')`, uuid.New(), exec); err == nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO task_runs (id, execution_id, task_key, state) VALUES ($1, $2, 't', 'PAUSED')`, uuid.New(), exec); err == nil {
 		t.Fatal("unknown task state accepted")
 	}
 }

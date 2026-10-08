@@ -11,7 +11,7 @@ This page compares Sluice with six other orchestration tools: Kestra, Airflow, D
 
 Sluice is a self-hosted flow orchestrator. It is one Go binary that holds the server, the web UI, the CLI, the runner and an MCP server. Postgres holds all state. It needs no other service.
 
-A flow is a YAML file in a namespace, next to the scripts that it runs. A task is a script (Python through uv, bash, bun or node), a command, an HTTP call or a subflow. Sluice runs tasks inline, as a process, in a Docker container or as a Kubernetes Job. Schedules, webhooks and the end of another flow start executions. The UI shows each execution live, with a waterfall of the task runs and their logs.
+A flow is a YAML file in a namespace, next to the scripts that it runs. A task is a script (Python through uv, bash, bun or node), a command, an HTTP call, a subflow or a wait for an answer. A task can run one time for each item of a list. Sluice runs tasks inline, as a process, in a Docker container or as a Kubernetes Job. Schedules, webhooks and the end of another flow start executions. The UI shows each execution live, with a waterfall of the task runs and their logs.
 
 Sluice gives coding agents and CI jobs the same access as people. The CLI prints JSON and exits with the end state of an execution. The MCP server reads, runs and triages executions. `sluice init` writes an agent skill into a repository. The docs publish `llms.txt` and a Markdown copy of each page.
 

@@ -1,6 +1,6 @@
 # Sluice
 
-Sluice runs flows of tasks: Python, shell and bun scripts, commands, HTTP calls and subflows. It runs them on a process, docker or kubernetes executor, with schedules, webhooks, secrets, logs, metrics and a web UI. It is one Go binary with Postgres. It has a CLI and an MCP server for CI jobs and coding agents.
+Sluice runs flows of tasks: Python, shell and bun scripts, commands, HTTP calls, subflows and waits for an answer. It runs them on a process, docker or kubernetes executor, with schedules, webhooks, secrets, logs, metrics and a web UI. It is one Go binary with Postgres. It has a CLI and an MCP server for CI jobs and coding agents.
 
 **Documentation: [sluice-docs.pages.dev](https://sluice-docs.pages.dev)**
 

@@ -85,9 +85,12 @@ The runner is the command `sluice exec` of the same binary. It runs next to the 
 
 - It reads the task spec and the resolved environment, secrets included, from the runner API.
 - It downloads the bundle of the pinned snapshot and extracts it into the work directory.
+- It downloads the artifacts of dependencies that the task declares in `artifacts`.
 - It runs the command, and sends the log lines, the outputs, the metrics and the artifacts.
 - It sends a heartbeat every 10 seconds. The answer tells it when a user cancels the execution.
 - It posts the exit code and the error.
+
+The runner sends its protocol level to the server. When a task uses a feature that is newer than the runner, the task fails with reason `runner_too_old` and its command does not start. This applies to an image with `inject_runner: false` that holds an older `sluice`.
 
 The executor gives the runner only three variables: `SLUICE_API_URL`, `SLUICE_RUN_TOKEN` and `SLUICE_TASK_RUN_ID`. The run token is valid for this task run only, and it expires at the task timeout plus 10 minutes. The server revokes it when the task run ends.
 

@@ -24,8 +24,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Check out the repository.
+      # checks/migrations.sh compares the migrations with the latest release tag.
+      - name: Check out the repository with its tags.
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up Go.
         uses: actions/setup-go@v7
@@ -93,8 +96,12 @@ jobs:
       - name: Build the UI and the server binary.
         run: just build-ui build-go
 
-      - name: Compare the Go e2e suite with the baseline.
-        run: scripts/e2e-compare.sh
+      # The Docker tests of the suite run tasks in these images.
+      - name: Build the images.
+        run: just build-images
+
+      - name: Run the Go e2e suite.
+        run: just e2e-go
 
       - name: Install the Playwright dependencies.
         run: cd tests/ui && bun install --frozen-lockfile
@@ -118,6 +125,70 @@ jobs:
             build/reports/playwright-server.log
             tests/ui/test-results
           if-no-files-found: ignore
+
+  k8s:
+    name: k8s
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out the repository.
+        uses: actions/checkout@v7
+
+      - name: Set up Go.
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install just.
+        uses: extractions/setup-just@v4
+        with:
+          just-version: ${{ env.JUST_VERSION }}
+
+      - name: Build the images.
+        run: just build-images
+
+      # The runner image has kind, kubectl and Helm.
+      - name: Run the Kubernetes suite on kind.
+        run: just e2e-k8s
+
+      - name: Upload the test reports.
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: k8s-reports
+          path: |
+            build/reports/junit
+            build/reports/k8s-server.log
+          if-no-files-found: ignore
+
+  upgrade:
+    name: upgrade
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # scripts/upgrade-test.sh finds the last release from the tags.
+      - name: Check out the repository with its tags.
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go.
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install just.
+        uses: extractions/setup-just@v4
+        with:
+          just-version: ${{ env.JUST_VERSION }}
+
+      - name: Build the server binary.
+        run: just build-go
+
+      - name: Run the last release and this binary on one database.
+        run: just upgrade-test
 
   image:
     name: image

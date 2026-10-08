@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"regexp"
@@ -36,6 +37,50 @@ func (e *Engine) Spec(ctx context.Context, tr executiondb.TaskRun) (*runnerproto
 		return nil, httpx.Errorf(http.StatusConflict, pe.Reason, "%s", pe.Msg)
 	}
 	return s, err
+}
+
+// SpecForRunner returns the runner spec for a runner of the given protocol level. When the
+// spec needs a higher level, the task run fails with reason runner_too_old: an old runner
+// ignores the fields that it does not know and would run the command without them.
+func (e *Engine) SpecForRunner(ctx context.Context, tr executiondb.TaskRun, level int) (*runnerproto.Spec, error) {
+	s, err := e.Spec(ctx, tr)
+	if err != nil {
+		return nil, err
+	}
+	if level < runnerproto.LevelBase {
+		level = runnerproto.LevelBase
+	}
+	need, feature := runnerproto.RequiredLevel(s)
+	if level >= need {
+		return s, nil
+	}
+	where := "update the sluice binary that runs the task"
+	if image := e.taskImage(ctx, tr); image != "" {
+		where = "update sluice in the image " + image + ", or remove inject_runner: false"
+	}
+	msg := fmt.Sprintf("the runner has protocol level %d and task %q needs level %d (%s): %s", level, tr.TaskKey, need, feature, where)
+	code := 1
+	if err := e.FinishTask(ctx, tr.ID, []string{TaskRunning}, TaskFailed, ReasonRunnerTooOld, msg, &code); err != nil {
+		return nil, err
+	}
+	return nil, httpx.Errorf(http.StatusConflict, ReasonRunnerTooOld, "%s", msg)
+}
+
+// taskImage returns the image of the executor of a task run, or "".
+func (e *Engine) taskImage(ctx context.Context, tr executiondb.TaskRun) string {
+	ex, err := executiondb.New(e.Pool).GetExecution(ctx, tr.ExecutionID)
+	if err != nil {
+		return ""
+	}
+	def, err := ParseDefinition(ex.Definition)
+	if err != nil {
+		return ""
+	}
+	t, ok := def.Task(tr.TaskKey)
+	if !ok {
+		return ""
+	}
+	return def.Config(*t).Executor.Image
 }
 
 // Bundle returns the bundle of the pinned snapshot (REQ-EXE-001).

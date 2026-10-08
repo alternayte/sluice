@@ -377,7 +377,8 @@ func (e *Engine) Rerun(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
 	return e.copyExecution(ctx, id, false)
 }
 
-// Restart creates a new execution that reuses SUCCESS tasks of an ended execution (REQ-EXE-009).
+// Restart creates a new execution that reuses SUCCESS tasks of an ended execution, with
+// their outputs and artifacts (REQ-EXE-009).
 func (e *Engine) Restart(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
 	return e.copyExecution(ctx, id, true)
 }
@@ -421,6 +422,14 @@ func (e *Engine) copyExecution(ctx context.Context, id uuid.UUID, restart bool) 
 	}
 	var newID uuid.UUID
 	err = pgx.BeginFunc(ctx, e.Pool, func(tx pgx.Tx) error {
+		// The lock holds the source until the new artifact rows exist. Retention deletes a
+		// stored artifact only when no row names its key, and it must see these rows.
+		var locked uuid.UUID
+		if err := tx.QueryRow(ctx, "SELECT id FROM executions WHERE id = $1 FOR KEY SHARE", id).Scan(&locked); errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		} else if err != nil {
+			return err
+		}
 		var err error
 		newID, _, err = e.Create(ctx, tx, CreateParams{NamespaceID: old.NamespaceID, FlowID: old.FlowID, RevisionID: old.FlowRevisionID,
 			SnapshotID: old.SnapshotID, Def: def, TriggerType: trigger, TriggerPayload: payload, Inputs: inputs, Labels: labels, RestartOf: restartOf})
@@ -434,6 +443,9 @@ func (e *Engine) copyExecution(ctx context.Context, id uuid.UUID, restart bool) 
 			if err := executiondb.New(tx).InsertTaskRun(ctx, executiondb.InsertTaskRunParams{ID: nid, ExecutionID: newID, TaskKey: tr.TaskKey, TaskType: tr.TaskType,
 				Attempt: 1, State: TaskSuccess, Reason: "reused", ExecutorType: tr.ExecutorType, Pool: tr.Pool, StartedAt: tr.StartedAt,
 				EndedAt: &now, Outputs: tr.Outputs, ReusedFromID: &rid, ExitCode: tr.ExitCode}); err != nil {
+				return err
+			}
+			if err := executiondb.New(tx).CopyTaskRunArtifacts(ctx, executiondb.CopyTaskRunArtifactsParams{ExecutionID: newID, TaskRunID: nid, FromTaskRunID: rid}); err != nil {
 				return err
 			}
 		}

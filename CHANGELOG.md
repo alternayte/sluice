@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- The runner sends its protocol level with the spec request. A task that uses a feature above the level of its runner fails with reason `runner_too_old`, and its command does not start. This applies to an image with `inject_runner: false` that holds an older `sluice`. A task without new features still runs on an old runner.
+- `just upgrade-test` runs the last release and the new binary on one database. CI runs it, the full e2e suite with the Docker tests, and the Kubernetes suite on kind for each pull request.
+
+### Changed
+
+- `sluice executions restart` gives the new execution the artifacts of each reused task. They show on its Artifacts tab and stay when retention deletes the old execution. A stored artifact is deleted when no execution uses it.
+- A released migration file never changes, and each migration keeps the last release working. `checks/migrations.sh` checks the first rule in `just check`.
+
 ## [0.3.0] - 2026-10-07
 
 ### Added

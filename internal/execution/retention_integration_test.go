@@ -61,22 +61,37 @@ func TestSCN_EXE_014_Retention(t *testing.T) {
 	}
 	old := seed(100 * 24 * time.Hour)
 	recent := seed(10 * 24 * time.Hour)
+	// The recent execution is a restart of the old one: a row of it names the artifact that
+	// the old execution stored. The object must stay until the recent execution goes.
+	shared := old.keys[1]
+	var recentRun uuid.UUID
+	if err := pool.QueryRow(ctx, "SELECT id FROM task_runs WHERE execution_id = $1", recent.exec).Scan(&recentRun); err != nil {
+		t.Fatal(err)
+	}
+	mustExec(t, pool, `INSERT INTO artifacts (id, execution_id, task_run_id, name, storage_key, size) VALUES ($1, $2, $3, 'reused', $4, 2)`,
+		uuid.New(), recent.exec, recentRun, shared)
 
 	retention := 90 * 24 * time.Hour
 	if n, err := e.DeleteExpired(ctx, retention); err != nil || n != 1 {
 		t.Fatalf("first run deleted %d: %v, want 1", n, err)
 	}
 	checkRows(t, pool, old.exec, 0)
-	checkRows(t, pool, recent.exec, 1)
-	checkObjects(t, store, old.keys, false)
+	checkObjects(t, store, old.keys[:1], false)
+	checkObjects(t, store, []string{shared}, true)
 	checkObjects(t, store, recent.keys, true)
+	// The storage cleanup also keeps the shared object, although its execution is gone.
+	fake.Advance(2 * 24 * time.Hour)
+	if _, err := (&storage.GC{Pool: pool, Store: store, Clock: fake}).Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	checkObjects(t, store, []string{shared}, true)
 
-	fake.Advance(81 * 24 * time.Hour)
+	fake.Advance(79 * 24 * time.Hour)
 	if n, err := e.DeleteExpired(ctx, retention); err != nil || n != 1 {
 		t.Fatalf("second run deleted %d: %v, want 1", n, err)
 	}
 	checkRows(t, pool, recent.exec, 0)
-	checkObjects(t, store, recent.keys, false)
+	checkObjects(t, store, append(recent.keys, shared), false)
 }
 
 func mustExec(t *testing.T, pool *pgxpool.Pool, sql string, args ...any) {

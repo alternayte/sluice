@@ -44,6 +44,7 @@ const (
 	ReasonSecretNotFound    = "secret_not_found"
 	ReasonRuntimeNotFound   = "runtime_not_found"
 	ReasonArtifactNotFound  = runnerproto.ReasonArtifactNotFound
+	ReasonRunnerTooOld      = runnerproto.ReasonRunnerTooOld
 	ReasonNoInstanceForPool = "no_instance_for_pool"
 	ReasonImagePullFailed   = "image_pull_failed"
 	ReasonPodPendingTimeout = "pod_pending_timeout"

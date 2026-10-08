@@ -55,6 +55,24 @@ func (q *Queries) ClaimQueuedExecutions(ctx context.Context, limit int32) ([]uui
 	return items, nil
 }
 
+const copyTaskRunArtifacts = `-- name: CopyTaskRunArtifacts :exec
+INSERT INTO artifacts (id, execution_id, task_run_id, name, storage_key, size, content_type, created_at)
+SELECT gen_random_uuid(), $1, $2, a.name, a.storage_key, a.size, a.content_type, a.created_at
+FROM artifacts a WHERE a.task_run_id = $3
+`
+
+type CopyTaskRunArtifactsParams struct {
+	ExecutionID   uuid.UUID
+	TaskRunID     uuid.UUID
+	FromTaskRunID uuid.UUID
+}
+
+// Restart gives a reused task run the artifacts of its source. The rows share the stored object.
+func (q *Queries) CopyTaskRunArtifacts(ctx context.Context, arg CopyTaskRunArtifactsParams) error {
+	_, err := q.db.Exec(ctx, copyTaskRunArtifacts, arg.ExecutionID, arg.TaskRunID, arg.FromTaskRunID)
+	return err
+}
+
 const countActiveFlowExecutions = `-- name: CountActiveFlowExecutions :one
 SELECT count(*) FROM executions WHERE flow_id = $1 AND state IN ('RUNNING', 'CANCELLING')
 `
@@ -281,13 +299,10 @@ func (q *Queries) GetFlowRevision(ctx context.Context, id uuid.UUID) (FlowRevisi
 }
 
 const getInputArtifact = `-- name: GetInputArtifact :one
-WITH RECURSIVE src AS (
-    (SELECT t.id, t.reused_from_id FROM task_runs t
-     WHERE t.execution_id = $2 AND t.task_key = $3 ORDER BY t.attempt DESC LIMIT 1)
-    UNION ALL
-    SELECT t.id, t.reused_from_id FROM task_runs t JOIN src ON t.id = src.reused_from_id
-)
-SELECT a.id, a.execution_id, a.task_run_id, a.name, a.storage_key, a.size, a.content_type, a.created_at FROM artifacts a JOIN src ON a.task_run_id = src.id WHERE a.name = $1 LIMIT 1
+SELECT a.id, a.execution_id, a.task_run_id, a.name, a.storage_key, a.size, a.content_type, a.created_at FROM artifacts a
+WHERE a.name = $1 AND a.task_run_id = (
+    SELECT t.id FROM task_runs t
+    WHERE t.execution_id = $2 AND t.task_key = $3 ORDER BY t.attempt DESC LIMIT 1)
 `
 
 type GetInputArtifactParams struct {
@@ -296,8 +311,7 @@ type GetInputArtifactParams struct {
 	TaskKey     string
 }
 
-// The artifact of the latest task run of a task in an execution. A task run that restart
-// reused holds no artifacts: reused_from_id leads to the task run that does.
+// The artifact of the latest task run of a task in an execution.
 func (q *Queries) GetInputArtifact(ctx context.Context, arg GetInputArtifactParams) (Artifact, error) {
 	row := q.db.QueryRow(ctx, getInputArtifact, arg.Name, arg.ExecutionID, arg.TaskKey)
 	var i Artifact
@@ -645,6 +659,30 @@ func (q *Queries) ListChildExecutions(ctx context.Context, parentExecutionID *uu
 	return items, nil
 }
 
+const listExecutionArtifactKeys = `-- name: ListExecutionArtifactKeys :many
+SELECT DISTINCT storage_key FROM artifacts WHERE execution_id = $1
+`
+
+func (q *Queries) ListExecutionArtifactKeys(ctx context.Context, executionID uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, listExecutionArtifactKeys, executionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var storage_key string
+		if err := rows.Scan(&storage_key); err != nil {
+			return nil, err
+		}
+		items = append(items, storage_key)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listExecutionArtifacts = `-- name: ListExecutionArtifacts :many
 SELECT a.id, a.execution_id, a.task_run_id, a.name, a.storage_key, a.size, a.content_type, a.created_at, t.task_key FROM artifacts a JOIN task_runs t ON t.id = a.task_run_id WHERE a.execution_id = $1 ORDER BY a.created_at, a.name
 `
@@ -955,6 +993,30 @@ func (q *Queries) QueueTaskRun(ctx context.Context, arg QueueTaskRunParams) (int
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const referencedArtifactKeys = `-- name: ReferencedArtifactKeys :many
+SELECT DISTINCT storage_key FROM artifacts WHERE storage_key = ANY($1::text[])
+`
+
+func (q *Queries) ReferencedArtifactKeys(ctx context.Context, keys []string) ([]string, error) {
+	rows, err := q.db.Query(ctx, referencedArtifactKeys, keys)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var storage_key string
+		if err := rows.Scan(&storage_key); err != nil {
+			return nil, err
+		}
+		items = append(items, storage_key)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const requestCancelRunning = `-- name: RequestCancelRunning :execrows

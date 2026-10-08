@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- The `wait` task type pauses its part of a flow until an answer comes. The task run has the new state `WAITING`, belongs to no instance and stays through a restart of the server. `sluice executions resume <id> --task <task> --input k=v` ends it `SUCCESS` with the values as its outputs. `sluice executions reject` ends it `FAILED` with reason `rejected`. The task `timeout` ends it `TIMED_OUT`. The API has `POST /api/v1/executions/{id}/tasks/{task}/resume` and `/reject`, MCP has `resume_execution` and `reject_execution`, and the UI has an answer dialog. `sluice executions list --waiting` and `?waiting=true` find the executions that wait.
+
 - A `script`, `command` or `subflow` task with `each` runs one time for each item of a list of at most 1000 items. Each item has its own task run, retry and log. `${{ item }}` and `${{ item_index }}` give the item and its position. `max_parallel` on the task limits the items that run at the same time. A later task reads each output as a list in item order, and gets one artifact file for each item. `sluice executions restart` runs only the items that did not succeed.
 - The task run API has `item_index` and `item`, and log lines have `item_index`. The CLI and the timeline show an item as `task[index]`.
 

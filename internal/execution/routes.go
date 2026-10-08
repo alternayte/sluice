@@ -75,8 +75,9 @@ type TaskRun struct {
 	Attempt          int             `json:"attempt"`
 	ItemIndex        int             `json:"item_index" doc:"Position of the item of a task with each. 0 for a task without each."`
 	Item             *any            `json:"item,omitempty" doc:"The item of a task with each. Absent for a task without each, and before the list is known."`
-	State            string          `json:"state" enum:"PENDING,QUEUED,RUNNING,SUCCESS,FAILED,TIMED_OUT,CANCELLED,SKIPPED"`
+	State            string          `json:"state" enum:"PENDING,QUEUED,RUNNING,WAITING,SUCCESS,FAILED,TIMED_OUT,CANCELLED,SKIPPED"`
 	Reason           string          `json:"reason"`
+	Wait             *WaitInfo       `json:"wait,omitempty" doc:"The question of a wait task. Set from the time the task waits."`
 	ExecutorType     string          `json:"executor_type"`
 	Pool             string          `json:"pool"`
 	QueuedAt         *time.Time      `json:"queued_at,omitempty" nullable:"true"`
@@ -88,6 +89,32 @@ type TaskRun struct {
 	Outputs          *map[string]any `json:"outputs,omitempty" nullable:"true"`
 	ReusedFromID     *uuid.UUID      `json:"reused_from_id,omitempty" nullable:"true"`
 	ChildExecutionID *uuid.UUID      `json:"child_execution_id,omitempty" nullable:"true"`
+}
+
+// WaitInfo is the question of a wait task: the message and the fields of the answer.
+type WaitInfo struct {
+	Message string      `json:"message"`
+	Fields  []WaitField `json:"fields"`
+}
+
+// WaitField is one field of the answer to a wait task, in the shape of a flow input.
+type WaitField struct {
+	ID          string `json:"id"`
+	Type        string `json:"type" enum:"string,int,number,boolean,select,json"`
+	Required    bool   `json:"required"`
+	Default     any    `json:"default,omitempty"`
+	Values      []any  `json:"values,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+// ResumeBody is the answer to a waiting task.
+type ResumeBody struct {
+	Inputs map[string]any `json:"inputs,omitempty" doc:"Values of the fields of the wait task. They become the outputs of the task."`
+}
+
+// RejectBody is a refusal of a waiting task.
+type RejectBody struct {
+	Message string `json:"message,omitempty" maxLength:"2000" doc:"The reason. It becomes the error of the task run."`
 }
 
 // ExecutionRef names a child execution. The app package maps it to the ExecutionRef schema
@@ -172,6 +199,8 @@ func (e *Engine) Detail(ctx context.Context, id uuid.UUID) (ExecutionDetail, err
 		Outputs: rawMapPtr(ex.Outputs), TriggerPayload: rawMap(ex.TriggerPayload), SnapshotID: ex.SnapshotID, FlowRevisionID: ex.FlowRevisionID,
 		ParentExecutionID: ex.ParentExecutionID, RestartOfID: ex.RestartOfID, ChainDepth: int(ex.ChainDepth),
 		SecretKeysUsed: nonNilStrings(ex.SecretKeysUsed), TaskRuns: []TaskRun{}, Children: []ExecutionRef{}}
+	// The definition gives the fields of a wait task. Without it the task runs still show.
+	def, _ := ParseDefinition(ex.Definition)
 	if ex.SnapshotVersion != nil {
 		v := int(*ex.SnapshotVersion)
 		d.SnapshotVersion = &v
@@ -188,6 +217,15 @@ func (e *Engine) Detail(ctx context.Context, id uuid.UUID) (ExecutionDetail, err
 		if tr.ExitCode != nil {
 			c := int(*tr.ExitCode)
 			t.ExitCode = &c
+		}
+		if tr.TaskType == "wait" && tr.StartedAt != nil && def != nil {
+			if wt, ok := def.Task(tr.TaskKey); ok {
+				w := &WaitInfo{Message: tr.WaitMessage, Fields: []WaitField{}}
+				for _, f := range wt.Fields {
+					w.Fields = append(w.Fields, WaitField{ID: f.ID, Type: f.Type, Required: f.Required, Default: f.Default, Values: f.Values, Description: f.Description})
+				}
+				t.Wait = w
+			}
 		}
 		t.ItemIndex = int(tr.ItemIndex)
 		if tr.Item != nil {
@@ -212,6 +250,7 @@ type listExecutionsIn struct {
 	Flow        string    `query:"flow" doc:"Flow as <namespace>/<flow_id>."`
 	TriggerType string    `query:"trigger_type" enum:"manual,schedule,webhook,flow,file,subflow,rerun,restart"`
 	Label       []string  `query:"label,explode" doc:"Label filter key=value. Repeat for several labels."`
+	Waiting     bool      `query:"waiting" doc:"Only executions with a task that waits for an answer."`
 	From        time.Time `query:"from"`
 	To          time.Time `query:"to"`
 	Sort        string    `query:"sort" enum:"created,duration" default:"created"`
@@ -249,6 +288,9 @@ func (e *Engine) listExecutions(ctx context.Context, p *listExecutionsIn) (Execu
 	}
 	if p.TriggerType != "" {
 		where = append(where, "e.trigger_type = "+arg(p.TriggerType))
+	}
+	if p.Waiting {
+		where = append(where, "EXISTS (SELECT 1 FROM task_runs w WHERE w.execution_id = e.id AND w.state = 'WAITING')")
 	}
 	for _, l := range p.Label {
 		k, v, ok := strings.Cut(l, "=")
@@ -420,6 +462,30 @@ func Routes(api huma.API, r chi.Router, e *Engine) {
 				return nil, err
 			}
 			return e.detailOut(ctx, id)
+		})
+
+	// The path fields are in each input struct: huma does not read them from an embedded struct.
+	huma.Register(api, httpx.Op("resumeTask", http.MethodPost, "/api/v1/executions/{executionId}/tasks/{task}/resume", operator),
+		func(ctx context.Context, in *struct {
+			ExecutionID uuid.UUID `path:"executionId"`
+			Task        string    `path:"task" maxLength:"63"`
+			Body        ResumeBody
+		}) (*detailOut, error) {
+			if err := e.ResumeTask(ctx, in.ExecutionID, in.Task, in.Body.Inputs); err != nil {
+				return nil, err
+			}
+			return e.detailOut(ctx, in.ExecutionID)
+		})
+	huma.Register(api, httpx.Op("rejectTask", http.MethodPost, "/api/v1/executions/{executionId}/tasks/{task}/reject", operator),
+		func(ctx context.Context, in *struct {
+			ExecutionID uuid.UUID `path:"executionId"`
+			Task        string    `path:"task" maxLength:"63"`
+			Body        RejectBody
+		}) (*detailOut, error) {
+			if err := e.RejectTask(ctx, in.ExecutionID, in.Task, in.Body.Message); err != nil {
+				return nil, err
+			}
+			return e.detailOut(ctx, in.ExecutionID)
 		})
 
 	registerLogs(api, r, e, viewer)

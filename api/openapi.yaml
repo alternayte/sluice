@@ -1617,6 +1617,14 @@ components:
         - branch
         - sha
       type: object
+    RejectBody:
+      additionalProperties: true
+      properties:
+        message:
+          description: The reason. It becomes the error of the task run.
+          maxLength: 2000
+          type: string
+      type: object
     ResetPasswordRequest:
       additionalProperties: true
       properties:
@@ -1626,6 +1634,14 @@ components:
           type: string
       required:
         - password
+      type: object
+    ResumeBody:
+      additionalProperties: true
+      properties:
+        inputs:
+          additionalProperties: {}
+          description: Values of the fields of the wait task. They become the outputs of the task.
+          type: object
       type: object
     RevertRequest:
       additionalProperties: true
@@ -2331,6 +2347,7 @@ components:
             - PENDING
             - QUEUED
             - RUNNING
+            - WAITING
             - SUCCESS
             - FAILED
             - TIMED_OUT
@@ -2341,6 +2358,9 @@ components:
           type: string
         task_type:
           type: string
+        wait:
+          $ref: "#/components/schemas/WaitInfo"
+          description: The question of a wait task. Set from the time the task waits.
       required:
         - id
         - task_key
@@ -2681,6 +2701,46 @@ components:
         - from
         - to
         - files
+      type: object
+    WaitField:
+      additionalProperties: true
+      properties:
+        default: {}
+        description:
+          type: string
+        id:
+          type: string
+        required:
+          type: boolean
+        type:
+          enum:
+            - string
+            - int
+            - number
+            - boolean
+            - select
+            - json
+          type: string
+        values:
+          items: {}
+          type: array
+      required:
+        - id
+        - type
+        - required
+      type: object
+    WaitInfo:
+      additionalProperties: true
+      properties:
+        fields:
+          items:
+            $ref: "#/components/schemas/WaitField"
+          type: array
+        message:
+          type: string
+      required:
+        - message
+        - fields
       type: object
     WebhookKey:
       additionalProperties: true
@@ -3335,6 +3395,13 @@ paths:
             items:
               type: string
             type: array
+        - description: Only executions with a task that waits for an answer.
+          explode: false
+          in: query
+          name: waiting
+          schema:
+            description: Only executions with a task that waits for an answer.
+            type: boolean
         - explode: false
           in: query
           name: from
@@ -3688,6 +3755,74 @@ paths:
               schema:
                 $ref: "#/components/schemas/ExecutionDetail"
           description: Created
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/executions/{executionId}/tasks/{task}/reject:
+    post:
+      operationId: rejectTask
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: task
+          required: true
+          schema:
+            maxLength: 63
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionDetail"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/executions/{executionId}/tasks/{task}/resume:
+    post:
+      operationId: resumeTask
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: task
+          required: true
+          schema:
+            maxLength: 63
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResumeBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionDetail"
+          description: OK
         default:
           content:
             application/json:

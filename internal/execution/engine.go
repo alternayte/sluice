@@ -277,6 +277,14 @@ func (e *Engine) advance(ctx context.Context, tx pgx.Tx, execID uuid.UUID) error
 					changed = true
 					break
 				}
+				if t.Type == "wait" {
+					// A wait task takes no place: it runs no process.
+					if err := e.startWait(ctx, tx, ex, def, t, tr, byTask); err != nil {
+						return err
+					}
+					changed = true
+					continue
+				}
 				if def.Flow.MaxParallel > 0 && active >= def.Flow.MaxParallel {
 					continue
 				}
@@ -313,18 +321,8 @@ func (e *Engine) advance(ctx context.Context, tx pgx.Tx, execID uuid.UUID) error
 func (e *Engine) expandEach(ctx context.Context, tx pgx.Tx, ex executiondb.Execution, def *Definition, t flow.Task, first executiondb.TaskRun, byTask map[string][]executiondb.TaskRun) error {
 	q := executiondb.New(tx)
 	now := e.Clock.Now()
-	// The task run ends here, with no process. It passes QUEUED and RUNNING at the same
-	// time, so the transitions of §6.6 hold.
 	end := func(state, reason, errText string) error {
-		if _, err := q.QueueTaskRun(ctx, executiondb.QueueTaskRunParams{ID: first.ID, QueuedAt: &now}); err != nil {
-			return err
-		}
-		if err := q.StartTaskRunHere(ctx, executiondb.StartTaskRunHereParams{ID: first.ID, StartedAt: &now}); err != nil {
-			return err
-		}
-		_, err := q.FinishTaskRun(ctx, executiondb.FinishTaskRunParams{ToState: state, Reason: reason, Error: truncate(errText, 4000),
-			EndedAt: &now, ID: first.ID, FromState: TaskRunning})
-		return err
+		return e.endHere(ctx, q, first.ID, now, state, reason, errText)
 	}
 	tc, err := e.templateContext(ctx, infoOf(ex), def, byTask, nil)
 	if err != nil {
@@ -500,7 +498,8 @@ func (e *Engine) finishTaskTx(ctx context.Context, tx pgx.Tx, taskRunID uuid.UUI
 		}
 		if t, ok := def.Task(tr.TaskKey); ok {
 			cfg := def.Config(*t)
-			if int(tr.Attempt) < cfg.Retry.MaxAttempts {
+			// A wait task has no retry: it would ask the same question again.
+			if int(tr.Attempt) < cfg.Retry.MaxAttempts && t.Type != "wait" {
 				nb := now.Add(Backoff(cfg.Retry, int(tr.Attempt)))
 				id, _ := uuid.NewV7()
 				if err := q.InsertTaskRun(ctx, executiondb.InsertTaskRunParams{ID: id, ExecutionID: tr.ExecutionID, TaskKey: tr.TaskKey, TaskType: tr.TaskType,

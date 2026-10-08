@@ -28,6 +28,7 @@ export function executionStateTone(state: string): StateTone {
     case "failed":
       return "failed";
     case "timed_out":
+    case "waiting":
     case "warning":
       return "warning";
     case "running":

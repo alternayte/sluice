@@ -84,10 +84,12 @@ import {
   putGlobalVariable,
   putNamespaceSecret,
   putNamespaceVariable,
+  rejectTask,
   requestTriage,
   rerunExecution,
   resetUserPassword,
   restartExecution,
+  resumeTask,
   revertVersion,
   revokeOtherSessions,
   revokeToken,
@@ -324,6 +326,9 @@ import type {
   PutNamespaceVariableData,
   PutNamespaceVariableError,
   PutNamespaceVariableResponse,
+  RejectTaskData,
+  RejectTaskError,
+  RejectTaskResponse,
   RequestTriageData,
   RequestTriageError,
   RequestTriageResponse,
@@ -336,6 +341,9 @@ import type {
   RestartExecutionData,
   RestartExecutionError,
   RestartExecutionResponse,
+  ResumeTaskData,
+  ResumeTaskError,
+  ResumeTaskResponse,
   RevertVersionData,
   RevertVersionError,
   RevertVersionResponse,
@@ -1287,6 +1295,38 @@ export const restartExecutionMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await restartExecution({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const rejectTaskMutation = (
+  options?: Partial<Options<RejectTaskData>>,
+): UseMutationOptions<RejectTaskResponse, RejectTaskError, Options<RejectTaskData>> => {
+  const mutationOptions: UseMutationOptions<RejectTaskResponse, RejectTaskError, Options<RejectTaskData>> = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await rejectTask({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const resumeTaskMutation = (
+  options?: Partial<Options<ResumeTaskData>>,
+): UseMutationOptions<ResumeTaskResponse, ResumeTaskError, Options<ResumeTaskData>> => {
+  const mutationOptions: UseMutationOptions<ResumeTaskResponse, ResumeTaskError, Options<ResumeTaskData>> = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await resumeTask({
         ...options,
         ...fnOptions,
         throwOnError: true,

@@ -132,7 +132,7 @@ func TestSCN_AI_003_MCP(t *testing.T) {
 			names[tool.Name] = true
 		}
 		for _, want := range []string{"list_namespaces", "list_flows", "get_execution", "get_logs", "trigger_execution", "cancel_execution",
-			"rerun_execution", "restart_execution", "get_flow_schema", "apply_change"} {
+			"rerun_execution", "restart_execution", "resume_execution", "reject_execution", "get_flow_schema", "apply_change"} {
 			if !names[want] {
 				t.Fatalf("tool %s is missing: %v", want, names)
 			}

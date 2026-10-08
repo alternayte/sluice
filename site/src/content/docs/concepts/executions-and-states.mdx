@@ -70,6 +70,8 @@ A task run is one attempt of one task. Each task starts with attempt 1. When an 
 
 The allowed moves are `PENDING` to `QUEUED`, `SKIPPED` or `CANCELLED`; `QUEUED` to `RUNNING` or `CANCELLED`; and `RUNNING` to `SUCCESS`, `FAILED`, `TIMED_OUT` or `CANCELLED`.
 
+A `wait` task has one more state, `WAITING`. Its task run moves from `PENDING` to `WAITING`, and then to `SUCCESS`, `FAILED`, `TIMED_OUT` or `CANCELLED`. No instance claims a waiting task run. See [Wait for an answer](/how-to/wait-for-an-answer/).
+
 The last attempt of each task decides the result of the execution. Templates and flow outputs read the outputs of the last attempt.
 
 Each ended task run has a reason when the state alone does not explain it, for example `exit_code`, `timeout`, `upstream_failed`, `template_error` or `lost`. `lost` means that the instance that ran the task stopped sending heartbeats. A lost attempt counts as `FAILED`, so the retry policy applies.

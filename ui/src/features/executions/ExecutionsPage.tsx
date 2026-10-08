@@ -154,6 +154,7 @@ function Filters({ search, onApply }: { search: ExecutionsSearch; onApply: (s: E
   const [label, setLabel] = useState(search.label ?? "");
   const [from, setFrom] = useState(search.from ?? "");
   const [to, setTo] = useState(search.to ?? "");
+  const [waiting, setWaiting] = useState(search.waiting === "true");
 
   const build = (sort = search.sort): ExecutionsSearch =>
     validateExecutionsSearch({
@@ -165,6 +166,7 @@ function Filters({ search, onApply }: { search: ExecutionsSearch; onApply: (s: E
       from,
       to,
       sort,
+      waiting: waiting ? "true" : undefined,
     });
 
   const submit = (e: FormEvent) => {
@@ -203,6 +205,22 @@ function Filters({ search, onApply }: { search: ExecutionsSearch; onApply: (s: E
               </label>
             );
           })}
+          <label
+            className={cn(
+              "pressable relative ml-2 inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium select-none has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-ring",
+              waiting
+                ? "border-accent/40 bg-accent-soft text-accent-text"
+                : "border-border bg-panel text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <input
+              type="checkbox"
+              className="absolute inset-0 cursor-pointer appearance-none rounded-full opacity-0"
+              checked={waiting}
+              onChange={(e) => setWaiting(e.target.checked)}
+            />
+            Waiting for an answer
+          </label>
         </fieldset>
         <div className="flex items-center gap-2">
           <span aria-hidden className="text-xs text-muted-foreground">

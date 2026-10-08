@@ -56,7 +56,10 @@ type TaskConfig struct {
 }
 
 // Inline reports whether the task runs inline in the claiming instance.
-func (c TaskConfig) Inline() bool { return c.Task.Type == "http" || c.Task.Type == "subflow" }
+// A wait task runs no process: the engine holds it until an answer comes.
+func (c TaskConfig) Inline() bool {
+	return c.Task.Type == "http" || c.Task.Type == "subflow" || c.Task.Type == "wait"
+}
 
 func mergeRetry(dst *flow.Retry, src *flow.Retry) {
 	if src == nil {

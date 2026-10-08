@@ -30,6 +30,9 @@ func TestSCN_EXE_002_StateTransitions(t *testing.T) {
 	}
 	allowedTask := map[[2]string]bool{
 		{"PENDING", "QUEUED"}: true, {"PENDING", "SKIPPED"}: true, {"PENDING", "CANCELLED"}: true,
+		// The wait task (docs/specs/wait-task.md): a task run waits for an answer with no instance.
+		{"PENDING", "WAITING"}: true,
+		{"WAITING", "SUCCESS"}: true, {"WAITING", "FAILED"}: true, {"WAITING", "TIMED_OUT"}: true, {"WAITING", "CANCELLED"}: true,
 		{"QUEUED", "RUNNING"}: true, {"QUEUED", "CANCELLED"}: true,
 		{"RUNNING", "SUCCESS"}: true, {"RUNNING", "FAILED"}: true, {"RUNNING", "TIMED_OUT"}: true, {"RUNNING", "CANCELLED"}: true,
 	}

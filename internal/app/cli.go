@@ -45,6 +45,8 @@ func commands() []command {
 		{"executions cancel", "Cancel an execution.", runExecutionAction("cancel"), groupClient},
 		{"executions rerun", "Run an execution again with the same snapshot and inputs.", runExecutionAction("rerun"), groupClient},
 		{"executions restart", "Run the failed tasks of an execution again.", runExecutionAction("restart"), groupClient},
+		{"executions resume", "Answer a waiting task with values.", runExecutionsResume, groupClient},
+		{"executions reject", "Refuse a waiting task.", runExecutionsReject, groupClient},
 		{"flows list", "List flows.", runFlowsList, groupClient},
 		{"flows get", "Show a flow as <namespace>/<flow> with its source.", runFlowsGet, groupClient},
 		{"namespaces push", "Upload a namespace directory as one new version.", runNamespacesPush, groupClient},

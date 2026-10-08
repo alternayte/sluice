@@ -393,10 +393,11 @@ func (c *clientCmd) wait(ctx context.Context, r *remote, id string, timeout time
 
 // runExecutionsList implements `sluice executions list`.
 func runExecutionsList(ctx context.Context, args []string, stdout, stderr io.Writer) int {
-	c := newClientCmd("executions list", "executions list [--namespace ns] [--flow ns/flow] [--state FAILED,...] [--limit 20]", stdout, stderr)
+	c := newClientCmd("executions list", "executions list [--namespace ns] [--flow ns/flow] [--state FAILED,...] [--waiting] [--limit 20]", stdout, stderr)
 	ns := c.fs.String("namespace", "", "namespace and its children")
 	flw := c.fs.String("flow", "", "flow as <namespace>/<flow>")
 	state := c.fs.String("state", "", "comma-separated states, for example FAILED,TIMED_OUT")
+	waiting := c.fs.Bool("waiting", false, "only executions with a task that waits for an answer")
 	limit := c.fs.Int("limit", 20, "number of executions, 1 to 200")
 	if _, code := c.parse(args, 0); code >= 0 {
 		return code
@@ -410,6 +411,9 @@ func runExecutionsList(ctx context.Context, args []string, stdout, stderr io.Wri
 		if v != "" {
 			q.Set(k, v)
 		}
+	}
+	if *waiting {
+		q.Set("waiting", "true")
 	}
 	q.Set("limit", strconv.Itoa(*limit))
 	var raw json.RawMessage
@@ -486,6 +490,25 @@ func runExecutionsGet(ctx context.Context, args []string, stdout, stderr io.Writ
 		fmt.Fprintf(tw, "%s\t%d\t%s\t%s\t%s\t%s\t%s\n", t.TaskKey, t.Attempt, t.State, reason, fmtDuration(t.DurationMs), exit, t.Error)
 	}
 	_ = tw.Flush()
+	// A waiting task shows its question, so a person or an agent can answer it.
+	for _, t := range d.TaskRuns {
+		if t.State != execution.TaskWaiting || t.Wait == nil {
+			continue
+		}
+		fmt.Fprintf(stdout, "\n%s waits for an answer", t.TaskKey)
+		if t.Wait.Message != "" {
+			fmt.Fprintf(stdout, ": %s", t.Wait.Message)
+		}
+		fmt.Fprintln(stdout)
+		for _, f := range t.Wait.Fields {
+			req := ""
+			if f.Required {
+				req = ", required"
+			}
+			fmt.Fprintf(stdout, "  --input %s=<%s%s>\n", f.ID, f.Type, req)
+		}
+		fmt.Fprintf(stdout, "  sluice executions resume %s --task %s\n  sluice executions reject %s --task %s --message <text>\n", d.ID, t.TaskKey, d.ID, t.TaskKey)
+	}
 	return exitOK
 }
 
@@ -603,6 +626,83 @@ func runExecutionAction(action string) func(context.Context, []string, io.Writer
 		}
 		return exitOK
 	}
+}
+
+// runExecutionsResume implements `sluice executions resume <id> --task <task>`: the answer
+// to a waiting task. Each --input converts by the declared type of its field.
+func runExecutionsResume(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	c := newClientCmd("executions resume", "executions resume <execution-id> --task <task> [--input k=v]...", stdout, stderr)
+	task := c.fs.String("task", "", "the waiting task")
+	var inputs multiFlag
+	c.fs.Var(&inputs, "input", "a field of the answer as key=value; repeat for more. A string or select field takes the value as text.")
+	pos, code := c.parse(args, 1)
+	if code >= 0 {
+		return code
+	}
+	if *task == "" {
+		c.fs.Usage()
+		return exitConfig
+	}
+	if _, err := parseInputs(inputs, nil); err != nil {
+		fmt.Fprintln(stderr, "error:", err)
+		return exitConfig
+	}
+	r, code := c.remote()
+	if code >= 0 {
+		return code
+	}
+	base := "/api/v1/executions/" + url.PathEscape(pos[0])
+	types := map[string]string{}
+	if len(inputs) > 0 {
+		var d execution.ExecutionDetail
+		if err := r.do(ctx, http.MethodGet, base, nil, &d); err != nil {
+			return c.fail(err)
+		}
+		for _, tr := range d.TaskRuns {
+			if tr.TaskKey == *task && tr.Wait != nil {
+				for _, f := range tr.Wait.Fields {
+					types[f.ID] = f.Type
+				}
+			}
+		}
+	}
+	in, _ := parseInputs(inputs, types)
+	return c.answer(ctx, r, base+"/tasks/"+url.PathEscape(*task)+"/resume", map[string]any{"inputs": in}, *task, "resumed")
+}
+
+// runExecutionsReject implements `sluice executions reject <id> --task <task>`.
+func runExecutionsReject(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	c := newClientCmd("executions reject", "executions reject <execution-id> --task <task> [--message text]", stdout, stderr)
+	task := c.fs.String("task", "", "the waiting task")
+	message := c.fs.String("message", "", "the reason; it becomes the error of the task run")
+	pos, code := c.parse(args, 1)
+	if code >= 0 {
+		return code
+	}
+	if *task == "" {
+		c.fs.Usage()
+		return exitConfig
+	}
+	r, code := c.remote()
+	if code >= 0 {
+		return code
+	}
+	path := "/api/v1/executions/" + url.PathEscape(pos[0]) + "/tasks/" + url.PathEscape(*task) + "/reject"
+	return c.answer(ctx, r, path, map[string]any{"message": *message}, *task, "rejected")
+}
+
+// answer sends a resume or a reject and prints the execution.
+func (c *clientCmd) answer(ctx context.Context, r *remote, path string, body any, task, done string) int {
+	var d execution.ExecutionDetail
+	if err := r.do(ctx, http.MethodPost, path, body, &d); err != nil {
+		return c.fail(err)
+	}
+	if c.json() {
+		c.printJSON(d)
+	} else {
+		fmt.Fprintf(c.stdout, "%s %s of %s %s\n%s\n", done, task, flowTitle(d.ExecutionSummary), d.ID, r.executionURL(d.ID.String()))
+	}
+	return exitOK
 }
 
 // runFlowsList implements `sluice flows list`.

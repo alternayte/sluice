@@ -24,6 +24,8 @@ The client commands talk to a Sluice server. They read `SLUICE_URL` and `SLUICE_
 | `sluice executions cancel` | Cancel an execution. |
 | `sluice executions rerun` | Run an execution again with the same snapshot and inputs. |
 | `sluice executions restart` | Run the failed tasks of an execution again. |
+| `sluice executions resume` | Answer a waiting task with values. |
+| `sluice executions reject` | Refuse a waiting task. |
 | `sluice flows list` | List flows. |
 | `sluice flows get` | Show a flow as &lt;namespace&gt;/&lt;flow&gt; with its source. |
 | `sluice namespaces push` | Upload a namespace directory as one new version. |
@@ -72,7 +74,7 @@ The command reads SLUICE_URL and SLUICE_TOKEN.
 List executions.
 
 ```text
-usage: sluice executions list [--namespace ns] [--flow ns/flow] [--state FAILED,...] [--limit 20]
+usage: sluice executions list [--namespace ns] [--flow ns/flow] [--state FAILED,...] [--waiting] [--limit 20]
 
 Flags:
   -flow string
@@ -87,6 +89,8 @@ Flags:
     	output format: text or json (default "text")
   -state string
     	comma-separated states, for example FAILED,TIMED_OUT
+  -waiting
+    	only executions with a task that waits for an answer
 
 The command reads SLUICE_URL and SLUICE_TOKEN.
 ```

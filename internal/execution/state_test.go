@@ -25,6 +25,9 @@ func TestStateTransitionTables(t *testing.T) {
 	}
 	allowedTask := map[[2]string]bool{
 		{TaskPending, TaskQueued}: true, {TaskPending, TaskSkipped}: true, {TaskPending, TaskCancelled}: true,
+		// The wait task (docs/specs/wait-task.md): a task run waits for an answer with no instance.
+		{TaskPending, TaskWaiting}: true,
+		{TaskWaiting, TaskSuccess}: true, {TaskWaiting, TaskFailed}: true, {TaskWaiting, TaskTimedOut}: true, {TaskWaiting, TaskCancelled}: true,
 		{TaskQueued, TaskRunning}: true, {TaskQueued, TaskCancelled}: true,
 		{TaskRunning, TaskSuccess}: true, {TaskRunning, TaskFailed}: true, {TaskRunning, TaskTimedOut}: true, {TaskRunning, TaskCancelled}: true,
 	}

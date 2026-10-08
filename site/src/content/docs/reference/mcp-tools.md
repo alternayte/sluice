@@ -17,7 +17,7 @@ A tool runs with the role of the API token. A mutating tool runs at once over MC
 | `validate_flow` | viewer | no | yes | Validate the content of a flow or namespace file against the head version of the namespace. |
 | `list_files` | viewer | no | yes | List the files of the head version of a namespace. |
 | `read_file` | viewer | no | yes | Read one file of the head version of a namespace. |
-| `list_executions` | viewer | no | yes | List recent executions, newest first. Filters: namespace, flow as &lt;namespace&gt;/&lt;flow_id&gt;, comma-separated states. |
+| `list_executions` | viewer | no | yes | List recent executions, newest first. Filters: namespace, flow as &lt;namespace&gt;/&lt;flow_id&gt;, comma-separated states, and waiting for the executions with a task that waits for an answer. |
 | `get_execution` | viewer | no | yes | Read one execution with its task runs. |
 | `get_logs` | viewer | no | yes | Read the last log lines of an execution, optionally of one task. tail is 1 to 1000, default 200. grep keeps the lines that contain the text, case-insensitive. failed_only keeps the lines of the task runs that failed or timed out. |
 | `get_metrics` | viewer | no | yes | Read the metrics of an execution. |
@@ -26,6 +26,8 @@ A tool runs with the role of the API token. A mutating tool runs at once over MC
 | `cancel_execution` | operator | yes | yes | Cancel a running execution. |
 | `rerun_execution` | operator | yes | yes | Start a new execution with the same snapshot, definition and inputs as another execution. The other execution can still run. |
 | `restart_execution` | operator | yes | yes | Start a new execution that reuses the successful task runs of an ended execution that did not succeed. Only the failed, timed out, cancelled and skipped tasks run again. |
+| `resume_execution` | operator | yes | yes | Answer a task in state WAITING, for example an approval. get_execution shows the message and the fields in task_runs[].wait. The values become the outputs of the task, and the tasks after it run. |
+| `reject_execution` | operator | yes | yes | Refuse a task in state WAITING. The task run ends FAILED with reason rejected, and the tasks after it with run_if success are skipped. |
 | `get_flow_schema` | viewer | no | yes | Read the JSON Schema of flow files (*.flow.yaml). Use it to write a valid flow. |
 | `propose_change` | editor | no | no | Propose file changes of a namespace. The result has the validation issues and a diff. Nothing is written. |
 | `apply_change` | editor | yes | yes | Apply file changes: a new version of a managed namespace, or a new branch of a git namespace. Invalid flows are refused. |
@@ -72,6 +74,7 @@ A tool runs with the role of the API token. A mutating tool runs at once over MC
 | `limit` | integer | no |  |
 | `namespace` | string | no |  |
 | `state` | string | no |  |
+| `waiting` | boolean | no |  |
 
 ## get_execution
 
@@ -127,6 +130,22 @@ A tool runs with the role of the API token. A mutating tool runs at once over MC
 | Argument | Type | Required | Description |
 |---|---|---|---|
 | `execution_id` | string | yes | Execution UUID. |
+
+## resume_execution
+
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `execution_id` | string | yes | Execution UUID. |
+| `inputs` | object | no | Values of the fields of the wait task. |
+| `task` | string | yes | ID of the waiting task. |
+
+## reject_execution
+
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `execution_id` | string | yes | Execution UUID. |
+| `message` | string | no | The reason. |
+| `task` | string | yes | ID of the waiting task. |
 
 ## propose_change
 

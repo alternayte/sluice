@@ -1,8 +1,14 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Play } from "lucide-react";
+import { Check, Play, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { runFileMutation, triggerFlowMutation } from "@/api/@tanstack/react-query.gen";
+import {
+  rejectTaskMutation,
+  resumeTaskMutation,
+  runFileMutation,
+  triggerFlowMutation,
+} from "@/api/@tanstack/react-query.gen";
+import type { ExecutionDetail, WaitInfo } from "@/api/types.gen";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, FormError } from "@/components/ui/field";
@@ -211,6 +217,85 @@ export function RunFileDialog({ namespace, path, onClose }: { namespace: string;
           <Button type="submit" disabled={run.isPending}>
             <Play className="h-3.5 w-3.5" aria-hidden />
             {run.isPending ? "Starting" : "Run"}
+          </Button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
+/**
+ * AnswerWaitDialog answers a waiting task. Resume sends the values of the fields, which
+ * become the outputs of the task. Reject ends the task as failed with a reason.
+ */
+export function AnswerWaitDialog({
+  executionId,
+  task,
+  wait,
+  onClose,
+  onDone,
+}: {
+  executionId: string;
+  task: string;
+  wait: WaitInfo;
+  onClose: () => void;
+  onDone: (e: ExecutionDetail) => void;
+}) {
+  const inputs = flowInputs({ inputs: wait.fields });
+  const [values, setValues] = useState<Record<string, string | boolean>>(() =>
+    Object.fromEntries(inputs.map((i) => [i.id, initialFormValue(i)])),
+  );
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [message, setMessage] = useState("");
+  const path = { executionId, task };
+  const resume = useMutation({
+    ...resumeTaskMutation(),
+    onSuccess: onDone,
+    onError: (err) => setErrors(inputFieldErrors(fieldErrors(err)).byInput),
+  });
+  const reject = useMutation({ ...rejectTaskMutation(), onSuccess: onDone });
+  const busy = resume.isPending || reject.isPending;
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const coerced = coerceInputs(inputs, values);
+    setErrors(coerced.errors);
+    if (Object.keys(coerced.errors).length) return;
+    resume.mutate({ path, body: { inputs: coerced.inputs } });
+  };
+  const failed = resume.isError ? resume.error : reject.isError ? reject.error : undefined;
+  const fieldError = resume.isError && Object.keys(inputFieldErrors(fieldErrors(resume.error)).byInput).length > 0;
+
+  return (
+    <Dialog open onClose={onClose} title={`Answer ${task}`}>
+      <form onSubmit={submit} noValidate className="flex flex-col gap-4">
+        <div className="-mx-1 flex max-h-[60vh] flex-col gap-4 overflow-y-auto px-1 pb-1">
+          {wait.message && <p className="text-sm break-words whitespace-pre-wrap">{wait.message}</p>}
+          {inputs.map((input) => (
+            <InputControl
+              key={input.id}
+              input={input}
+              value={values[input.id] ?? ""}
+              error={errors[input.id]}
+              onChange={(v) => setValues((prev) => ({ ...prev, [input.id]: v }))}
+            />
+          ))}
+          <Field id="wait-reject-message" label="Reason for a rejection" hint="Optional. Used only by Reject.">
+            <Input value={message} onChange={(e) => setMessage(e.target.value)} />
+          </Field>
+        </div>
+        {failed !== undefined && !fieldError && <FormError>{errorMessage(failed)}</FormError>}
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="destructive" disabled={busy} onClick={() => reject.mutate({ path, body: { message } })}>
+            <X className="h-3.5 w-3.5" aria-hidden />
+            Reject
+          </Button>
+          <Button type="submit" disabled={busy}>
+            <Check className="h-3.5 w-3.5" aria-hidden />
+            Resume
           </Button>
         </div>
       </form>

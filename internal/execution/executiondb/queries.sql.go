@@ -15,7 +15,7 @@ import (
 
 const cancelPendingTaskRuns = `-- name: CancelPendingTaskRuns :execrows
 UPDATE task_runs SET state = 'CANCELLED', reason = 'cancelled', ended_at = $2
-WHERE execution_id = $1 AND state IN ('PENDING', 'QUEUED')
+WHERE execution_id = $1 AND state IN ('PENDING', 'QUEUED', 'WAITING')
 `
 
 type CancelPendingTaskRunsParams struct {
@@ -393,7 +393,7 @@ func (q *Queries) GetSnapshotFile(ctx context.Context, arg GetSnapshotFileParams
 }
 
 const getTaskRun = `-- name: GetTaskRun :one
-SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id, item_index, item FROM task_runs WHERE id = $1
+SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id, item_index, item, wait_message FROM task_runs WHERE id = $1
 `
 
 func (q *Queries) GetTaskRun(ctx context.Context, id uuid.UUID) (TaskRun, error) {
@@ -426,12 +426,13 @@ func (q *Queries) GetTaskRun(ctx context.Context, id uuid.UUID) (TaskRun, error)
 		&i.ChildExecutionID,
 		&i.ItemIndex,
 		&i.Item,
+		&i.WaitMessage,
 	)
 	return i, err
 }
 
 const getTaskRunByTokenHash = `-- name: GetTaskRunByTokenHash :one
-SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id, item_index, item FROM task_runs WHERE run_token_hash = $1
+SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id, item_index, item, wait_message FROM task_runs WHERE run_token_hash = $1
 `
 
 func (q *Queries) GetTaskRunByTokenHash(ctx context.Context, runTokenHash []byte) (TaskRun, error) {
@@ -464,6 +465,7 @@ func (q *Queries) GetTaskRunByTokenHash(ctx context.Context, runTokenHash []byte
 		&i.ChildExecutionID,
 		&i.ItemIndex,
 		&i.Item,
+		&i.WaitMessage,
 	)
 	return i, err
 }
@@ -797,7 +799,7 @@ func (q *Queries) ListExecutionMetrics(ctx context.Context, executionID uuid.UUI
 }
 
 const listExecutionTaskRuns = `-- name: ListExecutionTaskRuns :many
-SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id, item_index, item FROM task_runs WHERE execution_id = $1 ORDER BY task_key, item_index, attempt
+SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id, item_index, item, wait_message FROM task_runs WHERE execution_id = $1 ORDER BY task_key, item_index, attempt
 `
 
 func (q *Queries) ListExecutionTaskRuns(ctx context.Context, executionID uuid.UUID) ([]TaskRun, error) {
@@ -836,6 +838,7 @@ func (q *Queries) ListExecutionTaskRuns(ctx context.Context, executionID uuid.UU
 			&i.ChildExecutionID,
 			&i.ItemIndex,
 			&i.Item,
+			&i.WaitMessage,
 		); err != nil {
 			return nil, err
 		}
@@ -935,7 +938,7 @@ func (q *Queries) LockFlowRow(ctx context.Context, id uuid.UUID) error {
 }
 
 const lockTaskRun = `-- name: LockTaskRun :one
-SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id, item_index, item FROM task_runs WHERE id = $1 FOR UPDATE
+SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id, item_index, item, wait_message FROM task_runs WHERE id = $1 FOR UPDATE
 `
 
 func (q *Queries) LockTaskRun(ctx context.Context, id uuid.UUID) (TaskRun, error) {
@@ -968,6 +971,51 @@ func (q *Queries) LockTaskRun(ctx context.Context, id uuid.UUID) (TaskRun, error
 		&i.ChildExecutionID,
 		&i.ItemIndex,
 		&i.Item,
+		&i.WaitMessage,
+	)
+	return i, err
+}
+
+const lockWaitingTaskRun = `-- name: LockWaitingTaskRun :one
+SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id, item_index, item, wait_message FROM task_runs WHERE execution_id = $1 AND task_key = $2 AND state = 'WAITING' FOR UPDATE
+`
+
+type LockWaitingTaskRunParams struct {
+	ExecutionID uuid.UUID
+	TaskKey     string
+}
+
+func (q *Queries) LockWaitingTaskRun(ctx context.Context, arg LockWaitingTaskRunParams) (TaskRun, error) {
+	row := q.db.QueryRow(ctx, lockWaitingTaskRun, arg.ExecutionID, arg.TaskKey)
+	var i TaskRun
+	err := row.Scan(
+		&i.ID,
+		&i.ExecutionID,
+		&i.TaskKey,
+		&i.TaskType,
+		&i.Attempt,
+		&i.State,
+		&i.Reason,
+		&i.ExecutorType,
+		&i.Pool,
+		&i.ClaimedBy,
+		&i.ExternalRef,
+		&i.RunTokenHash,
+		&i.TokenExpiresAt,
+		&i.HeartbeatAt,
+		&i.CancelRequested,
+		&i.NotBefore,
+		&i.QueuedAt,
+		&i.StartedAt,
+		&i.EndedAt,
+		&i.ExitCode,
+		&i.Error,
+		&i.Outputs,
+		&i.ReusedFromID,
+		&i.ChildExecutionID,
+		&i.ItemIndex,
+		&i.Item,
+		&i.WaitMessage,
 	)
 	return i, err
 }
@@ -1228,5 +1276,20 @@ func (q *Queries) UpsertArtifact(ctx context.Context, arg UpsertArtifactParams) 
 		arg.ContentType,
 		arg.CreatedAt,
 	)
+	return err
+}
+
+const waitTaskRun = `-- name: WaitTaskRun :exec
+UPDATE task_runs SET state = 'WAITING', started_at = $2, wait_message = $3, reason = '' WHERE id = $1 AND state = 'PENDING'
+`
+
+type WaitTaskRunParams struct {
+	ID          uuid.UUID
+	StartedAt   *time.Time
+	WaitMessage string
+}
+
+func (q *Queries) WaitTaskRun(ctx context.Context, arg WaitTaskRunParams) error {
+	_, err := q.db.Exec(ctx, waitTaskRun, arg.ID, arg.StartedAt, arg.WaitMessage)
 	return err
 }

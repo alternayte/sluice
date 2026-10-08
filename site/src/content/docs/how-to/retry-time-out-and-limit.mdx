@@ -94,6 +94,8 @@ The limit counts executions of one flow. Executions of other flows do not count,
 
 `max_parallel` limits the tasks of one execution that run at the same time. `0`, the default, means no limit.
 
+A task with `each` takes its own `max_parallel`, which limits the items of that task. See [Run a task for each item](/how-to/run-a-task-for-each-item/).
+
 A task that is ready but has no free place stays `PENDING`. It starts when another task of the execution ends. Use `max_parallel` when many independent tasks share a resource, for example a database that accepts a few connections.
 
 ## Related limits

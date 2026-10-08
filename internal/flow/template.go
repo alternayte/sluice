@@ -15,6 +15,10 @@ const (
 	RefTasks     = "tasks"
 	RefTrigger   = "trigger"
 	RefExecution = "execution"
+	// RefItem is the item of a task with each: item, or item.<path> for an object.
+	RefItem = "item"
+	// RefItemIndex is the position of the item, from 0.
+	RefItemIndex = "item_index"
 )
 
 // ExecutionFields are the allowed execution.<field> lookups.
@@ -140,6 +144,11 @@ func parseExpr(expr string) (*Ref, error) {
 		if len(ref.Path) != 1 || !ExecutionFields[ref.Path[0]] {
 			return nil, fmt.Errorf("%q: use execution.id, execution.namespace, execution.flow_id or execution.created_at", expr)
 		}
+	case RefItem:
+	case RefItemIndex:
+		if len(ref.Path) != 0 {
+			return nil, fmt.Errorf("%q: use item_index", expr)
+		}
 	default:
 		return nil, fmt.Errorf("unknown reference %q", parts[0])
 	}
@@ -162,9 +171,16 @@ func (t *Template) IsStatic() bool { return len(t.Refs()) == 0 }
 
 // Context holds the values for template resolution.
 type Context struct {
-	Inputs    map[string]any
-	Vars      map[string]string
-	Tasks     map[string]map[string]any // task ID -> outputs
+	Inputs map[string]any
+	Vars   map[string]string
+	Tasks  map[string]map[string]any // task ID -> outputs
+	// EachTasks holds the item count of each ended task with each. Its outputs in Tasks are
+	// lists in item order. A key that no item emitted is a list of nulls.
+	EachTasks map[string]int
+	// Item is the item of the task run. HasItem is true for a task run of a task with each.
+	Item      any
+	ItemIndex int
+	HasItem   bool
 	Trigger   map[string]any
 	Execution map[string]any
 	// Secret returns a secret value. Nil means secret() is not allowed here.
@@ -224,14 +240,37 @@ func (c *Context) lookup(r Ref) (any, error) {
 		return c.Secret(r.Key())
 	case RefTasks:
 		outs, ok := c.Tasks[r.Path[0]]
-		if !ok {
+		if _, each := c.EachTasks[r.Path[0]]; !ok && !each {
 			return nil, fmt.Errorf("task %q has no outputs", r.Path[0])
 		}
 		v, ok := outs[r.Path[2]]
+		if n, each := c.EachTasks[r.Path[0]]; !ok && each {
+			return make([]any, n), nil
+		}
 		if !ok {
 			return nil, fmt.Errorf("task %q has no output %q", r.Path[0], r.Path[2])
 		}
 		return v, nil
+	case RefItem:
+		if !c.HasItem {
+			return nil, fmt.Errorf("item is defined only in a task with each")
+		}
+		cur := c.Item
+		for _, p := range r.Path {
+			m, ok := cur.(map[string]any)
+			if !ok {
+				return nil, fmt.Errorf("%s is not defined", r.Expr)
+			}
+			if cur, ok = m[p]; !ok {
+				return nil, fmt.Errorf("%s is not defined", r.Expr)
+			}
+		}
+		return cur, nil
+	case RefItemIndex:
+		if !c.HasItem {
+			return nil, fmt.Errorf("item_index is defined only in a task with each")
+		}
+		return c.ItemIndex, nil
 	case RefTrigger:
 		var cur any = c.Trigger
 		for _, p := range r.Path {

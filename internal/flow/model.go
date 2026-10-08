@@ -1,7 +1,12 @@
 // Package flow holds the flow model, parsing, validation, JSON Schema and templates (§6).
 package flow
 
-import "github.com/invopop/jsonschema"
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/invopop/jsonschema"
+)
 
 // Flow is one flow file (§6.3). The struct tags are the source of
 // schemas/flow.schema.json and site/src/content/docs/reference/flow.md.
@@ -103,16 +108,18 @@ type Toleration struct {
 
 // Task is one task (§6.4). Type-specific fields are checked by semantic validation.
 type Task struct {
-	ID        string            `yaml:"id" json:"id" jsonschema:"required,pattern=^[a-z][a-z0-9_]*$,maxLength=63" jsonschema_description:"Task ID. Unique in the flow."`
-	Type      string            `yaml:"type" json:"type" jsonschema:"required,enum=script,enum=command,enum=http,enum=subflow" jsonschema_description:"Task type."`
-	DependsOn []string          `yaml:"depends_on,omitempty" json:"depends_on,omitempty" jsonschema_description:"IDs of tasks that must end first."`
-	RunIf     string            `yaml:"run_if,omitempty" json:"run_if,omitempty" jsonschema:"enum=success,enum=failure,enum=always" jsonschema_description:"success: all dependencies succeeded. failure: at least one dependency failed or timed out. always: all dependencies ended. Default success."`
-	Timeout   Duration          `yaml:"timeout,omitempty" json:"timeout,omitempty" jsonschema_description:"Task timeout. Default 24h."`
-	Retry     *Retry            `yaml:"retry,omitempty" json:"retry,omitempty" jsonschema_description:"Retry policy. Overrides the flow retry."`
-	Env       map[string]string `yaml:"env,omitempty" json:"env,omitempty" jsonschema_description:"Environment templates. Override flow env by key."`
-	Executor  *Executor         `yaml:"executor,omitempty" json:"executor,omitempty" jsonschema_description:"Executor. Not allowed on http and subflow tasks."`
-	Files     map[string]string `yaml:"files,omitempty" json:"files,omitempty" jsonschema:"maxProperties=100" jsonschema_description:"script and command: file templates. The key is a path relative to the namespace root. Sluice writes the rendered value to that path in the workdir before the task starts, and replaces a namespace file at the same path. secret() is allowed."`
-	Artifacts []ArtifactInput   `yaml:"artifacts,omitempty" json:"artifacts,omitempty" jsonschema:"maxItems=100" jsonschema_description:"script and command: artifacts of dependencies. Sluice downloads each artifact into the workdir before the task starts, and replaces a namespace file at the same path. The task fails before its command starts when an artifact does not exist."`
+	ID          string            `yaml:"id" json:"id" jsonschema:"required,pattern=^[a-z][a-z0-9_]*$,maxLength=63" jsonschema_description:"Task ID. Unique in the flow."`
+	Type        string            `yaml:"type" json:"type" jsonschema:"required,enum=script,enum=command,enum=http,enum=subflow" jsonschema_description:"Task type."`
+	DependsOn   []string          `yaml:"depends_on,omitempty" json:"depends_on,omitempty" jsonschema_description:"IDs of tasks that must end first."`
+	RunIf       string            `yaml:"run_if,omitempty" json:"run_if,omitempty" jsonschema:"enum=success,enum=failure,enum=always" jsonschema_description:"success: all dependencies succeeded. failure: at least one dependency failed or timed out. always: all dependencies ended. Default success."`
+	Timeout     Duration          `yaml:"timeout,omitempty" json:"timeout,omitempty" jsonschema_description:"Task timeout. Default 24h."`
+	Retry       *Retry            `yaml:"retry,omitempty" json:"retry,omitempty" jsonschema_description:"Retry policy. Overrides the flow retry."`
+	Env         map[string]string `yaml:"env,omitempty" json:"env,omitempty" jsonschema_description:"Environment templates. Override flow env by key."`
+	Executor    *Executor         `yaml:"executor,omitempty" json:"executor,omitempty" jsonschema_description:"Executor. Not allowed on http and subflow tasks."`
+	Files       map[string]string `yaml:"files,omitempty" json:"files,omitempty" jsonschema:"maxProperties=100" jsonschema_description:"script and command: file templates. The key is a path relative to the namespace root. Sluice writes the rendered value to that path in the workdir before the task starts, and replaces a namespace file at the same path. secret() is allowed."`
+	Artifacts   []ArtifactInput   `yaml:"artifacts,omitempty" json:"artifacts,omitempty" jsonschema:"maxItems=100" jsonschema_description:"script and command: artifacts of dependencies. Sluice downloads each artifact into the workdir before the task starts, and replaces a namespace file at the same path. The task fails before its command starts when an artifact does not exist."`
+	Each        any               `yaml:"each,omitempty" json:"each,omitempty" jsonschema_description:"script, command and subflow: run the task one time for each item. A list, or one template that gives a JSON list, for example ${{ inputs.tables }}. At most 1000 items. Use ${{ item }} and ${{ item_index }} in the task. A later task reads each output as a list in item order."`
+	MaxParallel int               `yaml:"max_parallel,omitempty" json:"max_parallel,omitempty" jsonschema:"minimum=0" jsonschema_description:"With each: maximum items that run at the same time. 0 means no limit other than the pool."`
 
 	// script
 	File    string   `yaml:"file,omitempty" json:"file,omitempty" jsonschema_description:"script: file path relative to the namespace root. Required for script."`
@@ -149,6 +156,35 @@ func (a ArtifactInput) Dest() string {
 		return a.Path
 	}
 	return a.Name
+}
+
+// MaxEachItems is the largest number of items of one task with each.
+const MaxEachItems = 1000
+
+// HasEach reports whether the task runs one time for each item of a list.
+func (t Task) HasEach() bool { return t.Each != nil }
+
+// EachItems returns the items of a task with each. render resolves the template form.
+func (t Task) EachItems(render func(string) (string, error)) ([]any, error) {
+	var items []any
+	switch x := t.Each.(type) {
+	case []any:
+		items = x
+	case string:
+		s, err := render(x)
+		if err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal([]byte(s), &items); err != nil || items == nil {
+			return nil, fmt.Errorf("each: the value is not a JSON list")
+		}
+	default:
+		return nil, fmt.Errorf("each: the value is not a list")
+	}
+	if len(items) > MaxEachItems {
+		return nil, fmt.Errorf("each: %d items, the limit is %d", len(items), MaxEachItems)
+	}
+	return items, nil
 }
 
 // NamespaceFile is namespace.yaml (§6.8).

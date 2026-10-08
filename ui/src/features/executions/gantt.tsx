@@ -1,4 +1,4 @@
-import { Recycle } from "lucide-react";
+import { ChevronRight, Recycle } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { EmptyState } from "@/components/data-state";
 import { ExecutionStateBadge } from "@/components/state-badges";
@@ -12,6 +12,7 @@ const columns = "grid grid-cols-[minmax(7rem,11rem)_minmax(0,1fr)_minmax(6.5rem,
  * Gantt is the waterfall of an execution: one row per task run attempt on a shared time axis
  * (D-17). The wait between queued and started shows as a faint segment. A click on a row
  * selects its task for the inspector. Bars grow in place while the execution runs.
+ * The items of a task with each sit under one group row. A click on it shows or hides them.
  */
 export function Gantt({
   runs,
@@ -30,6 +31,7 @@ export function Gantt({
   // The number of ticks follows the width of the axis, so the labels never overlap.
   const axisRef = useRef<HTMLSpanElement>(null);
   const [axisWidth, setAxisWidth] = useState(0);
+  const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
   const empty = runs.length === 0;
   useLayoutEffect(() => {
     const el = axisRef.current;
@@ -43,7 +45,17 @@ export function Gantt({
   if (empty) {
     return <EmptyState text="No task runs yet." className="py-8" />;
   }
-  const { rows, start, end } = ganttLayout(runs, now);
+  const { rows: all, start, end } = ganttLayout(runs, now);
+  // A group shows its items when it is open, or when one of its items is selected.
+  const selectedTask = all.find((r) => r.id === selected && r.item !== undefined)?.taskKey;
+  const isOpen = (task: string) => open.has(task) || task === selectedTask;
+  const rows = all.filter((r) => r.item === undefined || isOpen(r.taskKey));
+  const toggle = (task: string) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(task)) next.add(task);
+      return next;
+    });
   const span = end - start;
   const ticks = axisTicks(span, Math.max(1, Math.min(4, Math.floor(axisWidth / 110))));
   return (
@@ -77,7 +89,8 @@ export function Gantt({
             ticks={ticks}
             span={span}
             selected={selected === r.id}
-            onSelect={onSelect}
+            expanded={r.group ? isOpen(r.taskKey) : undefined}
+            onSelect={r.group ? () => toggle(r.taskKey) : onSelect}
           />
         ))}
       </ul>
@@ -91,6 +104,7 @@ function Row({
   ticks,
   span,
   selected,
+  expanded,
   onSelect,
 }: {
   row: GanttRow;
@@ -98,11 +112,13 @@ function Row({
   ticks: number[];
   span: number;
   selected: boolean;
+  /** expanded is set on a group row: whether its items show. */
+  expanded?: boolean;
   onSelect?: (run: GanttRow) => void;
 }) {
   const ref = useRef<HTMLLIElement>(null);
   const prevState = useRef(r.state);
-  const duration = formatDuration(r.durationMs);
+  const duration = r.group ? `${r.group.done}/${r.group.count} items` : formatDuration(r.durationMs);
   const running = !isTerminal(r.state) && r.started;
 
   // A state change after the first render flashes the row once.
@@ -133,12 +149,19 @@ function Row({
       <button
         type="button"
         data-nav-default
-        aria-pressed={selected}
+        aria-pressed={r.group ? undefined : selected}
+        aria-expanded={expanded}
         aria-label={`${r.label}, ${stateLabel(r.state.toLowerCase())}, ${duration}`}
         onClick={() => onSelect?.(r)}
         className={cn(columns, "h-9 w-full items-center rounded-control px-2 text-left outline-offset-[-2px]")}
       >
-        <span className="flex min-w-0 items-center gap-1.5">
+        <span className={cn("flex min-w-0 items-center gap-1.5", r.item !== undefined && "pl-4")}>
+          {r.group && (
+            <ChevronRight
+              aria-hidden
+              className={cn("h-3 w-3 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-90")}
+            />
+          )}
           <span className={cn("truncate font-mono text-xs", selected && "font-medium")} title={r.label}>
             {r.label}
           </span>

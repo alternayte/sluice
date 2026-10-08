@@ -302,18 +302,25 @@ const getInputArtifact = `-- name: GetInputArtifact :one
 SELECT a.id, a.execution_id, a.task_run_id, a.name, a.storage_key, a.size, a.content_type, a.created_at FROM artifacts a
 WHERE a.name = $1 AND a.task_run_id = (
     SELECT t.id FROM task_runs t
-    WHERE t.execution_id = $2 AND t.task_key = $3 ORDER BY t.attempt DESC LIMIT 1)
+    WHERE t.execution_id = $2 AND t.task_key = $3 AND t.item_index = $4
+    ORDER BY t.attempt DESC LIMIT 1)
 `
 
 type GetInputArtifactParams struct {
 	Name        string
 	ExecutionID uuid.UUID
 	TaskKey     string
+	ItemIndex   int32
 }
 
-// The artifact of the latest task run of a task in an execution.
+// The artifact of the latest task run of one item of a task in an execution.
 func (q *Queries) GetInputArtifact(ctx context.Context, arg GetInputArtifactParams) (Artifact, error) {
-	row := q.db.QueryRow(ctx, getInputArtifact, arg.Name, arg.ExecutionID, arg.TaskKey)
+	row := q.db.QueryRow(ctx, getInputArtifact,
+		arg.Name,
+		arg.ExecutionID,
+		arg.TaskKey,
+		arg.ItemIndex,
+	)
 	var i Artifact
 	err := row.Scan(
 		&i.ID,
@@ -386,7 +393,7 @@ func (q *Queries) GetSnapshotFile(ctx context.Context, arg GetSnapshotFileParams
 }
 
 const getTaskRun = `-- name: GetTaskRun :one
-SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id FROM task_runs WHERE id = $1
+SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id, item_index, item FROM task_runs WHERE id = $1
 `
 
 func (q *Queries) GetTaskRun(ctx context.Context, id uuid.UUID) (TaskRun, error) {
@@ -417,12 +424,14 @@ func (q *Queries) GetTaskRun(ctx context.Context, id uuid.UUID) (TaskRun, error)
 		&i.Outputs,
 		&i.ReusedFromID,
 		&i.ChildExecutionID,
+		&i.ItemIndex,
+		&i.Item,
 	)
 	return i, err
 }
 
 const getTaskRunByTokenHash = `-- name: GetTaskRunByTokenHash :one
-SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id FROM task_runs WHERE run_token_hash = $1
+SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id, item_index, item FROM task_runs WHERE run_token_hash = $1
 `
 
 func (q *Queries) GetTaskRunByTokenHash(ctx context.Context, runTokenHash []byte) (TaskRun, error) {
@@ -453,6 +462,8 @@ func (q *Queries) GetTaskRunByTokenHash(ctx context.Context, runTokenHash []byte
 		&i.Outputs,
 		&i.ReusedFromID,
 		&i.ChildExecutionID,
+		&i.ItemIndex,
+		&i.Item,
 	)
 	return i, err
 }
@@ -582,8 +593,8 @@ func (q *Queries) InsertMetric(ctx context.Context, arg InsertMetricParams) erro
 
 const insertTaskRun = `-- name: InsertTaskRun :exec
 INSERT INTO task_runs (id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, not_before,
-    queued_at, started_at, ended_at, outputs, reused_from_id, error, exit_code)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+    queued_at, started_at, ended_at, outputs, reused_from_id, error, exit_code, item_index, item)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 `
 
 type InsertTaskRunParams struct {
@@ -604,6 +615,8 @@ type InsertTaskRunParams struct {
 	ReusedFromID *uuid.UUID
 	Error        string
 	ExitCode     *int32
+	ItemIndex    int32
+	Item         json.RawMessage
 }
 
 func (q *Queries) InsertTaskRun(ctx context.Context, arg InsertTaskRunParams) error {
@@ -625,6 +638,8 @@ func (q *Queries) InsertTaskRun(ctx context.Context, arg InsertTaskRunParams) er
 		arg.ReusedFromID,
 		arg.Error,
 		arg.ExitCode,
+		arg.ItemIndex,
+		arg.Item,
 	)
 	return err
 }
@@ -782,7 +797,7 @@ func (q *Queries) ListExecutionMetrics(ctx context.Context, executionID uuid.UUI
 }
 
 const listExecutionTaskRuns = `-- name: ListExecutionTaskRuns :many
-SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id FROM task_runs WHERE execution_id = $1 ORDER BY task_key, attempt
+SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id, item_index, item FROM task_runs WHERE execution_id = $1 ORDER BY task_key, item_index, attempt
 `
 
 func (q *Queries) ListExecutionTaskRuns(ctx context.Context, executionID uuid.UUID) ([]TaskRun, error) {
@@ -819,6 +834,8 @@ func (q *Queries) ListExecutionTaskRuns(ctx context.Context, executionID uuid.UU
 			&i.Outputs,
 			&i.ReusedFromID,
 			&i.ChildExecutionID,
+			&i.ItemIndex,
+			&i.Item,
 		); err != nil {
 			return nil, err
 		}
@@ -918,7 +935,7 @@ func (q *Queries) LockFlowRow(ctx context.Context, id uuid.UUID) error {
 }
 
 const lockTaskRun = `-- name: LockTaskRun :one
-SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id FROM task_runs WHERE id = $1 FOR UPDATE
+SELECT id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, claimed_by, external_ref, run_token_hash, token_expires_at, heartbeat_at, cancel_requested, not_before, queued_at, started_at, ended_at, exit_code, error, outputs, reused_from_id, child_execution_id, item_index, item FROM task_runs WHERE id = $1 FOR UPDATE
 `
 
 func (q *Queries) LockTaskRun(ctx context.Context, id uuid.UUID) (TaskRun, error) {
@@ -949,6 +966,8 @@ func (q *Queries) LockTaskRun(ctx context.Context, id uuid.UUID) (TaskRun, error
 		&i.Outputs,
 		&i.ReusedFromID,
 		&i.ChildExecutionID,
+		&i.ItemIndex,
+		&i.Item,
 	)
 	return i, err
 }
@@ -1102,6 +1121,21 @@ func (q *Queries) SetTaskRunExternal(ctx context.Context, arg SetTaskRunExternal
 	return err
 }
 
+const setTaskRunItem = `-- name: SetTaskRunItem :exec
+UPDATE task_runs SET item = $2 WHERE id = $1 AND state = 'PENDING'
+`
+
+type SetTaskRunItemParams struct {
+	ID   uuid.UUID
+	Item json.RawMessage
+}
+
+// The first row of a task with each gets item 0 when the list is known.
+func (q *Queries) SetTaskRunItem(ctx context.Context, arg SetTaskRunItemParams) error {
+	_, err := q.db.Exec(ctx, setTaskRunItem, arg.ID, arg.Item)
+	return err
+}
+
 const skipTaskRun = `-- name: SkipTaskRun :execrows
 UPDATE task_runs SET state = 'SKIPPED', reason = $2, ended_at = $3 WHERE id = $1 AND state = 'PENDING'
 `
@@ -1132,6 +1166,21 @@ type StartExecutionParams struct {
 
 func (q *Queries) StartExecution(ctx context.Context, arg StartExecutionParams) error {
 	_, err := q.db.Exec(ctx, startExecution, arg.ID, arg.StartedAt, arg.DeadlineAt)
+	return err
+}
+
+const startTaskRunHere = `-- name: StartTaskRunHere :exec
+UPDATE task_runs SET state = 'RUNNING', started_at = $2 WHERE id = $1 AND state = 'QUEUED'
+`
+
+type StartTaskRunHereParams struct {
+	ID        uuid.UUID
+	StartedAt *time.Time
+}
+
+// A task run that the engine ends in the same transaction, with no instance and no process.
+func (q *Queries) StartTaskRunHere(ctx context.Context, arg StartTaskRunHereParams) error {
+	_, err := q.db.Exec(ctx, startTaskRunHere, arg.ID, arg.StartedAt)
 	return err
 }
 

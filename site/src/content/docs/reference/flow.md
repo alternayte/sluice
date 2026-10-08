@@ -130,6 +130,8 @@ A flow file matches `*.flow.yaml` or `*.flow.yml`. `namespace.yaml` at the names
 | `executor` | Executor | Executor. Not allowed on http and subflow tasks. |
 | `files` | map of string | script and command: file templates. The key is a path relative to the namespace root. Sluice writes the rendered value to that path in the workdir before the task starts, and replaces a namespace file at the same path. secret() is allowed. |
 | `artifacts` | list of ArtifactInput | script and command: artifacts of dependencies. Sluice downloads each artifact into the workdir before the task starts, and replaces a namespace file at the same path. The task fails before its command starts when an artifact does not exist. |
+| `each` | any | script, command and subflow: run the task one time for each item. A list, or one template that gives a JSON list, for example ${{ inputs.tables }}. At most 1000 items. Use ${{ item }} and ${{ item_index }} in the task. A later task reads each output as a list in item order. |
+| `max_parallel` | int | With each: maximum items that run at the same time. 0 means no limit other than the pool. |
 | `file` | string | script: file path relative to the namespace root. Required for script. |
 | `runtime` | string | script: runtime. Default from the extension (.py, .sh, .ts, .js). |
 | `args` | list of string | script: argument templates. |

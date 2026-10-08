@@ -1,0 +1,107 @@
+---
+title: Run a task for each item
+description: Run one task for each item of a list with each, limit the items that run at the same time, and read the outputs and artifacts of all items in a later task.
+---
+
+This guide shows you how to run the same task for each item of a list, for example for each table, file or customer. Each item gets its own task run, with its own retries, log and bar in the timeline.
+
+## Give the task a list
+
+Add `each` to a `script`, `command` or `subflow` task. The value is a list, or one template that gives a JSON list.
+
+```yaml flow
+id: load-tables
+inputs:
+  - { id: tables, type: json, default: ["orders", "customers", "items"] }
+tasks:
+  - id: load
+    type: script
+    file: pipelines/load.py
+    each: ${{ inputs.tables }}
+    max_parallel: 2
+    args: ["--table", "${{ item }}", "--part", "${{ item_index }}"]
+```
+
+Sluice starts one task run of `load` for each item. In the fields of the task, `${{ item }}` is the item and `${{ item_index }}` is its position, from 0. When an item is an object, `${{ item.name }}` reads one of its fields.
+
+| Value of `each` | Example |
+|---|---|
+| A list in the flow file | `each: ["orders", "customers"]` |
+| An input of type `json` | `each: ${{ inputs.tables }}` |
+| An output of a dependency | `each: ${{ tasks.list_files.outputs.files }}` |
+
+Sluice reads the list one time, when the dependencies of the task end. A retry and a restart use the same items.
+
+`max_parallel` on the task limits the items that run at the same time. Without it, the pool slots and the `max_parallel` of the flow are the only limits. Use it for a service that accepts a few connections.
+
+## Limits
+
+| Case | Result |
+|---|---|
+| The list is empty. | The task ends `SUCCESS` with reason `no_items`. Later tasks run. |
+| The list has more than 1000 items. | The task ends `FAILED` with reason `template_error`. No item starts. |
+| The value is not a list. | The task ends `FAILED` with reason `template_error`. No item starts. |
+
+For more than 1000 items, give each item a batch, and loop over the batch in the script or in a `subflow`.
+
+`each` is not allowed on `http` tasks. A task cannot read `item` of another task.
+
+## Read the results in a later task
+
+The task as a whole is `SUCCESS` only when every item ended `SUCCESS`. Thus a later task with the default `run_if: success` runs only after all items succeeded. When an item fails, the other items continue, and the error of the execution names the item.
+
+A later task reads an output of all items as a list in item order:
+
+```yaml flow
+id: load-and-report
+tasks:
+  - id: load
+    type: script
+    file: pipelines/load.py
+    each: ["orders", "customers", "items"]
+    args: ["--table", "${{ item }}"]
+  - id: report
+    type: command
+    depends_on: [load]
+    command: ["echo", "rows per table: ${{ tasks.load.outputs.rows }}"]
+```
+
+When the three items emit `rows` as 120, 40 and 900, the template gives `[120,40,900]`. An item that did not emit the key gives `null` at its position. After an empty list, each key gives `[]`.
+
+## Read the artifacts of all items
+
+A later task that declares an artifact of a task with `each` gets one file for each item. Sluice puts the item index before the file name:
+
+```yaml flow
+id: load-and-merge
+tasks:
+  - id: load
+    type: script
+    file: pipelines/load.py
+    each: ["orders", "customers", "items"]
+    args: ["--table", "${{ item }}"]
+  - id: merge
+    type: script
+    file: pipelines/merge.py
+    depends_on: [load]
+    artifacts:
+      - { from: load, name: part.parquet, path: data/part.parquet }
+```
+
+The task `merge` finds `data/0/part.parquet`, `data/1/part.parquet` and `data/2/part.parquet`. One glob reads all of them, for example `data/*/part.parquet`. When one item did not emit the artifact, `merge` fails with reason `artifact_not_found`, and the error names the item.
+
+An image with `inject_runner: false` needs `sluice` 0.4.0 or later for this. An older runner fails the task with reason `runner_too_old`.
+
+## Restart after a failure
+
+`sluice executions restart` keeps each item that ended `SUCCESS` and runs the other items again, with the same item values.
+
+## See the items
+
+The timeline shows one row for the task, with the number of items that ended. Click the row to show the items. Select an item to see only its log, outputs and facts. `sluice executions get` shows each item as `load[0]`, `load[1]`, and log lines have the same label.
+
+## Related pages
+
+- [Pass data between tasks](/how-to/pass-data-between-tasks/)
+- [Retry, time out and limit executions](/how-to/retry-time-out-and-limit/)
+- [Templates](/reference/templates/)

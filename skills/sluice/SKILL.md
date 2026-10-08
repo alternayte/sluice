@@ -105,6 +105,19 @@ A `command` has no shell. For pipes or `&&`, use `command: ["sh", "-c", "a | b"]
 
 Every task also takes `depends_on`, `run_if`, `timeout` (default `24h`), `retry`, `env` and `executor`. `script` and `command` take `files`: a map from a path to a template that Sluice writes before the task starts. They also take `artifacts`: files that a dependency emitted.
 
+`script`, `command` and `subflow` take `each`: a list, or one template that gives a JSON list of at most 1000 items. Sluice runs the task one time for each item, and `max_parallel` on the task limits the items that run at the same time:
+
+```yaml
+- id: load
+  type: script
+  file: pipelines/load.py
+  each: ${{ inputs.tables }}       # or a literal list, or ${{ tasks.<id>.outputs.<key> }}
+  max_parallel: 2
+  args: ["--table", "${{ item }}", "--part", "${{ item_index }}"]
+```
+
+A later task reads `${{ tasks.load.outputs.rows }}` as a list in item order, with `null` for an item that did not emit the key. The task is SUCCESS only when every item is. An empty list ends the task SUCCESS, and each key gives `[]`. `sluice executions restart` runs only the items that did not succeed. A task that declares an artifact of `load` gets one file for each item: `path: data/part.parquet` gives `data/0/part.parquet`, `data/1/part.parquet`. Do not write a loop in a script when each item needs its own retry and log: use `each`.
+
 ## Templates
 
 A template is `${{ expr }}` in a string. An expression is a lookup. There are no operators.
@@ -115,6 +128,7 @@ A template is `${{ expr }}` in a string. An expression is a lookup. There are no
 | `vars.<KEY>` | A variable: flow `variables`, then the namespace, its parents, then global. |
 | `secret('<KEY>')` | A secret. Allowed only in `env` values, `files` values and the `http` fields `url`, `headers` and `body`. |
 | `tasks.<task_id>.outputs.<key>` | An output of a task that is a dependency, directly or through other tasks. |
+| `item`, `item_index` | The item of a task with `each` and its position from 0. `item.<field>` reads a field of an object. |
 | `trigger.<path>` | The trigger payload, for example `trigger.body` of a webhook. |
 | `execution.id`, `execution.namespace`, `execution.flow_id`, `execution.created_at` | Facts of the execution. |
 

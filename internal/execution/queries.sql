@@ -33,15 +33,23 @@ UPDATE executions SET state = sqlc.arg('to_state'), reason = sqlc.arg('reason'),
 WHERE id = sqlc.arg('id') AND state = sqlc.arg('from_state');
 
 -- name: ListExecutionTaskRuns :many
-SELECT * FROM task_runs WHERE execution_id = $1 ORDER BY task_key, attempt;
+SELECT * FROM task_runs WHERE execution_id = $1 ORDER BY task_key, item_index, attempt;
 
 -- name: InsertTaskRun :exec
 INSERT INTO task_runs (id, execution_id, task_key, task_type, attempt, state, reason, executor_type, pool, not_before,
-    queued_at, started_at, ended_at, outputs, reused_from_id, error, exit_code)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17);
+    queued_at, started_at, ended_at, outputs, reused_from_id, error, exit_code, item_index, item)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);
+
+-- The first row of a task with each gets item 0 when the list is known.
+-- name: SetTaskRunItem :exec
+UPDATE task_runs SET item = $2 WHERE id = $1 AND state = 'PENDING';
 
 -- name: QueueTaskRun :execrows
 UPDATE task_runs SET state = 'QUEUED', queued_at = $2, reason = '' WHERE id = $1 AND state = 'PENDING';
+
+-- A task run that the engine ends in the same transaction, with no instance and no process.
+-- name: StartTaskRunHere :exec
+UPDATE task_runs SET state = 'RUNNING', started_at = $2 WHERE id = $1 AND state = 'QUEUED';
 
 -- name: SkipTaskRun :execrows
 UPDATE task_runs SET state = 'SKIPPED', reason = $2, ended_at = $3 WHERE id = $1 AND state = 'PENDING';
@@ -110,12 +118,13 @@ SELECT a.*, t.task_key FROM artifacts a JOIN task_runs t ON t.id = a.task_run_id
 -- name: GetArtifact :one
 SELECT * FROM artifacts WHERE id = $1 AND execution_id = $2;
 
--- The artifact of the latest task run of a task in an execution.
+-- The artifact of the latest task run of one item of a task in an execution.
 -- name: GetInputArtifact :one
 SELECT a.* FROM artifacts a
 WHERE a.name = sqlc.arg(name) AND a.task_run_id = (
     SELECT t.id FROM task_runs t
-    WHERE t.execution_id = sqlc.arg(execution_id) AND t.task_key = sqlc.arg(task_key) ORDER BY t.attempt DESC LIMIT 1);
+    WHERE t.execution_id = sqlc.arg(execution_id) AND t.task_key = sqlc.arg(task_key) AND t.item_index = sqlc.arg(item_index)
+    ORDER BY t.attempt DESC LIMIT 1);
 
 -- Restart gives a reused task run the artifacts of its source. The rows share the stored object.
 -- name: CopyTaskRunArtifacts :exec

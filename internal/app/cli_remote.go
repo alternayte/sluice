@@ -331,12 +331,13 @@ func (c *clientCmd) wait(ctx context.Context, r *remote, id string, timeout time
 				return true
 			}
 			var l struct {
-				TaskKey string `json:"task_key"`
-				Attempt int    `json:"attempt"`
-				Text    string `json:"text"`
+				TaskKey   string `json:"task_key"`
+				Attempt   int    `json:"attempt"`
+				ItemIndex *int   `json:"item_index"`
+				Text      string `json:"text"`
 			}
 			if json.Unmarshal([]byte(ev.Data), &l) == nil {
-				fmt.Fprintf(c.stderr, "[%s#%d] %s\n", l.TaskKey, l.Attempt, l.Text)
+				fmt.Fprintf(c.stderr, "[%s#%d] %s\n", execution.TaskLabel(l.TaskKey, l.ItemIndex), l.Attempt, l.Text)
 			}
 			return true
 		})
@@ -467,6 +468,13 @@ func runExecutionsGet(ctx context.Context, args []string, stdout, stderr io.Writ
 	tw := tabwriter.NewWriter(stdout, 0, 2, 2, ' ', 0)
 	fmt.Fprintln(tw, "TASK\tATTEMPT\tSTATE\tREASON\tDURATION\tEXIT\tERROR")
 	for _, t := range d.TaskRuns {
+		// An item of a task with each shows as task[index] with its value after the error.
+		if t.Item != nil {
+			t.TaskKey = execution.TaskLabel(t.TaskKey, &t.ItemIndex)
+			if b, err := json.Marshal(*t.Item); err == nil {
+				t.Error = strings.TrimSpace(t.Error + " item=" + string(b))
+			}
+		}
 		exit := "—"
 		if t.ExitCode != nil {
 			exit = strconv.Itoa(*t.ExitCode)
@@ -482,12 +490,13 @@ func runExecutionsGet(ctx context.Context, args []string, stdout, stderr io.Writ
 }
 
 type logEntry struct {
-	TaskKey string `json:"task_key"`
-	Attempt int    `json:"attempt"`
-	N       int64  `json:"n"`
-	Stream  string `json:"stream"`
-	Text    string `json:"text"`
-	TS      string `json:"ts"`
+	TaskKey   string `json:"task_key"`
+	Attempt   int    `json:"attempt"`
+	ItemIndex *int   `json:"item_index"`
+	N         int64  `json:"n"`
+	Stream    string `json:"stream"`
+	Text      string `json:"text"`
+	TS        string `json:"ts"`
 }
 
 // runExecutionsLogs implements `sluice executions logs <id>`.
@@ -509,11 +518,11 @@ func runExecutionsLogs(ctx context.Context, args []string, stdout, stderr io.Wri
 		taskQ = "&task=" + url.QueryEscape(*task)
 	}
 	printLine := func(l logEntry) {
-		if *task != "" {
+		if *task != "" && l.ItemIndex == nil {
 			fmt.Fprintln(stdout, l.Text)
 			return
 		}
-		fmt.Fprintf(stdout, "[%s#%d] %s\n", l.TaskKey, l.Attempt, l.Text)
+		fmt.Fprintf(stdout, "[%s#%d] %s\n", execution.TaskLabel(l.TaskKey, l.ItemIndex), l.Attempt, l.Text)
 	}
 	if *follow && !c.json() {
 		err := r.stream(ctx, "/api/v1/executions/"+id+"/logs/stream?"+strings.TrimPrefix(taskQ, "&"), func(ev sseEvent) bool {

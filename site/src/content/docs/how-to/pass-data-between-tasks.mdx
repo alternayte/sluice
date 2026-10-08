@@ -142,6 +142,8 @@ When the artifact does not exist, the task that reads it fails with reason `arti
 
 When the task in `from` ran several attempts, the runner reads the artifact of the last attempt. `sluice executions restart` gives the new execution the artifacts of each reused task. They show on its **Artifacts** tab, and they stay when retention deletes the old execution.
 
+When the task in `from` has `each`, the task gets one file for each item. See [Run a task for each item](/how-to/run-a-task-for-each-item/).
+
 ## Declare flow outputs
 
 The `outputs` map of a flow names the results of the whole execution. Each value is a template, and it can read the outputs of any task.

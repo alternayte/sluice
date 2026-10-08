@@ -35,6 +35,7 @@ const (
 // Reasons of task runs and executions.
 const (
 	ReasonRunIfNotMet       = "run_if_not_met"
+	ReasonNoItems           = "no_items"
 	ReasonUpstreamFailed    = "upstream_failed"
 	ReasonInstanceShutdown  = "instance_shutdown"
 	ReasonLost              = "lost"

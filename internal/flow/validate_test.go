@@ -126,3 +126,42 @@ func TestTaskArtifacts(t *testing.T) {
 		t.Error("http task with artifacts: want invalid")
 	}
 }
+
+// TestTaskEach checks a task with each: the value is a list or one template, item has a
+// value only in the fields of that task, and http tasks take no each.
+func TestTaskEach(t *testing.T) {
+	flowOf := func(task string) string {
+		return "id: f\ninputs:\n  - {id: tables, type: json}\ntasks:\n  - {id: first, type: command, command: [\"true\"]}\n" + task
+	}
+	cases := map[string]string{
+		"  - {id: a, type: command, each: [1, 2], command: [\"echo\", \"${{ item }} ${{ item_index }}\"]}\n":                         "",
+		"  - {id: a, type: command, each: \"${{ inputs.tables }}\", command: [\"echo\", \"${{ item.name }}\"], max_parallel: 2}\n":   "",
+		"  - {id: a, type: command, depends_on: [first], each: \"${{ tasks.first.outputs.list }}\", command: [\"true\"]}\n":          "",
+		"  - {id: a, type: subflow, flow: ns/child, each: [1], inputs: {n: \"${{ item }}\"}}\n":                                      "",
+		"  - {id: a, type: command, each: \"tables\", command: [\"true\"]}\n":                                                        CodeInvalidValue,
+		"  - {id: a, type: command, each: \"x-${{ inputs.tables }}\", command: [\"true\"]}\n":                                        CodeInvalidValue,
+		"  - {id: a, type: command, each: 3, command: [\"true\"]}\n":                                                                 CodeInvalidType,
+		"  - {id: a, type: command, each: \"${{ item }}\", command: [\"true\"]}\n":                                                   CodeInvalidTemplate,
+		"  - {id: a, type: command, each: \"${{ tasks.first.outputs.list }}\", command: [\"true\"]}\n":                               CodeOutputNotDependency,
+		"  - {id: a, type: command, command: [\"echo\", \"${{ item }}\"]}\n":                                                         CodeInvalidTemplate,
+		"  - {id: a, type: command, command: [\"true\"], max_parallel: 2}\n":                                                         CodeFieldNotAllowed,
+		"  - {id: a, type: http, url: \"http://x\", each: [1]}\n":                                                                    CodeFieldNotAllowed,
+		"  - {id: a, type: command, each: [1]}\n  - {id: b, type: command, depends_on: [a], command: [\"echo\", \"${{ item }}\"]}\n": CodeInvalidTemplate,
+	}
+	for task, code := range cases {
+		pf := ValidateNamespace(map[string][]byte{"f.flow.yaml": []byte(flowOf(task))}).Flows[0]
+		if code == "" {
+			if !pf.Valid() {
+				t.Errorf("%s: want valid, got %v", task, pf.Issues)
+			}
+			continue
+		}
+		found := false
+		for _, is := range pf.Issues {
+			found = found || is.Code == code
+		}
+		if !found {
+			t.Errorf("%s: want %s, got %v", task, code, pf.Issues)
+		}
+	}
+}

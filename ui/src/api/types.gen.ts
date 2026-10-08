@@ -526,6 +526,10 @@ export type KpisOut = {
 export type LogEntry = {
   attempt: number;
   /**
+   * Position of the item, for a task with each.
+   */
+  item_index?: number;
+  /**
    * 1-based line number in the task run.
    */
   n: number;
@@ -771,6 +775,10 @@ export type RunOut = {
 
 export type RunnerArtifact = {
   from: string;
+  /**
+   * Item index when from is a task with each.
+   */
+  item?: number;
   name: string;
   path: string;
   [key: string]: unknown;
@@ -993,6 +1001,14 @@ export type TaskRun = {
   executor_type: string;
   exit_code?: number | null;
   id: string;
+  /**
+   * The item of a task with each. Absent for a task without each, and before the list is known.
+   */
+  item?: unknown;
+  /**
+   * Position of the item of a task with each. 0 for a task without each.
+   */
+  item_index: number;
   outputs?: {
     [key: string]: unknown;
   } | null;
@@ -1307,7 +1323,12 @@ export type RunnerGetInputArtifactData = {
     from: string;
     name: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Item index when from is a task with each. Default 0.
+     */
+    item?: number;
+  };
   url: "/api/runner/v1/task-runs/{taskRunId}/inputs/{from}/{name}";
 };
 

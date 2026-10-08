@@ -412,6 +412,14 @@
           "maxItems": 100,
           "description": "script and command: artifacts of dependencies. Sluice downloads each artifact into the workdir before the task starts, and replaces a namespace file at the same path. The task fails before its command starts when an artifact does not exist."
         },
+        "each": {
+          "description": "script, command and subflow: run the task one time for each item. A list, or one template that gives a JSON list, for example ${{ inputs.tables }}. At most 1000 items. Use ${{ item }} and ${{ item_index }} in the task. A later task reads each output as a list in item order."
+        },
+        "max_parallel": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "With each: maximum items that run at the same time. 0 means no limit other than the pool."
+        },
         "file": {
           "type": "string",
           "description": "script: file path relative to the namespace root. Required for script."

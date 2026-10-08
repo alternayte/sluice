@@ -36,8 +36,10 @@ const (
 	LevelBase = 1
 	// LevelArtifactInputs adds Spec.Artifacts.
 	LevelArtifactInputs = 2
+	// LevelItemArtifacts adds ArtifactInput.Item: an artifact of one item of a task with each.
+	LevelItemArtifacts = 3
 	// Level is the level of this binary.
-	Level = LevelArtifactInputs
+	Level = LevelItemArtifacts
 )
 
 // ReasonRunnerTooOld is the reason of a task run whose runner is below the level of its spec.
@@ -46,6 +48,11 @@ const ReasonRunnerTooOld = "runner_too_old"
 // RequiredLevel returns the lowest protocol level that a runner needs for the spec, and the
 // feature that sets it.
 func RequiredLevel(s *Spec) (int, string) {
+	for _, a := range s.Artifacts {
+		if a.Item != nil {
+			return LevelItemArtifacts, "artifacts of a task with each"
+		}
+	}
 	if len(s.Artifacts) > 0 {
 		return LevelArtifactInputs, "artifacts"
 	}
@@ -97,6 +104,8 @@ type ArtifactInput struct {
 	From string `json:"from"`
 	Name string `json:"name"`
 	Path string `json:"path"`
+	// Item is the item index when From is a task with each. The runner sends it as ?item=.
+	Item *int `json:"item,omitempty"`
 }
 
 // ReasonArtifactNotFound is the complete reason when a declared artifact does not exist.

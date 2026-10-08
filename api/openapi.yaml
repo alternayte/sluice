@@ -1221,6 +1221,10 @@ components:
         attempt:
           format: int64
           type: integer
+        item_index:
+          description: Position of the item, for a task with each.
+          format: int64
+          type: integer
         "n":
           description: 1-based line number in the task run.
           format: int64
@@ -1782,6 +1786,10 @@ components:
       properties:
         from:
           type: string
+        item:
+          description: Item index when from is a task with each.
+          format: int64
+          type: integer
         name:
           type: string
         path:
@@ -2289,6 +2297,12 @@ components:
             - "null"
         id:
           type: string
+        item:
+          description: The item of a task with each. Absent for a task without each, and before the list is known.
+        item_index:
+          description: Position of the item of a task with each. 0 for a task without each.
+          format: int64
+          type: integer
         outputs:
           additionalProperties: {}
           type:
@@ -2332,6 +2346,7 @@ components:
         - task_key
         - task_type
         - attempt
+        - item_index
         - state
         - reason
         - executor_type
@@ -2817,6 +2832,12 @@ paths:
           schema:
             maxLength: 200
             type: string
+        - description: Item index when from is a task with each. Default 0.
+          in: query
+          name: item
+          schema:
+            minimum: 0
+            type: integer
       responses:
         "200":
           content:

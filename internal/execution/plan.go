@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -69,6 +71,8 @@ type Plan struct {
 	Runtime    string
 	MaskValues []string
 	SecretKeys []string
+	// Artifacts are the artifact inputs, with one entry per item of a source with each.
+	Artifacts []runnerproto.ArtifactInput
 	// http task
 	Method  string
 	URL     string
@@ -175,7 +179,9 @@ func (e *Engine) variables(ctx context.Context, ns string, flowVars map[string]s
 	return out, rows.Err()
 }
 
-func (e *Engine) templateContext(ctx context.Context, ex execInfo, def *Definition, latest map[string]executiondb.TaskRun, secret func(string) (string, error)) (*flow.Context, error) {
+// templateContext builds the values for templates. byTask holds the latest attempt of each
+// item of each task. The outputs of a task with each are lists in item order.
+func (e *Engine) templateContext(ctx context.Context, ex execInfo, def *Definition, byTask map[string][]executiondb.TaskRun, secret func(string) (string, error)) (*flow.Context, error) {
 	var inputs, payload map[string]any
 	_ = json.Unmarshal(ex.Inputs, &inputs)
 	_ = json.Unmarshal(ex.Payload, &payload)
@@ -184,17 +190,44 @@ func (e *Engine) templateContext(ctx context.Context, ex execInfo, def *Definiti
 		return nil, err
 	}
 	tasks := map[string]map[string]any{}
-	for k, tr := range latest {
-		if tr.State != TaskSuccess || len(tr.Outputs) == 0 {
+	eachTasks := map[string]int{}
+	for k, items := range byTask {
+		if taskResult(items).State != TaskSuccess {
+			continue
+		}
+		if t, ok := def.Task(k); ok && t.HasEach() {
+			// A task that ended SUCCESS with no item has one task run without an item.
+			n := len(items)
+			if items[0].Item == nil {
+				n = 0
+			}
+			eachTasks[k] = n
+			lists := map[string]any{}
+			for i := 0; i < n; i++ {
+				var o map[string]any
+				_ = json.Unmarshal(items[i].Outputs, &o)
+				for key, v := range o {
+					l, ok := lists[key].([]any)
+					if !ok {
+						l = make([]any, n)
+						lists[key] = l
+					}
+					l[i] = v
+				}
+			}
+			tasks[k] = lists
+			continue
+		}
+		if len(items[0].Outputs) == 0 {
 			continue
 		}
 		var o map[string]any
-		if json.Unmarshal(tr.Outputs, &o) == nil {
+		if json.Unmarshal(items[0].Outputs, &o) == nil {
 			tasks[k] = o
 		}
 	}
 	flowID := def.FlowKey
-	return &flow.Context{Inputs: nonNilMap(inputs), Vars: vars, Tasks: tasks, Trigger: nonNilMap(payload), Secret: secret,
+	return &flow.Context{Inputs: nonNilMap(inputs), Vars: vars, Tasks: tasks, EachTasks: eachTasks, Trigger: nonNilMap(payload), Secret: secret,
 		Execution: map[string]any{"id": ex.ID.String(), "namespace": def.Namespace, "flow_id": flowID, "created_at": ex.CreatedAt.UTC().Format(time.RFC3339)}}, nil
 }
 
@@ -231,11 +264,35 @@ func (e *Engine) BuildPlan(ctx context.Context, tr executiondb.TaskRun) (*Plan, 
 	}
 	rec := &secretRecorder{ctx: ctx, resolver: e.Secrets, ns: def.Namespace}
 	info := infoOfRow(row)
-	tc, err := e.templateContext(ctx, info, def, latestRuns(runs), rec.resolve)
+	byTask := latestItems(runs)
+	tc, err := e.templateContext(ctx, info, def, byTask, rec.resolve)
 	if err != nil {
 		return nil, err
 	}
+	if tr.Item != nil {
+		tc.HasItem, tc.ItemIndex = true, int(tr.ItemIndex)
+		if err := json.Unmarshal(tr.Item, &tc.Item); err != nil {
+			return nil, &PlanError{Reason: ReasonTemplateError, Msg: "item: " + err.Error()}
+		}
+	}
 	p := &Plan{TaskRun: tr, Exec: info, Def: def, Cfg: def.Config(*t), Env: map[string]string{}}
+	for _, a := range t.Artifacts {
+		from, ok := def.Task(a.From)
+		if !ok || !from.HasEach() {
+			p.Artifacts = append(p.Artifacts, runnerproto.ArtifactInput{From: a.From, Name: a.Name, Path: a.Dest()})
+			continue
+		}
+		// One file per item, with the item index before the file name.
+		for _, src := range byTask[a.From] {
+			if src.Item == nil {
+				continue
+			}
+			i := int(src.ItemIndex)
+			dest := a.Dest()
+			p.Artifacts = append(p.Artifacts, runnerproto.ArtifactInput{From: a.From, Name: a.Name, Item: &i,
+				Path: path.Join(path.Dir(dest), strconv.Itoa(i), path.Base(dest))})
+		}
+	}
 	render := func(field, s string, allowSecret bool) (string, error) {
 		c := tc
 		if !allowSecret {
@@ -334,17 +391,9 @@ func (e *Engine) RunnerSpec(ctx context.Context, tr executiondb.TaskRun) (*runne
 	}
 	return &runnerproto.Spec{TaskRunID: tr.ID.String(), ExecutionID: tr.ExecutionID.String(), Namespace: p.Def.Namespace, FlowID: p.Def.FlowKey,
 		TaskID: tr.TaskKey, Attempt: int(tr.Attempt), Command: p.Command, Workdir: p.Cfg.Task.Workdir, Env: p.Env, Files: p.Files,
-		Artifacts: artifactInputs(p.Cfg.Task.Artifacts), Runtime: p.Runtime,
+		Artifacts: p.Artifacts, Runtime: p.Runtime,
 		TimeoutSeconds: int(p.Cfg.Timeout.Seconds()), MaskValues: nonNilStrings(p.MaskValues), BundleHash: sn.ManifestHash,
 		Limits: runnerproto.Limits{MaxArtifactBytes: e.Cfg.MaxArtifactBytes, MaxBundleBytes: e.Cfg.MaxBundleBytes}}, nil
-}
-
-func artifactInputs(in []flow.ArtifactInput) []runnerproto.ArtifactInput {
-	var out []runnerproto.ArtifactInput
-	for _, a := range in {
-		out = append(out, runnerproto.ArtifactInput{From: a.From, Name: a.Name, Path: a.Dest()})
-	}
-	return out
 }
 
 func nonNilStrings(s []string) []string {

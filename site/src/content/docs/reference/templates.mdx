@@ -25,7 +25,9 @@ The path rule has two effects. A part cannot start with a digit, so a template c
 | `inputs.<id>` | The value of a flow input. | The flow declares the input. |
 | `vars.<KEY>` | A variable. See [Variable precedence](#variable-precedence). | Nothing. The key resolves at dispatch. |
 | `secret('<KEY>')` | A secret value. `secret("<KEY>")` also works. | The field accepts `secret()`. |
-| `tasks.<task_id>.outputs.<key>` | An output of another task. | The task exists and is a dependency. |
+| `tasks.<task_id>.outputs.<key>` | An output of another task. For a task with `each`, a list with one entry for each item. | The task exists and is a dependency. |
+| `item` | The item of a task with `each`. `item.<path>` reads a field of an object. | The task has `each`. |
+| `item_index` | The position of the item, from 0. | The task has `each`. |
 | `trigger.<path>` | A field of the trigger payload. See [Trigger payload](#trigger-payload). | Nothing. The path resolves when the value renders. |
 | `execution.id` | The execution ID. | — |
 | `execution.namespace` | The namespace of the flow. | — |

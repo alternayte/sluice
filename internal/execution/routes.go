@@ -73,6 +73,8 @@ type TaskRun struct {
 	TaskKey          string          `json:"task_key"`
 	TaskType         string          `json:"task_type"`
 	Attempt          int             `json:"attempt"`
+	ItemIndex        int             `json:"item_index" doc:"Position of the item of a task with each. 0 for a task without each."`
+	Item             *any            `json:"item,omitempty" doc:"The item of a task with each. Absent for a task without each, and before the list is known."`
 	State            string          `json:"state" enum:"PENDING,QUEUED,RUNNING,SUCCESS,FAILED,TIMED_OUT,CANCELLED,SKIPPED"`
 	Reason           string          `json:"reason"`
 	ExecutorType     string          `json:"executor_type"`
@@ -186,6 +188,13 @@ func (e *Engine) Detail(ctx context.Context, id uuid.UUID) (ExecutionDetail, err
 		if tr.ExitCode != nil {
 			c := int(*tr.ExitCode)
 			t.ExitCode = &c
+		}
+		t.ItemIndex = int(tr.ItemIndex)
+		if tr.Item != nil {
+			var item any
+			if json.Unmarshal(tr.Item, &item) == nil {
+				t.Item = &item
+			}
 		}
 		d.TaskRuns = append(d.TaskRuns, t)
 	}

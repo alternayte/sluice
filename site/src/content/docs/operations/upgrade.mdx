@@ -20,7 +20,7 @@ Each release pushes two images to the GitHub Container Registry, for `linux/amd6
 | `ghcr.io/alternayte/sluice` | `<version>`, `<major>.<minor>`, `latest` |
 | `ghcr.io/alternayte/sluice-uv` | `<version>`, `<major>.<minor>`, `latest` |
 
-Pin the full version tag, for example `0.3.0`. The `latest` and `<major>.<minor>` tags move with each release. `sluice version` prints the version, the commit and the build date of a binary.
+Pin the full version tag, for example `0.4.0`. The `latest` and `<major>.<minor>` tags move with each release. `sluice version` prints the version, the commit and the build date of a binary.
 
 ## How migrations run
 
@@ -49,7 +49,7 @@ Before 1.0.0, the schema is one migration file, `00001_init.sql`. A change to th
 
    ```sh
    docker run --rm -e SLUICE_DATABASE_URL="$SLUICE_DATABASE_URL" \
-     ghcr.io/alternayte/sluice:0.3.0 migrate
+     ghcr.io/alternayte/sluice:0.4.0 migrate
    ```
 
    The command prints `applied <n> migrations`.
@@ -60,7 +60,7 @@ Before 1.0.0, the schema is one migration file, `00001_init.sql`. A change to th
    <TabItem label="Helm">
 
    ```sh
-   helm upgrade sluice oci://ghcr.io/alternayte/charts/sluice --version 0.3.0 -n sluice --reuse-values
+   helm upgrade sluice oci://ghcr.io/alternayte/charts/sluice --version 0.4.0 -n sluice --reuse-values
    kubectl -n sluice rollout status deployment/sluice
    ```
 
@@ -69,7 +69,7 @@ Before 1.0.0, the schema is one migration file, `00001_init.sql`. A change to th
    </TabItem>
    <TabItem label="Docker Compose">
 
-   Set `SLUICE_IMAGE` in `.env` to the new release, for example `ghcr.io/alternayte/sluice-uv:0.3.0`, or keep `latest`. Then, in the directory of the compose file:
+   Set `SLUICE_IMAGE` in `.env` to the new release, for example `ghcr.io/alternayte/sluice-uv:0.4.0`, or keep `latest`. Then, in the directory of the compose file:
 
    ```sh
    docker compose pull
@@ -82,7 +82,7 @@ Before 1.0.0, the schema is one migration file, `00001_init.sql`. A change to th
    <TabItem label="Single container">
 
    ```sh
-   docker pull ghcr.io/alternayte/sluice-uv:0.3.0
+   docker pull ghcr.io/alternayte/sluice-uv:0.4.0
    docker stop sluice && docker rm sluice
    ```
 
@@ -110,11 +110,24 @@ Old and new instances share one database while the rollout runs. An instance doe
 
 The Helm chart sets `terminationGracePeriodSeconds` to `shutdownGraceSeconds` plus 10 seconds, so Kubernetes does not kill a pod before its shutdown ends.
 
+Each release keeps the release before it working on the new database schema. A migration adds tables and columns, and a later release removes what the older one used. Thus upgrade one minor version at a time when you use a rolling rollout. To skip versions, stop all instances first.
+
+From 0.4.0, an old instance stays ready while the database has a newer migration. An instance of 0.3.0 or earlier fails its `migrations` readiness check in that time. It still runs its tasks, but it gets no HTTP requests until the rollout replaces it.
+
+Use a new flow feature, for example `each` or the `wait` task, only after every instance runs the new version. An old instance marks a flow with a field that it does not know as invalid.
+
+A task image with `inject_runner: false` holds its own `sluice` binary. Update that image when a task uses a feature that is newer than the binary. Otherwise the task fails with reason `runner_too_old`.
+
 To keep a long task safe across an upgrade, run it on the `docker` or `kubernetes` executor, or give it a retry policy. See [Retry, time out and limit executions](/how-to/retry-time-out-and-limit/).
 
 ## Roll back
 
-A rollback to an older version works only when the new version added no migration. When the new version added a migration, the old binary fails its `migrations` readiness check on the new database. To go back in that case, restore the backup of step 1 and start the old version.
+Migrations go forward only. Each release keeps the release before it working on the new schema. Thus a rollback by one release works for the flows that use no new feature.
+
+Restore the backup of step 1 and start the old version in these cases:
+
+- An execution used a new feature.
+- You go back more than one release.
 
 ## Related pages
 

@@ -197,7 +197,9 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool) (applied []string, err err
 	return applied, nil
 }
 
-// MigrationsCurrent reports whether the database has every embedded migration.
+// MigrationsCurrent reports whether the database has every embedded migration. Migrations of
+// a later release do not count: during a rolling update, an instance of the last release
+// runs on the new schema and must stay ready.
 func MigrationsCurrent(ctx context.Context, q interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 }) error {
@@ -207,10 +209,10 @@ func MigrationsCurrent(ctx context.Context, q interface {
 	}
 	var n int
 	var maxV *int64
-	if err := q.QueryRow(ctx, "SELECT count(*), max(version) FROM schema_migrations").Scan(&n, &maxV); err != nil {
+	want := migs[len(migs)-1].Version
+	if err := q.QueryRow(ctx, "SELECT count(*), max(version) FROM schema_migrations WHERE version <= $1", want).Scan(&n, &maxV); err != nil {
 		return fmt.Errorf("read schema_migrations: %w", err)
 	}
-	want := migs[len(migs)-1].Version
 	if n != len(migs) || maxV == nil || *maxV != want {
 		return fmt.Errorf("migrations not current: have %d, want %d", n, len(migs))
 	}

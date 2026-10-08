@@ -70,6 +70,7 @@ When an attempt ends `FAILED` or `TIMED_OUT` and the task has attempts left, the
 | Reason | State | Cause | Retry applies |
 |---|---|---|---|
 | (empty) | any | A normal state change, or a normal end. | — |
+| `no_items` | `SUCCESS` | The list of a task with `each` is empty. No item ran. | — |
 | `exit_code` | `FAILED` | The task process exited with a code other than 0. `exit_code` holds the code. | yes |
 | `http_status` | `FAILED` | An `http` task got a status outside its `expect_status` list. | yes |
 | `child_failed` | `FAILED` | A `subflow` task with `wait` got a child execution that did not end `SUCCESS`. | yes |

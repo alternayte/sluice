@@ -52,6 +52,7 @@ type RunnerArtifact struct {
 	From string `json:"from"`
 	Name string `json:"name"`
 	Path string `json:"path"`
+	Item *int   `json:"item,omitempty" doc:"Item index when from is a task with each."`
 }
 
 // RunnerLogLine is one log line of a batch.
@@ -226,10 +227,11 @@ func RunnerRoutes(api huma.API, r chi.Router, e *Engine) {
 	})
 
 	input := httpx.Op("runnerGetInputArtifact", http.MethodGet, base+"/inputs/{from}/{name}", httpx.RunToken)
-	maxFrom, maxName := 63, 200
+	maxFrom, maxName, minItem := 63, 200, 0.0
 	input.Parameters = []*huma.Param{uuidParam("taskRunId"),
 		{Name: "from", In: "path", Required: true, Schema: &huma.Schema{Type: huma.TypeString, MaxLength: &maxFrom}},
-		{Name: "name", In: "path", Required: true, Schema: &huma.Schema{Type: huma.TypeString, MaxLength: &maxName}}}
+		{Name: "name", In: "path", Required: true, Schema: &huma.Schema{Type: huma.TypeString, MaxLength: &maxName}},
+		{Name: "item", In: "query", Description: "Item index when from is a task with each. Default 0.", Schema: &huma.Schema{Type: huma.TypeInteger, Minimum: &minItem}}}
 	input.Responses = httpx.RawResponse(http.StatusOK, "application/octet-stream", "Artifact of a dependency.")
 	httpx.Raw(api, r, input, func(w http.ResponseWriter, req *http.Request) {
 		var fields []httpx.FieldError
@@ -243,7 +245,14 @@ func RunnerRoutes(api huma.API, r chi.Router, e *Engine) {
 			httpx.WriteError(w, req, err)
 			return
 		}
-		rc, a, err := e.InputArtifact(req.Context(), tr, chi.URLParam(req, "from"), chi.URLParam(req, "name"))
+		item := 0
+		if s := req.URL.Query().Get("item"); s != "" {
+			if item, err = strconv.Atoi(s); err != nil || item < 0 {
+				httpx.WriteError(w, req, httpx.Validation(httpx.FieldError{Field: "item", Message: "must be an integer of 0 or more"}))
+				return
+			}
+		}
+		rc, a, err := e.InputArtifact(req.Context(), tr, chi.URLParam(req, "from"), chi.URLParam(req, "name"), item)
 		if err != nil {
 			httpx.WriteError(w, req, err)
 			return

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"path"
 	"sort"
@@ -403,15 +404,22 @@ func (e *Engine) copyExecution(ctx context.Context, id uuid.UUID, restart bool) 
 	_ = json.Unmarshal(old.TriggerPayload, &payload)
 	var labels map[string]string
 	_ = json.Unmarshal(old.Labels, &labels)
-	var reuse []executiondb.TaskRun
+	// reuse holds the SUCCESS task runs. again holds the other items of a task with each
+	// whose list is known: the new execution runs them with the same item values.
+	var reuse, again []executiondb.TaskRun
 	if restart {
 		runs, err := executiondb.New(e.Pool).ListExecutionTaskRuns(ctx, id)
 		if err != nil {
 			return uuid.Nil, err
 		}
-		for _, tr := range latestRuns(runs) {
-			if tr.State == TaskSuccess {
-				reuse = append(reuse, tr)
+		for _, items := range latestItems(runs) {
+			for _, tr := range items {
+				switch {
+				case tr.State == TaskSuccess:
+					reuse = append(reuse, tr)
+				case tr.Item != nil:
+					again = append(again, tr)
+				}
 			}
 		}
 	}
@@ -442,10 +450,17 @@ func (e *Engine) copyExecution(ctx context.Context, id uuid.UUID, restart bool) 
 			nid, _ := uuid.NewV7()
 			if err := executiondb.New(tx).InsertTaskRun(ctx, executiondb.InsertTaskRunParams{ID: nid, ExecutionID: newID, TaskKey: tr.TaskKey, TaskType: tr.TaskType,
 				Attempt: 1, State: TaskSuccess, Reason: "reused", ExecutorType: tr.ExecutorType, Pool: tr.Pool, StartedAt: tr.StartedAt,
-				EndedAt: &now, Outputs: tr.Outputs, ReusedFromID: &rid, ExitCode: tr.ExitCode}); err != nil {
+				EndedAt: &now, Outputs: tr.Outputs, ReusedFromID: &rid, ExitCode: tr.ExitCode, ItemIndex: tr.ItemIndex, Item: tr.Item}); err != nil {
 				return err
 			}
 			if err := executiondb.New(tx).CopyTaskRunArtifacts(ctx, executiondb.CopyTaskRunArtifactsParams{ExecutionID: newID, TaskRunID: nid, FromTaskRunID: rid}); err != nil {
+				return err
+			}
+		}
+		for _, tr := range again {
+			nid, _ := uuid.NewV7()
+			if err := executiondb.New(tx).InsertTaskRun(ctx, executiondb.InsertTaskRunParams{ID: nid, ExecutionID: newID, TaskKey: tr.TaskKey, TaskType: tr.TaskType,
+				Attempt: 1, State: TaskPending, ExecutorType: tr.ExecutorType, Pool: tr.Pool, ItemIndex: tr.ItemIndex, Item: tr.Item}); err != nil {
 				return err
 			}
 		}
@@ -459,13 +474,58 @@ func (e *Engine) copyExecution(ctx context.Context, id uuid.UUID, restart bool) 
 	return newID, err
 }
 
-// latestRuns returns the latest attempt per task key.
+// latestItems returns the latest attempt of each item of each task, in item order. A task
+// without each has one item.
+func latestItems(runs []executiondb.TaskRun) map[string][]executiondb.TaskRun {
+	byItem := map[string]map[int32]executiondb.TaskRun{}
+	for _, tr := range runs {
+		m := byItem[tr.TaskKey]
+		if m == nil {
+			m = map[int32]executiondb.TaskRun{}
+			byItem[tr.TaskKey] = m
+		}
+		if cur, ok := m[tr.ItemIndex]; !ok || tr.Attempt > cur.Attempt {
+			m[tr.ItemIndex] = tr
+		}
+	}
+	out := map[string][]executiondb.TaskRun{}
+	for k, m := range byItem {
+		items := make([]executiondb.TaskRun, 0, len(m))
+		for _, tr := range m {
+			items = append(items, tr)
+		}
+		sort.Slice(items, func(a, b int) bool { return items[a].ItemIndex < items[b].ItemIndex })
+		out[k] = items
+	}
+	return out
+}
+
+// taskResult returns one task run that stands for the task as a whole. While an item has
+// not ended, it is that item. Then it is the first item that did not end SUCCESS, with the
+// item named in its error. A task whose items all ended SUCCESS gives its first item.
+func taskResult(items []executiondb.TaskRun) executiondb.TaskRun {
+	if len(items) == 1 {
+		return items[0]
+	}
+	for _, tr := range items {
+		if !TaskTerminal(tr.State) {
+			return tr
+		}
+	}
+	for _, tr := range items {
+		if tr.State != TaskSuccess {
+			tr.Error = strings.TrimSuffix(fmt.Sprintf("item %d: %s", tr.ItemIndex, tr.Error), ": ")
+			return tr
+		}
+	}
+	return items[0]
+}
+
+// latestRuns returns the result of each task: see taskResult.
 func latestRuns(runs []executiondb.TaskRun) map[string]executiondb.TaskRun {
 	out := map[string]executiondb.TaskRun{}
-	for _, tr := range runs {
-		if cur, ok := out[tr.TaskKey]; !ok || tr.Attempt > cur.Attempt {
-			out[tr.TaskKey] = tr
-		}
+	for k, items := range latestItems(runs) {
+		out[k] = taskResult(items)
 	}
 	return out
 }

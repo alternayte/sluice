@@ -391,6 +391,9 @@ func (r *run) fetchArtifacts(ctx context.Context, workdir string) (string, error
 		err := r.fetchArtifact(ctx, a, dst)
 		var pe *PermanentError
 		if errors.As(err, &pe) && pe.Status == http.StatusNotFound {
+			if a.Item != nil {
+				return runnerproto.ReasonArtifactNotFound, fmt.Errorf("item %d of task %s has no artifact %s", *a.Item, a.From, a.Name)
+			}
 			return runnerproto.ReasonArtifactNotFound, fmt.Errorf("task %s has no artifact %s", a.From, a.Name)
 		}
 		if err != nil {
@@ -411,7 +414,11 @@ func (r *run) fetchArtifact(ctx context.Context, a runnerproto.ArtifactInput, ds
 		_ = f.Close()
 		_ = os.Remove(f.Name())
 	}()
-	if err := r.c.do(ctx, http.MethodGet, "/inputs/"+urlPathEscape(a.From)+"/"+urlPathEscape(a.Name), nil, "", &fileSink{f: f}); err != nil {
+	suffix := "/inputs/" + urlPathEscape(a.From) + "/" + urlPathEscape(a.Name)
+	if a.Item != nil {
+		suffix += "?item=" + strconv.Itoa(*a.Item)
+	}
+	if err := r.c.do(ctx, http.MethodGet, suffix, nil, "", &fileSink{f: f}); err != nil {
 		return err
 	}
 	if err := f.Chmod(0o644); err != nil {

@@ -28,6 +28,7 @@ type LogEntry struct {
 	TaskRunID uuid.UUID `json:"task_run_id"`
 	TaskKey   string    `json:"task_key"`
 	Attempt   int       `json:"attempt"`
+	ItemIndex *int      `json:"item_index,omitempty" doc:"Position of the item, for a task with each."`
 	N         int64     `json:"n" format:"int64" doc:"1-based line number in the task run."`
 	TS        time.Time `json:"ts"`
 	Stream    string    `json:"stream" enum:"stdout,stderr,system"`
@@ -109,7 +110,7 @@ func decodePositions(s string) (positions, error) {
 }
 
 func logEntryOf(l LogLine) LogEntry {
-	return LogEntry{TaskRunID: l.TaskRunID, TaskKey: l.TaskKey, Attempt: l.Attempt, N: l.N, TS: l.TS, Stream: l.Stream, Text: l.Text}
+	return LogEntry{TaskRunID: l.TaskRunID, TaskKey: l.TaskKey, Attempt: l.Attempt, ItemIndex: l.ItemIndex, N: l.N, TS: l.TS, Stream: l.Stream, Text: l.Text}
 }
 
 func (e *Engine) execEnded(ctx context.Context, id uuid.UUID) (bool, error) {
@@ -319,7 +320,7 @@ func registerLogs(api huma.API, r chi.Router, e *Engine, viewer httpx.Access) {
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", "execution-"+id.String()+".log"))
 		w.WriteHeader(http.StatusOK)
 		for _, l := range lines {
-			if _, err := fmt.Fprintf(w, "%s [%s#%d] %s: %s\n", l.TS.UTC().Format(time.RFC3339Nano), l.TaskKey, l.Attempt, l.Stream, l.Text); err != nil {
+			if _, err := fmt.Fprintf(w, "%s [%s#%d] %s: %s\n", l.TS.UTC().Format(time.RFC3339Nano), TaskLabel(l.TaskKey, l.ItemIndex), l.Attempt, l.Stream, l.Text); err != nil {
 				return
 			}
 		}

@@ -260,12 +260,24 @@ export type GanttRun = {
   ended_at?: string | null;
   duration_ms?: number | null;
   reused_from_id?: string | null;
+  /** item_index and item are set for a task run of a task with each. */
+  item_index?: number;
+  item?: unknown;
 };
+
+/** taskLabel names a task run: the task key, with the item index for an item of a task with each. */
+export function taskLabel(r: { task_key: string; item_index?: number | null; item?: unknown }): string {
+  return r.item === undefined || r.item === null ? r.task_key : `${r.task_key}[${r.item_index ?? 0}]`;
+}
 
 export type GanttRow = {
   id: string;
   taskKey: string;
   attempt: number;
+  /** item is the item index of a task run of a task with each. */
+  item?: number;
+  /** group is set on the row that stands for all items of a task with each. */
+  group?: { count: number; done: number };
   label: string;
   state: string;
   left: number;
@@ -319,7 +331,8 @@ export function ganttLayout(runs: GanttRun[], now: number): { rows: GanttRow[]; 
       id: r.id,
       taskKey: r.task_key,
       attempt: r.attempt,
-      label: `${r.task_key} #${r.attempt}`,
+      item: r.item === undefined || r.item === null ? undefined : (r.item_index ?? 0),
+      label: `${taskLabel(r)} #${r.attempt}`,
       state: r.state,
       left: clamp(left),
       width: clamp(width),
@@ -330,7 +343,60 @@ export function ganttLayout(runs: GanttRun[], now: number): { rows: GanttRow[]; 
       started: s !== undefined,
     };
   });
-  return { rows, start, end };
+  return { rows: groupItems(rows), start, end };
+}
+
+/**
+ * groupItems puts the items of a task with each under one group row, in item order. The
+ * group row sits where the first item was, and spans the time of all items.
+ */
+function groupItems(rows: GanttRow[]): GanttRow[] {
+  const items = new Map<string, GanttRow[]>();
+  for (const r of rows) {
+    if (r.item === undefined) continue;
+    items.set(r.taskKey, [...(items.get(r.taskKey) ?? []), r]);
+  }
+  if (items.size === 0) return rows;
+  const out: GanttRow[] = [];
+  const seen = new Set<string>();
+  for (const r of rows) {
+    if (r.item === undefined) {
+      out.push(r);
+      continue;
+    }
+    if (seen.has(r.taskKey)) continue;
+    seen.add(r.taskKey);
+    const list = [...items.get(r.taskKey)!].sort((a, b) => a.item! - b.item! || a.attempt - b.attempt);
+    // The state of each item is that of its last attempt.
+    const last = new Map<number, GanttRow>();
+    for (const i of list) last.set(i.item!, i);
+    const states = [...last.values()].map((i) => i.state);
+    const started = list.filter((i) => i.started);
+    const left = started.length ? Math.min(...started.map((i) => i.left)) : 0;
+    const right = started.length ? Math.max(...started.map((i) => i.left + i.width)) : 0;
+    const state =
+      states.find((s) => s === "RUNNING") ??
+      states.find((s) => !isTerminal(s)) ??
+      states.find((s) => s !== "SUCCESS") ??
+      "SUCCESS";
+    out.push({
+      id: `each:${r.taskKey}`,
+      taskKey: r.taskKey,
+      attempt: 1,
+      group: { count: last.size, done: states.filter((s) => isTerminal(s)).length },
+      label: r.taskKey,
+      state,
+      left,
+      width: clamp(right - left),
+      waitLeft: 0,
+      waitWidth: 0,
+      durationMs: null,
+      reused: list.every((i) => i.reused),
+      started: started.length > 0,
+    });
+    out.push(...list);
+  }
+  return out;
 }
 
 function clamp(n: number): number {
@@ -359,13 +425,21 @@ export function firstFailedRun<T extends GanttRun>(runs: T[]): T | undefined {
 }
 
 /** LogLine is the part of a log entry that the log filter uses. */
-export type LogLine = { task_key: string; text: string };
+export type LogLine = { task_key: string; text: string; item_index?: number | null };
 
-/** filterLogs keeps lines of one task (or all) that contain the search text, case-insensitive. */
-export function filterLogs<T extends LogLine>(lines: T[], task: string, search: string): T[] {
+/**
+ * filterLogs keeps lines of one task (or all) that contain the search text, case-insensitive.
+ * With item, it keeps only the lines of that item of a task with each.
+ */
+export function filterLogs<T extends LogLine>(lines: T[], task: string, search: string, item?: number): T[] {
   const q = search.trim().toLowerCase();
   if (!task && !q) return lines;
-  return lines.filter((l) => (!task || l.task_key === task) && (!q || l.text.toLowerCase().includes(q)));
+  return lines.filter(
+    (l) =>
+      (!task || l.task_key === task) &&
+      (item === undefined || !task || l.item_index === item) &&
+      (!q || l.text.toLowerCase().includes(q)),
+  );
 }
 
 /** compactJson returns JSON on one line. */

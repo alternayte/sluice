@@ -218,75 +218,143 @@ func (e *Engine) advance(ctx context.Context, tx pgx.Tx, execID uuid.UUID) error
 		if err != nil {
 			return err
 		}
-		latest := latestRuns(runs)
+		byTask := latestItems(runs)
+		latest := map[string]executiondb.TaskRun{}
 		active := 0
-		for _, tr := range latest {
-			if tr.State == TaskQueued || tr.State == TaskRunning {
-				active++
+		for k, items := range byTask {
+			latest[k] = taskResult(items)
+			for _, tr := range items {
+				if tr.State == TaskQueued || tr.State == TaskRunning {
+					active++
+				}
 			}
 		}
 		stopping := ex.State == ExecCancelling || ex.Reason == ReasonTimeout
 		for _, t := range def.Flow.Tasks {
-			tr, ok := latest[t.ID]
-			if !ok || tr.State != TaskPending {
-				continue
-			}
-			if stopping {
-				continue
-			}
-			if tr.NotBefore != nil && now.Before(*tr.NotBefore) {
-				continue
-			}
-			decision, reason := "run", ""
-			if tr.Attempt == 1 {
-				var deps []executiondb.TaskRun
-				ready := true
-				for _, d := range t.DependsOn {
-					dr, ok := latest[d]
-					if !ok || !TaskTerminal(dr.State) {
-						ready = false
-						break
-					}
-					deps = append(deps, dr)
+			// A task with each has one task run per item. Each item is queued on its own.
+			running := 0
+			for _, tr := range byTask[t.ID] {
+				if tr.State == TaskQueued || tr.State == TaskRunning {
+					running++
 				}
-				if !ready {
+			}
+			for _, tr := range byTask[t.ID] {
+				if tr.State != TaskPending || stopping {
 					continue
 				}
-				decision, reason = dependencyDecision(t.RunIf, deps)
-			}
-			if decision == "skip" {
-				if _, err := q.SkipTaskRun(ctx, executiondb.SkipTaskRunParams{ID: tr.ID, Reason: reason, EndedAt: &now}); err != nil {
+				if tr.NotBefore != nil && now.Before(*tr.NotBefore) {
+					continue
+				}
+				decision, reason := "run", ""
+				if tr.Attempt == 1 {
+					var deps []executiondb.TaskRun
+					ready := true
+					for _, d := range t.DependsOn {
+						dr, ok := latest[d]
+						if !ok || !TaskTerminal(dr.State) {
+							ready = false
+							break
+						}
+						deps = append(deps, dr)
+					}
+					if !ready {
+						continue
+					}
+					decision, reason = dependencyDecision(t.RunIf, deps)
+				}
+				if decision == "skip" {
+					if _, err := q.SkipTaskRun(ctx, executiondb.SkipTaskRunParams{ID: tr.ID, Reason: reason, EndedAt: &now}); err != nil {
+						return err
+					}
+					changed = true
+					continue
+				}
+				if t.HasEach() && tr.Item == nil {
+					// The dependencies ended: the list has its value now. The next pass queues the items.
+					if err := e.expandEach(ctx, tx, ex, def, t, tr, byTask); err != nil {
+						return err
+					}
+					changed = true
+					break
+				}
+				if def.Flow.MaxParallel > 0 && active >= def.Flow.MaxParallel {
+					continue
+				}
+				if t.MaxParallel > 0 && running >= t.MaxParallel {
+					continue
+				}
+				if _, err := q.QueueTaskRun(ctx, executiondb.QueueTaskRunParams{ID: tr.ID, QueuedAt: &now}); err != nil {
 					return err
 				}
+				active++
+				running++
 				changed = true
-				continue
 			}
-			if def.Flow.MaxParallel > 0 && active >= def.Flow.MaxParallel {
-				continue
-			}
-			if _, err := q.QueueTaskRun(ctx, executiondb.QueueTaskRunParams{ID: tr.ID, QueuedAt: &now}); err != nil {
-				return err
-			}
-			active++
-			changed = true
 		}
 	}
 	runs, err := q.ListExecutionTaskRuns(ctx, execID)
 	if err != nil {
 		return err
 	}
-	latest := latestRuns(runs)
+	byTask := latestItems(runs)
 	for _, t := range def.Flow.Tasks {
-		if tr, ok := latest[t.ID]; !ok || !TaskTerminal(tr.State) {
+		items, ok := byTask[t.ID]
+		if !ok || !TaskTerminal(taskResult(items).State) {
 			return nil
 		}
 	}
 	e.Wake()
-	return e.finalize(ctx, tx, ex, def, latest)
+	return e.finalize(ctx, tx, ex, def, byTask)
+}
+
+// expandEach gives a task with each one task run per item. first is the PENDING task run that
+// start created: it becomes item 0. A value that is not a list of at most 1000 items ends the
+// task FAILED, and an empty list ends it SUCCESS, both with no item.
+func (e *Engine) expandEach(ctx context.Context, tx pgx.Tx, ex executiondb.Execution, def *Definition, t flow.Task, first executiondb.TaskRun, byTask map[string][]executiondb.TaskRun) error {
+	q := executiondb.New(tx)
+	now := e.Clock.Now()
+	end := func(state, reason, errText string) error {
+		_, err := q.FinishTaskRun(ctx, executiondb.FinishTaskRunParams{ToState: state, Reason: reason, Error: truncate(errText, 4000),
+			EndedAt: &now, ID: first.ID, FromState: TaskPending})
+		return err
+	}
+	tc, err := e.templateContext(ctx, infoOf(ex), def, byTask, nil)
+	if err != nil {
+		return err
+	}
+	items, err := t.EachItems(func(s string) (string, error) { return flow.RenderString(s, tc) })
+	if err != nil {
+		return end(TaskFailed, ReasonTemplateError, err.Error())
+	}
+	if len(items) == 0 {
+		return end(TaskSuccess, ReasonNoItems, "")
+	}
+	for i, item := range items {
+		b, err := json.Marshal(item)
+		if err != nil {
+			return end(TaskFailed, ReasonTemplateError, fmt.Sprintf("each: item %d: %v", i, err))
+		}
+		if i == 0 {
+			if err := q.SetTaskRunItem(ctx, executiondb.SetTaskRunItemParams{ID: first.ID, Item: b}); err != nil {
+				return err
+			}
+			continue
+		}
+		id, _ := uuid.NewV7()
+		if err := q.InsertTaskRun(ctx, executiondb.InsertTaskRunParams{ID: id, ExecutionID: first.ExecutionID, TaskKey: first.TaskKey, TaskType: first.TaskType,
+			Attempt: 1, State: TaskPending, ExecutorType: first.ExecutorType, Pool: first.Pool, ItemIndex: int32(i), Item: b}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // finalize ends an execution when all tasks ended (§6.6 execution result, REQ-EXE-013).
-func (e *Engine) finalize(ctx context.Context, tx pgx.Tx, ex executiondb.Execution, def *Definition, latest map[string]executiondb.TaskRun) error {
+func (e *Engine) finalize(ctx context.Context, tx pgx.Tx, ex executiondb.Execution, def *Definition, byTask map[string][]executiondb.TaskRun) error {
+	latest := map[string]executiondb.TaskRun{}
+	for k, items := range byTask {
+		latest[k] = taskResult(items)
+	}
 	q := executiondb.New(tx)
 	now := e.Clock.Now()
 	to, reason, errText := ExecSuccess, "", ""
@@ -311,7 +379,7 @@ func (e *Engine) finalize(ctx context.Context, tx pgx.Tx, ex executiondb.Executi
 			}
 		}
 		if to == ExecSuccess && len(def.Flow.Outputs) > 0 {
-			out, err := e.resolveFlowOutputs(ctx, ex, def, latest)
+			out, err := e.resolveFlowOutputs(ctx, ex, def, byTask)
 			if err != nil {
 				to, reason, errText = ExecFailed, ReasonOutputError, err.Error()
 			} else {
@@ -341,8 +409,8 @@ func (e *Engine) finalize(ctx context.Context, tx pgx.Tx, ex executiondb.Executi
 	return e.subflowParentEnd(ctx, tx, ex)
 }
 
-func (e *Engine) resolveFlowOutputs(ctx context.Context, ex executiondb.Execution, def *Definition, latest map[string]executiondb.TaskRun) (map[string]any, error) {
-	tc, err := e.templateContext(ctx, infoOf(ex), def, latest, nil)
+func (e *Engine) resolveFlowOutputs(ctx context.Context, ex executiondb.Execution, def *Definition, byTask map[string][]executiondb.TaskRun) (map[string]any, error) {
+	tc, err := e.templateContext(ctx, infoOf(ex), def, byTask, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -428,7 +496,8 @@ func (e *Engine) finishTaskTx(ctx context.Context, tx pgx.Tx, taskRunID uuid.UUI
 				nb := now.Add(Backoff(cfg.Retry, int(tr.Attempt)))
 				id, _ := uuid.NewV7()
 				if err := q.InsertTaskRun(ctx, executiondb.InsertTaskRunParams{ID: id, ExecutionID: tr.ExecutionID, TaskKey: tr.TaskKey, TaskType: tr.TaskType,
-					Attempt: tr.Attempt + 1, State: TaskPending, ExecutorType: tr.ExecutorType, Pool: tr.Pool, NotBefore: &nb}); err != nil {
+					Attempt: tr.Attempt + 1, State: TaskPending, ExecutorType: tr.ExecutorType, Pool: tr.Pool, NotBefore: &nb,
+					ItemIndex: tr.ItemIndex, Item: tr.Item}); err != nil {
 					return err
 				}
 			}

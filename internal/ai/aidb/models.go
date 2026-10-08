@@ -355,6 +355,8 @@ type TaskRun struct {
 	Outputs          json.RawMessage
 	ReusedFromID     *uuid.UUID
 	ChildExecutionID *uuid.UUID
+	ItemIndex        int32
+	Item             json.RawMessage
 }
 
 type Trigger struct {

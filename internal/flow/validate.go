@@ -142,10 +142,10 @@ func (v *validation) inputs() {
 
 // fieldRule lists the task fields that belong to one task type.
 var typeFields = map[string][]string{
-	"script":  {"file", "runtime", "args", "files", "artifacts"},
-	"command": {"command", "workdir", "files", "artifacts"},
+	"script":  {"file", "runtime", "args", "files", "artifacts", "each", "max_parallel"},
+	"command": {"command", "workdir", "files", "artifacts", "each", "max_parallel"},
 	"http":    {"method", "url", "headers", "body", "expect_status"},
-	"subflow": {"flow", "inputs", "wait"},
+	"subflow": {"flow", "inputs", "wait", "each", "max_parallel"},
 }
 
 func taskFieldSet(t Task) map[string]bool {
@@ -162,6 +162,8 @@ func taskFieldSet(t Task) map[string]bool {
 	mark("workdir", t.Workdir != "")
 	mark("files", len(t.Files) > 0)
 	mark("artifacts", len(t.Artifacts) > 0)
+	mark("each", t.Each != nil)
+	mark("max_parallel", t.MaxParallel != 0)
 	mark("method", t.Method != "")
 	mark("url", t.URL != "")
 	mark("headers", len(t.Headers) > 0)
@@ -570,6 +572,7 @@ type templateSite struct {
 	task        *Task // nil for flow-level sites
 	flowOutputs bool
 	triggerSite bool
+	eachSite    bool // the each field of the task: item has no value there
 }
 
 func (v *validation) templates(idx map[string]int) {
@@ -617,6 +620,26 @@ func (v *validation) templates(idx map[string]int) {
 		for k, val := range t.Inputs {
 			sites = append(sites, templateSite{path: JoinPath(JoinPath(p, "inputs"), k), value: val, task: t})
 		}
+		switch each := t.Each.(type) {
+		case nil:
+		case []any:
+			if len(each) > MaxEachItems {
+				v.add(CodeOutOfRange, JoinPath(p, "each"), "each has %d items, the limit is %d", len(each), MaxEachItems)
+			}
+		case string:
+			// One template and nothing else: the rendered value is the JSON list.
+			tpl, err := ParseTemplate(each)
+			if err == nil && (len(tpl.segs) != 1 || tpl.segs[0].ref == nil) {
+				v.add(CodeInvalidValue, JoinPath(p, "each"), "each is a list or one template that gives a JSON list, for example ${{ inputs.tables }}")
+			} else {
+				sites = append(sites, templateSite{path: JoinPath(p, "each"), value: each, task: t, eachSite: true})
+			}
+		default:
+			v.add(CodeInvalidType, JoinPath(p, "each"), "each is a list or one template that gives a JSON list")
+		}
+		if t.MaxParallel != 0 && t.Each == nil {
+			v.add(CodeFieldNotAllowed, JoinPath(p, "max_parallel"), "max_parallel on a task needs each")
+		}
 		// Fields where templates are not allowed.
 		for name, val := range map[string]string{"file": t.File, "workdir": t.Workdir, "flow": t.Flow} {
 			if strings.Contains(strings.ReplaceAll(val, "$${{", ""), "${{") {
@@ -641,6 +664,10 @@ func (v *validation) templates(idx map[string]int) {
 				continue
 			}
 			switch r.Kind {
+			case RefItem, RefItemIndex:
+				if s.task == nil || !s.task.HasEach() || s.eachSite {
+					v.add(CodeInvalidTemplate, s.path, "%s has a value only in the fields of a task with each", r.Kind)
+				}
 			case RefSecret:
 				if !s.allowSecret {
 					v.add(CodeSecretNotAllowed, s.path, "secret() is allowed only in env values, files values and http url, headers and body")

@@ -35,6 +35,7 @@ const (
 // Reasons of task runs and executions.
 const (
 	ReasonRunIfNotMet       = "run_if_not_met"
+	ReasonNoItems           = "no_items"
 	ReasonUpstreamFailed    = "upstream_failed"
 	ReasonInstanceShutdown  = "instance_shutdown"
 	ReasonLost              = "lost"
@@ -70,7 +71,8 @@ var execTransitions = map[string][]string{
 }
 
 var taskTransitions = map[string][]string{
-	TaskPending: {TaskQueued, TaskSkipped, TaskCancelled},
+	// PENDING ends at once for a task with each: FAILED for a bad list, SUCCESS for an empty one.
+	TaskPending: {TaskQueued, TaskSkipped, TaskCancelled, TaskFailed, TaskSuccess},
 	TaskQueued:  {TaskRunning, TaskCancelled},
 	TaskRunning: {TaskSuccess, TaskFailed, TaskTimedOut, TaskCancelled},
 }

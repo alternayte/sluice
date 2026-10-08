@@ -17,6 +17,8 @@ type taskRun struct {
 	TaskKey          string          `json:"task_key"`
 	TaskType         string          `json:"task_type"`
 	Attempt          int             `json:"attempt"`
+	ItemIndex        int             `json:"item_index"`
+	Item             any             `json:"item"`
 	State            string          `json:"state"`
 	Reason           string          `json:"reason"`
 	ExecutorType     string          `json:"executor_type"`
@@ -147,6 +149,7 @@ type logEntry struct {
 	TaskRunID string    `json:"task_run_id"`
 	TaskKey   string    `json:"task_key"`
 	Attempt   int       `json:"attempt"`
+	ItemIndex *int      `json:"item_index"`
 	N         int64     `json:"n"`
 	TS        time.Time `json:"ts"`
 	Stream    string    `json:"stream"`

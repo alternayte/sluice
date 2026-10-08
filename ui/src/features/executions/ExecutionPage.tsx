@@ -43,6 +43,7 @@ import {
   executionTitle,
   firstFailedRun,
   isTerminal,
+  taskLabel,
   type GanttRow,
 } from "@/lib/executions";
 import { stateLabel } from "@/lib/flows";
@@ -270,6 +271,7 @@ function Detail({
                   key={e.id}
                   executionId={e.id}
                   task={task}
+                  item={selectedRun?.item != null ? selectedRun.item_index : undefined}
                   onTaskChange={(t) => setSearch({ task: t || undefined, run: undefined })}
                   className="flex-1"
                 />
@@ -585,7 +587,7 @@ function AttemptCard({ run: r, onClose }: { run: TaskRun; onClose: () => void })
       <div className="flex items-center justify-between gap-2">
         <h3 className="flex min-w-0 items-center gap-2 text-sm font-semibold">
           <span className="truncate font-mono">
-            {r.task_key} #{r.attempt}
+            {taskLabel(r)} #{r.attempt}
           </span>
           <ExecutionStateBadge state={r.state} />
         </h3>
@@ -615,6 +617,14 @@ function AttemptCard({ run: r, onClose }: { run: TaskRun; onClose: () => void })
           <dt className="text-muted-foreground">Queue wait</dt>
           <dd className="tabular-nums">{formatDuration(wait)}</dd>
         </div>
+        {r.item != null && (
+          <div className="col-span-2 min-w-0">
+            <dt className="text-muted-foreground">Item</dt>
+            <dd className="truncate font-mono" title={compactJson(r.item)}>
+              {compactJson(r.item)}
+            </dd>
+          </div>
+        )}
         {r.exit_code != null && (
           <div>
             <dt className="text-muted-foreground">Exit code</dt>
@@ -671,7 +681,7 @@ function Outputs({ execution: e, task }: { execution: ExecutionDetail; task: str
       {runs.map((r) => (
         <section key={r.id} className="flex flex-col gap-2">
           <h3 className="font-mono text-xs font-semibold">
-            {r.task_key} #{r.attempt}
+            {taskLabel(r)} #{r.attempt}
           </h3>
           <JsonBlock value={r.outputs} />
         </section>

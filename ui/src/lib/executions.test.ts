@@ -139,6 +139,46 @@ describe("gantt geometry", () => {
   it("handles an empty list", () => {
     expect(ganttLayout([], 5).rows).toEqual([]);
   });
+
+  it("puts the items of a task with each under one group row", () => {
+    const { rows } = ganttLayout(
+      [
+        { id: "1", task_key: "a", attempt: 1, state: "SUCCESS", started_at: t(0), ended_at: t(10) },
+        {
+          id: "3",
+          task_key: "load",
+          attempt: 1,
+          item_index: 1,
+          item: "y",
+          state: "FAILED",
+          started_at: t(12),
+          ended_at: t(20),
+        },
+        {
+          id: "2",
+          task_key: "load",
+          attempt: 1,
+          item_index: 0,
+          item: "x",
+          state: "SUCCESS",
+          started_at: t(10),
+          ended_at: t(30),
+        },
+        { id: "4", task_key: "load", attempt: 2, item_index: 1, item: "y", state: "RUNNING", started_at: t(30) },
+      ],
+      Date.parse(t(40)),
+    );
+    expect(rows.map((r) => r.label)).toEqual(["a #1", "load", "load[0] #1", "load[1] #1", "load[1] #2"]);
+    expect(rows[1]).toMatchObject({
+      id: "each:load",
+      state: "RUNNING",
+      group: { count: 2, done: 1 },
+      left: 25,
+      width: 75,
+    });
+    expect(rows[2]).toMatchObject({ item: 0 });
+    expect(rows[0]!.item).toBeUndefined();
+  });
 });
 
 describe("log filter", () => {

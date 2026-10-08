@@ -9,6 +9,7 @@ import (
 	"errors"
 	"io"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -277,7 +278,18 @@ type LogLine struct {
 	TaskRunID uuid.UUID
 	TaskKey   string
 	Attempt   int
+	// ItemIndex is the position of the item, for a task run of a task with each.
+	ItemIndex *int
 	storedLine
+}
+
+// TaskLabel names a task run in text output: the task key, with the item index in brackets
+// for an item of a task with each, for example load[2].
+func TaskLabel(taskKey string, item *int) string {
+	if item == nil {
+		return taskKey
+	}
+	return taskKey + "[" + strconv.Itoa(*item) + "]"
 }
 
 // ExecutionLines reads the lines of all task runs of an execution, in time order.
@@ -296,8 +308,13 @@ func (e *Engine) ExecutionLines(ctx context.Context, execID uuid.UUID, task stri
 		if err != nil {
 			return nil, err
 		}
+		var item *int
+		if tr.Item != nil {
+			i := int(tr.ItemIndex)
+			item = &i
+		}
 		for _, l := range ls {
-			out = append(out, LogLine{TaskRunID: tr.ID, TaskKey: tr.TaskKey, Attempt: int(tr.Attempt), storedLine: l})
+			out = append(out, LogLine{TaskRunID: tr.ID, TaskKey: tr.TaskKey, Attempt: int(tr.Attempt), ItemIndex: item, storedLine: l})
 		}
 	}
 	sort.SliceStable(out, func(i, j int) bool {

@@ -101,7 +101,9 @@ func TestRunnerProtocolLevel(t *testing.T) {
 		"leak.sh": leak,
 		"f.flow.yaml": "id: f\ntasks:\n  - id: extract\n    type: command\n    command: " + emitData + "\n" +
 			"  - {id: plain, type: script, file: leak.sh, depends_on: [extract]}\n" +
-			"  - id: reads\n    type: script\n    file: leak.sh\n    depends_on: [extract]\n    artifacts:\n      - {from: extract, name: data.parquet}\n",
+			"  - id: reads\n    type: script\n    file: leak.sh\n    depends_on: [extract]\n    artifacts:\n      - {from: extract, name: data.parquet}\n" +
+			"  - id: many\n    type: command\n    each: [\"x\"]\n    command: " + emitData + "\n" +
+			"  - id: reads_items\n    type: script\n    file: leak.sh\n    depends_on: [many]\n    artifacts:\n      - {from: many, name: data.parquet}\n",
 	})
 	d := triggerFlow(t, c, "level", "f", nil, nil)
 	credentials := func(task string) (token, id string) {
@@ -143,6 +145,13 @@ func TestRunnerProtocolLevel(t *testing.T) {
 	}
 	if status, body := spec("reads", ""); status != http.StatusConflict || !strings.Contains(body, "runner_too_old") {
 		t.Fatalf("a task with artifacts, old runner: %d %s", status, body)
+	}
+	// An artifact of an item of a task with each needs level 3: a runner of level 2 gets no item.
+	if status, body := spec("reads_items", "3"); status != http.StatusOK || !strings.Contains(body, `"item":0`) || !strings.Contains(body, `"path":"0/data.parquet"`) {
+		t.Fatalf("artifacts of a task with each, runner of level 3: %d %s", status, body)
+	}
+	if status, body := spec("reads_items", "2"); status != http.StatusConflict || !strings.Contains(body, "runner_too_old") {
+		t.Fatalf("artifacts of a task with each, runner of level 2: %d %s", status, body)
 	}
 	d = waitExec(t, c, d.ID, 30*time.Second, func(x execDetail) bool { return terminal[x.last("reads").State] })
 	if tr := d.last("reads"); tr.State != "FAILED" || tr.Reason != "runner_too_old" || !strings.Contains(tr.Error, "level 1") || !strings.Contains(tr.Error, "level 2") {

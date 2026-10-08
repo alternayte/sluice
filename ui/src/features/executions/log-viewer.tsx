@@ -12,6 +12,8 @@ import { loadLogs, splitLogText } from "@/lib/logs";
 import { cn } from "@/lib/utils";
 
 const lineKey = (l: LogEntry) => `${l.task_run_id}:${l.n}`;
+/** lineTask names the task of a line, with the item index for a task with each. */
+const lineTask = (l: LogEntry) => (l.item_index == null ? l.task_key : `${l.task_key}[${l.item_index}]`);
 const wrapKey = "sluice-log-wrap";
 const rowHeight = 20;
 
@@ -162,11 +164,14 @@ const statusText: Record<Status, string> = {
 export function LogViewer({
   executionId,
   task,
+  item,
   onTaskChange,
   className,
 }: {
   executionId: string;
   task: string;
+  /** item limits the lines to one item of a task with each. */
+  item?: number;
   onTaskChange: (task: string) => void;
   className?: string;
 }) {
@@ -195,11 +200,11 @@ export function LogViewer({
     if (task) set.add(task);
     return [...set].sort();
   }, [lines, task]);
-  const shown = useMemo(() => filterLogs(lines, task, search), [lines, task, search]);
+  const shown = useMemo(() => filterLogs(lines, task, search, item), [lines, task, search, item]);
   const multiTask = !task && tasks.length > 1;
   // The task column fits the longest "task #attempt" label, up to 28 characters.
   const taskWidth = useMemo(
-    () => Math.min(28, Math.max(8, ...lines.slice(0, 2000).map((l) => l.task_key.length + 3))),
+    () => Math.min(28, Math.max(8, ...lines.slice(0, 2000).map((l) => lineTask(l).length + 3))),
     [lines],
   );
   const gutter = String(shown.length).length;
@@ -379,9 +384,9 @@ export function LogViewer({
                         <span
                           className="shrink-0 truncate text-muted-foreground"
                           style={{ width: `${taskWidth}ch` }}
-                          title={`${l.task_key} #${l.attempt}`}
+                          title={`${lineTask(l)} #${l.attempt}`}
                         >
-                          {l.task_key} #{l.attempt}
+                          {lineTask(l)} #{l.attempt}
                         </span>
                       )}
                       <span className={cn("min-w-0", wrap ? "break-all whitespace-pre-wrap" : "whitespace-pre")}>

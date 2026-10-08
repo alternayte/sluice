@@ -182,7 +182,7 @@ func (e *Engine) PutArtifact(ctx context.Context, tr executiondb.TaskRun, name, 
 
 // InputArtifact opens an artifact of a dependency for the task run. The task must declare
 // the artifact, so a run token reads no other artifact (SI-04).
-func (e *Engine) InputArtifact(ctx context.Context, tr executiondb.TaskRun, from, name string) (io.ReadCloser, executiondb.Artifact, error) {
+func (e *Engine) InputArtifact(ctx context.Context, tr executiondb.TaskRun, from, name string, item int) (io.ReadCloser, executiondb.Artifact, error) {
 	q := executiondb.New(e.Pool)
 	ex, err := q.GetExecution(ctx, tr.ExecutionID)
 	if err != nil {
@@ -201,7 +201,7 @@ func (e *Engine) InputArtifact(ctx context.Context, tr executiondb.TaskRun, from
 	if !declared {
 		return nil, executiondb.Artifact{}, httpx.Errorf(http.StatusForbidden, "forbidden", "task %q does not declare artifact %q of task %q", tr.TaskKey, name, from)
 	}
-	a, err := q.GetInputArtifact(ctx, executiondb.GetInputArtifactParams{ExecutionID: tr.ExecutionID, TaskKey: from, Name: name})
+	a, err := q.GetInputArtifact(ctx, executiondb.GetInputArtifactParams{ExecutionID: tr.ExecutionID, TaskKey: from, Name: name, ItemIndex: int32(item)})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, executiondb.Artifact{}, errInputArtifactNotFound(from, name)
 	}

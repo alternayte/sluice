@@ -4,8 +4,9 @@
 # Build bin/sluice first: just build-ui build-go.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# The match skips the moving major tag of the GitHub Action, for example v0.
 # HEAD^ so that the commit of a release tag upgrades from the release before it.
-tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD^)
+tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' HEAD^)
 os=$(uname -s | tr '[:upper:]' '[:lower:]')
 arch=$(uname -m)
 case "$arch" in

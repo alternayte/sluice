@@ -4,7 +4,7 @@
 # The script compares each migration file of the latest release tag with the working tree.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-if ! tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null); then
+if ! tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' 2>/dev/null); then
   echo "checks/migrations.sh: no release tag found. Fetch the tags: git fetch --tags" >&2
   exit 1
 fi

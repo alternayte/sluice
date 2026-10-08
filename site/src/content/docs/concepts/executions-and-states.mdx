@@ -55,13 +55,14 @@ When the execution starts, Sluice creates one task run for each task, in `PENDIN
 
 ## Task runs and attempts
 
-A task run is one attempt of one task. Each task starts with attempt 1. When an attempt ends `FAILED` or `TIMED_OUT` and the retry policy allows another attempt, Sluice creates a new task run with the next attempt number. The new attempt waits in `PENDING` until its backoff delay has passed.
+A task run is one attempt of one task. A task with `each` has one task run for each item, and each item has its own attempts. Each task starts with attempt 1. When an attempt ends `FAILED` or `TIMED_OUT` and the retry policy allows another attempt, Sluice creates a new task run with the next attempt number. The new attempt waits in `PENDING` until its backoff delay has passed.
 
 | Task run state | Meaning |
 |---|---|
 | `PENDING` | The task waits for its dependencies, for its retry delay, or for a free place under `max_parallel`. |
 | `QUEUED` | The task is ready. It waits for an instance of its pool to claim it. |
 | `RUNNING` | An instance claimed the task and runs it. |
+| `WAITING` | A `wait` task has no answer yet. No instance holds the task run. |
 | `SUCCESS` | The task succeeded. |
 | `FAILED` | The task failed, for example with a non-zero exit code. |
 | `TIMED_OUT` | The task timeout ended the task. |
@@ -96,7 +97,7 @@ Both actions create a new execution from an ended one. Both use the pinned versi
 | **Rerun** | Any execution. | Every task, from the start. The trigger type is `rerun`. |
 | **Restart from failed** | `FAILED`, `TIMED_OUT` and `CANCELLED` executions. | Only the tasks whose last attempt did not end `SUCCESS`. The trigger type is `restart`. |
 
-A restart copies each task whose last attempt ended `SUCCESS` into the new execution. The copy ends `SUCCESS` with reason `reused` and keeps the outputs of the original. The other tasks run, and they read the reused outputs through templates. The execution page links the new execution to the original under **Restart of**.
+A restart copies each task whose last attempt ended `SUCCESS` into the new execution. The copy ends `SUCCESS` with reason `reused` and keeps the outputs and the artifacts of the original. The other tasks run, and they read the reused outputs through templates. For a task with `each`, the restart copies each item that ended `SUCCESS` and runs the other items again with the same values. The execution page links the new execution to the original under **Restart of**.
 
 A restart of a `SUCCESS` or `SKIPPED` execution, or of one that has not ended, returns 409 `not_restartable`.
 

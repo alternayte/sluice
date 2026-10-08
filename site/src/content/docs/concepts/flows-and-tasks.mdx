@@ -35,6 +35,7 @@ Every task has an `id` and a `type`. The type decides where the task runs and wh
 | `command` | Runs an argv list. There is no shell. | `command` | An executor. |
 | `http` | Sends one HTTP request. | `url` | The server instance that claims the task. |
 | `subflow` | Starts another flow as a child execution. | `flow` | The server instance that claims the task. |
+| `wait` | Pauses its part of the flow until a person, a script or an agent answers. | — | No instance. The task run waits in the database. |
 
 A field of another type fails validation with `field_not_allowed`, for example `url` on a `script` task.
 
@@ -55,7 +56,13 @@ An `http` task records the outputs `status`, `headers` and `body`. The body hold
 
 A `subflow` task names its child as `<namespace>/<flow_id>`. [Chain flows](/how-to/chain-flows/) shows how to use it.
 
-`script` and `command` tasks run on an executor: a process, a Docker container or a Kubernetes Job. `executor` on an `http` or `subflow` task fails validation with `executor_not_allowed`. [Executors, pools and the runner](/concepts/executors-pools-and-the-runner/) explains the executors.
+A `wait` task has a `message` and the `fields` of its answer. A resume ends it `SUCCESS` with the answer as its outputs, and a reject ends it `FAILED`. [Wait for an answer](/how-to/wait-for-an-answer/) shows how to use it.
+
+A `script`, `command` or `subflow` task with `each` runs one time for each item of a list. Each item is its own task run. [Run a task for each item](/how-to/run-a-task-for-each-item/) shows how to use it.
+
+A `script` or `command` task reads files of its dependencies with `artifacts`. [Pass data between tasks](/how-to/pass-data-between-tasks/) shows how to use it.
+
+`script` and `command` tasks run on an executor: a process, a Docker container or a Kubernetes Job. `executor` on an `http`, `subflow` or `wait` task fails validation with `executor_not_allowed`. [Executors, pools and the runner](/concepts/executors-pools-and-the-runner/) explains the executors.
 
 ## Dependencies and run_if
 

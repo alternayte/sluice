@@ -38,6 +38,7 @@ A task run is one attempt of one task. A retry creates a new task run with the n
 | `PENDING` | no | The task run waits for its dependencies, or for the retry delay of its attempt. |
 | `QUEUED` | no | The task run waits for a free slot on an instance that serves its pool and executor type. |
 | `RUNNING` | no | An instance claimed the task run, and the executor runs it. |
+| `WAITING` | no | A `wait` task has no answer yet. No instance holds the task run, and it uses no slot. |
 | `SUCCESS` | yes | The task ended with success. |
 | `FAILED` | yes | The task failed. The `reason` tells why. |
 | `TIMED_OUT` | yes | The task passed its `timeout`. |
@@ -49,9 +50,10 @@ A task run is one attempt of one task. A retry creates a new task run with the n
 | From | To |
 |---|---|
 | (new) | `PENDING`, or `SUCCESS` with `reused` for a restart |
-| `PENDING` | `QUEUED`, `SKIPPED`, `CANCELLED` |
+| `PENDING` | `QUEUED`, `WAITING`, `SKIPPED`, `CANCELLED` |
 | `QUEUED` | `RUNNING`, `CANCELLED` |
 | `RUNNING` | `SUCCESS`, `FAILED`, `TIMED_OUT`, `CANCELLED` |
+| `WAITING` | `SUCCESS`, `FAILED`, `TIMED_OUT`, `CANCELLED` |
 
 When an attempt ends `FAILED` or `TIMED_OUT` and the task has attempts left, the engine creates the next attempt in `PENDING`. The execution must still be `RUNNING`, and its flow timeout must not have passed.
 

@@ -140,7 +140,7 @@ The artifact works the same on the process, docker and kubernetes executors, and
 
 When the artifact does not exist, the task that reads it fails with reason `artifact_not_found`, and its process does not start. This occurs when the task in `from` did not emit that name, or when its upload failed. The task in `from` keeps its state. Look for a warning in its log, for example a file above `SLUICE_MAX_ARTIFACT_BYTES`.
 
-When the task in `from` ran several attempts, the runner reads the artifact of the last attempt. After `sluice executions restart`, a task reads the artifact of a reused task from the execution that produced it. That artifact is gone when retention has deleted the old execution.
+When the task in `from` ran several attempts, the runner reads the artifact of the last attempt. `sluice executions restart` gives the new execution the artifacts of each reused task. They show on its **Artifacts** tab, and they stay when retention deletes the old execution.
 
 ## Declare flow outputs
 

@@ -1349,6 +1349,12 @@ export type RunnerPostLogsResponse = RunnerPostLogsResponses[keyof RunnerPostLog
 
 export type RunnerGetSpecData = {
   body?: never;
+  headers?: {
+    /**
+     * Protocol level of the runner. A runner that sends none has level 1.
+     */
+    "X-Sluice-Runner-Protocol"?: number;
+  };
   path: {
     taskRunId: string;
   };

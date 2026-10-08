@@ -45,10 +45,6 @@ db-reset:
     docker compose -f deploy/compose/dev.yml exec -T postgres psql -U sluice -d postgres -c 'DROP DATABASE IF EXISTS sluice WITH (FORCE)' -c 'CREATE DATABASE sluice'
     go run ./cmd/sluice migrate
 
-# Compare tests/e2e with the refactor baseline.
-e2e-compare:
-    ./scripts/e2e-compare.sh
-
 # Generate code, schemas and reference docs.
 gen:
     go tool sqlc generate
@@ -91,9 +87,12 @@ build-images:
     docker build -f deploy/docker/Dockerfile --target sluice --build-arg VERSION={{version}} --build-arg COMMIT={{commit}} --build-arg BUILD_DATE={{build_date}} -t sluice:dev .
     docker build -f deploy/docker/Dockerfile --target sluice-uv --build-arg VERSION={{version}} --build-arg COMMIT={{commit}} --build-arg BUILD_DATE={{build_date}} -t sluice-uv:dev .
 
-e2e:
+# The Go e2e suite against bin/sluice. The Docker tests need the images of `just build-images`.
+e2e-go:
     mkdir -p {{junit}}
     SLUICE_E2E_BINARY=$PWD/bin/sluice {{gotestsum}} --junitfile {{junit}}/e2e.xml -- -tags e2e -count=1 -timeout 60m ./tests/e2e/...
+
+e2e: e2e-go
     if [ -f tests/ui/package.json ]; then cd tests/ui && bun install --frozen-lockfile >/dev/null && bunx playwright install chromium >/dev/null && SLUICE_E2E_BINARY=$PWD/../../bin/sluice bunx playwright test; fi
 
 # Run the last release and bin/sluice on one database: the new migrations must keep the

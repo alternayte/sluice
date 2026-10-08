@@ -2855,6 +2855,14 @@ paths:
           required: true
           schema:
             type: string
+        - description: Protocol level of the runner. A runner that sends none has level 1.
+          in: header
+          name: X-Sluice-Runner-Protocol
+          schema:
+            description: Protocol level of the runner. A runner that sends none has level 1.
+            format: int64
+            minimum: 1
+            type: integer
       responses:
         "200":
           content:

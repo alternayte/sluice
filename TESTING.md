@@ -60,7 +60,13 @@ cd tests/ui && SLUICE_E2E_BINARY=$PWD/../../bin/sluice bunx playwright test
 
 The Docker tests in `tests/e2e` need the images. Run `just build-images` first. `just build` builds the UI, the binary and both images.
 
-`just e2e-compare` runs `tests/e2e` and compares the result with `docs/build/e2e-baseline.txt`. It fails when a test that passed in the baseline does not pass now.
+`just e2e-go` runs only the Go suite. Every test must pass. A test that cannot pass in CI has no place in the suite.
+
+### Upgrade
+
+`just upgrade-test` downloads the binary of the last release into `build/upgrade` and runs it and `bin/sluice` on one database. The last release starts with data and a running execution. Then the new migrations apply. The last release must end that execution and start a new one, and `bin/sluice` must then read the same database. Build `bin/sluice` first.
+
+A migration thus keeps the last release working: a release adds tables and columns, and a later release removes what the last one used. `checks/migrations.sh` runs in `just check` and fails when a migration file of the latest release tag changed. Each schema change is a new file in `db/migrations`. There are no down migrations: the way back is a database restore.
 
 ### Kubernetes
 
@@ -157,10 +163,12 @@ Each command must exit 0. `just trace` reads the JUnit reports of the runs befor
 | Job | Steps |
 |---|---|
 | `check` | `just check`, then upload of `build/reports/junit`. |
-| `e2e` | `just build-ui build-go`, `scripts/e2e-compare.sh`, the Playwright type check and the Playwright suite. |
+| `e2e` | `just build-ui build-go`, `just build-images`, `just e2e-go`, the Playwright type check and the Playwright suite. |
+| `k8s` | `just build-images`, then `just e2e-k8s` on kind. |
+| `upgrade` | `just build-go`, then `just upgrade-test`. |
 | `image` | `docker build` of the `sluice` target of `deploy/docker/Dockerfile`. |
 
-CI does not run `just e2e-k8s` or `just perf`.
+Every job must pass before a merge. CI does not run `just perf`.
 
 ## Known test behaviour
 

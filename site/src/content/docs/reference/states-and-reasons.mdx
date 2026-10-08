@@ -80,6 +80,7 @@ When an attempt ends `FAILED` or `TIMED_OUT` and the task has attempts left, the
 | `secret_provider_error` | `FAILED` | The provider of a defined secret failed, for example with no access. | yes |
 | `runtime_not_found` | `FAILED` | The task image or host has no `uv`, `bash`, `bun` or `node` for the script. | yes |
 | `artifact_not_found` | `FAILED` | The task declares an artifact in `artifacts` that its dependency did not emit. The process of the task did not start. | yes |
+| `runner_too_old` | `FAILED` | The `sluice` binary in the task image is older than a feature that the task uses, for example `artifacts`. The error names both protocol levels. Update `sluice` in the image, or remove `inject_runner: false`. | yes |
 | `image_pull_failed` | `FAILED` | Docker or Kubernetes did not pull the task image. | yes |
 | `pod_pending_timeout` | `FAILED` | The pod of a kubernetes task stayed pending longer than `SLUICE_K8S_PENDING_TIMEOUT`. | yes |
 | `executor_error` | `FAILED` | The executor did not start the task, the runner did not prepare the workdir, or an `http` request failed. | yes |

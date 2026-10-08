@@ -17,6 +17,7 @@ dir=build/upgrade
 mkdir -p "$dir"
 if [ ! -x "$dir/$name/sluice" ]; then
   base="https://github.com/alternayte/sluice/releases/download/$tag"
+  echo "upgrade-test: download $base/$name.tar.gz"
   curl -fsSL -o "$dir/$name.tar.gz" "$base/$name.tar.gz"
   curl -fsSL -o "$dir/checksums-$tag.txt" "$base/checksums.txt"
   want=$(awk -v f="$name.tar.gz" '$2 == f || $2 == "*" f {print $1}' "$dir/checksums-$tag.txt")

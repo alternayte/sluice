@@ -521,15 +521,6 @@ func taskResult(items []executiondb.TaskRun) executiondb.TaskRun {
 	return items[0]
 }
 
-// latestRuns returns the result of each task: see taskResult.
-func latestRuns(runs []executiondb.TaskRun) map[string]executiondb.TaskRun {
-	out := map[string]executiondb.TaskRun{}
-	for k, items := range latestItems(runs) {
-		out[k] = taskResult(items)
-	}
-	return out
-}
-
 func sortedKeys[V any](m map[string]V) []string {
 	out := make([]string, 0, len(m))
 	for k := range m {

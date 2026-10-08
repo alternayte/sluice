@@ -47,6 +47,10 @@ UPDATE task_runs SET item = $2 WHERE id = $1 AND state = 'PENDING';
 -- name: QueueTaskRun :execrows
 UPDATE task_runs SET state = 'QUEUED', queued_at = $2, reason = '' WHERE id = $1 AND state = 'PENDING';
 
+-- A task run that the engine ends in the same transaction, with no instance and no process.
+-- name: StartTaskRunHere :exec
+UPDATE task_runs SET state = 'RUNNING', started_at = $2 WHERE id = $1 AND state = 'QUEUED';
+
 -- name: SkipTaskRun :execrows
 UPDATE task_runs SET state = 'SKIPPED', reason = $2, ended_at = $3 WHERE id = $1 AND state = 'PENDING';
 

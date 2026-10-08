@@ -71,8 +71,7 @@ var execTransitions = map[string][]string{
 }
 
 var taskTransitions = map[string][]string{
-	// PENDING ends at once for a task with each: FAILED for a bad list, SUCCESS for an empty one.
-	TaskPending: {TaskQueued, TaskSkipped, TaskCancelled, TaskFailed, TaskSuccess},
+	TaskPending: {TaskQueued, TaskSkipped, TaskCancelled},
 	TaskQueued:  {TaskRunning, TaskCancelled},
 	TaskRunning: {TaskSuccess, TaskFailed, TaskTimedOut, TaskCancelled},
 }

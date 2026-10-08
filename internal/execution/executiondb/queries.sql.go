@@ -1169,6 +1169,21 @@ func (q *Queries) StartExecution(ctx context.Context, arg StartExecutionParams) 
 	return err
 }
 
+const startTaskRunHere = `-- name: StartTaskRunHere :exec
+UPDATE task_runs SET state = 'RUNNING', started_at = $2 WHERE id = $1 AND state = 'QUEUED'
+`
+
+type StartTaskRunHereParams struct {
+	ID        uuid.UUID
+	StartedAt *time.Time
+}
+
+// A task run that the engine ends in the same transaction, with no instance and no process.
+func (q *Queries) StartTaskRunHere(ctx context.Context, arg StartTaskRunHereParams) error {
+	_, err := q.db.Exec(ctx, startTaskRunHere, arg.ID, arg.StartedAt)
+	return err
+}
+
 const touchHeartbeat = `-- name: TouchHeartbeat :one
 UPDATE task_runs SET heartbeat_at = $2 WHERE id = $1 AND state = 'RUNNING' RETURNING cancel_requested
 `

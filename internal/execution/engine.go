@@ -313,9 +313,17 @@ func (e *Engine) advance(ctx context.Context, tx pgx.Tx, execID uuid.UUID) error
 func (e *Engine) expandEach(ctx context.Context, tx pgx.Tx, ex executiondb.Execution, def *Definition, t flow.Task, first executiondb.TaskRun, byTask map[string][]executiondb.TaskRun) error {
 	q := executiondb.New(tx)
 	now := e.Clock.Now()
+	// The task run ends here, with no process. It passes QUEUED and RUNNING at the same
+	// time, so the transitions of §6.6 hold.
 	end := func(state, reason, errText string) error {
+		if _, err := q.QueueTaskRun(ctx, executiondb.QueueTaskRunParams{ID: first.ID, QueuedAt: &now}); err != nil {
+			return err
+		}
+		if err := q.StartTaskRunHere(ctx, executiondb.StartTaskRunHereParams{ID: first.ID, StartedAt: &now}); err != nil {
+			return err
+		}
 		_, err := q.FinishTaskRun(ctx, executiondb.FinishTaskRunParams{ToState: state, Reason: reason, Error: truncate(errText, 4000),
-			EndedAt: &now, ID: first.ID, FromState: TaskPending})
+			EndedAt: &now, ID: first.ID, FromState: TaskRunning})
 		return err
 	}
 	tc, err := e.templateContext(ctx, infoOf(ex), def, byTask, nil)

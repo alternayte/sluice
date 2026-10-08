@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/alternayte/sluice/internal/execution/executiondb"
 	"github.com/alternayte/sluice/internal/storage"
 )
 
@@ -159,17 +160,40 @@ func (e *Engine) DeleteExpired(ctx context.Context, retention time.Duration) (in
 			return total, nil
 		}
 		for _, id := range ids {
-			for _, prefix := range []string{"logs/" + id.String() + "/", "artifacts/" + id.String() + "/"} {
-				var keys []string
-				_ = e.Store.List(ctx, prefix, func(i storage.Info) error { keys = append(keys, i.Key); return nil })
-				for _, k := range keys {
-					if err := e.Store.Delete(ctx, k); err != nil {
-						return total, err
-					}
+			var logs []string
+			_ = e.Store.List(ctx, "logs/"+id.String()+"/", func(i storage.Info) error { logs = append(logs, i.Key); return nil })
+			for _, k := range logs {
+				if err := e.Store.Delete(ctx, k); err != nil {
+					return total, err
 				}
 			}
+			// The artifacts of the execution: the keys of its rows, which can belong to an
+			// execution that it restarted, and the objects that it stored itself.
+			arts, err := executiondb.New(e.Pool).ListExecutionArtifactKeys(ctx, id)
+			if err != nil {
+				return total, err
+			}
+			_ = e.Store.List(ctx, "artifacts/"+id.String()+"/", func(i storage.Info) error { arts = append(arts, i.Key); return nil })
 			if _, err := e.Pool.Exec(ctx, "DELETE FROM executions WHERE id = $1", id); err != nil {
 				return total, err
+			}
+			// A stored artifact goes only when no row names it: a restart shares the object.
+			used, err := executiondb.New(e.Pool).ReferencedArtifactKeys(ctx, arts)
+			if err != nil {
+				return total, err
+			}
+			keep := map[string]bool{}
+			for _, k := range used {
+				keep[k] = true
+			}
+			for _, k := range arts {
+				if keep[k] {
+					continue
+				}
+				keep[k] = true
+				if err := e.Store.Delete(ctx, k); err != nil {
+					return total, err
+				}
 			}
 			total++
 		}

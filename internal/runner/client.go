@@ -10,6 +10,7 @@ import (
 	"io"
 	"math/rand/v2"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -107,6 +108,7 @@ func (c *Client) once(ctx context.Context, method, suffix string, body func() (i
 		return err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set(runnerproto.LevelHeader, strconv.Itoa(runnerproto.Level))
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}

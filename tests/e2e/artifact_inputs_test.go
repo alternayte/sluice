@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -43,6 +44,20 @@ func TestArtifactInputs(t *testing.T) {
 	if second.State != "SUCCESS" || second.last("extract").ReusedFromID == nil {
 		t.Fatalf("restart: %s %s, extract %+v", second.State, second.Error, second.last("extract"))
 	}
+	var arts struct {
+		Items []struct {
+			ID      string `json:"id"`
+			Name    string `json:"name"`
+			TaskKey string `json:"task_key"`
+		} `json:"items"`
+	}
+	c.do(t, http.MethodGet, "/api/v1/executions/"+second.ID+"/artifacts", nil, http.StatusOK, &arts)
+	if len(arts.Items) != 1 || arts.Items[0].Name != "data.parquet" || arts.Items[0].TaskKey != "extract" {
+		t.Fatalf("restart: the new execution does not list the artifact of the reused task run: %+v", arts.Items)
+	}
+	if r := c.do(t, http.MethodGet, "/api/v1/executions/"+second.ID+"/artifacts/"+arts.Items[0].ID, nil, http.StatusOK, nil); !strings.Contains(string(r.Body), "rows-42") {
+		t.Fatalf("restart: artifact download: %s", r.Body)
+	}
 	if logs := logText(allLogs(t, c, second.ID, "render")); !strings.Contains(logs, "rows-42") {
 		t.Fatalf("restart: render did not read the artifact of the reused task run:\n%s", logs)
 	}
@@ -71,5 +86,66 @@ func TestArtifactInputsDocker(t *testing.T) {
 	d := waitTerminal(t, c, triggerFlow(t, c, "dockarts", "pipe", nil, nil).ID, 180*time.Second)
 	if d.State != "SUCCESS" || !strings.Contains(logText(allLogs(t, c, d.ID, "render")), "rows-42") {
 		t.Fatalf("docker: %s %s", d.State, d.Error)
+	}
+}
+
+// TestRunnerProtocolLevel calls the spec route as a runner of the first release, which sends
+// no protocol level. A task without new spec features gets its spec. A task with artifact
+// inputs fails with runner_too_old, because that runner would start the command without the files.
+func TestRunnerProtocolLevel(t *testing.T) {
+	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
+	c := adminClient(t, p)
+	// The script prints the run token of its own runner, then waits for the test.
+	const leak = "ps eww -o command= -p $PPID | tr ' ' '\\n' | grep -E '^SLUICE_(RUN_TOKEN|TASK_RUN_ID)='\nsleep 20\n"
+	saveFiles(t, c, "level", map[string]string{
+		"leak.sh": leak,
+		"f.flow.yaml": "id: f\ntasks:\n  - id: extract\n    type: command\n    command: " + emitData + "\n" +
+			"  - {id: plain, type: script, file: leak.sh, depends_on: [extract]}\n" +
+			"  - id: reads\n    type: script\n    file: leak.sh\n    depends_on: [extract]\n    artifacts:\n      - {from: extract, name: data.parquet}\n",
+	})
+	d := triggerFlow(t, c, "level", "f", nil, nil)
+	credentials := func(task string) (token, id string) {
+		for deadline := time.Now().Add(30 * time.Second); token == "" || id == ""; time.Sleep(200 * time.Millisecond) {
+			for _, l := range allLogs(t, c, d.ID, task) {
+				if v, ok := strings.CutPrefix(l.Text, "SLUICE_RUN_TOKEN="); ok {
+					token = v
+				}
+				if v, ok := strings.CutPrefix(l.Text, "SLUICE_TASK_RUN_ID="); ok {
+					id = v
+				}
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("no run token in the logs of %s", task)
+			}
+		}
+		return token, id
+	}
+	spec := func(task, level string) (int, string) {
+		token, id := credentials(task)
+		req, _ := http.NewRequest(http.MethodGet, p.URL+"/api/runner/v1/task-runs/"+id+"/spec", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		if level != "" {
+			req.Header.Set("X-Sluice-Runner-Protocol", level)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		return resp.StatusCode, string(b)
+	}
+	if status, body := spec("plain", ""); status != http.StatusOK {
+		t.Fatalf("a task without new features, old runner: %d %s", status, body)
+	}
+	if status, body := spec("reads", "2"); status != http.StatusOK {
+		t.Fatalf("a task with artifacts, runner of level 2: %d %s", status, body)
+	}
+	if status, body := spec("reads", ""); status != http.StatusConflict || !strings.Contains(body, "runner_too_old") {
+		t.Fatalf("a task with artifacts, old runner: %d %s", status, body)
+	}
+	d = waitExec(t, c, d.ID, 30*time.Second, func(x execDetail) bool { return terminal[x.last("reads").State] })
+	if tr := d.last("reads"); tr.State != "FAILED" || tr.Reason != "runner_too_old" || !strings.Contains(tr.Error, "level 1") || !strings.Contains(tr.Error, "level 2") {
+		t.Fatalf("reads: %s %s %q", tr.State, tr.Reason, tr.Error)
 	}
 }

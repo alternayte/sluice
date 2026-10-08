@@ -175,12 +175,15 @@ func RunnerRoutes(api huma.API, r chi.Router, e *Engine) {
 	base := runnerproto.BasePath + "/task-runs/{taskRunId}"
 
 	huma.Register(api, httpx.Op("runnerGetSpec", http.MethodGet, base+"/spec", httpx.RunToken),
-		func(ctx context.Context, in *taskRunIn) (*struct{ Body RunnerSpec }, error) {
+		func(ctx context.Context, in *struct {
+			TaskRunID uuid.UUID `path:"taskRunId"`
+			Level     int       `header:"X-Sluice-Runner-Protocol" minimum:"1" doc:"Protocol level of the runner. A runner that sends none has level 1."`
+		}) (*struct{ Body RunnerSpec }, error) {
 			tr, err := runnerTaskRun(ctx, in.TaskRunID)
 			if err != nil {
 				return nil, err
 			}
-			s, err := e.Spec(ctx, tr)
+			s, err := e.SpecForRunner(ctx, tr, in.Level)
 			if err != nil {
 				return nil, err
 			}

@@ -68,6 +68,7 @@ lint: forbid
 
 forbid:
     go run ./tools/buildtool forbid
+    checks/migrations.sh
 
 # Go tests use the integration tag and testcontainers, so Docker must run.
 test:
@@ -94,6 +95,11 @@ e2e:
     mkdir -p {{junit}}
     SLUICE_E2E_BINARY=$PWD/bin/sluice {{gotestsum}} --junitfile {{junit}}/e2e.xml -- -tags e2e -count=1 -timeout 60m ./tests/e2e/...
     if [ -f tests/ui/package.json ]; then cd tests/ui && bun install --frozen-lockfile >/dev/null && bunx playwright install chromium >/dev/null && SLUICE_E2E_BINARY=$PWD/../../bin/sluice bunx playwright test; fi
+
+# Run the last release and bin/sluice on one database: the new migrations must keep the
+# last release working, and the new binary must read its data. Build bin/sluice first.
+upgrade-test:
+    scripts/upgrade-test.sh
 
 e2e-k8s:
     mkdir -p {{junit}}

@@ -24,6 +24,34 @@ const (
 	EnvWorkdir     = "SLUICE_WORKDIR"
 )
 
+// LevelHeader is the request header in which the runner sends its protocol level with the
+// spec request. A runner that sends no header has LevelBase.
+const LevelHeader = "X-Sluice-Runner-Protocol"
+
+// Protocol levels. A level names the spec features that a runner knows. Changes inside
+// /api/runner/v1 only add: each new feature of the spec gets the next level, and the
+// server fails a task that needs a level above that of its runner.
+const (
+	// LevelBase is the protocol of the first release.
+	LevelBase = 1
+	// LevelArtifactInputs adds Spec.Artifacts.
+	LevelArtifactInputs = 2
+	// Level is the level of this binary.
+	Level = LevelArtifactInputs
+)
+
+// ReasonRunnerTooOld is the reason of a task run whose runner is below the level of its spec.
+const ReasonRunnerTooOld = "runner_too_old"
+
+// RequiredLevel returns the lowest protocol level that a runner needs for the spec, and the
+// feature that sets it.
+func RequiredLevel(s *Spec) (int, string) {
+	if len(s.Artifacts) > 0 {
+		return LevelArtifactInputs, "artifacts"
+	}
+	return LevelBase, ""
+}
+
 // Limits of the protocol (REQ-RUN-002, §6.9).
 const (
 	MaxLineBytes       = 16 << 10

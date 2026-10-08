@@ -177,7 +177,13 @@ func launch(t testing.TB, port int, env map[string]string, ready bool) *Proc {
 	for k, v := range env {
 		full[k] = v
 	}
-	cmd := exec.Command(binary(t), "server")
+	return launchBinary(t, binary(t), port, full, ready)
+}
+
+// launchBinary starts the server of one sluice binary with the full environment.
+func launchBinary(t testing.TB, bin string, port int, full map[string]string, ready bool) *Proc {
+	t.Helper()
+	cmd := exec.Command(bin, "server")
 	cmd.Env = baseEnv(full)
 	logs := &syncBuffer{}
 	cmd.Stdout, cmd.Stderr = logs, logs

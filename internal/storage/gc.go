@@ -75,10 +75,10 @@ func (g *GC) Run(ctx context.Context) (*GCResult, error) {
 	if res.Orphans, err = g.orphanFiles(ctx, now); err != nil {
 		return res, err
 	}
-	if res.Logs, err = g.purgedExecutionObjects(ctx, now, "logs/"); err != nil {
+	if res.Logs, err = g.purgedExecutionObjects(ctx, now, "logs/", false); err != nil {
 		return res, err
 	}
-	if res.Artifacts, err = g.purgedExecutionObjects(ctx, now, "artifacts/"); err != nil {
+	if res.Artifacts, err = g.purgedExecutionObjects(ctx, now, "artifacts/", true); err != nil {
 		return res, err
 	}
 	if g.Log != nil {
@@ -220,8 +220,10 @@ func (g *GC) orphanFiles(ctx context.Context, now time.Time) (int, error) {
 	return n, nil
 }
 
-// purgedExecutionObjects deletes objects under prefix/<execution_id>/ when the execution no longer exists.
-func (g *GC) purgedExecutionObjects(ctx context.Context, now time.Time, prefix string) (int, error) {
+// purgedExecutionObjects deletes objects under prefix/<execution_id>/ when the execution no
+// longer exists. With artifacts, an object stays while an artifact row names its key: a
+// restarted execution shares the artifacts of the execution that produced them.
+func (g *GC) purgedExecutionObjects(ctx context.Context, now time.Time, prefix string, artifacts bool) (int, error) {
 	byExec := map[uuid.UUID][]string{}
 	err := g.Store.List(ctx, prefix, func(i Info) error {
 		if now.Sub(i.ModTime) <= orphanGrace {
@@ -267,7 +269,24 @@ func (g *GC) purgedExecutionObjects(ctx context.Context, now time.Time, prefix s
 			if exists[id] {
 				continue
 			}
+			used := map[string]bool{}
+			if artifacts {
+				krows, err := g.Pool.Query(ctx, "SELECT DISTINCT storage_key FROM artifacts WHERE storage_key = ANY($1::text[])", byExec[id])
+				if err != nil {
+					return n, err
+				}
+				for krows.Next() {
+					var k string
+					if err := krows.Scan(&k); err == nil {
+						used[k] = true
+					}
+				}
+				krows.Close()
+			}
 			for _, k := range byExec[id] {
+				if used[k] {
+					continue
+				}
 				if err := g.Store.Delete(ctx, k); err != nil {
 					return n, err
 				}

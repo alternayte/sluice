@@ -1,0 +1,117 @@
+---
+title: Wait for an answer
+description: Pause a flow with a wait task until a person, a script or an agent resumes or rejects it, and use the answer in later tasks.
+---
+
+This guide shows you how to pause a flow until someone answers. Use it for an approval before a deploy, for an event from another system, or to let an agent decide a step.
+
+## Add a wait task
+
+A `wait` task runs no process. It holds its part of the flow until an answer comes.
+
+```yaml flow
+id: deploy
+inputs:
+  - { id: version, type: string, required: true }
+tasks:
+  - id: build
+    type: script
+    file: scripts/build.sh
+  - id: approve
+    type: wait
+    depends_on: [build]
+    timeout: 8h
+    message: "Deploy ${{ inputs.version }} to production?"
+    fields:
+      - { id: reason, type: string, required: true }
+      - { id: replicas, type: int, default: 2 }
+  - id: release
+    type: script
+    file: scripts/release.sh
+    depends_on: [approve]
+    args: ["--replicas", "${{ tasks.approve.outputs.replicas }}"]
+  - id: notify_rejection
+    type: http
+    depends_on: [approve]
+    run_if: failure
+    method: POST
+    url: https://hooks.example.com/rejected
+```
+
+| Field | Use |
+|---|---|
+| `message` | A template with the question. The answer dialog, `sluice executions get` and the API show it. |
+| `fields` | The fields of the answer. They have the shape of flow inputs: `id`, `type`, `required`, `default`, `values` and `description`. |
+| `timeout` | How long the task waits. The default is `24h`. |
+
+A `wait` task takes no `executor`, `each`, `files` or `artifacts`.
+
+## What happens while the task waits
+
+The task run has the state `WAITING`, and the execution stays `RUNNING`. Other tasks that do not depend on the wait continue.
+
+No server instance holds a waiting task run, and it uses no pool slot. Thus it stays through a restart or an upgrade of every instance.
+
+A `wait` task sends no message. To tell people about it, put a task before it. For example, an `http` task can post the link of the execution to a chat webhook.
+
+## Find what waits
+
+```sh
+sluice executions list --waiting
+sluice executions get <execution-id>
+```
+
+`sluice executions get` prints the question and the fields of each waiting task.
+
+In the UI, open the **Executions** page and select **Waiting for an answer** in the filters.
+
+The API takes the query `waiting=true` on the executions list.
+
+## Resume
+
+A resume ends the task run `SUCCESS`. The values become the outputs of the task, so later tasks read them with `${{ tasks.approve.outputs.reason }}`.
+
+```sh
+sluice executions resume <execution-id> --task approve --input reason="checked the canary" --input replicas=4
+```
+
+Each `--input` converts by the type of its field, as for `sluice run`. A field with a default needs no value. Sluice checks the answer with the rules of flow inputs. An answer with an error changes nothing, and the task still waits:
+
+```console
+$ sluice executions resume 0198c2a4-7f3e-7b21-9c55-2f1d8e6a4b10 --task approve
+error: validation_failed: validation failed
+  inputs.reason: required input is missing
+```
+
+In the UI, the execution page shows a line for each waiting task. Click **Answer**, fill in the form and click **Resume**.
+
+## Reject
+
+A reject ends the task run `FAILED` with reason `rejected`. The message becomes its error.
+
+```sh
+sluice executions reject <execution-id> --task approve --message "the canary has errors"
+```
+
+Later tasks with the default `run_if: success` are then `SKIPPED`, and a task with `run_if: failure` runs. The execution ends `FAILED`.
+
+## Limits and rules
+
+| Case | Result |
+|---|---|
+| A second answer to the same task. | 409 `not_waiting`. |
+| No answer before the `timeout`. | The task run ends `TIMED_OUT`. |
+| A user cancels the execution. | The task run ends `CANCELLED`. |
+| A `retry` policy on the task or the flow. | It does not apply to a `wait` task. A retry asks the same question again. |
+
+A resume and a reject need the operator role. The audit log records each answer with the user or the token and the values. Do not put a secret value in an answer.
+
+## Let an agent answer
+
+The MCP server has `resume_execution` and `reject_execution`. An agent finds the waiting tasks with `list_executions` and `waiting: true`, reads the question in `task_runs[].wait` of `get_execution`, and answers. The token of the agent needs the operator role.
+
+## Related pages
+
+- [Executions and states](/concepts/executions-and-states/)
+- [Retry, time out and limit executions](/how-to/retry-time-out-and-limit/)
+- [Connect an MCP client](/how-to/connect-an-mcp-client/)

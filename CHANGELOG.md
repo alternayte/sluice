@@ -6,16 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-08
+
 ### Added
 
+- The `wait` task type pauses its part of a flow until an answer comes. The task run has the new state `WAITING`, belongs to no instance and stays through a restart of the server. `sluice executions resume <id> --task <task> --input k=v` ends it `SUCCESS` with the values as its outputs. `sluice executions reject` ends it `FAILED` with reason `rejected`. The task `timeout` ends it `TIMED_OUT`. The API has `POST /api/v1/executions/{id}/tasks/{task}/resume` and `/reject`, MCP has `resume_execution` and `reject_execution`, and the UI has an answer dialog. `sluice executions list --waiting` and `?waiting=true` find the executions that wait.
 - A `script`, `command` or `subflow` task with `each` runs one time for each item of a list of at most 1000 items. Each item has its own task run, retry and log. `${{ item }}` and `${{ item_index }}` give the item and its position. `max_parallel` on the task limits the items that run at the same time. A later task reads each output as a list in item order, and gets one artifact file for each item. `sluice executions restart` runs only the items that did not succeed.
 - The task run API has `item_index` and `item`, and log lines have `item_index`. The CLI and the timeline show an item as `task[index]`.
-
 - The runner sends its protocol level with the spec request. A task that uses a feature above the level of its runner fails with reason `runner_too_old`, and its command does not start. This applies to an image with `inject_runner: false` that holds an older `sluice`. A task without new features still runs on an old runner.
 - `just upgrade-test` runs the last release and the new binary on one database. CI runs it, the full e2e suite with the Docker tests, and the Kubernetes suite on kind for each pull request.
 
 ### Changed
 
+- An instance stays ready when the database has a migration of a later release. Before, its `migrations` readiness check failed during a rolling update.
 - `sluice executions restart` gives the new execution the artifacts of each reused task. They show on its Artifacts tab and stay when retention deletes the old execution. A stored artifact is deleted when no execution uses it.
 - A released migration file never changes, and each migration keeps the last release working. `checks/migrations.sh` checks the first rule in `just check`.
 
@@ -217,7 +220,8 @@ The first version of Sluice. It is one Go binary with an embedded React UI, and 
 - A CI workflow with the jobs `check`, `e2e` and `image`.
 - A release workflow. A `v*.*.*` tag attaches the binaries for Linux and macOS to a GitHub release, and pushes the `sluice` and `sluice-uv` images to `ghcr.io/alternayte` for amd64 and arm64.
 
-[Unreleased]: https://github.com/alternayte/sluice/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/alternayte/sluice/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/alternayte/sluice/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/alternayte/sluice/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/alternayte/sluice/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/alternayte/sluice/compare/v0.2.1...v0.2.2

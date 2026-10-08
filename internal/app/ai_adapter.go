@@ -106,7 +106,7 @@ func (d aiData) Validate(ctx context.Context, ns, path, content string) ([]ai.Is
 }
 
 func (d aiData) Executions(ctx context.Context, f ai.ExecutionFilter) (any, error) {
-	return d.e.ListExecutions(ctx, f.Namespace, f.Flow, f.State, f.Limit)
+	return d.e.ListExecutions(ctx, f.Namespace, f.Flow, f.State, f.Waiting, f.Limit)
 }
 
 func (d aiData) Execution(ctx context.Context, id uuid.UUID) (any, error) { return d.e.Detail(ctx, id) }
@@ -164,6 +164,20 @@ func (d aiData) Restart(ctx context.Context, id uuid.UUID) (any, error) {
 		return nil, err
 	}
 	return d.e.Detail(ctx, nid)
+}
+
+func (d aiData) Resume(ctx context.Context, id uuid.UUID, task string, values map[string]any) (any, error) {
+	if err := d.e.ResumeTask(ctx, id, task, values); err != nil {
+		return nil, err
+	}
+	return d.e.Detail(ctx, id)
+}
+
+func (d aiData) Reject(ctx context.Context, id uuid.UUID, task, message string) (any, error) {
+	if err := d.e.RejectTask(ctx, id, task, message); err != nil {
+		return nil, err
+	}
+	return d.e.Detail(ctx, id)
 }
 
 func (d aiData) FailedAttempts(ctx context.Context, id uuid.UUID) ([]ai.TaskAttempt, error) {

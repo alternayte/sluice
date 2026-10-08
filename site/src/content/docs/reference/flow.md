@@ -145,6 +145,8 @@ A flow file matches `*.flow.yaml` or `*.flow.yml`. `namespace.yaml` at the names
 | `flow` | string | subflow: child flow as &lt;namespace&gt;/&lt;flow_id&gt;. Required for subflow. |
 | `inputs` | map of string | subflow: input templates of the child flow. |
 | `wait` | boolean | subflow: wait for the child to end. Default true. |
+| `fields` | list of Input | wait: fields of the answer, in the shape of flow inputs. The values of a resume become the outputs of the task. |
+| `message` | string | wait: message template for the person or agent that answers. |
 
 ## ArtifactInput
 

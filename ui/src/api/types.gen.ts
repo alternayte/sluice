@@ -707,8 +707,26 @@ export type PushResult = {
   [key: string]: unknown;
 };
 
+export type RejectBody = {
+  /**
+   * The reason. It becomes the error of the task run.
+   */
+  message?: string;
+  [key: string]: unknown;
+};
+
 export type ResetPasswordRequest = {
   password: string;
+  [key: string]: unknown;
+};
+
+export type ResumeBody = {
+  /**
+   * Values of the fields of the wait task. They become the outputs of the task.
+   */
+  inputs?: {
+    [key: string]: unknown;
+  };
   [key: string]: unknown;
 };
 
@@ -1017,9 +1035,13 @@ export type TaskRun = {
   reason: string;
   reused_from_id?: string | null;
   started_at?: string | null;
-  state: "PENDING" | "QUEUED" | "RUNNING" | "SUCCESS" | "FAILED" | "TIMED_OUT" | "CANCELLED" | "SKIPPED";
+  state: "PENDING" | "QUEUED" | "RUNNING" | "WAITING" | "SUCCESS" | "FAILED" | "TIMED_OUT" | "CANCELLED" | "SKIPPED";
   task_key: string;
   task_type: string;
+  /**
+   * The question of a wait task. Set from the time the task waits.
+   */
+  wait?: WaitInfo;
   [key: string]: unknown;
 };
 
@@ -1172,6 +1194,22 @@ export type VersionDiff = {
   files: Array<FileDiff>;
   from: number;
   to: number;
+  [key: string]: unknown;
+};
+
+export type WaitField = {
+  default?: unknown;
+  description?: string;
+  id: string;
+  required: boolean;
+  type: "string" | "int" | "number" | "boolean" | "select" | "json";
+  values?: Array<unknown>;
+  [key: string]: unknown;
+};
+
+export type WaitInfo = {
+  fields: Array<WaitField>;
+  message: string;
   [key: string]: unknown;
 };
 
@@ -1884,6 +1922,10 @@ export type ListExecutionsData = {
      * Label filter key=value. Repeat for several labels.
      */
     label?: Array<string>;
+    /**
+     * Only executions with a task that waits for an answer.
+     */
+    waiting?: boolean;
     from?: string;
     to?: string;
     sort?: "created" | "duration";
@@ -2247,6 +2289,62 @@ export type RestartExecutionResponses = {
 };
 
 export type RestartExecutionResponse = RestartExecutionResponses[keyof RestartExecutionResponses];
+
+export type RejectTaskData = {
+  body: RejectBody;
+  path: {
+    executionId: string;
+    task: string;
+  };
+  query?: never;
+  url: "/api/v1/executions/{executionId}/tasks/{task}/reject";
+};
+
+export type RejectTaskErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type RejectTaskError = RejectTaskErrors[keyof RejectTaskErrors];
+
+export type RejectTaskResponses = {
+  /**
+   * OK
+   */
+  200: ExecutionDetail;
+};
+
+export type RejectTaskResponse = RejectTaskResponses[keyof RejectTaskResponses];
+
+export type ResumeTaskData = {
+  body: ResumeBody;
+  path: {
+    executionId: string;
+    task: string;
+  };
+  query?: never;
+  url: "/api/v1/executions/{executionId}/tasks/{task}/resume";
+};
+
+export type ResumeTaskErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type ResumeTaskError = ResumeTaskErrors[keyof ResumeTaskErrors];
+
+export type ResumeTaskResponses = {
+  /**
+   * OK
+   */
+  200: ExecutionDetail;
+};
+
+export type ResumeTaskResponse = ResumeTaskResponses[keyof ResumeTaskResponses];
 
 export type ListFlowsData = {
   body?: never;

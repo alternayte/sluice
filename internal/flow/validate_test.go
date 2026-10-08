@@ -165,3 +165,39 @@ func TestTaskEach(t *testing.T) {
 		}
 	}
 }
+
+// TestWaitTask checks the wait task type: fields have the rules of flow inputs, and the
+// task takes no executor, each, files or artifacts.
+func TestWaitTask(t *testing.T) {
+	cases := map[string]string{
+		"{id: w, type: wait}": "",
+		"{id: w, type: wait, message: \"Deploy ${{ inputs.v }}?\", fields: [{id: reason, type: string, required: true}], timeout: 1h}": "",
+		"{id: w, type: wait, fields: [{id: a, type: string}, {id: a, type: int}]}":                                                     CodeDuplicateInputID,
+		"{id: w, type: wait, fields: [{id: a, type: select}]}":                                                                         CodeMissingField,
+		"{id: w, type: wait, fields: [{id: a, type: int, default: x}]}":                                                                CodeInvalidInputDefault,
+		"{id: w, type: wait, message: \"${{ inputs.nope }}\"}":                                                                         CodeUnknownInput,
+		"{id: w, type: wait, message: \"${{ secret('K') }}\"}":                                                                         CodeSecretNotAllowed,
+		"{id: w, type: wait, executor: {type: docker, image: x}}":                                                                      CodeExecutorNotAllowed,
+		"{id: w, type: wait, each: [1]}":                                                                                               CodeFieldNotAllowed,
+		"{id: w, type: wait, files: {a.txt: v}}":                                                                                       CodeFieldNotAllowed,
+		"{id: w, type: wait, command: [\"true\"]}":                                                                                     CodeFieldNotAllowed,
+		"{id: c, type: command, command: [\"true\"], fields: [{id: a, type: string}]}":                                                 CodeFieldNotAllowed,
+	}
+	for task, code := range cases {
+		src := "id: f\ninputs:\n  - {id: v, type: string}\ntasks:\n  - " + task + "\n"
+		pf := ValidateNamespace(map[string][]byte{"f.flow.yaml": []byte(src)}).Flows[0]
+		if code == "" {
+			if !pf.Valid() {
+				t.Errorf("%s: want valid, got %v", task, pf.Issues)
+			}
+			continue
+		}
+		found := false
+		for _, is := range pf.Issues {
+			found = found || is.Code == code
+		}
+		if !found {
+			t.Errorf("%s: want %s, got %v", task, code, pf.Issues)
+		}
+	}
+}

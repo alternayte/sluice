@@ -228,6 +228,9 @@ import type {
   PutNamespaceVariableResponses,
   RejectAiActionData,
   RejectAiActionResponses,
+  RejectTaskData,
+  RejectTaskErrors,
+  RejectTaskResponses,
   RequestTriageData,
   RequestTriageErrors,
   RequestTriageResponses,
@@ -240,6 +243,9 @@ import type {
   RestartExecutionData,
   RestartExecutionErrors,
   RestartExecutionResponses,
+  ResumeTaskData,
+  ResumeTaskErrors,
+  ResumeTaskResponses,
   RevertVersionData,
   RevertVersionErrors,
   RevertVersionResponses,
@@ -698,6 +704,30 @@ export const restartExecution = <ThrowOnError extends boolean = false>(
   (options.client ?? client).post<RestartExecutionResponses, RestartExecutionErrors, ThrowOnError>({
     url: "/api/v1/executions/{executionId}/restart",
     ...options,
+  });
+
+export const rejectTask = <ThrowOnError extends boolean = false>(
+  options: Options<RejectTaskData, ThrowOnError>,
+): RequestResult<RejectTaskResponses, RejectTaskErrors, ThrowOnError> =>
+  (options.client ?? client).post<RejectTaskResponses, RejectTaskErrors, ThrowOnError>({
+    url: "/api/v1/executions/{executionId}/tasks/{task}/reject",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+export const resumeTask = <ThrowOnError extends boolean = false>(
+  options: Options<ResumeTaskData, ThrowOnError>,
+): RequestResult<ResumeTaskResponses, ResumeTaskErrors, ThrowOnError> =>
+  (options.client ?? client).post<ResumeTaskResponses, ResumeTaskErrors, ThrowOnError>({
+    url: "/api/v1/executions/{executionId}/tasks/{task}/resume",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 
 export const listFlows = <ThrowOnError extends boolean = false>(

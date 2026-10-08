@@ -30,6 +30,9 @@ func TestSCN_EXE_002_StateTransitions(t *testing.T) {
 	}
 	allowedTask := map[[2]string]bool{
 		{"PENDING", "QUEUED"}: true, {"PENDING", "SKIPPED"}: true, {"PENDING", "CANCELLED"}: true,
+		// The wait task (docs/specs/wait-task.md): a task run waits for an answer with no instance.
+		{"PENDING", "WAITING"}: true,
+		{"WAITING", "SUCCESS"}: true, {"WAITING", "FAILED"}: true, {"WAITING", "TIMED_OUT"}: true, {"WAITING", "CANCELLED"}: true,
 		{"QUEUED", "RUNNING"}: true, {"QUEUED", "CANCELLED"}: true,
 		{"RUNNING", "SUCCESS"}: true, {"RUNNING", "FAILED"}: true, {"RUNNING", "TIMED_OUT"}: true, {"RUNNING", "CANCELLED"}: true,
 	}
@@ -66,7 +69,7 @@ func TestSCN_EXE_002_StateTransitions(t *testing.T) {
 		exec, ns, snap); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO task_runs (id, execution_id, task_key, state) VALUES ($1, $2, 't', 'WAITING')`, uuid.New(), exec); err == nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO task_runs (id, execution_id, task_key, state) VALUES ($1, $2, 't', 'PAUSED')`, uuid.New(), exec); err == nil {
 		t.Fatal("unknown task state accepted")
 	}
 }

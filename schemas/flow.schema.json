@@ -358,7 +358,8 @@
             "script",
             "command",
             "http",
-            "subflow"
+            "subflow",
+            "wait"
           ],
           "description": "Task type."
         },
@@ -500,6 +501,19 @@
         "wait": {
           "type": "boolean",
           "description": "subflow: wait for the child to end. Default true."
+        },
+        "fields": {
+          "items": {
+            "$ref": "#/$defs/Input"
+          },
+          "type": "array",
+          "maxItems": 50,
+          "description": "wait: fields of the answer, in the shape of flow inputs. The values of a resume become the outputs of the task."
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "wait: message template for the person or agent that answers."
         }
       },
       "additionalProperties": false,

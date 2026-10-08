@@ -42,6 +42,7 @@ export function stateBarClass(state: string): string {
     case "CANCELLING":
       return "bg-state-running";
     case "TIMED_OUT":
+    case "WAITING":
       return "bg-state-timed-out";
     case "CANCELLED":
       return "bg-state-cancelled";
@@ -108,6 +109,8 @@ export type ExecutionsSearch = {
   from?: string;
   to?: string;
   sort?: "duration";
+  /** waiting keeps only executions with a task that waits for an answer. */
+  waiting?: "true";
 };
 
 /** validateExecutionsSearch keeps only known and valid search params. */
@@ -125,6 +128,7 @@ export function validateExecutionsSearch(s: Record<string, unknown>): Executions
   if (str(s.from)) out.from = str(s.from);
   if (str(s.to)) out.to = str(s.to);
   if (s.sort === "duration") out.sort = "duration";
+  if (s.waiting === "true" || s.waiting === true) out.waiting = "true";
   return out;
 }
 
@@ -139,6 +143,7 @@ export function listQuery(s: ExecutionsSearch) {
     label: labels.length ? labels : undefined,
     from: localToIso(s.from),
     to: localToIso(s.to),
+    waiting: s.waiting === "true" ? true : undefined,
     sort: s.sort ?? ("created" as const),
   };
 }

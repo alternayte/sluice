@@ -118,23 +118,26 @@ func Semantic(f *Flow, pos Positions, files map[string]bool, nsDefaults *Default
 	return v.issues
 }
 
-func (v *validation) inputs() {
+func (v *validation) inputs() { v.inputDefs("inputs", "input", v.f.Inputs) }
+
+// inputDefs checks a list of input definitions: the flow inputs, or the fields of a wait task.
+func (v *validation) inputDefs(at, word string, defs []Input) {
 	seen := map[string]bool{}
-	for i, in := range v.f.Inputs {
-		p := IndexPath("inputs", i)
+	for i, in := range defs {
+		p := IndexPath(at, i)
 		if seen[in.ID] {
-			v.add(CodeDuplicateInputID, JoinPath(p, "id"), "duplicate input ID %q", in.ID)
+			v.add(CodeDuplicateInputID, JoinPath(p, "id"), "duplicate %s ID %q", word, in.ID)
 		}
 		seen[in.ID] = true
 		if in.Type == "select" && len(in.Values) == 0 {
-			v.add(CodeMissingField, p, "select input %q needs values", in.ID)
+			v.add(CodeMissingField, p, "select %s %q needs values", word, in.ID)
 		}
 		if in.Type != "select" && len(in.Values) > 0 {
-			v.add(CodeFieldNotAllowed, JoinPath(p, "values"), "values are allowed only on select inputs")
+			v.add(CodeFieldNotAllowed, JoinPath(p, "values"), "values are allowed only on select %ss", word)
 		}
 		if in.Default != nil {
 			if _, err := CoerceInput(in, in.Default); err != nil {
-				v.add(CodeInvalidInputDefault, JoinPath(p, "default"), "default of input %q: %v", in.ID, err)
+				v.add(CodeInvalidInputDefault, JoinPath(p, "default"), "default of %s %q: %v", word, in.ID, err)
 			}
 		}
 	}
@@ -146,6 +149,7 @@ var typeFields = map[string][]string{
 	"command": {"command", "workdir", "files", "artifacts", "each", "max_parallel"},
 	"http":    {"method", "url", "headers", "body", "expect_status"},
 	"subflow": {"flow", "inputs", "wait", "each", "max_parallel"},
+	"wait":    {"fields", "message"},
 }
 
 func taskFieldSet(t Task) map[string]bool {
@@ -172,6 +176,8 @@ func taskFieldSet(t Task) map[string]bool {
 	mark("flow", t.Flow != "")
 	mark("inputs", len(t.Inputs) > 0)
 	mark("wait", t.Wait != nil)
+	mark("fields", len(t.Fields) > 0)
+	mark("message", t.Message != "")
 	return set
 }
 
@@ -240,7 +246,10 @@ func (v *validation) tasks() map[string]int {
 				v.add(CodeTemplateNotAllowed, JoinPath(JoinPath(p, "files"), k), "templates are not allowed in file paths")
 			}
 		}
-		if t.Type == "http" || t.Type == "subflow" {
+		if t.Type == "wait" {
+			v.inputDefs(JoinPath(p, "fields"), "field", t.Fields)
+		}
+		if t.Type == "http" || t.Type == "subflow" || t.Type == "wait" {
 			if t.Executor != nil {
 				v.add(CodeExecutorNotAllowed, JoinPath(p, "executor"), "executor is not allowed on %s tasks", t.Type)
 			}
@@ -616,6 +625,9 @@ func (v *validation) templates(idx map[string]int) {
 		}
 		if t.Body != "" {
 			sites = append(sites, templateSite{path: JoinPath(p, "body"), value: t.Body, allowSecret: true, task: t})
+		}
+		if t.Message != "" {
+			sites = append(sites, templateSite{path: JoinPath(p, "message"), value: t.Message, task: t})
 		}
 		for k, val := range t.Inputs {
 			sites = append(sites, templateSite{path: JoinPath(JoinPath(p, "inputs"), k), value: val, task: t})

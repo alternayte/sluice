@@ -109,7 +109,7 @@ type Toleration struct {
 // Task is one task (§6.4). Type-specific fields are checked by semantic validation.
 type Task struct {
 	ID          string            `yaml:"id" json:"id" jsonschema:"required,pattern=^[a-z][a-z0-9_]*$,maxLength=63" jsonschema_description:"Task ID. Unique in the flow."`
-	Type        string            `yaml:"type" json:"type" jsonschema:"required,enum=script,enum=command,enum=http,enum=subflow" jsonschema_description:"Task type."`
+	Type        string            `yaml:"type" json:"type" jsonschema:"required,enum=script,enum=command,enum=http,enum=subflow,enum=wait" jsonschema_description:"Task type."`
 	DependsOn   []string          `yaml:"depends_on,omitempty" json:"depends_on,omitempty" jsonschema_description:"IDs of tasks that must end first."`
 	RunIf       string            `yaml:"run_if,omitempty" json:"run_if,omitempty" jsonschema:"enum=success,enum=failure,enum=always" jsonschema_description:"success: all dependencies succeeded. failure: at least one dependency failed or timed out. always: all dependencies ended. Default success."`
 	Timeout     Duration          `yaml:"timeout,omitempty" json:"timeout,omitempty" jsonschema_description:"Task timeout. Default 24h."`
@@ -141,6 +141,10 @@ type Task struct {
 	Flow   string            `yaml:"flow,omitempty" json:"flow,omitempty" jsonschema_description:"subflow: child flow as <namespace>/<flow_id>. Required for subflow."`
 	Inputs map[string]string `yaml:"inputs,omitempty" json:"inputs,omitempty" jsonschema_description:"subflow: input templates of the child flow."`
 	Wait   *bool             `yaml:"wait,omitempty" json:"wait,omitempty" jsonschema_description:"subflow: wait for the child to end. Default true."`
+
+	// wait
+	Fields  []Input `yaml:"fields,omitempty" json:"fields,omitempty" jsonschema:"maxItems=50" jsonschema_description:"wait: fields of the answer, in the shape of flow inputs. The values of a resume become the outputs of the task."`
+	Message string  `yaml:"message,omitempty" json:"message,omitempty" jsonschema:"maxLength=2000" jsonschema_description:"wait: message template for the person or agent that answers."`
 }
 
 // ArtifactInput is one artifact of a dependency that a task reads. All fields are literals.

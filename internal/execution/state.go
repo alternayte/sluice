@@ -22,9 +22,11 @@ const (
 
 // Task run states (§6.6).
 const (
-	TaskPending   = "PENDING"
-	TaskQueued    = "QUEUED"
-	TaskRunning   = "RUNNING"
+	TaskPending = "PENDING"
+	TaskQueued  = "QUEUED"
+	TaskRunning = "RUNNING"
+	// TaskWaiting is a wait task that has no answer yet. No instance holds it.
+	TaskWaiting   = "WAITING"
 	TaskSuccess   = "SUCCESS"
 	TaskFailed    = "FAILED"
 	TaskTimedOut  = "TIMED_OUT"
@@ -56,13 +58,14 @@ const (
 	ReasonChildFailed       = "child_failed"
 	ReasonExecutor          = "executor_error"
 	ReasonFlowDisabled      = "flow_disabled"
+	ReasonRejected          = "rejected"
 )
 
 // ExecutionStates lists all execution states.
 var ExecutionStates = []string{ExecQueued, ExecRunning, ExecCancelling, ExecSuccess, ExecFailed, ExecTimedOut, ExecCancelled, ExecSkipped}
 
 // TaskStates lists all task run states.
-var TaskStates = []string{TaskPending, TaskQueued, TaskRunning, TaskSuccess, TaskFailed, TaskTimedOut, TaskCancelled, TaskSkipped}
+var TaskStates = []string{TaskPending, TaskQueued, TaskRunning, TaskWaiting, TaskSuccess, TaskFailed, TaskTimedOut, TaskCancelled, TaskSkipped}
 
 var execTransitions = map[string][]string{
 	ExecQueued:     {ExecRunning, ExecSkipped, ExecCancelled},
@@ -71,9 +74,10 @@ var execTransitions = map[string][]string{
 }
 
 var taskTransitions = map[string][]string{
-	TaskPending: {TaskQueued, TaskSkipped, TaskCancelled},
+	TaskPending: {TaskQueued, TaskWaiting, TaskSkipped, TaskCancelled},
 	TaskQueued:  {TaskRunning, TaskCancelled},
 	TaskRunning: {TaskSuccess, TaskFailed, TaskTimedOut, TaskCancelled},
+	TaskWaiting: {TaskSuccess, TaskFailed, TaskTimedOut, TaskCancelled},
 }
 
 // TransitionError is returned for a transition that §6.6 does not allow.

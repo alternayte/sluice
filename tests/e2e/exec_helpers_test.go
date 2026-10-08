@@ -13,25 +13,31 @@ import (
 )
 
 type taskRun struct {
-	ID               string          `json:"id"`
-	TaskKey          string          `json:"task_key"`
-	TaskType         string          `json:"task_type"`
-	Attempt          int             `json:"attempt"`
-	ItemIndex        int             `json:"item_index"`
-	Item             any             `json:"item"`
-	State            string          `json:"state"`
-	Reason           string          `json:"reason"`
-	ExecutorType     string          `json:"executor_type"`
-	Pool             string          `json:"pool"`
-	QueuedAt         *time.Time      `json:"queued_at"`
-	StartedAt        *time.Time      `json:"started_at"`
-	EndedAt          *time.Time      `json:"ended_at"`
-	ExitCode         *int            `json:"exit_code"`
-	Error            string          `json:"error"`
-	Outputs          map[string]any  `json:"outputs"`
-	ReusedFromID     *string         `json:"reused_from_id"`
-	ChildExecutionID *string         `json:"child_execution_id"`
-	Raw              json.RawMessage `json:"-"`
+	ID               string         `json:"id"`
+	TaskKey          string         `json:"task_key"`
+	TaskType         string         `json:"task_type"`
+	Attempt          int            `json:"attempt"`
+	ItemIndex        int            `json:"item_index"`
+	Item             any            `json:"item"`
+	State            string         `json:"state"`
+	Reason           string         `json:"reason"`
+	ExecutorType     string         `json:"executor_type"`
+	Pool             string         `json:"pool"`
+	QueuedAt         *time.Time     `json:"queued_at"`
+	StartedAt        *time.Time     `json:"started_at"`
+	EndedAt          *time.Time     `json:"ended_at"`
+	ExitCode         *int           `json:"exit_code"`
+	Error            string         `json:"error"`
+	Outputs          map[string]any `json:"outputs"`
+	ReusedFromID     *string        `json:"reused_from_id"`
+	ChildExecutionID *string        `json:"child_execution_id"`
+	Wait             *struct {
+		Message string `json:"message"`
+		Fields  []struct {
+			ID string `json:"id"`
+		} `json:"fields"`
+	} `json:"wait"`
+	Raw json.RawMessage `json:"-"`
 }
 
 type execDetail struct {

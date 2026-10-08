@@ -357,6 +357,7 @@ type TaskRun struct {
 	ChildExecutionID *uuid.UUID
 	ItemIndex        int32
 	Item             json.RawMessage
+	WaitMessage      string
 }
 
 type Trigger struct {

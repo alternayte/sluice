@@ -29,6 +29,7 @@ import { LabelBadges } from "@/components/execution-bits";
 import { Gantt } from "@/features/executions/gantt";
 import { LogViewer } from "@/features/executions/log-viewer";
 import { ExecutionStateBadge } from "@/components/state-badges";
+import { AnswerWaitDialog } from "@/components/run-dialogs";
 import { Button, buttonClass } from "@/components/ui/button";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
 import { Tabs } from "@/components/ui/tabs";
@@ -165,6 +166,10 @@ function Detail({
   const task = search.task ?? "";
   const selectedRun = e.task_runs.find((r) => r.id === search.run) ?? undefined;
   const failed = firstFailedRun(e.task_runs);
+  const qc = useQueryClient();
+  const waitingRuns = e.task_runs.filter((r) => r.state === "WAITING" && r.wait);
+  const [answer, setAnswer] = useState<string>();
+  const answerRun = waitingRuns.find((r) => r.id === answer);
 
   const setSearch = useCallback(
     (next: Partial<DetailSearch>) =>
@@ -233,6 +238,35 @@ function Detail({
   return (
     <>
       <Header execution={e} live={live} now={now} actions={actions} />
+      {waitingRuns.map((r) => (
+        <div
+          key={r.id}
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-panel border border-state-timed-out/40 bg-state-timed-out/10 px-4 py-3"
+        >
+          <p className="min-w-0 text-sm">
+            <span className="font-mono font-medium">{r.task_key}</span> waits for an answer
+            {r.wait?.message ? <span className="break-words">: {r.wait.message}</span> : "."}
+          </p>
+          {can(me.role, "operator") && (
+            <Button size="sm" onClick={() => setAnswer(r.id)}>
+              Answer
+            </Button>
+          )}
+        </div>
+      ))}
+      {answerRun?.wait && (
+        <AnswerWaitDialog
+          executionId={e.id}
+          task={answerRun.task_key}
+          wait={answerRun.wait}
+          onClose={() => setAnswer(undefined)}
+          onDone={(d) => {
+            qc.setQueryData(detailKey(e.id), d);
+            setAnswer(undefined);
+          }}
+        />
+      )}
       {insights?.(e)}
       <SplitView
         left={

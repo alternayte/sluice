@@ -16,7 +16,7 @@ A tool runs with the role of the token. Give the client a token with the lowest 
 | Role | Tools | Use it for |
 |---|---|---|
 | Viewer | `list_namespaces`, `list_flows`, `get_flow`, `validate_flow`, `list_files`, `read_file`, `list_executions`, `get_execution`, `get_logs`, `get_metrics`, `get_insight`, `get_flow_schema` | Read flows and triage failures. |
-| Operator | The viewer tools, `trigger_execution`, `cancel_execution`, `rerun_execution`, `restart_execution` | Run, cancel, rerun and restart executions. |
+| Operator | The viewer tools, `trigger_execution`, `cancel_execution`, `rerun_execution`, `restart_execution`, `resume_execution`, `reject_execution` | Run, cancel, rerun and restart executions, and answer waiting tasks. |
 | Editor | The operator tools and `apply_change` | Write files to a namespace. |
 
 The client lists all tools for every role. A call to a tool above the role of the token returns a tool error, for example `forbidden: the tool rerun_execution needs the operator role`.

@@ -51,12 +51,18 @@ UPDATE task_runs SET state = 'QUEUED', queued_at = $2, reason = '' WHERE id = $1
 -- name: StartTaskRunHere :exec
 UPDATE task_runs SET state = 'RUNNING', started_at = $2 WHERE id = $1 AND state = 'QUEUED';
 
+-- name: WaitTaskRun :exec
+UPDATE task_runs SET state = 'WAITING', started_at = $2, wait_message = $3, reason = '' WHERE id = $1 AND state = 'PENDING';
+
+-- name: LockWaitingTaskRun :one
+SELECT * FROM task_runs WHERE execution_id = $1 AND task_key = $2 AND state = 'WAITING' FOR UPDATE;
+
 -- name: SkipTaskRun :execrows
 UPDATE task_runs SET state = 'SKIPPED', reason = $2, ended_at = $3 WHERE id = $1 AND state = 'PENDING';
 
 -- name: CancelPendingTaskRuns :execrows
 UPDATE task_runs SET state = 'CANCELLED', reason = 'cancelled', ended_at = $2
-WHERE execution_id = $1 AND state IN ('PENDING', 'QUEUED');
+WHERE execution_id = $1 AND state IN ('PENDING', 'QUEUED', 'WAITING');
 
 -- name: RequestCancelRunning :execrows
 UPDATE task_runs SET cancel_requested = true WHERE execution_id = $1 AND state = 'RUNNING';

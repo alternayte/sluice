@@ -54,7 +54,7 @@ You need Docker with the Compose plugin and a free port 8080. You need no checko
 
 </Steps>
 
-The compose file uses the image `ghcr.io/alternayte/sluice-uv:latest`. To pin a release, add a line such as `SLUICE_IMAGE=ghcr.io/alternayte/sluice-uv:0.3.0` to `.env`. [Deploy with Docker Compose](/how-to/deploy-with-docker-compose/) lists the other variables and shows how to upgrade.
+The compose file uses the image `ghcr.io/alternayte/sluice-uv:latest`. To pin a release, add a line such as `SLUICE_IMAGE=ghcr.io/alternayte/sluice-uv:0.4.0` to `.env`. [Deploy with Docker Compose](/how-to/deploy-with-docker-compose/) lists the other variables and shows how to upgrade.
 
 ## Server with Docker
 
@@ -67,7 +67,7 @@ docker run -d --name sluice -p 8080:8080 \
   -e SLUICE_BOOTSTRAP_ADMIN_EMAIL=admin@example.com \
   -e SLUICE_BOOTSTRAP_ADMIN_PASSWORD='change-me-now-1' \
   -e SLUICE_MASTER_KEYS="k1:$(openssl rand -base64 32)" \
-  ghcr.io/alternayte/sluice-uv:0.3.0
+  ghcr.io/alternayte/sluice-uv:0.4.0
 ```
 
 Keep the value of `SLUICE_MASTER_KEYS`. The server applies the migrations at start. [Environment variables](/reference/env/) lists every setting.
@@ -77,7 +77,7 @@ Keep the value of `SLUICE_MASTER_KEYS`. The server applies the migrations at sta
 The chart is in the OCI registry of GitHub. It needs a Postgres database and three Secrets: the database URL, the master keys and the first admin.
 
 ```sh
-helm install sluice oci://ghcr.io/alternayte/charts/sluice --version 0.3.0 \
+helm install sluice oci://ghcr.io/alternayte/charts/sluice --version 0.4.0 \
   --namespace sluice-system -f values.yaml
 ```
 
@@ -98,11 +98,11 @@ The script asks for your password when `/usr/local/bin` needs `sudo`. Without `s
 
 | Variable | Effect |
 |---|---|
-| `SLUICE_VERSION` | Installs this release, for example `0.3.0`. |
+| `SLUICE_VERSION` | Installs this release, for example `0.4.0`. |
 | `SLUICE_BIN_DIR` | Puts the binary in this directory. |
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh | SLUICE_VERSION=0.3.0 SLUICE_BIN_DIR="$HOME/bin" sh
+curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh | SLUICE_VERSION=0.4.0 SLUICE_BIN_DIR="$HOME/bin" sh
 ```
 
 </TabItem>
@@ -110,19 +110,19 @@ curl -fsSL https://raw.githubusercontent.com/alternayte/sluice/main/install.sh |
 
 <Steps>
 
-1. Download the archive of your system and `checksums.txt` from the [releases page](https://github.com/alternayte/sluice/releases). The archive name has the form `sluice_<version>_<os>_<arch>.tar.gz`, for example `sluice_0.3.0_linux_amd64.tar.gz`.
+1. Download the archive of your system and `checksums.txt` from the [releases page](https://github.com/alternayte/sluice/releases). The archive name has the form `sluice_<version>_<os>_<arch>.tar.gz`, for example `sluice_0.4.0_linux_amd64.tar.gz`.
 
 2. Check the archive against the checksum:
 
    ```sh
-   grep ' sluice_0.3.0_linux_amd64.tar.gz$' checksums.txt | sha256sum -c -
+   grep ' sluice_0.4.0_linux_amd64.tar.gz$' checksums.txt | sha256sum -c -
    ```
 
 3. Extract the binary and put it in a directory of your `PATH`:
 
    ```sh
-   tar -xzf sluice_0.3.0_linux_amd64.tar.gz
-   sudo install -m 0755 sluice_0.3.0_linux_amd64/sluice /usr/local/bin/sluice
+   tar -xzf sluice_0.4.0_linux_amd64.tar.gz
+   sudo install -m 0755 sluice_0.4.0_linux_amd64/sluice /usr/local/bin/sluice
    ```
 
 </Steps>

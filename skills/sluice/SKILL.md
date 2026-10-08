@@ -100,6 +100,7 @@ Rules that validation enforces:
 | `command` | `command` (argv list, no shell) | `workdir` | the argv |
 | `http` | `url` | `method`, `headers`, `body`, `expect_status` | an HTTP request on the server |
 | `subflow` | `flow` (`<namespace>/<flow_id>`) | `inputs`, `wait` | a child execution |
+| `wait` | — | `message`, `fields` | nothing; it waits for an answer |
 
 A `command` has no shell. For pipes or `&&`, use `command: ["sh", "-c", "a | b"]`.
 
@@ -115,6 +116,20 @@ Every task also takes `depends_on`, `run_if`, `timeout` (default `24h`), `retry`
   max_parallel: 2
   args: ["--table", "${{ item }}", "--part", "${{ item_index }}"]
 ```
+
+A `wait` task pauses its part of the flow until a person, a script or an agent answers. `fields` has the shape of flow inputs:
+
+```yaml
+- id: approve
+  type: wait
+  depends_on: [build]
+  timeout: 8h                     # default 24h; then the task ends TIMED_OUT
+  message: "Deploy ${{ inputs.version }}?"
+  fields:
+    - { id: reason, type: string, required: true }
+```
+
+The task run is WAITING and the execution stays RUNNING. `sluice executions list --waiting` finds them, and `sluice executions get <id>` prints the question. `sluice executions resume <id> --task approve --input reason=ok` ends the task SUCCESS, and the values are its outputs (`tasks.approve.outputs.reason`). `sluice executions reject <id> --task approve --message "no"` ends it FAILED with reason `rejected`, so a task with `run_if: failure` handles it. A `wait` task sends no message: put an `http` task before it to notify people. `sluice run --wait` does not end while a task waits.
 
 A later task reads `${{ tasks.load.outputs.rows }}` as a list in item order, with `null` for an item that did not emit the key. The task is SUCCESS only when every item is. An empty list ends the task SUCCESS, and each key gives `[]`. `sluice executions restart` runs only the items that did not succeed. A task that declares an artifact of `load` gets one file for each item: `path: data/part.parquet` gives `data/0/part.parquet`, `data/1/part.parquet`. Do not write a loop in a script when each item needs its own retry and log: use `each`.
 
@@ -177,7 +192,7 @@ defaults:
 
 ## MCP
 
-The server serves MCP at `<SLUICE_URL>/mcp` with a bearer API token. `<SLUICE_URL>/.well-known/mcp.json` describes it. Useful tools: `get_flow_schema`, `validate_flow`, `list_executions`, `get_execution`, `get_logs` (with `failed_only: true` and `grep`), `get_insight`, `rerun_execution` and `restart_execution`. A tool runs with the role of the token.
+The server serves MCP at `<SLUICE_URL>/mcp` with a bearer API token. `<SLUICE_URL>/.well-known/mcp.json` describes it. Useful tools: `get_flow_schema`, `validate_flow`, `list_executions`, `get_execution`, `get_logs` (with `failed_only: true` and `grep`), `get_insight`, `rerun_execution`, `restart_execution`, `resume_execution` and `reject_execution`. A tool runs with the role of the token.
 
 ## Do not
 

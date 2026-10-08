@@ -77,7 +77,9 @@ type ExecutionFilter struct {
 	Namespace string
 	Flow      string
 	State     string
-	Limit     int
+	// Waiting keeps only executions with a task that waits for an answer.
+	Waiting bool
+	Limit   int
 }
 
 // Data reads and changes Sluice objects for the tools and triage. internal/app adapts the
@@ -104,6 +106,10 @@ type Data interface {
 	Rerun(ctx context.Context, id uuid.UUID) (any, error)
 	// Restart creates a new execution that reuses the SUCCESS task runs, and returns its detail.
 	Restart(ctx context.Context, id uuid.UUID) (any, error)
+	// Resume answers a waiting task with values, and returns the detail of the execution.
+	Resume(ctx context.Context, id uuid.UUID, task string, values map[string]any) (any, error)
+	// Reject refuses a waiting task, and returns the detail of the execution.
+	Reject(ctx context.Context, id uuid.UUID, task, message string) (any, error)
 	// FailedAttempts returns the task runs of an execution that ended FAILED or TIMED_OUT.
 	FailedAttempts(ctx context.Context, id uuid.UUID) ([]TaskAttempt, error)
 	// FlowSchema returns the JSON Schema of flow files.
@@ -374,12 +380,14 @@ func Tools() []Tool {
 				}
 				return map[string]any{"path": in.Path, "content": content}, nil
 			}},
-		{Name: "list_executions", Description: "List recent executions, newest first. Filters: namespace, flow as <namespace>/<flow_id>, comma-separated states.",
-			Schema: json.RawMessage(`{"type":"object","properties":{"namespace":{"type":"string"},"flow":{"type":"string"},"state":{"type":"string"},"limit":{"type":"integer","minimum":1,"maximum":50}}}`),
+		{Name: "list_executions", Description: "List recent executions, newest first. Filters: namespace, flow as <namespace>/<flow_id>, comma-separated states, " +
+			"and waiting for the executions with a task that waits for an answer.",
+			Schema: json.RawMessage(`{"type":"object","properties":{"namespace":{"type":"string"},"flow":{"type":"string"},"state":{"type":"string"},"waiting":{"type":"boolean"},"limit":{"type":"integer","minimum":1,"maximum":50}}}`),
 			Role:   kernel.Viewer,
 			run: func(ctx context.Context, s *Service, raw json.RawMessage) (any, error) {
 				in, err := decode[struct {
 					Namespace, Flow, State string
+					Waiting                bool
 					Limit                  int
 				}](raw)
 				if err != nil {
@@ -388,7 +396,7 @@ func Tools() []Tool {
 				if in.Limit <= 0 || in.Limit > 50 {
 					in.Limit = 20
 				}
-				return s.Data.Executions(ctx, ExecutionFilter{Namespace: in.Namespace, Flow: in.Flow, State: in.State, Limit: in.Limit})
+				return s.Data.Executions(ctx, ExecutionFilter{Namespace: in.Namespace, Flow: in.Flow, State: in.State, Waiting: in.Waiting, Limit: in.Limit})
 			}},
 		{Name: "get_execution", Description: "Read one execution with its task runs.", Schema: json.RawMessage(schemaExecution), Role: kernel.Viewer,
 			run: func(ctx context.Context, s *Service, raw json.RawMessage) (any, error) {
@@ -557,6 +565,45 @@ func Tools() []Tool {
 					return nil, err
 				}
 				return s.Data.Restart(ctx, id)
+			}},
+		{Name: "resume_execution", Description: "Answer a task in state WAITING, for example an approval. get_execution shows the message and the fields in task_runs[].wait. " +
+			"The values become the outputs of the task, and the tasks after it run.",
+			Schema: json.RawMessage(`{"type":"object","properties":{"execution_id":{"type":"string","description":"Execution UUID."},` +
+				`"task":{"type":"string","description":"ID of the waiting task."},"inputs":{"type":"object","description":"Values of the fields of the wait task."}},"required":["execution_id","task"]}`),
+			Role: kernel.Operator, Mutating: true,
+			run: func(ctx context.Context, s *Service, raw json.RawMessage) (any, error) {
+				in, err := decode[struct {
+					ExecutionID string         `json:"execution_id"`
+					Task        string         `json:"task"`
+					Inputs      map[string]any `json:"inputs"`
+				}](raw)
+				if err != nil {
+					return nil, err
+				}
+				id, err := parseID(in.ExecutionID)
+				if err != nil {
+					return nil, err
+				}
+				return s.Data.Resume(ctx, id, in.Task, in.Inputs)
+			}},
+		{Name: "reject_execution", Description: "Refuse a task in state WAITING. The task run ends FAILED with reason rejected, and the tasks after it with run_if success are skipped.",
+			Schema: json.RawMessage(`{"type":"object","properties":{"execution_id":{"type":"string","description":"Execution UUID."},` +
+				`"task":{"type":"string","description":"ID of the waiting task."},"message":{"type":"string","description":"The reason."}},"required":["execution_id","task"]}`),
+			Role: kernel.Operator, Mutating: true,
+			run: func(ctx context.Context, s *Service, raw json.RawMessage) (any, error) {
+				in, err := decode[struct {
+					ExecutionID string `json:"execution_id"`
+					Task        string `json:"task"`
+					Message     string `json:"message"`
+				}](raw)
+				if err != nil {
+					return nil, err
+				}
+				id, err := parseID(in.ExecutionID)
+				if err != nil {
+					return nil, err
+				}
+				return s.Data.Reject(ctx, id, in.Task, in.Message)
 			}},
 		{Name: "get_flow_schema", Description: "Read the JSON Schema of flow files (*.flow.yaml). Use it to write a valid flow.",
 			Schema: json.RawMessage(schemaNone), Role: kernel.Viewer,

@@ -14,8 +14,8 @@ import (
 
 // ListExecutions lists executions, newest first, with the filters of listExecutions. The
 // AI tools use it.
-func (e *Engine) ListExecutions(ctx context.Context, namespace, flow, state string, limit int) (ExecutionList, error) {
-	return e.listExecutions(ctx, &listExecutionsIn{Namespace: namespace, Flow: flow, State: state, Sort: "created", Limit: limit})
+func (e *Engine) ListExecutions(ctx context.Context, namespace, flow, state string, waiting bool, limit int) (ExecutionList, error) {
+	return e.listExecutions(ctx, &listExecutionsIn{Namespace: namespace, Flow: flow, State: state, Waiting: waiting, Sort: "created", Limit: limit})
 }
 
 // Metrics returns the metrics of an execution.

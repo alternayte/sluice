@@ -24,6 +24,7 @@ func (e *Engine) LeaderTick(ctx context.Context) {
 	}{
 		{"flow deadlines", e.flowDeadlines},
 		{"task deadlines", e.taskDeadlines},
+		{"wait deadlines", e.waitDeadlines},
 		{"offline instances", e.offlineRuns},
 		{"pool reasons", e.poolReasons},
 	}

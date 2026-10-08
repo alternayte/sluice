@@ -114,7 +114,7 @@ Give the agent a token with the lowest role that it needs:
 | Role | Commands |
 |---|---|
 | Viewer | `sluice flows list`, `sluice flows get`, `sluice executions list`, `sluice executions get`, `sluice executions logs` |
-| Operator | The viewer commands, `sluice run`, `sluice executions cancel`, `sluice executions rerun`, `sluice executions restart` |
+| Operator | The viewer commands, `sluice run`, `sluice executions cancel`, `sluice executions rerun`, `sluice executions restart`, `sluice executions resume`, `sluice executions reject` |
 | Editor | The operator commands, `sluice namespaces push`, and `sluice secrets set` and `sluice secrets delete` with `--namespace` |
 | Admin | The editor commands, and `sluice secrets set` and `sluice secrets delete` for global secrets |
 
@@ -178,6 +178,8 @@ These tools help most in an agent loop:
 | `get_logs` | Read log lines. `failed_only: true` keeps the lines of the failed tasks. `grep` keeps the lines that contain a text. |
 | `get_insight` | Read the failure triage of an execution. |
 | `restart_execution` | Run the failed tasks again and reuse the successful ones. |
+| `resume_execution` | Answer a waiting task with values. |
+| `reject_execution` | Refuse a waiting task. |
 
 [Connect an MCP client](/how-to/connect-an-mcp-client/) shows the setup. [MCP tools](/reference/mcp-tools/) lists all tools.
 

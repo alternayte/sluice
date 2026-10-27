@@ -152,8 +152,31 @@ jobs:
       - name: Check the Playwright suite types.
         run: cd tests/ui && bunx tsc --noEmit
 
+      - name: Read the runner image version.
+        id: image
+        run: echo "version=$ImageVersion" >> "$GITHUB_OUTPUT"
+
+      # The apt mirror of the runners is sometimes slow: once it took 10 min for the system
+      # packages of Chromium. The cache keeps these packages for each runner image.
+      - name: Restore the Chromium system packages.
+        id: debs
+        uses: actions/cache@v6
+        with:
+          path: ~/chromium-debs
+          key: chromium-debs-${{ runner.os }}-${{ steps.image.outputs.version }}-${{ hashFiles('tests/ui/bun.lock') }}
+
       - name: Install the Chromium browser.
-        run: cd tests/ui && bunx playwright install --with-deps chromium
+        run: |
+          if [ "${{ steps.debs.outputs.cache-hit }}" = true ]; then
+            debs=(~/chromium-debs/*.deb)
+            if [ -e "${debs[0]}" ]; then sudo dpkg -i "${debs[@]}"; fi
+          else
+            sudo rm -f /var/cache/apt/archives/*.deb
+            (cd tests/ui && bunx playwright install-deps chromium)
+            mkdir -p ~/chromium-debs
+            find /var/cache/apt/archives -maxdepth 1 -name '*.deb' -exec cp {} ~/chromium-debs/ \;
+          fi
+          cd tests/ui && bunx playwright install chromium
 
       - name: Run the Playwright suite.
         run: cd tests/ui && SLUICE_E2E_BINARY=$PWD/../../bin/sluice bunx playwright test

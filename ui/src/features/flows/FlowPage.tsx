@@ -8,6 +8,7 @@ import {
   Copy,
   FileCode2,
   FolderTree,
+  GitBranch,
   GitCompare,
   History,
   KeyRound,
@@ -19,6 +20,8 @@ import {
   diffFlowRevisionsOptions,
   getFlowOptions,
   getFlowQueryKey,
+  getFlowRevisionOptions,
+  getNamespaceGitOptions,
   listExecutionsOptions,
   listFlowRevisionsOptions,
   listFlowsQueryKey,
@@ -36,6 +39,7 @@ import { RunFlowDialog } from "@/components/run-dialogs";
 import { DisabledBadge, ValidBadge } from "@/components/state-badges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, FormError } from "@/components/ui/field";
 import { Input, Select } from "@/components/ui/input";
@@ -47,11 +51,13 @@ import { useCurrentUser } from "@/lib/auth";
 import { useCommands, type Command } from "@/lib/commands";
 import { errorMessage } from "@/lib/errors";
 import { triggerSummary } from "@/lib/flows";
+import { commitUrl } from "@/lib/git";
 import { can } from "@/lib/roles";
 import { cn, formatRelative, formatTime } from "@/lib/utils";
 
 export type Tab = "overview" | "executions" | "triggers" | "source" | "revisions";
-export type FlowSearch = { tab?: Exclude<Tab, "overview"> };
+/** FlowSearch selects a tab. revision shows the source of one flow revision, for example the one an execution ran. */
+export type FlowSearch = { tab?: Exclude<Tab, "overview">; revision?: string };
 
 const tabs: { value: Tab; label: string }[] = [
   { value: "overview", label: "Overview" },
@@ -82,15 +88,24 @@ export function FlowPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-xs text-muted-foreground">
-        <Link to="/flows" className="hover:text-foreground hover:underline">
-          Flows
-        </Link>
-        <ChevronRight className="h-3 w-3" aria-hidden />
-        <Link to="/flows" search={{ namespace }} className="font-mono hover:text-foreground hover:underline">
-          {namespace}
-        </Link>
-      </nav>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Link to="/flows" className="hover:text-foreground hover:underline">
+            Flows
+          </Link>
+          <ChevronRight className="h-3 w-3" aria-hidden />
+          <Link
+            to="/namespaces/$namespace"
+            params={{ namespace }}
+            className="font-mono hover:text-foreground hover:underline"
+          >
+            {namespace}
+          </Link>
+          <ChevronRight className="h-3 w-3" aria-hidden />
+          <span className="font-mono text-foreground">{flowId}</span>
+        </nav>
+        <GitChip namespace={namespace} sha={flow.data?.revision?.git_sha} />
+      </div>
       <DataState query={flow} skeleton="panel">
         {(f) => (
           <>
@@ -140,7 +155,14 @@ export function FlowPage({
             {tab === "executions" && <FlowExecutions namespace={namespace} flowId={flowId} />}
             {tab === "triggers" && <Triggers flow={f} />}
             {tab === "source" &&
-              (f.revision ? (
+              (search.revision && search.revision !== f.revision?.id ? (
+                <RevisionSource
+                  namespace={namespace}
+                  flowId={flowId}
+                  revisionId={search.revision}
+                  onCurrent={() => navigate({ search: { tab: "source" } })}
+                />
+              ) : f.revision ? (
                 <CodeEditor
                   className="h-[65vh] min-h-80"
                   value={f.revision.source}
@@ -265,32 +287,15 @@ function EnableToggle({ flow }: { flow: FlowDetail }) {
   const enabled = !flow.disabled;
   return (
     <div className="flex flex-col items-end gap-1">
-      <button
-        type="button"
-        role="switch"
-        aria-checked={enabled}
+      <Switch
+        checked={enabled}
         disabled={update.isPending}
-        onClick={() =>
-          update.mutate({ path: { namespace: flow.namespace, flowId: flow.flow_id }, body: { disabled: enabled } })
+        onChange={(next) =>
+          update.mutate({ path: { namespace: flow.namespace, flowId: flow.flow_id }, body: { disabled: !next } })
         }
-        className="pressable group inline-flex h-8 items-center gap-2 rounded-control px-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
       >
-        <span
-          aria-hidden
-          className={cn(
-            "relative h-[1.125rem] w-8 shrink-0 rounded-full shadow-[inset_0_0_0_0.5px_rgb(0_0_0/0.12)] transition-colors duration-200",
-            enabled ? "bg-accent-fill" : "bg-input",
-          )}
-        >
-          <span
-            className={cn(
-              "absolute top-0.5 left-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-panel transition-transform duration-300 ease-snappy",
-              enabled && "translate-x-3.5",
-            )}
-          />
-        </span>
         {enabled ? "Enabled" : "Disabled"}
-      </button>
+      </Switch>
       {update.isError && <FormError>{errorMessage(update.error)}</FormError>}
     </div>
   );
@@ -519,7 +524,85 @@ function RotateWebhookKey({
   );
 }
 
-function revisionLabel(r: RevisionSummary): string {
+/** GitChip names the git source and the commit of a git flow, and links to the source for admins. */
+function GitChip({ namespace, sha }: { namespace: string; sha?: string }) {
+  const me = useCurrentUser();
+  const git = useQuery({ ...getNamespaceGitOptions({ path: { namespace } }), retry: false });
+  if (!git.data) return null;
+  const g = git.data;
+  const commit = sha || g.last_synced_sha;
+  const href = commitUrl(g.repo_url, commit);
+  const chip = "inline-flex items-center gap-1.5 rounded-full border bg-panel px-2.5 py-0.5 text-xs";
+  return (
+    <span className={chip} title={`${g.repo_url} (${g.branch})`}>
+      <GitBranch className="h-3 w-3 text-muted-foreground" aria-hidden />
+      {can(me.role, "admin") ? (
+        <Link
+          to="/settings/git"
+          search={{ edit: g.source_id }}
+          className="font-medium hover:text-accent-text hover:underline"
+        >
+          {g.source_name}
+        </Link>
+      ) : (
+        <span className="font-medium">{g.source_name}</span>
+      )}
+      {commit &&
+        (href ? (
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="font-mono text-muted-foreground hover:text-accent-text hover:underline"
+          >
+            {commit.slice(0, 12)}
+          </a>
+        ) : (
+          <span className="font-mono text-muted-foreground">{commit.slice(0, 12)}</span>
+        ))}
+    </span>
+  );
+}
+
+/** RevisionSource shows the source of one flow revision that is not the current one. */
+function RevisionSource({
+  namespace,
+  flowId,
+  revisionId,
+  onCurrent,
+}: {
+  namespace: string;
+  flowId: string;
+  revisionId: string;
+  onCurrent: () => void;
+}) {
+  const rev = useQuery(getFlowRevisionOptions({ path: { namespace, flowId, revisionId } }));
+  return (
+    <DataState query={rev} skeleton="panel">
+      {(r) => (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-panel border bg-muted/40 px-3 py-2 text-sm">
+            <span>
+              Revision <span className="font-mono">{revisionLabel(r)}</span>. This is not the current revision.
+            </span>
+            <Button size="sm" variant="secondary" onClick={onCurrent}>
+              Show current revision
+            </Button>
+          </div>
+          <CodeEditor
+            className="h-[65vh] min-h-80"
+            value={r.source}
+            path="source.yaml"
+            label={`Source of ${r.path} at ${revisionLabel(r)}`}
+            readOnly
+          />
+        </div>
+      )}
+    </DataState>
+  );
+}
+
+function revisionLabel(r: Pick<RevisionSummary, "id" | "created_at" | "git_sha" | "snapshot_version">): string {
   const v =
     r.snapshot_version != null ? `v${r.snapshot_version}` : r.git_sha ? r.git_sha.slice(0, 12) : r.id.slice(0, 8);
   return `${v}, ${formatTime(r.created_at)}`;

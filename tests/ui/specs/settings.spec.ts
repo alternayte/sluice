@@ -82,6 +82,11 @@ test("SCN-UI-006 instances show pools and executors, storage shows driver and he
   await expect(gitDialog).toBeHidden();
   const source = page.getByRole("row").filter({ hasText: name });
   await expect(source).toContainText(ns);
+  // A new source is off until the switch turns it on; turning it on starts a sync.
+  const syncSwitch = source.getByRole("switch", { name: `Sync ${name}` });
+  await expect(syncSwitch).toHaveAttribute("aria-checked", "false");
+  await syncSwitch.click();
+  await expect(syncSwitch).toHaveAttribute("aria-checked", "true");
   await expect(source).toContainText("Synced", { timeout: 30_000 });
 
   // Providers: create a Vault provider, then check the env provider with a set and an unset reference.

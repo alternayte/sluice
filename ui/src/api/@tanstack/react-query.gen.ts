@@ -104,6 +104,7 @@ import {
   runnerPostLogs,
   runnerPutArtifact,
   saveChanges,
+  setGitSourceEnabled,
   syncGitSource,
   testAiProvider,
   triggerFlow,
@@ -383,6 +384,9 @@ import type {
   SaveChangesData,
   SaveChangesError,
   SaveChangesResponse,
+  SetGitSourceEnabledData,
+  SetGitSourceEnabledError,
+  SetGitSourceEnabledResponse,
   SyncGitSourceData,
   SyncGitSourceError,
   TestAiProviderData,
@@ -1640,6 +1644,26 @@ export const getGitSourceOptions = (options: Options<GetGitSourceData>) =>
     },
     queryKey: getGitSourceQueryKey(options),
   });
+
+export const setGitSourceEnabledMutation = (
+  options?: Partial<Options<SetGitSourceEnabledData>>,
+): UseMutationOptions<SetGitSourceEnabledResponse, SetGitSourceEnabledError, Options<SetGitSourceEnabledData>> => {
+  const mutationOptions: UseMutationOptions<
+    SetGitSourceEnabledResponse,
+    SetGitSourceEnabledError,
+    Options<SetGitSourceEnabledData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await setGitSourceEnabled({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 export const updateGitSourceMutation = (
   options?: Partial<Options<UpdateGitSourceData>>,

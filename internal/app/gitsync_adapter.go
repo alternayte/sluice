@@ -18,6 +18,10 @@ func (g gitNamespaces) CreateGitNamespace(ctx context.Context, tx pgx.Tx, name s
 	return g.s.CreateGitNamespace(ctx, tx, name, sourceID)
 }
 
+func (g gitNamespaces) AdoptNamespace(ctx context.Context, tx pgx.Tx, nsID uuid.UUID, name string, sourceID uuid.UUID) error {
+	return g.s.AdoptNamespace(ctx, tx, nsID, name, sourceID)
+}
+
 func (g gitNamespaces) CommitGit(ctx context.Context, nsID uuid.UUID, sha, message string, files []gitsync.File) (bool, error) {
 	out := make([]namespace.GitFile, len(files))
 	for i, f := range files {

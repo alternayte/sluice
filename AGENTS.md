@@ -23,6 +23,7 @@ Sluice is a self-hosted flow orchestrator: one Go binary with Postgres, a React 
 ## Domain words
 - namespace: a named tree of files that holds flows and scripts, edited in Sluice or synced from git.
 - snapshot: one immutable version of a namespace's files.
+- git source: a repository URL and branch, with credentials and mappings, that syncs files into one or more git namespaces. Avoid: repo, git connection, git integration.
 - flow: a YAML file in a namespace that declares tasks and triggers.
 - flow revision: the parsed definition of a flow at one snapshot.
 - execution: one run of a flow or of a namespace file.

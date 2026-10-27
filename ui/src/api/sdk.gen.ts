@@ -287,6 +287,9 @@ import type {
   SaveChangesResponses,
   SendAiMessageData,
   SendAiMessageResponses,
+  SetGitSourceEnabledData,
+  SetGitSourceEnabledErrors,
+  SetGitSourceEnabledResponses,
   StreamExecutionEventsData,
   StreamExecutionEventsResponses,
   StreamExecutionLogsData,
@@ -852,6 +855,18 @@ export const getGitSource = <ThrowOnError extends boolean = false>(
   (options.client ?? client).get<GetGitSourceResponses, GetGitSourceErrors, ThrowOnError>({
     url: "/api/v1/git-sources/{sourceId}",
     ...options,
+  });
+
+export const setGitSourceEnabled = <ThrowOnError extends boolean = false>(
+  options: Options<SetGitSourceEnabledData, ThrowOnError>,
+): RequestResult<SetGitSourceEnabledResponses, SetGitSourceEnabledErrors, ThrowOnError> =>
+  (options.client ?? client).patch<SetGitSourceEnabledResponses, SetGitSourceEnabledErrors, ThrowOnError>({
+    url: "/api/v1/git-sources/{sourceId}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 
 export const updateGitSource = <ThrowOnError extends boolean = false>(

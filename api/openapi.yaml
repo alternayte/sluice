@@ -371,6 +371,9 @@ components:
           description: Global secret key with the token or the private key.
           maxLength: 128
           type: string
+        enabled:
+          description: Sync the source. A new source is disabled when this is absent; an update keeps the state.
+          type: boolean
         known_hosts:
           maxLength: 65536
           type: string
@@ -1287,6 +1290,9 @@ components:
     MappingIO:
       additionalProperties: true
       properties:
+        adopt:
+          description: Convert a managed namespace to a git namespace of this source. Its history stays.
+          type: boolean
         namespace:
           maxLength: 128
           type: string
@@ -1456,6 +1462,8 @@ components:
       properties:
         branch:
           type: string
+        enabled:
+          type: boolean
         last_error:
           type: string
         last_sync_at:
@@ -1481,6 +1489,7 @@ components:
         - repo_url
         - branch
         - repo_path
+        - enabled
         - last_synced_sha
         - last_sync_status
         - last_error
@@ -2085,6 +2094,15 @@ components:
           type: string
           writeOnly: true
       type: object
+    SetGitSourceEnabledRequest:
+      additionalProperties: true
+      properties:
+        enabled:
+          description: Sync the source. Off stops polling, webhooks and Sync now.
+          type: boolean
+      required:
+        - enabled
+      type: object
     Snapshot:
       additionalProperties: true
       properties:
@@ -2144,6 +2162,9 @@ components:
           description: Global secret key with the token or the private key.
           maxLength: 128
           type: string
+        enabled:
+          description: Sync the source. A new source is disabled when this is absent; an update keeps the state.
+          type: boolean
         known_hosts:
           maxLength: 65536
           type: string
@@ -2193,6 +2214,8 @@ components:
           type: string
         credential_secret_key:
           type: string
+        enabled:
+          type: boolean
         id:
           type: string
         known_hosts:
@@ -2234,6 +2257,7 @@ components:
         - poll_interval
         - webhook_secret_key
         - webhook_url
+        - enabled
         - last_synced_sha
         - last_sync_status
         - last_error
@@ -4280,6 +4304,33 @@ paths:
           required: true
           schema:
             type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceOut"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    patch:
+      operationId: setGitSourceEnabled
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetGitSourceEnabledRequest"
+        required: true
       responses:
         "200":
           content:

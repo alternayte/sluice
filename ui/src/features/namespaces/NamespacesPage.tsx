@@ -7,6 +7,7 @@ import {
   deleteNamespaceMutation,
   listNamespacesOptions,
 } from "@/api/@tanstack/react-query.gen";
+import { ApiError } from "@/api-client";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DataState } from "@/components/data-state";
 import { SourceBadges, invalidateNamespace, type Namespace } from "@/features/namespaces/namespace-source";
@@ -27,7 +28,7 @@ const indent = ["pl-4", "pl-9", "pl-14", "pl-19", "pl-24", "pl-29"];
 export function NamespacesPage() {
   const me = useCurrentUser();
   const [createOpen, setCreateOpen] = useState(false);
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<Namespace | null>(null);
   const namespaces = useQuery(listNamespacesOptions());
 
   return (
@@ -98,14 +99,14 @@ export function NamespacesPage() {
                   </Td>
                   {can(me.role, "admin") && (
                     <Td className="w-0 text-right">
-                      {item.source_type === "managed" && !item.implicit && (
+                      {item.source_type !== "implicit" && !item.implicit && (
                         <Button
                           size="icon"
                           variant="ghost"
                           className="h-7 w-7 hover:text-destructive"
                           aria-label={`Delete ${item.name}`}
                           title="Delete"
-                          onClick={() => setDeleting(item.name)}
+                          onClick={() => setDeleting(item)}
                         >
                           <Trash2 className="h-3.5 w-3.5" aria-hidden />
                         </Button>
@@ -119,7 +120,7 @@ export function NamespacesPage() {
         )}
       </DataState>
       {createOpen && <CreateNamespaceDialog onClose={() => setCreateOpen(false)} />}
-      {deleting !== null && <DeleteNamespaceDialog name={deleting} onClose={() => setDeleting(null)} />}
+      {deleting !== null && <DeleteNamespaceDialog ns={deleting} onClose={() => setDeleting(null)} />}
     </div>
   );
 }
@@ -172,8 +173,11 @@ function CreateNamespaceDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-function DeleteNamespaceDialog({ name, onClose }: { name: string; onClose: () => void }) {
+/** DeleteNamespaceDialog deletes a managed namespace or a git namespace that no source maps. */
+function DeleteNamespaceDialog({ ns, onClose }: { ns: Namespace; onClose: () => void }) {
+  const me = useCurrentUser();
   const qc = useQueryClient();
+  const name = ns.name;
   const del = useMutation({
     ...deleteNamespaceMutation(),
     onSuccess: () => {
@@ -182,6 +186,9 @@ function DeleteNamespaceDialog({ name, onClose }: { name: string; onClose: () =>
       onClose();
     },
   });
+  const err: unknown = del.error;
+  const mapped = err instanceof ApiError && err.code === "namespace_mapped";
+  const sourceName = mapped ? (err.details as { source?: unknown } | undefined)?.source : undefined;
   return (
     <ConfirmDialog
       open
@@ -189,12 +196,27 @@ function DeleteNamespaceDialog({ name, onClose }: { name: string; onClose: () =>
       confirmLabel="Delete"
       destructive
       pending={del.isPending}
-      error={del.isError ? errorMessage(del.error) : undefined}
+      error={del.isError && !mapped ? errorMessage(del.error) : undefined}
       onConfirm={() => del.mutate({ path: { namespace: name } })}
       onClose={onClose}
     >
       Delete the namespace <span className="font-medium">{name}</span> with all its files and versions? You cannot undo
       this.
+      {mapped && (
+        <span role="alert" className="mt-3 block text-destructive">
+          The git source <span className="font-mono">{typeof sourceName === "string" ? sourceName : ""}</span> maps this
+          namespace. Remove the mapping from the source first.{" "}
+          {ns.git_source_id && can(me.role, "admin") && (
+            <Link
+              to="/settings/git"
+              search={{ edit: ns.git_source_id }}
+              className="font-medium text-accent-text hover:underline"
+            >
+              Edit the git source
+            </Link>
+          )}
+        </span>
+      )}
     </ConfirmDialog>
   );
 }

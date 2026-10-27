@@ -59,10 +59,11 @@ const (
 var (
 	ErrSourceNotFound    = httpx.Errorf(http.StatusNotFound, "git_source_not_found", "git source not found")
 	ErrSourceExists      = httpx.Errorf(http.StatusConflict, "git_source_exists", "a git source with this name exists")
-	ErrNamespaceManaged  = httpx.Errorf(http.StatusConflict, "namespace_managed", "a managed namespace cannot be mapped to a git source")
+	ErrNamespaceManaged  = httpx.Errorf(http.StatusConflict, "namespace_managed", "a managed namespace is mapped only when adopt is set: adopt converts it to a git namespace")
 	ErrNamespaceMapped   = httpx.Errorf(http.StatusConflict, "namespace_mapped", "another git source maps this namespace")
 	ErrNotGitNamespace   = httpx.Errorf(http.StatusNotFound, "git_source_not_found", "no git source maps this namespace")
 	ErrNotSynced         = httpx.Errorf(http.StatusConflict, "not_synced", "the git source has not synced yet")
+	ErrSourceDisabled    = httpx.Errorf(http.StatusConflict, "git_source_disabled", "the git source is disabled: enable it to sync")
 	ErrInvalidSignature  = httpx.Errorf(http.StatusUnauthorized, "invalid_signature", "the webhook signature or token is not valid")
 	ErrWebhookBodyTooBig = httpx.Errorf(http.StatusRequestEntityTooLarge, "body_too_large", "the webhook body is larger than 1 MiB")
 )
@@ -78,6 +79,7 @@ type File struct {
 type Namespaces interface {
 	CreateGitNamespace(ctx context.Context, tx pgx.Tx, name string, sourceID uuid.UUID) (uuid.UUID, error)
 	CommitGit(ctx context.Context, nsID uuid.UUID, sha, message string, files []File) (bool, error)
+	AdoptNamespace(ctx context.Context, tx pgx.Tx, nsID uuid.UUID, name string, sourceID uuid.UUID) error
 }
 
 // Secrets resolves global secret keys: credentials and webhook secrets (REQ-GIT-001).
@@ -118,10 +120,12 @@ func (s *Service) maxFile() int64 {
 	return 10 << 20
 }
 
-// Mapping maps a repository path to a namespace.
+// Mapping maps a repository path to a namespace. Adopt converts a managed namespace to a
+// git namespace of the source.
 type Mapping struct {
 	RepoPath  string
 	Namespace string
+	Adopt     bool
 }
 
 // SourceInput is a git source write.
@@ -134,7 +138,9 @@ type SourceInput struct {
 	KnownHosts          string
 	PollInterval        int
 	WebhookSecretKey    string
-	Mappings            []Mapping
+	// Enabled is the sync state. Nil keeps the state on update and is false on create.
+	Enabled  *bool
+	Mappings []Mapping
 }
 
 // Source is a git source with its mappings.
@@ -237,7 +243,7 @@ func (s *Service) Create(ctx context.Context, in SourceInput) (Source, error) {
 		id, _ = uuid.NewV7()
 		if _, err := q.InsertSource(ctx, gitsyncdb.InsertSourceParams{ID: id, Name: in.Name, RepoUrl: in.RepoURL, Branch: in.Branch,
 			AuthType: in.AuthType, CredentialSecretKey: in.CredentialSecretKey, KnownHosts: in.KnownHosts, PollInterval: int32(in.PollInterval),
-			WebhookSecretKey: in.WebhookSecretKey, Now: s.Clock.Now()}); err != nil {
+			WebhookSecretKey: in.WebhookSecretKey, Enabled: in.Enabled != nil && *in.Enabled, Now: s.Clock.Now()}); err != nil {
 			return err
 		}
 		if err := s.setMappings(ctx, tx, id, in.Mappings); err != nil {
@@ -278,12 +284,48 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, in SourceInput) (Sou
 		if err := s.setMappings(ctx, tx, id, in.Mappings); err != nil {
 			return err
 		}
+		if in.Enabled != nil && *in.Enabled != src.Enabled {
+			if err := s.setEnabled(ctx, tx, src, *in.Enabled); err != nil {
+				return err
+			}
+		}
 		return s.Audit.Record(ctx, tx, audit.Event{Action: "git_source.update", TargetType: "git_source", TargetID: src.Name})
 	})
 	if err != nil {
 		return Source{}, err
 	}
 	return s.Get(ctx, id)
+}
+
+// SetEnabled turns the sync of a source on or off. Turning it on requests a sync; off
+// stops polling, webhooks and "Sync now", and the namespaces keep their last snapshot.
+func (s *Service) SetEnabled(ctx context.Context, id uuid.UUID, enabled bool) (Source, error) {
+	err := pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
+		src, err := gitsyncdb.New(tx).GetSource(ctx, id)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrSourceNotFound
+		}
+		if err != nil || src.Enabled == enabled {
+			return err
+		}
+		return s.setEnabled(ctx, tx, src, enabled)
+	})
+	if err != nil {
+		return Source{}, err
+	}
+	return s.Get(ctx, id)
+}
+
+func (s *Service) setEnabled(ctx context.Context, tx pgx.Tx, src gitsyncdb.GitSource, enabled bool) error {
+	now := s.Clock.Now()
+	if err := gitsyncdb.New(tx).SetEnabled(ctx, gitsyncdb.SetEnabledParams{Enabled: enabled, Now: now, ID: src.ID}); err != nil {
+		return err
+	}
+	action := "git_source.disable"
+	if enabled {
+		action = "git_source.enable"
+	}
+	return s.Audit.Record(ctx, tx, audit.Event{Action: action, TargetType: "git_source", TargetID: src.Name})
 }
 
 // Delete removes a source. Its namespaces stay as read-only git namespaces with their history.
@@ -321,8 +363,8 @@ func (s *Service) releaseNamespaces(ctx context.Context, q *gitsyncdb.Queries, i
 	return q.DeleteMappings(ctx, id)
 }
 
-// setMappings maps each namespace to the source. A managed namespace or a namespace of
-// another source is a conflict (REQ-GIT-007).
+// setMappings maps each namespace to the source. A namespace of another source is a
+// conflict (REQ-GIT-007). A managed namespace is a conflict unless the mapping adopts it.
 func (s *Service) setMappings(ctx context.Context, tx pgx.Tx, id uuid.UUID, maps []Mapping) error {
 	q := gitsyncdb.New(tx)
 	for _, m := range maps {
@@ -335,8 +377,13 @@ func (s *Service) setMappings(ctx context.Context, tx pgx.Tx, id uuid.UUID, maps
 			}
 		case err != nil:
 			return err
-		case ns.SourceType != "git":
+		case ns.SourceType != "git" && !m.Adopt:
 			return ErrNamespaceManaged.WithDetails(map[string]string{"namespace": m.Namespace})
+		case ns.SourceType != "git":
+			nsID = ns.ID
+			if err := s.Namespaces.AdoptNamespace(ctx, tx, nsID, m.Namespace, id); err != nil {
+				return err
+			}
 		case ns.MappedBy != nil && *ns.MappedBy != id:
 			return ErrNamespaceMapped.WithDetails(map[string]string{"namespace": m.Namespace})
 		default:
@@ -400,15 +447,21 @@ func (s *Service) WebhookURL(id uuid.UUID) string {
 	return strings.TrimRight(s.PublicURL, "/") + "/hooks/git/" + id.String()
 }
 
-// RequestSync asks the git-sync leader to sync a source soon (REQ-GIT-004).
+// RequestSync asks the git-sync leader to sync an enabled source soon (REQ-GIT-004).
 func (s *Service) RequestSync(ctx context.Context, id uuid.UUID) error {
 	now := s.Clock.Now()
-	n, err := gitsyncdb.New(s.Pool).RequestSync(ctx, gitsyncdb.RequestSyncParams{Now: &now, ID: id})
+	q := gitsyncdb.New(s.Pool)
+	n, err := q.RequestSync(ctx, gitsyncdb.RequestSyncParams{Now: &now, ID: id})
 	if err != nil {
 		return err
 	}
 	if n == 0 {
-		return ErrSourceNotFound
+		if _, err := q.GetSource(ctx, id); errors.Is(err, pgx.ErrNoRows) {
+			return ErrSourceNotFound
+		} else if err != nil {
+			return err
+		}
+		return ErrSourceDisabled
 	}
 	return s.Audit.Record(ctx, s.Pool, audit.Event{Action: "git_source.sync", TargetType: "git_source", TargetID: id.String()})
 }
@@ -624,7 +677,7 @@ func (s *Service) VerifyWebhook(ctx context.Context, id uuid.UUID, body []byte, 
 	if !valid {
 		return false, ErrInvalidSignature
 	}
-	if headers.Get("X-GitHub-Event") == "ping" {
+	if headers.Get("X-GitHub-Event") == "ping" || !src.Enabled {
 		return false, nil
 	}
 	var push struct {

@@ -1,1 +1,1 @@
-export { GitSourcesPage } from "./GitSourcesPage";
+export { GitSourcesPage, type GitSourcesSearch } from "./GitSourcesPage";

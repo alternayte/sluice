@@ -39,8 +39,9 @@ func gitTestSource(t *testing.T, s *Server, name, repoURL string, maps ...gitsyn
 	if _, err := s.Secrets.Put(ctx, "", "GIT_TOKEN", secret.PutInput{Provider: "env"}); err != nil {
 		t.Fatal(err)
 	}
+	enabled := true
 	src, err := s.Git.Create(ctx, gitsync.SourceInput{Name: name, RepoURL: repoURL, Branch: "main", AuthType: "https_token",
-		CredentialSecretKey: "GIT_TOKEN", Mappings: maps})
+		CredentialSecretKey: "GIT_TOKEN", Enabled: &enabled, Mappings: maps})
 	if err != nil {
 		t.Fatalf("create source: %v", err)
 	}

@@ -263,6 +263,7 @@ test("SCN-AI-006 an invalid proposal returns errors, a valid proposal shows the 
       branch: "main",
       auth_type: "https_token",
       credential_secret_key: key,
+      enabled: true,
       mappings: [{ repo_path: "", namespace: gitNs }],
     },
   });

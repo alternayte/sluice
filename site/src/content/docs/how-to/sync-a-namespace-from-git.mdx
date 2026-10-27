@@ -13,6 +13,7 @@ This guide shows you how to keep the files of a namespace in a git repository. S
 | Mapping | A directory of the branch and the namespace that gets its files. One source has 1 to 100 mappings. |
 | Sync run | One read of the branch head. Sluice records each run with its result. |
 | Git namespace | A namespace whose files come only from sync. Sluice shows it as read-only. |
+| Sync switch | Turns the sync of a source on or off. A new source is off. |
 
 ## Before you start
 
@@ -41,7 +42,9 @@ This guide shows you how to keep the files of a namespace in a git repository. S
 
 3. Under **Mappings**, add a **Repository path** and a **Namespace** for each directory. An empty path is the repository root.
 
-4. Click **Add git source**. The first sync starts within about one second.
+4. Turn on **Sync**. A new source is off unless you turn it on.
+
+5. Click **Add git source**. If **Sync** is on, the first sync starts within about one second.
 
 </Steps>
 
@@ -58,11 +61,36 @@ curl -X POST "$SLUICE_URL/api/v1/git-sources" \
     "credential_secret_key": "GIT_TOKEN",
     "poll_interval": 300,
     "webhook_secret_key": "GIT_WEBHOOK_SECRET",
+    "enabled": true,
     "mappings": [{"repo_path": "pipelines/elt", "namespace": "data.elt"}]
   }'
 ```
 
-The response holds the secret keys, never the secret values. It also holds `webhook_url`, `last_synced_sha`, `last_sync_at`, `last_sync_status` and `last_error`.
+Without `enabled`, a new source is off. The response holds the secret keys, never the secret values. It also holds `enabled`, `webhook_url`, `last_synced_sha`, `last_sync_at`, `last_sync_status` and `last_error`.
+
+## Turn a source on or off
+
+The **Sync** column of **Settings → Git sources** and the **Sync** switch of the source form turn the sync on or off. You need the admin role.
+
+```sh
+curl -X PATCH "$SLUICE_URL/api/v1/git-sources/<source_id>" \
+  -H "Authorization: Bearer $SLUICE_TOKEN" -H "Content-Type: application/json" \
+  -d '{"enabled": false}'
+```
+
+When a source is off:
+
+- The poll skips the source.
+- A valid webhook call returns 202 `{"queued":false}`.
+- **Sync now** returns 409 `git_source_disabled`.
+- The namespaces stay read-only and keep their last synced version. Their flows and triggers keep running.
+- **Push to branch** still works.
+
+When you turn a source on, a sync starts at once. The audit log records `git_source.enable` and `git_source.disable`.
+
+## Edit a source
+
+Click the name of a source, or its pencil button, to open the source form. You can change every field except **Name**. **Save** sends `PUT /api/v1/git-sources/<source_id>` with all fields and all mappings. A `PUT` without `enabled` keeps the sync state.
 
 ### Credentials
 
@@ -79,16 +107,31 @@ The response holds the secret keys, never the secret values. It also holds `webh
 ### Mappings
 
 - A mapped namespace that does not exist becomes a new git namespace.
-- A mapping to a managed namespace returns 409 `namespace_managed`. A namespace keeps its source for its whole life.
+- A mapping to a managed namespace returns 409 `namespace_managed`, unless the mapping has `"adopt": true`. See [Move a managed namespace to git](#move-a-managed-namespace-to-git).
 - A mapping to a namespace of another source returns 409 `namespace_mapped`.
 - In one source, two mappings cannot share a path or a namespace.
 - An update of a source replaces all mappings. A namespace that loses its mapping keeps its versions, stays read-only and does not sync again. A delete of the source has the same effect.
+- An admin can delete a git namespace that no source maps. A delete of a mapped namespace returns 409 `namespace_mapped` with the source name. Remove the mapping from the source first.
+
+### Move a managed namespace to git
+
+A source can take over a managed namespace, for example a namespace that you built in Sluice and now keep in git.
+
+<Steps>
+
+1. Add the mapping to the namespace and save. The form shows that the namespace is managed.
+
+2. Select **Convert to git namespace** on the mapping and save again. The API takes `"adopt": true` on the mapping.
+
+</Steps>
+
+The namespace becomes a git namespace of the source and is read-only from then on. Its old versions, flows and executions stay as history. The next sync makes a new version from the repository. A file that the repository does not have leaves the head, and stays in the old versions. The audit log records `namespace.adopt`. A git namespace cannot become managed again.
 
 ## How a sync works
 
 The instance that holds the git sync lease checks the sources every second. A source syncs in three cases. It has never synced, a user or a webhook asked for a sync, or `poll_interval` seconds have passed since the last sync started.
 
-A sync does these steps:
+The poll and webhooks skip a source that is off. A sync does these steps:
 
 1. It fetches the head of the branch as a shallow clone with depth 1, into a temporary directory. It checks out no files.
 2. For each mapping, it reads the files below the repository path from the git object store.
@@ -117,7 +160,7 @@ curl -X POST "$SLUICE_URL/api/v1/git-sources/<source_id>/sync" \
   -H "Authorization: Bearer $SLUICE_TOKEN"
 ```
 
-The answer is 202. The sync starts at the next check of the lease holder, normally within one second.
+The answer is 202. The sync starts at the next check of the lease holder, normally within one second. A source that is off returns 409 `git_source_disabled`.
 
 ## Sync on push with a webhook
 
@@ -162,6 +205,7 @@ A webhook makes a push sync at once, so you can set a long poll interval.
 | A body larger than 1 MiB | 413 `body_too_large` |
 | A valid GitHub `ping` event | 202 `{"queued":false}` |
 | A valid JSON body whose `ref` is not `refs/heads/<branch>` | 202 `{"queued":false}` |
+| A valid request to a source that is off | 202 `{"queued":false}` |
 | Any other valid request | 202 `{"queued":true}`, and a sync starts |
 
 ## Change files of a git namespace

@@ -7,7 +7,9 @@ import {
   Copy,
   CornerDownRight,
   Crosshair,
+  FileCode2,
   FileJson,
+  GitCommitHorizontal,
   RefreshCw,
   RotateCcw,
   X,
@@ -17,6 +19,7 @@ import {
   cancelExecutionMutation,
   getExecutionOptions,
   getExecutionQueryKey,
+  getNamespaceGitOptions,
   listExecutionArtifactsOptions,
   listExecutionMetricsOptions,
   rerunExecutionMutation,
@@ -48,6 +51,7 @@ import {
   type GanttRow,
 } from "@/lib/executions";
 import { stateLabel } from "@/lib/flows";
+import { commitUrl } from "@/lib/git";
 import { can } from "@/lib/roles";
 import { cn, formatBytes, formatDuration, formatRelative, formatTime } from "@/lib/utils";
 
@@ -136,8 +140,32 @@ export function ExecutionPage({
         <Link to="/executions" className="rounded-inner hover:text-foreground">
           Executions
         </Link>
+        {detail.data && (
+          <>
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+            <Link
+              to="/namespaces/$namespace"
+              params={{ namespace: detail.data.namespace }}
+              className="rounded-inner font-mono text-xs hover:text-foreground"
+            >
+              {detail.data.namespace}
+            </Link>
+            {detail.data.flow_id && (
+              <>
+                <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+                <Link
+                  to="/flows/$namespace/$flowId"
+                  params={{ namespace: detail.data.namespace, flowId: detail.data.flow_id }}
+                  className="rounded-inner font-mono text-xs hover:text-foreground"
+                >
+                  {detail.data.flow_id}
+                </Link>
+              </>
+            )}
+          </>
+        )}
         <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-        <span className="font-mono text-xs">{executionId.slice(0, 8)}</span>
+        <span className="font-mono text-xs text-foreground">{executionId.slice(0, 8)}</span>
       </nav>
       <DataState query={detail} skeleton="panel">
         {(e) => <Detail execution={e} live={live} search={search} navigate={navigate} insights={insights} />}
@@ -291,7 +319,7 @@ function Detail({
         }
         right={
           <section aria-label="Inspector" className="flex min-h-0 min-w-0 flex-1 flex-col">
-            {selectedRun && <AttemptCard run={selectedRun} onClose={() => select(undefined)} />}
+            {selectedRun && <AttemptCard execution={e} run={selectedRun} onClose={() => select(undefined)} />}
             <Tabs
               label="Execution sections"
               tabs={tabs}
@@ -465,6 +493,66 @@ function ExecLink({ id, children }: { id: string; children?: ReactNode }) {
   );
 }
 
+/** SourceLink opens the source of the flow revision that an execution ran. */
+function SourceLink({
+  execution: e,
+  className,
+  children,
+}: {
+  execution: ExecutionDetail;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (!e.flow_id || !e.flow_revision_id) return null;
+  return (
+    <Link
+      to="/flows/$namespace/$flowId"
+      params={{ namespace: e.namespace, flowId: e.flow_id }}
+      search={{ tab: "source", revision: e.flow_revision_id }}
+      title="Open the flow source that this execution ran"
+      className={cn(
+        "text-accent-text underline decoration-accent-text/40 underline-offset-2 hover:decoration-accent-text",
+        className,
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
+
+/** CommitRef shows a git SHA. It links to the commit page on github.com, gitlab.com or bitbucket.org. */
+function CommitRef({ namespace, sha }: { namespace: string; sha: string }) {
+  const git = useQuery({ ...getNamespaceGitOptions({ path: { namespace } }), retry: false });
+  const href = git.data ? commitUrl(git.data.repo_url, sha) : undefined;
+  if (href)
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        title="Open the commit"
+        className="inline-flex items-center gap-1 font-mono text-xs text-accent-text underline decoration-accent-text/40 underline-offset-2 hover:decoration-accent-text"
+      >
+        <GitCommitHorizontal className="h-3.5 w-3.5" aria-hidden />
+        {sha.slice(0, 12)}
+      </a>
+    );
+  return (
+    <span className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground">
+      <GitCommitHorizontal className="h-3.5 w-3.5" aria-hidden />
+      {sha.slice(0, 12)}
+      <button
+        type="button"
+        onClick={() => void copyText(sha, "Commit SHA")}
+        className="pressable inline-flex h-5 w-5 items-center justify-center rounded-inner hover:bg-muted hover:text-foreground"
+      >
+        <Copy className="h-3 w-3" aria-hidden />
+        <span className="sr-only">Copy commit SHA</span>
+      </button>
+    </span>
+  );
+}
+
 function Meta({ label, children, wide = false }: { label: string; children: ReactNode; wide?: boolean }) {
   return (
     <div className={cn("flex min-w-0 flex-col gap-0.5", wide && "col-span-2")}>
@@ -564,11 +652,38 @@ function Header({
           <span className="tabular-nums">{formatDuration(duration)}</span>
         </Meta>
         <Meta label="Trigger">
-          {stateLabel(e.trigger_type)}
+          {e.flow_id ? (
+            <Link
+              to="/flows/$namespace/$flowId"
+              params={{ namespace: e.namespace, flowId: e.flow_id }}
+              search={{ tab: "triggers" }}
+              className="text-accent-text underline decoration-accent-text/40 underline-offset-2 hover:decoration-accent-text"
+            >
+              {stateLabel(e.trigger_type)}
+            </Link>
+          ) : (
+            stateLabel(e.trigger_type)
+          )}
           {e.created_by && <span className="text-muted-foreground"> by {e.created_by}</span>}
         </Meta>
         <Meta label="Version">
-          <span className="font-mono text-xs">{version}</span>
+          <span className="flex flex-wrap items-center gap-x-2">
+            {/* A git version is its commit; the flow source link follows it. */}
+            {e.git_sha ? (
+              <>
+                <CommitRef namespace={e.namespace} sha={e.git_sha} />
+                <SourceLink execution={e} className="text-xs">
+                  Flow source
+                </SourceLink>
+              </>
+            ) : e.flow_id && e.flow_revision_id ? (
+              <SourceLink execution={e} className="font-mono text-xs">
+                {version}
+              </SourceLink>
+            ) : (
+              <span className="font-mono text-xs">{version}</span>
+            )}
+          </span>
         </Meta>
         <Meta label="Created">{formatTime(e.created_at)}</Meta>
         <Meta label="Inputs" wide>
@@ -612,7 +727,15 @@ function Header({
 }
 
 /** AttemptCard shows the facts of the selected task run above the inspector tabs. */
-function AttemptCard({ run: r, onClose }: { run: TaskRun; onClose: () => void }) {
+function AttemptCard({
+  execution,
+  run: r,
+  onClose,
+}: {
+  execution: ExecutionDetail;
+  run: TaskRun;
+  onClose: () => void;
+}) {
   const queued = r.queued_at ? Date.parse(r.queued_at) : undefined;
   const started = r.started_at ? Date.parse(r.started_at) : undefined;
   const wait = queued !== undefined && started !== undefined ? started - queued : null;
@@ -625,14 +748,23 @@ function AttemptCard({ run: r, onClose }: { run: TaskRun; onClose: () => void })
           </span>
           <ExecutionStateBadge state={r.state} />
         </h3>
-        <button
-          type="button"
-          onClick={onClose}
-          className="pressable inline-flex h-6 items-center gap-1 rounded-full px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <X className="h-3 w-3" aria-hidden />
-          All tasks
-        </button>
+        <span className="flex shrink-0 items-center gap-1">
+          <SourceLink
+            execution={execution}
+            className="inline-flex h-6 items-center gap-1 rounded-full px-2 text-xs no-underline hover:bg-muted"
+          >
+            <FileCode2 className="h-3 w-3" aria-hidden />
+            Source
+          </SourceLink>
+          <button
+            type="button"
+            onClick={onClose}
+            className="pressable inline-flex h-6 items-center gap-1 rounded-full px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-3 w-3" aria-hidden />
+            All tasks
+          </button>
+        </span>
       </div>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-4">
         <div>

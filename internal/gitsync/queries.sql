@@ -1,7 +1,7 @@
 -- name: InsertSource :one
-INSERT INTO git_sources (id, name, repo_url, branch, auth_type, credential_secret_key, known_hosts, poll_interval, webhook_secret_key, created_at)
+INSERT INTO git_sources (id, name, repo_url, branch, auth_type, credential_secret_key, known_hosts, poll_interval, webhook_secret_key, enabled, created_at)
 VALUES (sqlc.arg(id), sqlc.arg(name), sqlc.arg(repo_url), sqlc.arg(branch), sqlc.arg(auth_type), sqlc.arg(credential_secret_key),
-    sqlc.arg(known_hosts), sqlc.arg(poll_interval), sqlc.arg(webhook_secret_key), sqlc.arg(now))
+    sqlc.arg(known_hosts), sqlc.arg(poll_interval), sqlc.arg(webhook_secret_key), sqlc.arg(enabled), sqlc.arg(now))
 RETURNING *;
 
 -- name: UpdateSource :one
@@ -10,6 +10,12 @@ UPDATE git_sources SET repo_url = sqlc.arg(repo_url), branch = sqlc.arg(branch),
     poll_interval = sqlc.arg(poll_interval), webhook_secret_key = sqlc.arg(webhook_secret_key)
 WHERE id = sqlc.arg(id)
 RETURNING *;
+
+-- name: SetEnabled :exec
+-- Enabling a source requests a sync; disabling it drops a requested sync.
+UPDATE git_sources SET enabled = sqlc.arg(enabled),
+    sync_requested_at = CASE WHEN sqlc.arg(enabled)::boolean THEN sqlc.arg(now)::timestamptz END
+WHERE id = sqlc.arg(id);
 
 -- name: GetSource :one
 SELECT * FROM git_sources WHERE id = sqlc.arg(id);
@@ -46,16 +52,16 @@ WHERE n.name = sqlc.arg(name) AND n.deleted_at IS NULL;
 UPDATE namespaces SET git_source_id = sqlc.narg(git_source_id) WHERE id = sqlc.arg(id);
 
 -- name: DueSources :many
--- Sources with a requested sync, or whose poll interval passed since the last sync.
+-- Enabled sources with a requested sync, or whose poll interval passed since the last sync.
 SELECT id FROM git_sources
-WHERE sync_requested_at IS NOT NULL OR last_sync_at IS NULL OR last_sync_at + poll_interval * interval '1 second' <= sqlc.arg(now)
+WHERE enabled AND (sync_requested_at IS NOT NULL OR last_sync_at IS NULL OR last_sync_at + poll_interval * interval '1 second' <= sqlc.arg(now))
 ORDER BY sync_requested_at NULLS LAST, last_sync_at NULLS FIRST
 LIMIT 20;
 
 -- name: ClaimSync :execrows
 -- A leader-only write: the lease check and the claim are one statement (REQ-CORE-006).
 UPDATE git_sources SET last_sync_status = 'running', sync_requested_at = NULL, last_sync_at = sqlc.arg(now)
-WHERE id = sqlc.arg(id) AND last_sync_status <> 'running'
+WHERE id = sqlc.arg(id) AND enabled AND last_sync_status <> 'running'
     AND EXISTS (SELECT 1 FROM leases WHERE name = 'git-sync' AND holder = sqlc.arg(holder) AND expires_at > sqlc.arg(now));
 
 -- name: FinishSync :exec
@@ -80,10 +86,10 @@ WHERE id = sqlc.arg(id);
 SELECT * FROM git_sync_runs WHERE git_source_id = sqlc.arg(git_source_id) ORDER BY started_at DESC LIMIT sqlc.arg(max_rows);
 
 -- name: RequestSync :execrows
-UPDATE git_sources SET sync_requested_at = sqlc.arg(now) WHERE id = sqlc.arg(id);
+UPDATE git_sources SET sync_requested_at = sqlc.arg(now) WHERE id = sqlc.arg(id) AND enabled;
 
 -- name: SourceOfNamespace :one
-SELECT s.id, s.name, s.repo_url, s.branch, s.auth_type, s.credential_secret_key, s.known_hosts, s.last_synced_sha,
+SELECT s.id, s.name, s.repo_url, s.branch, s.auth_type, s.credential_secret_key, s.known_hosts, s.enabled, s.last_synced_sha,
     s.last_sync_at, s.last_sync_status, s.last_error, m.repo_path, n.id AS namespace_id
 FROM git_sources s
 JOIN git_mappings m ON m.git_source_id = s.id

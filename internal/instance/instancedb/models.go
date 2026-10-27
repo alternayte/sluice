@@ -179,6 +179,7 @@ type GitSource struct {
 	LastError           string
 	SyncRequestedAt     *time.Time
 	CreatedAt           time.Time
+	Enabled             bool
 }
 
 type GitSyncRun struct {

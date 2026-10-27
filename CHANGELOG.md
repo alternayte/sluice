@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- A git source has a sync switch. A new source is off unless the create request sets `"enabled": true`. Sources from before the upgrade stay on. `PATCH /api/v1/git-sources/{id}` with `{"enabled": bool}` turns it on or off, and turning it on starts a sync. A source that is off does not poll, answers a webhook with `{"queued":false}` and answers **Sync now** with 409 `git_source_disabled`. Its namespaces keep their last synced version, and their flows and triggers keep running.
+- The UI edits a git source. The source list and the source form have the sync switch.
+- A mapping with `"adopt": true` converts a managed namespace to a git namespace of the source. The form offers **Convert to git namespace** when a mapping names a managed namespace. The old versions, flows and executions stay as history.
+- The execution page links its namespace and flow in the breadcrumb. **Version** opens the flow source that the execution ran and the commit on GitHub, GitLab or Bitbucket. **Trigger** opens the triggers of the flow, and a task run has a **Source** link. The flow page links its namespace and shows the git source and commit of a git flow.
+
+### Changed
+
+- An admin can delete a git namespace that no git source maps. A delete of a mapped namespace returns 409 `namespace_mapped` with the source name.
+
 ## [0.4.0] - 2026-10-08
 
 ### Added

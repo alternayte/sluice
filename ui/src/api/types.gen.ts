@@ -178,6 +178,10 @@ export type CreateGitSourceRequest = {
    * Global secret key with the token or the private key.
    */
   credential_secret_key?: string;
+  /**
+   * Sync the source. A new source is disabled when this is absent; an update keeps the state.
+   */
+  enabled?: boolean;
   known_hosts?: string;
   mappings: Array<MappingIo>;
   name: string;
@@ -558,6 +562,10 @@ export type LoginRequest = {
 };
 
 export type MappingIo = {
+  /**
+   * Convert a managed namespace to a git namespace of this source. Its history stays.
+   */
+  adopt?: boolean;
   namespace: string;
   /**
    * Directory in the repository. Empty is the repository root.
@@ -634,6 +642,7 @@ export type Namespace = {
 
 export type NamespaceGit = {
   branch: string;
+  enabled: boolean;
   last_error: string;
   last_sync_at?: string | null;
   last_sync_status: string;
@@ -927,6 +936,14 @@ export type SecretPut = {
   [key: string]: unknown;
 };
 
+export type SetGitSourceEnabledRequest = {
+  /**
+   * Sync the source. Off stops polling, webhooks and Sync now.
+   */
+  enabled: boolean;
+  [key: string]: unknown;
+};
+
 export type Snapshot = {
   author: string;
   created_at: string;
@@ -951,6 +968,10 @@ export type SourceBody = {
    * Global secret key with the token or the private key.
    */
   credential_secret_key?: string;
+  /**
+   * Sync the source. A new source is disabled when this is absent; an update keeps the state.
+   */
+  enabled?: boolean;
   known_hosts?: string;
   mappings: Array<MappingIo>;
   /**
@@ -977,6 +998,7 @@ export type SourceOut = {
   auth_type: string;
   branch: string;
   credential_secret_key: string;
+  enabled: boolean;
   id: string;
   known_hosts: string;
   last_error: string;
@@ -2753,6 +2775,33 @@ export type GetGitSourceResponses = {
 };
 
 export type GetGitSourceResponse = GetGitSourceResponses[keyof GetGitSourceResponses];
+
+export type SetGitSourceEnabledData = {
+  body: SetGitSourceEnabledRequest;
+  path: {
+    sourceId: string;
+  };
+  query?: never;
+  url: "/api/v1/git-sources/{sourceId}";
+};
+
+export type SetGitSourceEnabledErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type SetGitSourceEnabledError = SetGitSourceEnabledErrors[keyof SetGitSourceEnabledErrors];
+
+export type SetGitSourceEnabledResponses = {
+  /**
+   * OK
+   */
+  200: SourceOut;
+};
+
+export type SetGitSourceEnabledResponse = SetGitSourceEnabledResponses[keyof SetGitSourceEnabledResponses];
 
 export type UpdateGitSourceData = {
   body: SourceBody;

@@ -15,7 +15,7 @@ import (
 
 const claimSync = `-- name: ClaimSync :execrows
 UPDATE git_sources SET last_sync_status = 'running', sync_requested_at = NULL, last_sync_at = $1
-WHERE id = $2 AND last_sync_status <> 'running'
+WHERE id = $2 AND enabled AND last_sync_status <> 'running'
     AND EXISTS (SELECT 1 FROM leases WHERE name = 'git-sync' AND holder = $3 AND expires_at > $1)
 `
 
@@ -54,12 +54,12 @@ func (q *Queries) DeleteSource(ctx context.Context, id uuid.UUID) error {
 
 const dueSources = `-- name: DueSources :many
 SELECT id FROM git_sources
-WHERE sync_requested_at IS NOT NULL OR last_sync_at IS NULL OR last_sync_at + poll_interval * interval '1 second' <= $1
+WHERE enabled AND (sync_requested_at IS NOT NULL OR last_sync_at IS NULL OR last_sync_at + poll_interval * interval '1 second' <= $1)
 ORDER BY sync_requested_at NULLS LAST, last_sync_at NULLS FIRST
 LIMIT 20
 `
 
-// Sources with a requested sync, or whose poll interval passed since the last sync.
+// Enabled sources with a requested sync, or whose poll interval passed since the last sync.
 func (q *Queries) DueSources(ctx context.Context, now *time.Time) ([]uuid.UUID, error) {
 	rows, err := q.db.Query(ctx, dueSources, now)
 	if err != nil {
@@ -135,7 +135,7 @@ func (q *Queries) FinishSync(ctx context.Context, arg FinishSyncParams) error {
 }
 
 const getSource = `-- name: GetSource :one
-SELECT id, name, repo_url, branch, auth_type, credential_secret_key, known_hosts, poll_interval, webhook_secret_key, last_synced_sha, last_sync_at, last_sync_status, last_error, sync_requested_at, created_at FROM git_sources WHERE id = $1
+SELECT id, name, repo_url, branch, auth_type, credential_secret_key, known_hosts, poll_interval, webhook_secret_key, last_synced_sha, last_sync_at, last_sync_status, last_error, sync_requested_at, created_at, enabled FROM git_sources WHERE id = $1
 `
 
 func (q *Queries) GetSource(ctx context.Context, id uuid.UUID) (GitSource, error) {
@@ -157,12 +157,13 @@ func (q *Queries) GetSource(ctx context.Context, id uuid.UUID) (GitSource, error
 		&i.LastError,
 		&i.SyncRequestedAt,
 		&i.CreatedAt,
+		&i.Enabled,
 	)
 	return i, err
 }
 
 const getSourceByName = `-- name: GetSourceByName :one
-SELECT id, name, repo_url, branch, auth_type, credential_secret_key, known_hosts, poll_interval, webhook_secret_key, last_synced_sha, last_sync_at, last_sync_status, last_error, sync_requested_at, created_at FROM git_sources WHERE name = $1
+SELECT id, name, repo_url, branch, auth_type, credential_secret_key, known_hosts, poll_interval, webhook_secret_key, last_synced_sha, last_sync_at, last_sync_status, last_error, sync_requested_at, created_at, enabled FROM git_sources WHERE name = $1
 `
 
 func (q *Queries) GetSourceByName(ctx context.Context, name string) (GitSource, error) {
@@ -184,6 +185,7 @@ func (q *Queries) GetSourceByName(ctx context.Context, name string) (GitSource, 
 		&i.LastError,
 		&i.SyncRequestedAt,
 		&i.CreatedAt,
+		&i.Enabled,
 	)
 	return i, err
 }
@@ -219,10 +221,10 @@ func (q *Queries) InsertRun(ctx context.Context, arg InsertRunParams) error {
 }
 
 const insertSource = `-- name: InsertSource :one
-INSERT INTO git_sources (id, name, repo_url, branch, auth_type, credential_secret_key, known_hosts, poll_interval, webhook_secret_key, created_at)
+INSERT INTO git_sources (id, name, repo_url, branch, auth_type, credential_secret_key, known_hosts, poll_interval, webhook_secret_key, enabled, created_at)
 VALUES ($1, $2, $3, $4, $5, $6,
-    $7, $8, $9, $10)
-RETURNING id, name, repo_url, branch, auth_type, credential_secret_key, known_hosts, poll_interval, webhook_secret_key, last_synced_sha, last_sync_at, last_sync_status, last_error, sync_requested_at, created_at
+    $7, $8, $9, $10, $11)
+RETURNING id, name, repo_url, branch, auth_type, credential_secret_key, known_hosts, poll_interval, webhook_secret_key, last_synced_sha, last_sync_at, last_sync_status, last_error, sync_requested_at, created_at, enabled
 `
 
 type InsertSourceParams struct {
@@ -235,6 +237,7 @@ type InsertSourceParams struct {
 	KnownHosts          string
 	PollInterval        int32
 	WebhookSecretKey    string
+	Enabled             bool
 	Now                 time.Time
 }
 
@@ -249,6 +252,7 @@ func (q *Queries) InsertSource(ctx context.Context, arg InsertSourceParams) (Git
 		arg.KnownHosts,
 		arg.PollInterval,
 		arg.WebhookSecretKey,
+		arg.Enabled,
 		arg.Now,
 	)
 	var i GitSource
@@ -268,6 +272,7 @@ func (q *Queries) InsertSource(ctx context.Context, arg InsertSourceParams) (Git
 		&i.LastError,
 		&i.SyncRequestedAt,
 		&i.CreatedAt,
+		&i.Enabled,
 	)
 	return i, err
 }
@@ -352,7 +357,7 @@ func (q *Queries) ListRuns(ctx context.Context, arg ListRunsParams) ([]GitSyncRu
 }
 
 const listSources = `-- name: ListSources :many
-SELECT id, name, repo_url, branch, auth_type, credential_secret_key, known_hosts, poll_interval, webhook_secret_key, last_synced_sha, last_sync_at, last_sync_status, last_error, sync_requested_at, created_at FROM git_sources ORDER BY name
+SELECT id, name, repo_url, branch, auth_type, credential_secret_key, known_hosts, poll_interval, webhook_secret_key, last_synced_sha, last_sync_at, last_sync_status, last_error, sync_requested_at, created_at, enabled FROM git_sources ORDER BY name
 `
 
 func (q *Queries) ListSources(ctx context.Context) ([]GitSource, error) {
@@ -380,6 +385,7 @@ func (q *Queries) ListSources(ctx context.Context) ([]GitSource, error) {
 			&i.LastError,
 			&i.SyncRequestedAt,
 			&i.CreatedAt,
+			&i.Enabled,
 		); err != nil {
 			return nil, err
 		}
@@ -418,7 +424,7 @@ func (q *Queries) NamespaceByName(ctx context.Context, name string) (NamespaceBy
 }
 
 const requestSync = `-- name: RequestSync :execrows
-UPDATE git_sources SET sync_requested_at = $1 WHERE id = $2
+UPDATE git_sources SET sync_requested_at = $1 WHERE id = $2 AND enabled
 `
 
 type RequestSyncParams struct {
@@ -445,6 +451,24 @@ func (q *Queries) ResetStaleRunning(ctx context.Context, before *time.Time) erro
 	return err
 }
 
+const setEnabled = `-- name: SetEnabled :exec
+UPDATE git_sources SET enabled = $1,
+    sync_requested_at = CASE WHEN $1::boolean THEN $2::timestamptz END
+WHERE id = $3
+`
+
+type SetEnabledParams struct {
+	Enabled bool
+	Now     time.Time
+	ID      uuid.UUID
+}
+
+// Enabling a source requests a sync; disabling it drops a requested sync.
+func (q *Queries) SetEnabled(ctx context.Context, arg SetEnabledParams) error {
+	_, err := q.db.Exec(ctx, setEnabled, arg.Enabled, arg.Now, arg.ID)
+	return err
+}
+
 const setNamespaceSource = `-- name: SetNamespaceSource :exec
 UPDATE namespaces SET git_source_id = $1 WHERE id = $2
 `
@@ -460,7 +484,7 @@ func (q *Queries) SetNamespaceSource(ctx context.Context, arg SetNamespaceSource
 }
 
 const sourceOfNamespace = `-- name: SourceOfNamespace :one
-SELECT s.id, s.name, s.repo_url, s.branch, s.auth_type, s.credential_secret_key, s.known_hosts, s.last_synced_sha,
+SELECT s.id, s.name, s.repo_url, s.branch, s.auth_type, s.credential_secret_key, s.known_hosts, s.enabled, s.last_synced_sha,
     s.last_sync_at, s.last_sync_status, s.last_error, m.repo_path, n.id AS namespace_id
 FROM git_sources s
 JOIN git_mappings m ON m.git_source_id = s.id
@@ -476,6 +500,7 @@ type SourceOfNamespaceRow struct {
 	AuthType            string
 	CredentialSecretKey string
 	KnownHosts          string
+	Enabled             bool
 	LastSyncedSha       string
 	LastSyncAt          *time.Time
 	LastSyncStatus      string
@@ -495,6 +520,7 @@ func (q *Queries) SourceOfNamespace(ctx context.Context, namespace string) (Sour
 		&i.AuthType,
 		&i.CredentialSecretKey,
 		&i.KnownHosts,
+		&i.Enabled,
 		&i.LastSyncedSha,
 		&i.LastSyncAt,
 		&i.LastSyncStatus,
@@ -510,7 +536,7 @@ UPDATE git_sources SET repo_url = $1, branch = $2, auth_type = $3,
     credential_secret_key = $4, known_hosts = $5,
     poll_interval = $6, webhook_secret_key = $7
 WHERE id = $8
-RETURNING id, name, repo_url, branch, auth_type, credential_secret_key, known_hosts, poll_interval, webhook_secret_key, last_synced_sha, last_sync_at, last_sync_status, last_error, sync_requested_at, created_at
+RETURNING id, name, repo_url, branch, auth_type, credential_secret_key, known_hosts, poll_interval, webhook_secret_key, last_synced_sha, last_sync_at, last_sync_status, last_error, sync_requested_at, created_at, enabled
 `
 
 type UpdateSourceParams struct {
@@ -552,6 +578,7 @@ func (q *Queries) UpdateSource(ctx context.Context, arg UpdateSourceParams) (Git
 		&i.LastError,
 		&i.SyncRequestedAt,
 		&i.CreatedAt,
+		&i.Enabled,
 	)
 	return i, err
 }

@@ -54,8 +54,12 @@ func envSecrets(t testing.TB, c *client, keys ...string) {
 	}
 }
 
+// createGitSource creates a git source. It is enabled unless the body says otherwise.
 func createGitSource(t testing.TB, c *client, body map[string]any) gitSourceOut {
 	t.Helper()
+	if _, ok := body["enabled"]; !ok {
+		body["enabled"] = true
+	}
 	var out gitSourceOut
 	c.do(t, http.MethodPost, "/api/v1/git-sources", body, http.StatusCreated, &out)
 	return out
@@ -330,4 +334,72 @@ func TestSCN_NS_004_GitNamespaceReadOnly(t *testing.T) {
 	if r.Status != http.StatusConflict || errCode(r.Body) != "namespace_read_only" {
 		t.Fatalf("file write to a git namespace: %d %s", r.Status, r.Body)
 	}
+}
+
+// TestGitSourceToggleAdoptDelete checks that a new source starts disabled and does not
+// sync, that enabling it syncs, that a mapping adopts a managed namespace only when asked
+// and keeps its history, and that only an unmapped git namespace can be deleted.
+func TestGitSourceToggleAdoptDelete(t *testing.T) {
+	g := gitserver.Start(t)
+	repoURL, _ := g.Repo("toggle")
+	sha := g.Commit("toggle", "main", "first", []gitserver.File{{Path: "sync.flow.yaml", Content: gitFlow("sync")}})
+	p := startServer(t, gitEnv(newDatabase(t), g))
+	c := adminClient(t, p)
+	envSecrets(t, c, "GIT_TOKEN", "GIT_HOOK")
+	saveFiles(t, c, "built", map[string]string{"old.txt": "managed"})
+
+	body := tokenSource("toggle", repoURL, map[string]string{"repo_path": "", "namespace": "built"})
+	body["enabled"] = false
+	body["poll_interval"] = 15
+	body["webhook_secret_key"] = "GIT_HOOK"
+	if r := c.raw(t, http.MethodPost, "/api/v1/git-sources", body, nil); r.Status != http.StatusConflict || errCode(r.Body) != "namespace_managed" {
+		t.Fatalf("mapping a managed namespace without adopt: %d %s", r.Status, r.Body)
+	}
+	body["mappings"] = []map[string]any{{"repo_path": "", "namespace": "built", "adopt": true}}
+	delete(body, "enabled")
+	var src struct {
+		gitSourceOut
+		Enabled bool `json:"enabled"`
+	}
+	c.do(t, http.MethodPost, "/api/v1/git-sources", body, http.StatusCreated, &src)
+	if src.Enabled {
+		t.Fatal("a new source without enabled is enabled")
+	}
+	if r := c.raw(t, http.MethodPost, "/api/v1/git-sources/"+src.ID+"/sync", nil, nil); r.Status != http.StatusConflict || errCode(r.Body) != "git_source_disabled" {
+		t.Fatalf("Sync now of a disabled source: %d %s", r.Status, r.Body)
+	}
+	push := []byte(`{"ref":"refs/heads/main"}`)
+	if code, b := postHook(t, src.WebhookURL, push, map[string]string{"X-Hub-Signature-256": signed("hook-secret", push)}); code != http.StatusAccepted ||
+		!bytes.Contains(b, []byte(`"queued":false`)) {
+		t.Fatalf("webhook of a disabled source: %d %s", code, b)
+	}
+	time.Sleep(3 * time.Second)
+	if runs := gitRuns(t, c, src.ID); len(runs) != 0 {
+		t.Fatalf("a disabled source synced: %+v", runs)
+	}
+
+	c.do(t, http.MethodPatch, "/api/v1/git-sources/"+src.ID, map[string]any{"enabled": true}, http.StatusOK, &src)
+	if !src.Enabled {
+		t.Fatal("PATCH enabled=true did not enable the source")
+	}
+	if runs := waitRuns(t, c, src.ID, 1, 30*time.Second); runs[0].Status != "success" {
+		t.Fatalf("sync after enable: %+v", runs[0])
+	}
+	if got := headSha(t, c, "built"); got != sha {
+		t.Fatalf("adopted namespace head %q, want %s", got, sha)
+	}
+	var versions struct {
+		Items []snapshotOut `json:"items"`
+	}
+	c.do(t, http.MethodGet, "/api/v1/namespaces/built/versions", nil, http.StatusOK, &versions)
+	if len(versions.Items) != 2 {
+		t.Fatalf("adopted namespace versions: %+v, want the managed one and the git one", versions.Items)
+	}
+
+	r := c.raw(t, http.MethodDelete, "/api/v1/namespaces/built", nil, nil)
+	if r.Status != http.StatusConflict || errCode(r.Body) != "namespace_mapped" || !bytes.Contains(r.Body, []byte(`"toggle"`)) {
+		t.Fatalf("delete of a mapped namespace: %d %s", r.Status, r.Body)
+	}
+	c.do(t, http.MethodDelete, "/api/v1/git-sources/"+src.ID, nil, http.StatusNoContent, nil)
+	c.do(t, http.MethodDelete, "/api/v1/namespaces/built", nil, http.StatusNoContent, nil)
 }

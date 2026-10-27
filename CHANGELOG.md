@@ -11,10 +11,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A git source has a sync switch. A new source is off unless the create request sets `"enabled": true`. Sources from before the upgrade stay on. `PATCH /api/v1/git-sources/{id}` with `{"enabled": bool}` turns it on or off, and turning it on starts a sync. A source that is off does not poll, answers a webhook with `{"queued":false}` and answers **Sync now** with 409 `git_source_disabled`. Its namespaces keep their last synced version, and their flows and triggers keep running.
 - The UI edits a git source. The source list and the source form have the sync switch.
 - A mapping with `"adopt": true` converts a managed namespace to a git namespace of the source. The form offers **Convert to git namespace** when a mapping names a managed namespace. The old versions, flows and executions stay as history.
+- An assistant turn runs on the server. A reload or a closed tab does not stop it, and the panel attaches to the running turn. **Stop** ends a turn and keeps the text so far. A failed turn shows **Retry**, which runs it again without a second message. A turn of a stopped instance fails after 60 seconds. `GET /api/v1/ai/conversations/{id}/events` streams the conversation, and `POST .../stop` and `POST .../retry` stop and retry a turn.
+- **Accept all** in the assistant runs mutating tool calls of one conversation without a confirm, and records `ai.action.auto_confirmed`. After a `fetch_url` call, the rest of the turn waits for a confirm again. `PATCH /api/v1/ai/conversations/{id}` takes `auto_accept`.
+- **Web access** in the AI provider settings gives the assistant `fetch_url`, which reads a public web page as text. It refuses private and internal addresses, and **Allowed domains** can limit the hosts.
+- The assistant has copy buttons on messages and on tool arguments.
 - The execution page links its namespace and flow in the breadcrumb. **Version** opens the flow source that the execution ran and the commit on GitHub, GitLab or Bitbucket. **Trigger** opens the triggers of the flow, and a task run has a **Source** link. The flow page links its namespace and shows the git source and commit of a git flow.
 
 ### Changed
 
+- `POST /api/v1/ai/conversations/{id}/messages` and the action confirm and reject answer `202` and no longer stream the turn. Use `GET .../events`.
 - An admin can delete a git namespace that no git source maps. A delete of a mapped namespace returns 409 `namespace_mapped` with the source name.
 
 ## [0.4.0] - 2026-10-08

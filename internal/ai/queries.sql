@@ -63,3 +63,37 @@ WHERE id = $1;
 
 -- name: ListInsights :many
 SELECT * FROM ai_insights WHERE execution_id = $1 ORDER BY created_at DESC, id DESC;
+
+-- name: StartTurn :execrows
+-- One turn runs at a time in a conversation, on any instance. A retry starts only a failed turn.
+UPDATE ai_conversations SET turn_status = 'running', turn_stop = '', turn_error = '', draft_text = '',
+    stop_requested = false, turn_heartbeat_at = sqlc.arg(now)
+WHERE id = sqlc.arg(id) AND user_id = sqlc.arg(user_id) AND turn_status <> 'running'
+    AND (NOT sqlc.arg(retry)::boolean OR turn_status = 'failed');
+
+-- name: TickTurn :one
+-- The running turn writes its streamed text and its heartbeat, and reads a stop request.
+UPDATE ai_conversations SET draft_text = sqlc.arg(draft_text), turn_heartbeat_at = sqlc.arg(now)
+WHERE id = sqlc.arg(id) AND turn_status = 'running'
+RETURNING stop_requested;
+
+-- name: EndTurn :exec
+UPDATE ai_conversations SET turn_status = sqlc.arg(status), turn_stop = sqlc.arg(stop), turn_error = sqlc.arg(error),
+    draft_text = '', stop_requested = false
+WHERE id = sqlc.arg(id);
+
+-- name: RequestStop :execrows
+UPDATE ai_conversations SET stop_requested = true WHERE id = $1 AND user_id = $2 AND turn_status = 'running';
+
+-- name: FailStaleTurns :execrows
+-- A turn whose instance stopped writes no heartbeat. It fails, so that the user can retry.
+UPDATE ai_conversations SET turn_status = 'failed', turn_stop = 'error', turn_error = 'the turn stopped before it ended',
+    draft_text = '', stop_requested = false
+WHERE turn_status = 'running' AND turn_heartbeat_at < $1;
+
+-- name: SetAutoAccept :one
+UPDATE ai_conversations SET auto_accept = $3 WHERE id = $1 AND user_id = $2 RETURNING *;
+
+-- name: InsertAutoAction :exec
+INSERT INTO ai_pending_actions (id, conversation_id, tool_call_id, tool, arguments, status, decided_by, decided_at, created_at)
+VALUES ($1, $2, $3, $4, $5, 'auto_confirmed', $6, $7, $7);

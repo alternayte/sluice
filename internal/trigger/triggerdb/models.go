@@ -12,10 +12,17 @@ import (
 )
 
 type AiConversation struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	Title     string
-	CreatedAt time.Time
+	ID              uuid.UUID
+	UserID          uuid.UUID
+	Title           string
+	CreatedAt       time.Time
+	TurnStatus      string
+	TurnStop        string
+	TurnError       string
+	DraftText       string
+	TurnHeartbeatAt *time.Time
+	StopRequested   bool
+	AutoAccept      bool
 }
 
 type AiInsight struct {

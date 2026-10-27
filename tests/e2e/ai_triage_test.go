@@ -172,18 +172,16 @@ func TestSCN_AI_009_StepLimit(t *testing.T) {
 		ID string `json:"id"`
 	}
 	admin.do(t, http.MethodPost, "/api/v1/ai/conversations", map[string]any{}, http.StatusCreated, &conv)
-	r := admin.raw(t, http.MethodPost, "/api/v1/ai/conversations/"+conv.ID+"/messages", map[string]string{"text": "List the namespaces again and again."}, nil)
-	if r.Status != http.StatusOK {
-		t.Fatalf("status %d: %s", r.Status, r.Body)
-	}
-	stream := string(r.Body)
-	if !strings.Contains(stream, "event: error\ndata: {\"code\":\"step_limit_reached\"") || !strings.Contains(stream, `"stop":"step_limit_reached"`) {
-		t.Fatalf("stream:\n%s", stream)
+	admin.do(t, http.MethodPost, "/api/v1/ai/conversations/"+conv.ID+"/messages", map[string]string{"text": "List the namespaces again and again."},
+		http.StatusAccepted, nil)
+	d := waitTurn(t, admin, conv.ID, time.Minute)
+	if d.TurnStatus != "idle" || d.TurnStop != "step_limit_reached" {
+		t.Fatalf("turn ended %s/%s, want idle/step_limit_reached: %s", d.TurnStatus, d.TurnStop, d.TurnError)
 	}
 	if got := len(llm.Requests()); got != 20 {
 		t.Fatalf("%d model calls, want 20", got)
 	}
-	if calls := strings.Count(stream, "event: tool_result\n"); calls != 20 {
-		t.Fatalf("%d tool results, want 20", calls)
+	if n := d.count("tool_result"); n != 20 {
+		t.Fatalf("%d tool results, want 20", n)
 	}
 }

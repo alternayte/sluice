@@ -36,3 +36,4 @@ Sluice is a self-hosted flow orchestrator: one Go binary with Postgres, a React 
 - instance: one running sluice server process.
 - runner: the sluice exec process inside a task that talks to the runner API.
 - triage: an AI explanation of a failed execution, stored as an insight.
+- turn: one run of the assistant, from a user message or a decided action until it ends, waits for a confirm, stops or fails. Avoid: session, job, run.

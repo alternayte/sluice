@@ -15,6 +15,7 @@ import {
   checkGlobalSecret,
   checkNamespaceSecret,
   checkSecretProvider,
+  confirmAiAction,
   createAiConversation,
   createGitSource,
   createNamespace,
@@ -84,12 +85,14 @@ import {
   putGlobalVariable,
   putNamespaceSecret,
   putNamespaceVariable,
+  rejectAiAction,
   rejectTask,
   requestTriage,
   rerunExecution,
   resetUserPassword,
   restartExecution,
   resumeTask,
+  retryAiTurn,
   revertVersion,
   revokeOtherSessions,
   revokeToken,
@@ -104,10 +107,13 @@ import {
   runnerPostLogs,
   runnerPutArtifact,
   saveChanges,
+  sendAiMessage,
   setGitSourceEnabled,
+  stopAiTurn,
   syncGitSource,
   testAiProvider,
   triggerFlow,
+  updateAiConversation,
   updateFlow,
   updateGitSource,
   updateMe,
@@ -132,6 +138,7 @@ import type {
   CheckSecretProviderData,
   CheckSecretProviderError,
   CheckSecretProviderResponse,
+  ConfirmAiActionData,
   CreateAiConversationData,
   CreateAiConversationError,
   CreateAiConversationResponse,
@@ -327,6 +334,7 @@ import type {
   PutNamespaceVariableData,
   PutNamespaceVariableError,
   PutNamespaceVariableResponse,
+  RejectAiActionData,
   RejectTaskData,
   RejectTaskError,
   RejectTaskResponse,
@@ -345,6 +353,8 @@ import type {
   ResumeTaskData,
   ResumeTaskError,
   ResumeTaskResponse,
+  RetryAiTurnData,
+  RetryAiTurnError,
   RevertVersionData,
   RevertVersionError,
   RevertVersionResponse,
@@ -384,9 +394,12 @@ import type {
   SaveChangesData,
   SaveChangesError,
   SaveChangesResponse,
+  SendAiMessageData,
   SetGitSourceEnabledData,
   SetGitSourceEnabledError,
   SetGitSourceEnabledResponse,
+  StopAiTurnData,
+  StopAiTurnError,
   SyncGitSourceData,
   SyncGitSourceError,
   TestAiProviderData,
@@ -395,6 +408,9 @@ import type {
   TriggerFlowData,
   TriggerFlowError,
   TriggerFlowResponse,
+  UpdateAiConversationData,
+  UpdateAiConversationError,
+  UpdateAiConversationResponse,
   UpdateFlowData,
   UpdateFlowError,
   UpdateFlowResponse,
@@ -699,6 +715,106 @@ export const getAiConversationOptions = (options: Options<GetAiConversationData>
     },
     queryKey: getAiConversationQueryKey(options),
   });
+
+export const updateAiConversationMutation = (
+  options?: Partial<Options<UpdateAiConversationData>>,
+): UseMutationOptions<UpdateAiConversationResponse, UpdateAiConversationError, Options<UpdateAiConversationData>> => {
+  const mutationOptions: UseMutationOptions<
+    UpdateAiConversationResponse,
+    UpdateAiConversationError,
+    Options<UpdateAiConversationData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await updateAiConversation({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const confirmAiActionMutation = (
+  options?: Partial<Options<ConfirmAiActionData>>,
+): UseMutationOptions<unknown, DefaultError, Options<ConfirmAiActionData>> => {
+  const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<ConfirmAiActionData>> = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await confirmAiAction({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const rejectAiActionMutation = (
+  options?: Partial<Options<RejectAiActionData>>,
+): UseMutationOptions<unknown, DefaultError, Options<RejectAiActionData>> => {
+  const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<RejectAiActionData>> = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await rejectAiAction({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const sendAiMessageMutation = (
+  options?: Partial<Options<SendAiMessageData>>,
+): UseMutationOptions<unknown, DefaultError, Options<SendAiMessageData>> => {
+  const mutationOptions: UseMutationOptions<unknown, DefaultError, Options<SendAiMessageData>> = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await sendAiMessage({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const retryAiTurnMutation = (
+  options?: Partial<Options<RetryAiTurnData>>,
+): UseMutationOptions<unknown, RetryAiTurnError, Options<RetryAiTurnData>> => {
+  const mutationOptions: UseMutationOptions<unknown, RetryAiTurnError, Options<RetryAiTurnData>> = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await retryAiTurn({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const stopAiTurnMutation = (
+  options?: Partial<Options<StopAiTurnData>>,
+): UseMutationOptions<unknown, StopAiTurnError, Options<StopAiTurnData>> => {
+  const mutationOptions: UseMutationOptions<unknown, StopAiTurnError, Options<StopAiTurnData>> = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await stopAiTurn({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 export const deleteAiProviderMutation = (
   options?: Partial<Options<DeleteAiProviderData>>,

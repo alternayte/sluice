@@ -20,6 +20,8 @@ Each tool has a name, an input schema, a minimum role and a mutating flag. [MCP 
 
 A tool is mutating when it changes Sluice: the run tools and `apply_change`. `propose_change` validates files and returns a diff, but it writes nothing. Only the assistant has `propose_change`. An MCP client uses `validate_flow` and then `apply_change`.
 
+The assistant also has `fetch_url` when an admin turns on web access. See [Web access](#web-access). MCP does not serve it, because an MCP client has its own web access.
+
 A tool call always checks the role of the caller. A caller without the role gets the tool error `forbidden`. The assistant offers the model only the tools that your role allows.
 
 ## Two front ends
@@ -30,8 +32,8 @@ A tool call always checks the role of the caller. A caller without the role gets
 | Who calls the model | Sluice, with the configured AI provider. | The client, with its own model. Sluice needs no provider. |
 | Credential | Your session. | An API token. A session cookie gets `401`. |
 | Role | Your role. | The effective role of the token. |
-| Mutating tools | Wait for your **Confirm**. | Run at once. |
-| Audit | `ai.action.confirmed` or `ai.action.rejected`, and the event of the change itself. | `ai.tool.call`, and the event of the change itself. |
+| Mutating tools | Wait for your **Confirm**, unless **Accept all** is on. | Run at once. |
+| Audit | `ai.action.confirmed`, `ai.action.rejected` or `ai.action.auto_confirmed`, and the event of the change itself. | `ai.tool.call`, and the event of the change itself. |
 
 `/.well-known/mcp.json` describes the MCP server for discovery. It names the endpoint and the `Authorization` header, and holds no data.
 
@@ -43,7 +45,24 @@ The assistant never changes Sluice on its own. When the model calls a mutating t
 - **Reject** tells the model that you refused. The model continues the turn with this fact.
 - While an action waits, you cannot send a new message.
 
+### Accept all
+
+The **Accept all** switch in the panel header applies to one conversation. It is off in a new conversation. When it is on, a mutating call runs at once, as you and with your role. The tool card shows **Auto-accepted**, and the audit log records `ai.action.auto_confirmed`.
+
+Accept all stops for the rest of a turn after a `fetch_url` call. A web page is untrusted text, and it must not start an action without a person. The mutating calls after the fetch wait for **Confirm**.
+
 An MCP client has no such step. Sluice cannot ask a person inside an MCP call, so a mutating tool runs when the client calls it. The client can ask its own user first. Control an MCP client with its token: give it the lowest role that it needs, and an expiry. A viewer token gets only the read tools.
+
+## Web access
+
+An admin turns on **Web access** on **Settings → AI provider**. The assistant then has the tool `fetch_url`, which reads one web page as text.
+
+- It sends GET over `http` or `https`. It follows at most 5 redirects and stops after 10 seconds.
+- It refuses loopback, private, link-local, carrier-grade NAT and cloud metadata addresses. Sluice checks the address after the DNS lookup, also on each redirect.
+- It reads text, HTML, JSON and XML. It converts HTML to text, and returns at most 100 000 characters.
+- **Allowed domains** limits the hosts. A domain allows its subdomains. An empty list allows every public domain.
+
+`fetch_url` has no web search. The model can fetch a search page or a documentation URL that it knows.
 
 ## Masking
 
@@ -98,8 +117,7 @@ The model must quote evidence lines exactly. Sluice removes an evidence line who
 |---|---|---|
 | Model answers with tool calls in one assistant turn | 20 | The turn stops with `step_limit_reached`. |
 | Invalid proposals in one turn | 3 | `propose_change` answers `retry_limit_reached`. |
-| Tool result for the model | 20 000 bytes | Sluice cuts the rest. |
-| Tool result in the panel | 4 000 characters | The panel shows a shorter text. The model gets the full result. |
+| Tool result for the model | 20 000 bytes, 100 000 characters for `fetch_url` | Sluice cuts the rest. |
 | One message | 20 000 characters | Validation error. |
 | Attachments of one message | 5 | The panel does not add more. |
 | Rows of `list_executions` | 50 | |
@@ -110,7 +128,21 @@ A provider answer of 429 or 5xx, or a network error, gets 3 attempts in total.
 
 ## Conversations
 
-The assistant keeps your conversations in Postgres. Other users do not see them. A conversation stays after a page reload. It holds the messages, the tool calls and the actions that wait or that you confirmed or rejected.
+The assistant keeps your conversations in Postgres. Other users do not see them. A conversation holds the messages, the tool calls and the actions that wait or that you confirmed or rejected.
+
+## Turns
+
+A turn is one run of the assistant, from your message or a decision on an action until the answer ends. It runs on the server, not in the browser:
+
+- A reload, a closed tab or a second tab does not stop it. The panel attaches to the running turn and shows the text as it streams.
+- **Stop** ends a running turn. The text so far stays as the answer, marked **Stopped**.
+- A turn that fails, for example after 3 provider errors, shows the error and **Retry**. Retry runs the turn again from the saved messages, without a second copy of your message.
+- When the instance of a turn stops, the turn fails after 60 seconds without a heartbeat. You can then retry it.
+- One turn runs at a time in a conversation. A second message gets `409 turn_running`.
+
+Each message has a copy button for its text, and each tool card has one for its arguments.
+
+The API starts a turn with `POST /api/v1/ai/conversations/{id}/messages` and answers `202`. `GET /api/v1/ai/conversations/{id}/events` streams the conversation each time it changes, until the turn ends. `POST .../stop` and `POST .../retry` stop and retry a turn.
 
 ## Related pages
 

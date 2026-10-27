@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"time"
 )
 
 // T is the part of testing.TB that Start uses.
@@ -28,12 +29,14 @@ type ToolCall struct {
 }
 
 // Reply is one scripted model answer. A Status other than 0 or 200 gives an error answer.
-// JSON is the structured answer of a request with a JSON schema.
+// JSON is the structured answer of a request with a JSON schema. DelayMs waits before each
+// text delta, so that a client sees a slow stream.
 type Reply struct {
 	Status    int        `json:"status,omitempty"`
 	Text      string     `json:"text,omitempty"`
 	ToolCalls []ToolCall `json:"tool_calls,omitempty"`
 	JSON      string     `json:"json,omitempty"`
+	DelayMs   int        `json:"delay_ms,omitempty"`
 }
 
 // Request is one recorded request.
@@ -185,6 +188,7 @@ func writeAnthropic(w io.Writer, r Reply, jsonTool string) {
 	if r.Text != "" {
 		event(w, "content_block_start", map[string]any{"type": "content_block_start", "index": i, "content_block": map[string]any{"type": "text", "text": ""}})
 		for _, c := range chunks(r.Text, 8) {
+			time.Sleep(time.Duration(r.DelayMs) * time.Millisecond)
 			event(w, "content_block_delta", map[string]any{"type": "content_block_delta", "index": i, "delta": map[string]any{"type": "text_delta", "text": c}})
 		}
 		event(w, "content_block_stop", map[string]any{"type": "content_block_stop", "index": i})
@@ -222,6 +226,7 @@ func writeOpenAI(w io.Writer, r Reply) {
 		text = r.JSON
 	}
 	for _, c := range chunks(text, 8) {
+		time.Sleep(time.Duration(r.DelayMs) * time.Millisecond)
 		chunk(map[string]any{"content": c}, nil)
 	}
 	for i, tc := range r.ToolCalls {

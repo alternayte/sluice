@@ -73,6 +73,12 @@ Under **Failure triage**, select **Triage failed and timed out executions automa
 
 Every instance takes queued triages. A triage has 3 minutes. See [Triage a failed execution](/how-to/triage-a-failed-execution/).
 
+## Give the assistant web access
+
+Under **Web access**, select **The assistant can read public web pages with fetch_url**. To limit the hosts, enter one domain on each line under **Allowed domains**, for example `docs.example.com`. Then click **Save**.
+
+The Sluice server makes the requests. It never fetches a private or internal address, also after a redirect. See [Web access](/concepts/the-assistant-and-mcp/#web-access).
+
 ## Limit the size of the triage context
 
 `SLUICE_AI_MAX_CONTEXT_CHARS` limits the characters of one triage request. The default is `120000`, and the minimum is `1000`. A smaller value costs less per triage and keeps fewer log lines. Set the same value on all instances.

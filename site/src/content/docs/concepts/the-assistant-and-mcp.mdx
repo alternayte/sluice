@@ -49,7 +49,7 @@ The assistant never changes Sluice on its own. When the model calls a mutating t
 
 The **Accept all** switch in the panel header applies to one conversation. It is off in a new conversation. When it is on, a mutating call runs at once, as you and with your role. The tool card shows **Auto-accepted**, and the audit log records `ai.action.auto_confirmed`.
 
-Accept all stops for the rest of a turn after a `fetch_url` call. A web page is untrusted text, and it must not start an action without a person. The mutating calls after the fetch wait for **Confirm**.
+Accept all stops for the rest of a turn after a `fetch_url` call. Sluice does not trust the text of a web page, so a page must not start an action without a person. The mutating calls after the fetch wait for **Confirm**.
 
 An MCP client has no such step. Sluice cannot ask a person inside an MCP call, so a mutating tool runs when the client calls it. The client can ask its own user first. Control an MCP client with its token: give it the lowest role that it needs, and an expiry. A viewer token gets only the read tools.
 

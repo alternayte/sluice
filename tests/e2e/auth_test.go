@@ -13,6 +13,7 @@ import (
 )
 
 func TestSCN_AUTH_002_BootstrapAdminAndCLI(t *testing.T) {
+	t.Parallel()
 	dbURL := newDatabase(t)
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": dbURL})
 	login(t, p.URL, adminEmail, adminPassword)
@@ -52,6 +53,7 @@ func TestSCN_AUTH_002_BootstrapAdminAndCLI(t *testing.T) {
 }
 
 func TestSCN_AUTH_004_LastAdminGuard(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	admin := adminClient(t, p)
 	var me struct {
@@ -76,6 +78,7 @@ func TestSCN_AUTH_004_LastAdminGuard(t *testing.T) {
 }
 
 func TestSCN_AUTH_007_ChangePassword(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	admin := adminClient(t, p)
 	_, _ = createUser(t, admin, "user7@example.com", "editor", "first-password-1")
@@ -95,6 +98,7 @@ func TestSCN_AUTH_007_ChangePassword(t *testing.T) {
 }
 
 func TestSCN_AUTH_008_LoginRateLimit(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := newCookieClient(p.URL)
 	for i := 1; i <= 10; i++ {
@@ -121,6 +125,7 @@ func TestSCN_AUTH_008_LoginRateLimit(t *testing.T) {
 // TestLoginRateLimitSharedAcrossInstances checks that the per-IP login rate limit
 // counts failures from two instances that share one database (REQ-AUTH-008).
 func TestLoginRateLimitSharedAcrossInstances(t *testing.T) {
+	t.Parallel()
 	dbURL := newDatabase(t)
 	a := startServer(t, map[string]string{"SLUICE_DATABASE_URL": dbURL})
 	b := startServer(t, map[string]string{"SLUICE_DATABASE_URL": dbURL})
@@ -143,6 +148,7 @@ func TestLoginRateLimitSharedAcrossInstances(t *testing.T) {
 }
 
 func TestSCN_AUTH_009_DisableTakesEffectOnAllInstances(t *testing.T) {
+	t.Parallel()
 	dbURL := newDatabase(t)
 	a := startServer(t, map[string]string{"SLUICE_DATABASE_URL": dbURL})
 	b := startServer(t, map[string]string{"SLUICE_DATABASE_URL": dbURL})
@@ -171,6 +177,7 @@ func TestSCN_AUTH_009_DisableTakesEffectOnAllInstances(t *testing.T) {
 }
 
 func TestSCN_AUTH_011_SameOriginForCookies(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := login(t, p.URL, adminEmail, adminPassword)
 	body := map[string]any{"name": "x", "role": "viewer"}
@@ -194,6 +201,7 @@ func TestSCN_AUTH_011_SameOriginForCookies(t *testing.T) {
 }
 
 func TestSCN_AUTH_013_SecurityHeaders(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := newCookieClient(p.URL)
 	want := map[string]string{
@@ -212,6 +220,7 @@ func TestSCN_AUTH_013_SecurityHeaders(t *testing.T) {
 }
 
 func TestSCN_API_002_ErrorEnvelope(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	admin := adminClient(t, p)
 	r := admin.raw(t, http.MethodPost, "/api/v1/users", map[string]any{"email": "not-an-email", "role": "root"}, nil)

@@ -108,6 +108,7 @@ func tokenSource(name, repoURL string, maps ...map[string]string) map[string]any
 // TestSCN_GIT_001_TokenSource syncs an https-token source that maps pipelines/elt to
 // data.elt. The snapshot has the commit SHA and the flows appear (REQ-GIT-001, REQ-GIT-002).
 func TestSCN_GIT_001_TokenSource(t *testing.T) {
+	t.Parallel()
 	g := gitserver.Start(t)
 	repoURL, _ := g.Repo("elt")
 	sha := g.Commit("elt", "main", "first", []gitserver.File{
@@ -140,6 +141,7 @@ func TestSCN_GIT_001_TokenSource(t *testing.T) {
 // TestSCN_GIT_002_SSHSource syncs an ssh-key source. A wrong key records an error and the
 // previous snapshot stays active (REQ-GIT-001, REQ-GIT-002).
 func TestSCN_GIT_002_SSHSource(t *testing.T) {
+	t.Parallel()
 	g := gitserver.Start(t)
 	_, sshURL := g.Repo("ssh")
 	sha1 := g.Commit("ssh", "main", "first", []gitserver.File{{Path: "s.flow.yaml", Content: gitFlow("s")}})
@@ -177,6 +179,7 @@ func TestSCN_GIT_002_SSHSource(t *testing.T) {
 // TestSCN_GIT_003_PollOneMapping changes one mapping in a new commit. Polling creates a
 // snapshot for that mapping only (REQ-GIT-002).
 func TestSCN_GIT_003_PollOneMapping(t *testing.T) {
+	t.Parallel()
 	g := gitserver.Start(t)
 	repoURL, _ := g.Repo("poll")
 	sha1 := g.Commit("poll", "main", "first", []gitserver.File{{Path: "a/x.txt", Content: "1"}, {Path: "b/y.txt", Content: "1"}})
@@ -208,6 +211,7 @@ func signed(secret string, body []byte) string {
 // TestSCN_GIT_004_Webhook syncs within 5 s after a valid HMAC webhook. An invalid signature
 // returns 401 and a push to another branch does not sync (REQ-GIT-003, SI-05).
 func TestSCN_GIT_004_Webhook(t *testing.T) {
+	t.Parallel()
 	g := gitserver.Start(t)
 	repoURL, _ := g.Repo("hook")
 	g.Commit("hook", "main", "first", []gitserver.File{{Path: "a.txt", Content: "1"}})
@@ -253,6 +257,7 @@ func TestSCN_GIT_004_Webhook(t *testing.T) {
 // TestSCN_GIT_006_RemovedFlow removes a flow file in git. The flow is deleted, its
 // triggers are inactive and old executions stay visible (REQ-GIT-006).
 func TestSCN_GIT_006_RemovedFlow(t *testing.T) {
+	t.Parallel()
 	g := gitserver.Start(t)
 	repoURL, _ := g.Repo("gone")
 	flowSrc := "id: gflow\ntriggers:\n  - {id: yearly, type: schedule, cron: \"0 0 1 1 *\"}\ntasks:\n  - {id: t, type: command, command: [\"true\"]}\n"
@@ -306,6 +311,7 @@ func TestSCN_GIT_006_RemovedFlow(t *testing.T) {
 // TestSCN_GIT_007_MappingConflicts maps a managed namespace and a namespace of another
 // source. Both return 409 (REQ-GIT-007).
 func TestSCN_GIT_007_MappingConflicts(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	createNamespace(t, c, "managed-one")
@@ -325,6 +331,7 @@ func TestSCN_GIT_007_MappingConflicts(t *testing.T) {
 
 // TestSCN_NS_004_GitNamespaceReadOnly writes a file to a git namespace: 409 namespace_read_only (REQ-NS-004).
 func TestSCN_NS_004_GitNamespaceReadOnly(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	createGitSource(t, c, map[string]any{"name": "ro", "repo_url": "https://git.example.com/acme/ro.git", "branch": "main", "auth_type": "none",
@@ -340,6 +347,7 @@ func TestSCN_NS_004_GitNamespaceReadOnly(t *testing.T) {
 // sync, that enabling it syncs, that a mapping adopts a managed namespace only when asked
 // and keeps its history, and that only an unmapped git namespace can be deleted.
 func TestGitSourceToggleAdoptDelete(t *testing.T) {
+	t.Parallel()
 	g := gitserver.Start(t)
 	repoURL, _ := g.Repo("toggle")
 	sha := g.Commit("toggle", "main", "first", []gitserver.File{{Path: "sync.flow.yaml", Content: gitFlow("sync")}})

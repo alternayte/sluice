@@ -43,6 +43,7 @@ func validateResultSchema(t *testing.T) *jsonschema.Schema {
 }
 
 func TestSCN_FLOW_006_ValidateExample(t *testing.T) {
+	t.Parallel()
 	schema := validateResultSchema(t)
 	invalid := filepath.Join(repoRoot(), "tests", "fixtures", "flows", "invalid", "cycle", "ns")
 	for _, tc := range []struct {
@@ -146,6 +147,7 @@ func checkExampleMetrics(t testing.TB, c *client, execID string) {
 // TestSCN_EX_001_SingleContainer runs the ELT example in sluice-uv with the process executor
 // (REQ-EX-001, REQ-EX-002). Postgres holds the Sluice database and the warehouse.
 func TestSCN_EX_001_SingleContainer(t *testing.T) {
+	t.Parallel()
 	requireImages(t)
 	suffix := time.Now().Format("150405.000000")
 	suffix = strings.ReplaceAll(suffix, ".", "")

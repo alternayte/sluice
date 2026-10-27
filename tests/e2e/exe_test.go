@@ -47,6 +47,7 @@ func dbExec(t *testing.T, dbURL, sql string, args ...any) {
 }
 
 func TestSCN_EXE_001_PinnedSnapshot(t *testing.T) {
+	t.Parallel()
 	dbURL := newDatabase(t)
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": dbURL})
 	c := adminClient(t, p)
@@ -73,6 +74,7 @@ func TestSCN_EXE_001_PinnedSnapshot(t *testing.T) {
 }
 
 func TestSCN_EXE_003_ParallelAndMaxParallel(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	diamond := func(id, extra string) string {
@@ -108,6 +110,7 @@ func TestSCN_EXE_003_ParallelAndMaxParallel(t *testing.T) {
 }
 
 func TestSCN_EXE_004_RunIf(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "runif", map[string]string{"f.flow.yaml": "id: f\ntasks:\n" +
@@ -128,6 +131,7 @@ func TestSCN_EXE_004_RunIf(t *testing.T) {
 }
 
 func TestSCN_EXE_005_RetriesWithBackoff(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "retry", map[string]string{
@@ -150,6 +154,7 @@ func TestSCN_EXE_005_RetriesWithBackoff(t *testing.T) {
 }
 
 func TestSCN_EXE_006_Timeouts(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "tmo", map[string]string{
@@ -177,6 +182,7 @@ func TestSCN_EXE_006_Timeouts(t *testing.T) {
 }
 
 func TestSCN_EXE_007_Concurrency(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "conc", map[string]string{
@@ -211,6 +217,7 @@ func TestSCN_EXE_007_Concurrency(t *testing.T) {
 }
 
 func TestSCN_EXE_013_FlowAndSubflowOutputs(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "sub.child", map[string]string{
@@ -241,6 +248,7 @@ func TestSCN_EXE_013_FlowAndSubflowOutputs(t *testing.T) {
 // string input of the child. "0042" and "true" are valid JSON, but a string input must get
 // the text as the parent rendered it.
 func TestSubflowStringInputKeepsDigits(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "strin.child", map[string]string{
@@ -268,6 +276,7 @@ func TestSubflowStringInputKeepsDigits(t *testing.T) {
 // start from another flow. The subflow task fails with reason flow_disabled and creates no
 // child execution. A manual trigger of the disabled flow still works.
 func TestSubflowOfADisabledFlowFails(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "dis.child", map[string]string{
@@ -298,6 +307,7 @@ type execList struct {
 }
 
 func TestSCN_EXE_015_LabelFilter(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "labels", map[string]string{"l.flow.yaml": "id: l\nlabels: {team: data}\ntasks:\n  - {id: t, type: command, command: [\"true\"]}\n"})
@@ -329,6 +339,7 @@ func TestSCN_EXE_015_LabelFilter(t *testing.T) {
 }
 
 func TestSCN_EXE_016_SubflowCancelAndDepth(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "tree", map[string]string{
@@ -374,6 +385,7 @@ func TestSCN_EXE_016_SubflowCancelAndDepth(t *testing.T) {
 }
 
 func TestSCN_EXE_017_HTTPTask(t *testing.T) {
+	t.Parallel()
 	var mu sync.Mutex
 	var gotAuth, gotBody, gotQuery string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

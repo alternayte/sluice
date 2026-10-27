@@ -15,6 +15,7 @@ import (
 )
 
 func TestSCN_TRG_001_ManualTrigger(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "manual", map[string]string{"m.flow.yaml": "id: m\ninputs:\n  - {id: count, type: int, required: true}\n  - {id: mode, type: select, values: [a, b], default: a}\ntasks:\n  - {id: t, type: command, command: [\"true\"]}\n"})
@@ -35,6 +36,7 @@ func TestSCN_TRG_001_ManualTrigger(t *testing.T) {
 }
 
 func TestSCN_AUTH_005_TokenRoles(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	admin := adminClient(t, p)
 	saveFiles(t, admin, "roles", map[string]string{"r.flow.yaml": "id: r\ntasks:\n  - {id: t, type: command, command: [\"true\"]}\n"})
@@ -66,6 +68,7 @@ func TestSCN_AUTH_005_TokenRoles(t *testing.T) {
 }
 
 func TestSCN_NS_006_NamespaceDefaults(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t), "SLUICE_POOLS": "default,nspool"})
 	c := adminClient(t, p)
 	saveFiles(t, c, "defs", map[string]string{
@@ -91,6 +94,7 @@ func TestSCN_NS_006_NamespaceDefaults(t *testing.T) {
 }
 
 func TestSCN_NS_008_DeleteWithRunningExecution(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "gone", map[string]string{"g.flow.yaml": "id: g\ntasks:\n  - {id: t, type: command, command: [sleep, \"3\"]}\n"})
@@ -112,6 +116,7 @@ func TestSCN_NS_008_DeleteWithRunningExecution(t *testing.T) {
 }
 
 func TestSCN_EXR_002_CancelProcessGroup(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "grp", map[string]string{
@@ -140,6 +145,7 @@ func TestSCN_EXR_002_CancelProcessGroup(t *testing.T) {
 }
 
 func TestSCN_EXR_008_NoInstanceForPool(t *testing.T) {
+	t.Parallel()
 	dbURL := newDatabase(t)
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": dbURL})
 	c := adminClient(t, p)
@@ -156,6 +162,7 @@ func TestSCN_EXR_008_NoInstanceForPool(t *testing.T) {
 }
 
 func TestSCN_EXE_011_LostRunner(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t), "SLUICE_HEARTBEAT_TIMEOUT": "5s"})
 	c := adminClient(t, p)
 	saveFiles(t, c, "lost", map[string]string{
@@ -223,6 +230,7 @@ func TestSCN_CORE_007_GracefulShutdown(t *testing.T) {
 }
 
 func TestSCN_API_003_StablePagination(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "pages", map[string]string{"p.flow.yaml": "id: p\nexecutor: {pool: nowhere}\ntasks:\n  - {id: t, type: command, command: [\"true\"]}\n"})
@@ -316,6 +324,7 @@ func readSSE(t *testing.T, base, path, token, lastID string, max int) ([]logEntr
 }
 
 func TestSCN_API_004_LogStreamResume(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "sse", map[string]string{

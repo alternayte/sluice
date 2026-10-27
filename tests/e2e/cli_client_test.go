@@ -15,6 +15,7 @@ import (
 // the exit code of each end state, the API JSON on stdout, and a push that creates a version
 // only when a file changed.
 func TestCLIClient(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t), "SLUICE_MASTER_KEYS": masterKey("k1", 1)})
 	admin := adminClient(t, p)
 	saveFiles(t, admin, "cli", map[string]string{

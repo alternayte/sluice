@@ -94,6 +94,7 @@ func anthropicContext(t *testing.T, body []byte) (string, string) {
 }
 
 func TestSCN_AI_007_AutoTriage(t *testing.T) {
+	t.Parallel()
 	p, admin, llm := aiServer(t, nil)
 	setProvider(t, admin, llm, true)
 	saveFiles(t, admin, "tri", map[string]string{
@@ -137,6 +138,7 @@ func TestSCN_AI_007_AutoTriage(t *testing.T) {
 }
 
 func TestSCN_AI_008_ContextLimit(t *testing.T) {
+	t.Parallel()
 	_, admin, llm := aiServer(t, map[string]string{"SLUICE_AI_MAX_CONTEXT_CHARS": "5000"})
 	setProvider(t, admin, llm, false)
 	saveFiles(t, admin, "big", map[string]string{
@@ -162,6 +164,7 @@ func TestSCN_AI_008_ContextLimit(t *testing.T) {
 }
 
 func TestSCN_AI_009_StepLimit(t *testing.T) {
+	t.Parallel()
 	_, admin, llm := aiServer(t, nil)
 	setProvider(t, admin, llm, false)
 	var n atomic.Int64

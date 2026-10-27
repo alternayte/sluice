@@ -11,6 +11,7 @@ import (
 var sddCommands = []string{"server", "exec", "runner-install", "migrate", "user create", "user reset-password", "secrets rekey", "validate", "version"}
 
 func TestSCN_CORE_001_VersionAndConfigErrors(t *testing.T) {
+	t.Parallel()
 	out, _, code := runCLI(t, nil, "version")
 	if code != 0 {
 		t.Fatalf("version exit %d", code)

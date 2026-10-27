@@ -24,6 +24,7 @@ type nsItem struct {
 }
 
 func TestSCN_NS_001_NamespaceNames(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	editor := userToken(t, adminClient(t, p), "ns-editor@example.com", "editor")
 	for _, bad := range []string{"Data", "a..b", "-a", "a-", "data.", strings.Repeat("a", 129)} {
@@ -58,6 +59,7 @@ func TestSCN_NS_001_NamespaceNames(t *testing.T) {
 }
 
 func TestSCN_NS_009_FileAndSnapshotLimits(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{
 		"SLUICE_DATABASE_URL":     newDatabase(t),
 		"SLUICE_MAX_FILE_BYTES":   "1KiB",
@@ -110,6 +112,7 @@ type versionDiff struct {
 // TestSaveVersionsDiffRevert saves changes over HTTP, lists versions, reads a diff between
 // versions, reverts to an earlier version, and checks that a stale base version is refused.
 func TestSaveVersionsDiffRevert(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	editor := userToken(t, adminClient(t, p), "svr-editor@example.com", "editor")
 	editor.do(t, http.MethodPost, "/api/v1/namespaces", map[string]string{"name": "data"}, http.StatusCreated, nil)

@@ -200,6 +200,7 @@ func logText(lines []logEntry) string {
 
 // TestExecutionSmoke runs a bash task that logs a line and emits an output.
 func TestExecutionSmoke(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	admin := adminClient(t, p)
 	saveFiles(t, admin, "smoke", map[string]string{

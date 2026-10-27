@@ -33,6 +33,7 @@ func processAlive(pid int) bool {
 }
 
 func TestSCN_RUN_001_InterleavedLines(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "lines", map[string]string{
@@ -82,6 +83,7 @@ func TestSCN_RUN_001_InterleavedLines(t *testing.T) {
 }
 
 func TestSCN_RUN_002_LongLineTruncated(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "long", map[string]string{
@@ -101,6 +103,7 @@ func TestSCN_RUN_002_LongLineTruncated(t *testing.T) {
 }
 
 func TestSCN_RUN_003_OutputsMetricsArtifacts(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "emit", map[string]string{
@@ -151,6 +154,7 @@ func TestSCN_RUN_003_OutputsMetricsArtifacts(t *testing.T) {
 }
 
 func TestSCN_RUN_004_CancelSignals(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "sig", map[string]string{
@@ -187,6 +191,7 @@ func TestSCN_RUN_004_CancelSignals(t *testing.T) {
 }
 
 func TestSCN_RUN_009_TaskEnvironment(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "envns", map[string]string{
@@ -209,6 +214,7 @@ func TestSCN_RUN_009_TaskEnvironment(t *testing.T) {
 }
 
 func TestSCN_RUN_010_RunTokens(t *testing.T) {
+	t.Parallel()
 	dbURL := newDatabase(t)
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": dbURL})
 	c := adminClient(t, p)

@@ -15,6 +15,7 @@ import (
 )
 
 func TestSCN_CORE_003_HealthReadyMetrics(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	m, err := storetest.StartMinIO(ctx)
 	if err != nil {

@@ -15,6 +15,7 @@ import (
 // order, one artifact file per item, a restart that runs only the failed item, the empty
 // list, the item limit and max_parallel.
 func TestTaskFanOut(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	gate := filepath.Join(t.TempDir(), "gate")

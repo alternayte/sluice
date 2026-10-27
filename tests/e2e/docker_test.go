@@ -37,6 +37,9 @@ func requireImages(t testing.TB) {
 	}
 }
 
+// The tests that start a docker executor do not call t.Parallel: a starting server removes
+// the stopped and created task containers of every server on the engine.
+//
 // dockerServer starts a server with the docker executor. It listens on all interfaces, so
 // that task containers reach it through host.docker.internal on Linux engines as well.
 func dockerServer(t testing.TB) *Proc {
@@ -170,23 +173,18 @@ func TestSCN_RUN_007_RuntimeTools(t *testing.T) {
 	}
 }
 
-// TestSCN_DEP_001_Images builds both images. Both run as non-root and `sluice version`
-// works in both (REQ-DEP-001).
+// TestSCN_DEP_001_Images checks the two images of `just build-images`. Both run as
+// non-root and `sluice version` works in both with a version, a commit and a build date
+// (REQ-DEP-001).
 func TestSCN_DEP_001_Images(t *testing.T) {
-	root := repoRoot()
-	buildDate := time.Now().UTC().Format(time.RFC3339)
-	for target, tag := range map[string]string{"sluice": imageSluice, "sluice-uv": imageSluiceUV} {
-		cmd := exec.Command("docker", "build", "-f", "deploy/docker/Dockerfile", "--target", target,
-			"--build-arg", "BUILD_DATE="+buildDate, "-t", tag, ".")
-		cmd.Dir = root
-		if out, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("build %s: %v\n%s", target, err, lastLines(string(out), 40))
-		}
+	t.Parallel()
+	requireImages(t)
+	for _, tag := range []string{imageSluice, imageSluiceUV} {
 		if user := docker(t, "image", "inspect", "-f", "{{.Config.User}}", tag); !strings.HasPrefix(user, "65532") {
 			t.Fatalf("%s runs as %q, want the non-root user 65532", tag, user)
 		}
 		if out := docker(t, "run", "--rm", tag, "version"); !strings.Contains(out, "version:") || !strings.Contains(out, "commit:") ||
-			!strings.Contains(out, "build_date: "+buildDate) {
+			!strings.Contains(out, "build_date: 2") || strings.Contains(out, "unknown") {
 			t.Fatalf("%s version: %q", tag, out)
 		}
 	}
@@ -202,6 +200,7 @@ func TestSCN_DEP_001_Images(t *testing.T) {
 // volumes. A uv flow reaches SUCCESS, and after a container restart history and logs are
 // intact (REQ-DEP-003, C-07).
 func TestSCN_DEP_003_SingleContainer(t *testing.T) {
+	t.Parallel()
 	requireImages(t)
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
 	net, pg, app := "sluice-dep003-"+suffix, "sluice-dep003-pg-"+suffix, "sluice-dep003-app-"+suffix
@@ -266,6 +265,7 @@ func waitContainerReady(t testing.TB, name string) string {
 
 // TestSCN_DEP_005_Compose starts deploy/compose. /readyz is 200 within 60 s (REQ-DEP-005).
 func TestSCN_DEP_005_Compose(t *testing.T) {
+	t.Parallel()
 	requireImages(t)
 	port := freePort(t)
 	project := fmt.Sprintf("sluice-dep005-%d", time.Now().UnixNano())

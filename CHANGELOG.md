@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-27
+
 ### Fixed
 
 - The assistant panel no longer stays on "The assistant is answering" after a turn ends. A conversation request that started before the turn ended could overwrite the final state from the events stream.
@@ -242,7 +244,8 @@ The first version of Sluice. It is one Go binary with an embedded React UI, and 
 - A CI workflow with the jobs `check`, `e2e` and `image`.
 - A release workflow. A `v*.*.*` tag attaches the binaries for Linux and macOS to a GitHub release, and pushes the `sluice` and `sluice-uv` images to `ghcr.io/alternayte` for amd64 and arm64.
 
-[Unreleased]: https://github.com/alternayte/sluice/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/alternayte/sluice/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/alternayte/sluice/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/alternayte/sluice/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/alternayte/sluice/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/alternayte/sluice/compare/v0.2.3...v0.3.0

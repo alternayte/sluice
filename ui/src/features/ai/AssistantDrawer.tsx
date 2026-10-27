@@ -359,31 +359,42 @@ function Panel({ closing, onClose, requestId }: { closing: boolean; onClose: () 
   const busy = running || starting;
   const detailKey = (id: string) => getAiConversationQueryKey({ path: { conversationId: id } });
 
-  // A running turn runs on the server. The panel attaches to it, also after a reload, and
-  // gets the conversation each time it changes until the turn ends.
+  // attach counts the starts and reconnects of the conversation; each one opens the stream.
+  const [attach, setAttach] = useState<{ id: string; n: number }>();
+  const attachN = attach && attach.id === convId ? attach.n : 0;
+  const reattach = (id: string) => setAttach((a) => ({ id, n: (a?.id === id ? a.n : 0) + 1 }));
+
+  // A turn runs on the server. The panel attaches to it, also after a reload, and gets the
+  // conversation each time it changes until the turn ends. While the stream is open it is the
+  // only writer of the conversation: a detail request in flight can hold an older state, so
+  // each event cancels it before the event applies.
   useEffect(() => {
-    if (!convId || !running) return;
+    if (!convId || (!running && attachN === 0)) return;
+    const key = getAiConversationQueryKey({ path: { conversationId: convId } });
     const es = new EventSource(`/api/v1/ai/conversations/${encodeURIComponent(convId)}/events`);
     es.addEventListener("conversation", (ev) => {
+      let data: ConversationDetail;
       try {
-        qc.setQueryData(detailKey(convId), JSON.parse((ev as MessageEvent<string>).data) as ConversationDetail);
+        data = JSON.parse((ev as MessageEvent<string>).data) as ConversationDetail;
       } catch {
-        // The next event or the refetch below covers a malformed event.
+        return; // the next event covers a malformed event
       }
+      void qc.cancelQueries({ queryKey: key }, { revert: false });
+      qc.setQueryData(key, data);
     });
     es.addEventListener("end", () => {
       es.close();
       void qc.invalidateQueries({ queryKey: listAiConversationsQueryKey() });
     });
-    // A lost connection: refetch, and the effect attaches again while the turn runs.
+    // A lost connection: attach again, and the stream sends the current state.
     es.onerror = () => {
       es.close();
-      window.setTimeout(() => void qc.invalidateQueries({ queryKey: detailKey(convId) }), 1000);
+      window.setTimeout(() => reattach(convId), 1000);
     };
     return () => es.close();
-  }, [convId, running, qc]);
+  }, [convId, running, attachN, qc]);
 
-  /** start runs a request that starts a turn, then shows the conversation as running. */
+  /** start runs a request that starts a turn, then attaches to the turn. */
   const start = async (id: string, request: () => Promise<unknown>) => {
     setStarting(true);
     setError(undefined);
@@ -392,7 +403,7 @@ function Panel({ closing, onClose, requestId }: { closing: boolean; onClose: () 
       qc.setQueryData(detailKey(id), (d: ConversationDetail | undefined) =>
         d ? { ...d, turn_status: "running" as const, turn_error: "", turn_stop: "" } : d,
       );
-      await qc.invalidateQueries({ queryKey: detailKey(id) });
+      reattach(id);
     } catch (err) {
       setError(errorMessage(err));
       void qc.invalidateQueries({ queryKey: detailKey(id) });

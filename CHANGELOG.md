@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- The assistant panel no longer stays on "The assistant is answering" after a turn ends. A conversation request that started before the turn ended could overwrite the final state from the events stream.
+
 ## [0.5.0] - 2026-10-27
 
 ### Added

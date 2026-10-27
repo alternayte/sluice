@@ -103,14 +103,80 @@ jobs:
       - name: Run the Go e2e suite.
         run: just e2e-go
 
+      - name: Upload the test reports.
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-reports
+          path: build/reports/junit
+          if-no-files-found: ignore
+
+  # The Playwright suite runs the binary with the process executor. It needs uv, not the images.
+  ui:
+    name: ui
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the repository.
+        uses: actions/checkout@v7
+
+      - name: Set up Go.
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Bun.
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install just.
+        uses: extractions/setup-just@v4
+        with:
+          just-version: ${{ env.JUST_VERSION }}
+
+      # The process executor runs Python files with uv.
+      - name: Install uv.
+        uses: astral-sh/setup-uv@v10.1.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+
+      - name: Build the UI and the server binary.
+        run: just build-ui build-go
+
       - name: Install the Playwright dependencies.
         run: cd tests/ui && bun install --frozen-lockfile
 
       - name: Check the Playwright suite types.
         run: cd tests/ui && bunx tsc --noEmit
 
+      - name: Read the runner image version.
+        id: image
+        run: echo "version=$ImageVersion" >> "$GITHUB_OUTPUT"
+
+      # The apt mirror of the runners is sometimes slow: once it took 10 min for the system
+      # packages of Chromium. The cache keeps these packages for each runner image.
+      - name: Restore the Chromium system packages.
+        id: debs
+        uses: actions/cache@v6
+        with:
+          path: ~/chromium-debs
+          key: chromium-debs-${{ runner.os }}-${{ steps.image.outputs.version }}-${{ hashFiles('tests/ui/bun.lock') }}
+
       - name: Install the Chromium browser.
-        run: cd tests/ui && bunx playwright install --with-deps chromium
+        run: |
+          if [ "${{ steps.debs.outputs.cache-hit }}" = true ]; then
+            debs=(~/chromium-debs/*.deb)
+            if [ -e "${debs[0]}" ]; then sudo dpkg -i "${debs[@]}"; fi
+          else
+            sudo rm -f /var/cache/apt/archives/*.deb
+            (cd tests/ui && bunx playwright install-deps chromium)
+            mkdir -p ~/chromium-debs
+            find /var/cache/apt/archives -maxdepth 1 -name '*.deb' -exec cp {} ~/chromium-debs/ \;
+          fi
+          cd tests/ui && bunx playwright install chromium
 
       - name: Run the Playwright suite.
         run: cd tests/ui && SLUICE_E2E_BINARY=$PWD/../../bin/sluice bunx playwright test
@@ -119,7 +185,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: e2e-reports
+          name: ui-reports
           path: |
             build/reports/junit
             build/reports/playwright-server.log

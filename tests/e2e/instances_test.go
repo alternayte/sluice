@@ -29,6 +29,7 @@ func listInstances(t *testing.T, c *client) []instanceItem {
 }
 
 func TestSCN_CORE_006_InstancesRegistry(t *testing.T) {
+	t.Parallel()
 	dbURL := newDatabase(t)
 	a := startServer(t, map[string]string{"SLUICE_DATABASE_URL": dbURL, "SLUICE_POOLS": "default,alpha"})
 	b := startServer(t, map[string]string{"SLUICE_DATABASE_URL": dbURL, "SLUICE_POOLS": "beta"})

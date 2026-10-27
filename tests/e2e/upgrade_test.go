@@ -18,6 +18,7 @@ import (
 // release must still serve and end that execution, and the new binary must then read the
 // same database. scripts/upgrade-test.sh downloads the release and sets the variables.
 func TestUpgradeFromLastRelease(t *testing.T) {
+	t.Parallel()
 	oldBin := os.Getenv("SLUICE_UPGRADE_FROM_BINARY")
 	if oldBin == "" {
 		t.Fatal("SLUICE_UPGRADE_FROM_BINARY is empty: run scripts/upgrade-test.sh")

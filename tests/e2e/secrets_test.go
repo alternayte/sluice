@@ -101,6 +101,7 @@ func startVaultE2E(t testing.TB) (string, *vault.Client) {
 // TestSCN_SEC_003_NearestScope defines PG_URL globally, in data and in data.elt. A flow in
 // data.elt.x gets the data.elt value, and after its deletion the data value (REQ-SEC-003).
 func TestSCN_SEC_003_NearestScope(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t), "SLUICE_MASTER_KEYS": masterKey("k1", 1)})
 	c := adminClient(t, p)
 	createNamespace(t, c, "data")
@@ -131,6 +132,7 @@ func TestSCN_SEC_003_NearestScope(t *testing.T) {
 
 // TestSCN_SEC_004_VaultCheck checks a Vault reference without returning the value (REQ-SEC-004).
 func TestSCN_SEC_004_VaultCheck(t *testing.T) {
+	t.Parallel()
 	addr, _ := startVaultE2E(t)
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t), "SLUICE_VAULT_ADDR": addr, "SLUICE_VAULT_TOKEN": "root"})
 	c := adminClient(t, p)
@@ -155,6 +157,7 @@ func TestSCN_SEC_004_VaultCheck(t *testing.T) {
 // TestSCN_SEC_005_CacheTTL changes a Vault value. With a cache lifetime of 1 s the next
 // execution after 2 s gets the new value without a restart (REQ-SEC-005).
 func TestSCN_SEC_005_CacheTTL(t *testing.T) {
+	t.Parallel()
 	addr, vc := startVaultE2E(t)
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t), "SLUICE_VAULT_ADDR": addr, "SLUICE_VAULT_TOKEN": "root",
 		"SLUICE_SECRET_CACHE_TTL": "1s"})
@@ -178,6 +181,7 @@ func TestSCN_SEC_005_CacheTTL(t *testing.T) {
 // secrets resolve. Removing the old key before rekey makes /readyz fail with
 // master_key_missing (REQ-SEC-006).
 func TestSCN_SEC_006_Rekey(t *testing.T) {
+	t.Parallel()
 	db := newDatabase(t)
 	k1, k2 := masterKey("k1", 1), masterKey("k2", 2)
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": db, "SLUICE_MASTER_KEYS": k1})
@@ -218,6 +222,7 @@ func TestSCN_SEC_006_Rekey(t *testing.T) {
 
 // TestSCN_SEC_008_SecretKeysUsed lists the used secret keys on the execution without values (REQ-SEC-008).
 func TestSCN_SEC_008_SecretKeysUsed(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t), "SLUICE_MASTER_KEYS": masterKey("k1", 1)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "used", map[string]string{"hash.sh": hashScript, "s.flow.yaml": secretFlow("s", "API_KEY")})
@@ -234,6 +239,7 @@ func TestSCN_SEC_008_SecretKeysUsed(t *testing.T) {
 
 // TestSCN_SEC_009_SecretNotFound fails the task with secret_not_found, the key and the scopes searched (REQ-SEC-009).
 func TestSCN_SEC_009_SecretNotFound(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t), "SLUICE_MASTER_KEYS": masterKey("k1", 1)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "miss.deep", map[string]string{"hash.sh": hashScript, "s.flow.yaml": secretFlow("s", "NOT_THERE")})
@@ -248,6 +254,7 @@ func TestSCN_SEC_009_SecretNotFound(t *testing.T) {
 // TestSCN_SEC_011_NoMasterKeys refuses builtin writes with 409 builtin_provider_disabled.
 // An env secret resolves (REQ-SEC-010, SI-09).
 func TestSCN_SEC_011_NoMasterKeys(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t), "SLUICE_SECRET_TOKEN_X": "env-token-value"})
 	c := adminClient(t, p)
 	r := c.raw(t, http.MethodPut, "/api/v1/secrets/BUILTIN", map[string]any{"value": "builtin-value"}, nil)
@@ -278,6 +285,7 @@ exit 1
 
 // TestSCN_RUN_005_Masking checks that every stored form of a secret shows *** (REQ-RUN-005, SI-10).
 func TestSCN_RUN_005_Masking(t *testing.T) {
+	t.Parallel()
 	const value = `Canary+/Val?&"q\z9`
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t), "SLUICE_MASTER_KEYS": masterKey("k1", 1)})
 	c := adminClient(t, p)
@@ -320,6 +328,7 @@ func TestSCN_RUN_005_Masking(t *testing.T) {
 // in raw and base64 form. The padding puts the second raw value across byte 65536, which is a
 // 32 KiB chunk boundary of the stream masker (REQ-RUN-005, SI-01, SI-10).
 func TestSCN_RUN_005_ArtifactMasking(t *testing.T) {
+	t.Parallel()
 	const value = `Canary+/Val?&"q\z9`
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t), "SLUICE_MASTER_KEYS": masterKey("k1", 1)})
 	c := adminClient(t, p)

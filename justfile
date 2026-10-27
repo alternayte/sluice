@@ -90,7 +90,7 @@ build-images:
 # The Go e2e suite against bin/sluice. The Docker tests need the images of `just build-images`.
 e2e-go:
     mkdir -p {{junit}}
-    SLUICE_E2E_BINARY=$PWD/bin/sluice {{gotestsum}} --junitfile {{junit}}/e2e.xml -- -tags e2e -count=1 -timeout 60m ./tests/e2e/...
+    SLUICE_E2E_BINARY=$PWD/bin/sluice {{gotestsum}} --junitfile {{junit}}/e2e.xml -- -tags e2e -count=1 -parallel 8 -timeout 60m ./tests/e2e/...
 
 e2e: e2e-go
     if [ -f tests/ui/package.json ]; then cd tests/ui && bun install --frozen-lockfile >/dev/null && bunx playwright install chromium >/dev/null && SLUICE_E2E_BINARY=$PWD/../../bin/sluice bunx playwright test; fi

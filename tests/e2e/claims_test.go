@@ -17,6 +17,7 @@ import (
 // slots each. No task is claimed twice, at most 8 run at once, and tasks for another
 // pool are never claimed (REQ-EXE-010).
 func TestSCN_EXE_010_ClaimsAcrossInstances(t *testing.T) {
+	t.Parallel()
 	dbURL := newDatabase(t)
 	env := map[string]string{"SLUICE_DATABASE_URL": dbURL, "SLUICE_WORKER_SLOTS": "4"}
 	a := startServer(t, env)

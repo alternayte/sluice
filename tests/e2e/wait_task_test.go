@@ -15,6 +15,7 @@ import (
 // values as outputs, a reject fails it with reason rejected, the answer is validated, a second
 // answer is refused, the task timeout ends the wait, and the audit log records the answer.
 func TestWaitTask(t *testing.T) {
+	t.Parallel()
 	dbURL := newDatabase(t)
 	env := map[string]string{"SLUICE_DATABASE_URL": dbURL}
 	p := startServer(t, env)

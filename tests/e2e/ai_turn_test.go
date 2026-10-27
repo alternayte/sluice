@@ -100,6 +100,7 @@ func say(t testing.TB, c *client, id, text string) {
 // TestAssistantBackgroundTurn checks that a turn runs without a connected client, that the
 // events stream attaches to it with the streamed text, and that stop keeps the partial answer.
 func TestAssistantBackgroundTurn(t *testing.T) {
+	t.Parallel()
 	_, admin, llm := aiServer(t, nil)
 	setProvider(t, admin, llm, false)
 
@@ -151,6 +152,7 @@ func TestAssistantBackgroundTurn(t *testing.T) {
 // TestAssistantRetry checks that a failed turn retries from the saved messages without a
 // second user message.
 func TestAssistantRetry(t *testing.T) {
+	t.Parallel()
 	_, admin, llm := aiServer(t, nil)
 	setProvider(t, admin, llm, false)
 	llm.Push(llmserver.Reply{Status: 500, Text: "down"}, llmserver.Reply{Status: 500, Text: "down"}, llmserver.Reply{Status: 500, Text: "down"})
@@ -182,6 +184,7 @@ func TestAssistantRetry(t *testing.T) {
 // audit event, that a fetch_url call in the turn brings the confirm back, and that
 // fetch_url exists only with web access and refuses internal addresses.
 func TestAssistantAcceptAllAndWebAccess(t *testing.T) {
+	t.Parallel()
 	_, admin, llm := aiServer(t, nil)
 	setProvider(t, admin, llm, false)
 	saveFiles(t, admin, "auto", map[string]string{"job.flow.yaml": "id: job\ntasks:\n  - {id: t, type: command, command: [\"true\"]}\n"})

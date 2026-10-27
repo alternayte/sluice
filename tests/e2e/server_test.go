@@ -30,6 +30,7 @@ func get(t *testing.T, url string) (httpResult, string) {
 // TestServerBasics checks health endpoints, request IDs, JSON 404 for unknown API
 // routes and the Prometheus series of REQ-CORE-004.
 func TestServerBasics(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 
 	resp, _ := get(t, p.URL+"/healthz")
@@ -72,6 +73,7 @@ func TestServerBasics(t *testing.T) {
 // routes, and the JSON 404 of the bare /api. The HEAD check guards a
 // regression found in the chi router fix round 1.
 func TestServerHeadAndBareAPI(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 
 	for _, path := range []string{"/healthz", "/readyz", "/metrics"} {

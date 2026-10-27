@@ -19,6 +19,7 @@ const emitData = `["sh", "-c", "echo rows-42 > data.parquet && echo '{\"type\":\
 // dependency into the workdir, a restart reads the artifact of a reused task run, and a
 // missing artifact fails the task before its command starts.
 func TestArtifactInputs(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	gate := filepath.Join(t.TempDir(), "gate")
@@ -93,6 +94,7 @@ func TestArtifactInputsDocker(t *testing.T) {
 // no protocol level. A task without new spec features gets its spec. A task with artifact
 // inputs fails with runner_too_old, because that runner would start the command without the files.
 func TestRunnerProtocolLevel(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	// The script prints the run token of its own runner, then waits for the test.

@@ -14,6 +14,7 @@ import (
 // and task outputs in args and env. A missing output fails the task with template_error
 // before a process starts (REQ-EXE-012).
 func TestSCN_EXE_012_TemplateResolution(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	createNamespace(t, c, "tpl")

@@ -60,6 +60,7 @@ func flowExecs(t testing.TB, c *client, ns, flowID, triggerType string) execList
 // TestSCN_TRG_005_Webhook checks the webhook key, rotation, the body limit and the
 // trigger payload (REQ-TRG-004, SI-05).
 func TestSCN_TRG_005_Webhook(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	saveFiles(t, c, "hooks", map[string]string{
@@ -111,6 +112,7 @@ func TestSCN_TRG_005_Webhook(t *testing.T) {
 // TestSCN_TRG_006_FlowTriggers fires a downstream flow on upstream FAILED and stops an
 // A→B→A chain at depth 10 with an audit event (REQ-TRG-005).
 func TestSCN_TRG_006_FlowTriggers(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	task := "tasks:\n  - {id: t, type: command, command: [\"true\"]}\n"
@@ -190,6 +192,7 @@ func TestSCN_TRG_006_FlowTriggers(t *testing.T) {
 
 // TestSCN_TRG_007_Upcoming lists the next fire times sorted and omits disabled flows (REQ-TRG-006).
 func TestSCN_TRG_007_Upcoming(t *testing.T) {
+	t.Parallel()
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": newDatabase(t)})
 	c := adminClient(t, p)
 	task := "tasks:\n  - {id: t, type: command, command: [\"true\"]}\n"

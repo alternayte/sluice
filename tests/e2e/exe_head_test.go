@@ -12,6 +12,7 @@ import (
 // save that changes only a script or data file reaches the next execution, although the
 // flow file and its revision stay the same.
 func TestSCN_EXE_001_NextExecutionPinsHead(t *testing.T) {
+	t.Parallel()
 	dbURL := newDatabase(t)
 	p := startServer(t, map[string]string{"SLUICE_DATABASE_URL": dbURL})
 	c := adminClient(t, p)

@@ -20,6 +20,7 @@ import (
 // TestSCN_RUN_006_APIOutage blocks the runner API with Toxiproxy for 30 s during a run.
 // After recovery no log line is lost (REQ-RUN-006).
 func TestSCN_RUN_006_APIOutage(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	port := freePort(t)
 	tp, err := toxiproxy.Run(ctx, "ghcr.io/shopify/toxiproxy:2.12.0",

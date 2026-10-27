@@ -117,3 +117,9 @@ UPDATE triggers SET active = false, next_fire_at = NULL WHERE flow_id = $1;
 
 -- name: DeactivateMissingTriggers :exec
 UPDATE triggers SET active = false, next_fire_at = NULL WHERE flow_id = $1 AND NOT (trigger_key = ANY(sqlc.arg('keys')::text[]));
+
+-- name: MappingSourceName :one
+SELECT s.name FROM git_mappings m JOIN git_sources s ON s.id = m.git_source_id WHERE m.namespace_id = $1;
+
+-- name: AdoptNamespace :exec
+UPDATE namespaces SET source_type = 'git', git_source_id = sqlc.arg(git_source_id) WHERE id = sqlc.arg(id) AND source_type = 'managed';

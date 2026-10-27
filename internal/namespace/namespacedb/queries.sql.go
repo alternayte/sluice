@@ -13,6 +13,20 @@ import (
 	"github.com/google/uuid"
 )
 
+const adoptNamespace = `-- name: AdoptNamespace :exec
+UPDATE namespaces SET source_type = 'git', git_source_id = $1 WHERE id = $2 AND source_type = 'managed'
+`
+
+type AdoptNamespaceParams struct {
+	GitSourceID *uuid.UUID
+	ID          uuid.UUID
+}
+
+func (q *Queries) AdoptNamespace(ctx context.Context, arg AdoptNamespaceParams) error {
+	_, err := q.db.Exec(ctx, adoptNamespace, arg.GitSourceID, arg.ID)
+	return err
+}
+
 const countActiveExecutions = `-- name: CountActiveExecutions :one
 SELECT count(*) FROM executions WHERE namespace_id = $1 AND state IN ('QUEUED', 'RUNNING', 'CANCELLING')
 `
@@ -694,6 +708,17 @@ func (q *Queries) LockNamespace(ctx context.Context, id uuid.UUID) (Namespace, e
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const mappingSourceName = `-- name: MappingSourceName :one
+SELECT s.name FROM git_mappings m JOIN git_sources s ON s.id = m.git_source_id WHERE m.namespace_id = $1
+`
+
+func (q *Queries) MappingSourceName(ctx context.Context, namespaceID uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, mappingSourceName, namespaceID)
+	var name string
+	err := row.Scan(&name)
+	return name, err
 }
 
 const markFlowDeleted = `-- name: MarkFlowDeleted :exec

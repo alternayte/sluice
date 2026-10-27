@@ -133,7 +133,9 @@ type Tool struct {
 	Mutating    bool
 	// AssistantOnly tools are not served over MCP.
 	AssistantOnly bool
-	run           func(ctx context.Context, s *Service, in json.RawMessage) (any, error)
+	// MaxResultChars replaces maxToolResultChars for this tool when it is set.
+	MaxResultChars int
+	run            func(ctx context.Context, s *Service, in json.RawMessage) (any, error)
 }
 
 // maxToolResultChars limits one tool result in the model context.
@@ -677,8 +679,12 @@ func (s *Service) CallTool(ctx context.Context, t Tool, input json.RawMessage) (
 	if err != nil {
 		return "", fmt.Errorf("encode %s result: %w", t.Name, err)
 	}
-	if len(b) > maxToolResultChars {
-		return string(b[:maxToolResultChars]) + " …(truncated)", nil
+	limit := maxToolResultChars
+	if t.MaxResultChars > 0 {
+		limit = t.MaxResultChars
+	}
+	if len(b) > limit {
+		return string(b[:limit]) + " …(truncated)", nil
 	}
 	return string(b), nil
 }

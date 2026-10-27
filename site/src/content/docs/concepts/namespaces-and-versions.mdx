@@ -37,7 +37,7 @@ A namespace gets its files from one of two sources.
 
 | | Managed | Git |
 |---|---|---|
-| Created by | An editor, with **Create namespace**, the API or `sluice namespaces push --create`. | A mapping of a git source. See [Sync a namespace from git](/how-to/sync-a-namespace-from-git/). |
+| Created by | An editor, with **Create namespace**, the API or `sluice namespaces push --create`. | A mapping of a git source, or the conversion of a managed namespace. See [Sync a namespace from git](/how-to/sync-a-namespace-from-git/). |
 | Files change by | A save in the editor, an upload, a revert, `sluice namespaces push` or the assistant. | A commit on the tracked branch and a sync. |
 | Edit in Sluice | Yes. Each save makes a new version. | No. The namespace is read-only. An edit goes to a new branch with **Push to branch**. |
 | Version label | A number: `v1`, `v2`, … | The commit SHA. |
@@ -172,7 +172,7 @@ The assistant can propose and apply file changes. It validates each proposal and
 
 ## Delete a namespace
 
-An admin can delete a managed namespace. The delete fails with 409 `executions_running` while an execution of the namespace runs. The delete also removes the flows of the namespace and stops their triggers. Old executions stay visible.
+An admin can delete a managed namespace, or a git namespace that no git source maps. A delete of a mapped namespace fails with 409 `namespace_mapped`. The delete fails with 409 `executions_running` while an execution of the namespace runs. The delete also removes the flows of the namespace and stops their triggers. Old executions stay visible.
 
 ## Next steps
 

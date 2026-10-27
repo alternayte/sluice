@@ -5,10 +5,13 @@ import {
   Check,
   CheckCircle2,
   ChevronRight,
+  Copy,
   Loader2,
+  RotateCcw,
   Send,
   ShieldQuestion,
   Sparkles,
+  Square,
   SquarePen,
   Wrench,
   X,
@@ -22,13 +25,22 @@ import {
   listAiConversationsOptions,
   listAiConversationsQueryKey,
 } from "@/api/@tanstack/react-query.gen";
-import { getAiConversation } from "@/api/sdk.gen";
-import type { Attachment, Block, PendingAction, StoredMessage } from "@/api/types.gen";
+import {
+  confirmAiAction,
+  rejectAiAction,
+  retryAiTurn,
+  sendAiMessage,
+  stopAiTurn,
+  updateAiConversation,
+} from "@/api/sdk.gen";
+import type { Attachment, Block, ConversationDetail, PendingAction, StoredMessage } from "@/api/types.gen";
 import { DiffView } from "@/components/diff-view";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/field";
 import { Select } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "@/components/ui/toast";
 import { errorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 import {
@@ -40,15 +52,6 @@ import {
 } from "./assistant-request";
 import { MentionMenu, mentionQuery, useMentions, type Mention } from "./mentions";
 import { useAiEnabled } from "./status";
-import { postStream } from "./stream";
-
-/** LiveItem is one event of the running turn. The saved conversation replaces them when the turn ends. */
-type LiveItem =
-  | { kind: "text"; text: string }
-  | { kind: "tool_call"; id: string; name: string; input: unknown; mutating: boolean }
-  | { kind: "tool_result"; id: string; name: string; isError: boolean; text: string }
-  | { kind: "action"; action: PendingAction }
-  | { kind: "error"; code: string; message: string };
 
 function compact(v: unknown): string {
   try {
@@ -72,13 +75,48 @@ function proposalDiffs(
   }
 }
 
-function ToolCall({ name, input, mutating }: { name: string; input: unknown; mutating: boolean }) {
+async function copyText(text: string, what: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast({ title: `${what} copied`, tone: "success" });
+  } catch {
+    toast({ tone: "error", title: `Could not copy the ${what.toLowerCase()}` });
+  }
+}
+
+/** CopyButton copies text. It shows on hover or focus of its group. */
+function CopyButton({ text, what, className }: { text: string; what: string; className?: string }) {
   return (
-    <div className="flex max-w-full flex-col gap-1 rounded-control border bg-panel/70 px-2.5 py-2 text-xs">
+    <button
+      type="button"
+      onClick={() => void copyText(text, what)}
+      title={`Copy ${what.toLowerCase()}`}
+      className={cn(
+        "pressable inline-flex h-6 w-6 items-center justify-center rounded-inner text-muted-foreground opacity-0 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-muted hover:text-foreground focus-visible:opacity-100 [@media(hover:none)]:opacity-100",
+        className,
+      )}
+    >
+      <Copy className="h-3.5 w-3.5" aria-hidden />
+      <span className="sr-only">Copy {what.toLowerCase()}</span>
+    </button>
+  );
+}
+
+const actionBadges: Record<string, { label: string; tone: "accent" | "success" | "failed" }> = {
+  auto_confirmed: { label: "Auto-accepted", tone: "success" },
+  confirmed: { label: "Confirmed", tone: "success" },
+  rejected: { label: "Rejected", tone: "failed" },
+};
+
+function ToolCall({ name, input, status }: { name: string; input: unknown; status?: string }) {
+  const badge = status ? actionBadges[status] : undefined;
+  return (
+    <div className="group flex max-w-full flex-col gap-1 rounded-control border bg-panel/70 px-2.5 py-2 text-xs">
       <span className="flex flex-wrap items-center gap-1.5 font-medium">
         <Wrench className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
         Tool call {name}
-        {mutating && <Badge tone="accent">Needs confirmation</Badge>}
+        {badge && <Badge tone={badge.tone}>{badge.label}</Badge>}
+        <CopyButton text={JSON.stringify(input ?? {}, null, 2)} what="Arguments" className="ml-auto h-5 w-5" />
       </span>
       <code className="line-clamp-3 block font-mono break-all text-muted-foreground">{compact(input)}</code>
     </div>
@@ -132,18 +170,22 @@ const bubble = "w-fit max-w-[88%] rounded-panel px-3 py-2 text-sm break-words wh
 const userBubble = cn(bubble, "self-end rounded-br-inner bg-accent-fill text-accent-foreground");
 const assistantBubble = cn(bubble, "self-start rounded-bl-inner bg-muted text-foreground");
 
-function SavedMessage({ m }: { m: StoredMessage }) {
+function SavedMessage({ m, actions }: { m: StoredMessage; actions: Map<string, string> }) {
   const blocks: Block[] = m.content ?? [];
   if (m.role === "user") {
     const attached = blocks.filter((b) => b.type === "attachment");
+    const text = blocks
+      .filter((b) => b.type === "text")
+      .map((b) => b.text)
+      .join("");
     return (
-      <li className="flex animate-enter flex-col items-end gap-1">
-        <span className={userBubble}>
-          <span className="sr-only">You: </span>
-          {blocks
-            .filter((b) => b.type === "text")
-            .map((b) => b.text)
-            .join("")}
+      <li className="group flex animate-enter flex-col items-end gap-1">
+        <span className="flex max-w-full items-start justify-end gap-1">
+          <CopyButton text={text} what="Message" className="mt-1.5" />
+          <span className={userBubble}>
+            <span className="sr-only">You: </span>
+            {text}
+          </span>
         </span>
         {attached.length > 0 && (
           <span className="flex max-w-[88%] flex-wrap justify-end gap-1">
@@ -158,16 +200,26 @@ function SavedMessage({ m }: { m: StoredMessage }) {
   return (
     <li className="flex flex-col gap-1.5">
       {blocks.map((b, i) => {
-        if (b.type === "text" && b.text) {
+        if (b.type === "text" && (b.text || b.stopped)) {
           return (
-            <p key={i} className={assistantBubble}>
-              <span className="sr-only">Assistant: </span>
-              {b.text}
-            </p>
+            <div key={i} className="group flex flex-col items-start gap-0.5">
+              {b.text && (
+                <p className={assistantBubble}>
+                  <span className="sr-only">Assistant: </span>
+                  {b.text}
+                </p>
+              )}
+              <span className="flex items-center gap-1 pl-1">
+                {b.stopped && <span className="text-xs text-muted-foreground">Stopped</span>}
+                {b.text && <CopyButton text={b.text} what="Answer" />}
+              </span>
+            </div>
           );
         }
         if (b.type === "tool_use")
-          return <ToolCall key={i} name={b.tool_name ?? ""} input={b.input} mutating={false} />;
+          return (
+            <ToolCall key={i} name={b.tool_name ?? ""} input={b.input} status={actions.get(b.tool_use_id ?? "")} />
+          );
         if (b.type === "tool_result")
           return <ToolResult key={i} name={b.tool_name ?? ""} isError={!!b.is_error} text={b.text ?? ""} />;
         return null;
@@ -286,8 +338,7 @@ function Panel({ closing, onClose, requestId }: { closing: boolean; onClose: () 
   const [mentionIndex, setMentionIndex] = useState(0);
   const mentions = useMentions(mention !== undefined, mention?.query ?? "");
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [live, setLive] = useState<LiveItem[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const list = useQuery(listAiConversationsOptions());
   const detail = useQuery({
@@ -302,68 +353,51 @@ function Panel({ closing, onClose, requestId }: { closing: boolean; onClose: () 
   }, [convId, list.data]);
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
-  }, [live, detail.data]);
+  }, [detail.data]);
 
-  const onEvent = (ev: { event: string; data: unknown }) => {
-    const d = (ev.data ?? {}) as Record<string, unknown>;
-    setLive((items) => {
-      switch (ev.event) {
-        case "text": {
-          const last = items[items.length - 1];
-          if (last?.kind === "text")
-            return [...items.slice(0, -1), { kind: "text", text: last.text + String(d.delta ?? "") }];
-          return [...items, { kind: "text", text: String(d.delta ?? "") }];
-        }
-        case "tool_call":
-          return [
-            ...items,
-            { kind: "tool_call", id: String(d.id), name: String(d.name), input: d.input, mutating: !!d.mutating },
-          ];
-        case "tool_result":
-          return [
-            ...items,
-            {
-              kind: "tool_result",
-              id: String(d.id),
-              name: String(d.name),
-              isError: !!d.is_error,
-              text: String(d.text ?? ""),
-            },
-          ];
-        case "pending_action":
-          return [...items, { kind: "action", action: d as unknown as PendingAction }];
-        case "error":
-          return [...items, { kind: "error", code: String(d.code), message: String(d.message) }];
-        default:
-          return items;
+  const running = detail.data?.turn_status === "running";
+  const busy = running || starting;
+  const detailKey = (id: string) => getAiConversationQueryKey({ path: { conversationId: id } });
+
+  // A running turn runs on the server. The panel attaches to it, also after a reload, and
+  // gets the conversation each time it changes until the turn ends.
+  useEffect(() => {
+    if (!convId || !running) return;
+    const es = new EventSource(`/api/v1/ai/conversations/${encodeURIComponent(convId)}/events`);
+    es.addEventListener("conversation", (ev) => {
+      try {
+        qc.setQueryData(detailKey(convId), JSON.parse((ev as MessageEvent<string>).data) as ConversationDetail);
+      } catch {
+        // The next event or the refetch below covers a malformed event.
       }
     });
-  };
+    es.addEventListener("end", () => {
+      es.close();
+      void qc.invalidateQueries({ queryKey: listAiConversationsQueryKey() });
+    });
+    // A lost connection: refetch, and the effect attaches again while the turn runs.
+    es.onerror = () => {
+      es.close();
+      window.setTimeout(() => void qc.invalidateQueries({ queryKey: detailKey(convId) }), 1000);
+    };
+    return () => es.close();
+  }, [convId, running, qc]);
 
-  const run = async (id: string, url: string, body: unknown) => {
-    setBusy(true);
+  /** start runs a request that starts a turn, then shows the conversation as running. */
+  const start = async (id: string, request: () => Promise<unknown>) => {
+    setStarting(true);
     setError(undefined);
-    setLive([]);
     try {
-      let done = false;
-      await postStream(url, body, (ev) => {
-        if (ev.event === "done") done = true;
-        onEvent(ev);
-      });
-      // Load the saved turn with a new request. A detail request can start before the turn saves
-      // its messages and end after the stream. An invalidation or fetchQuery reuses that request,
-      // so the answer then disappears. Cancel it, and write the result of a new request.
-      const key = getAiConversationQueryKey({ path: { conversationId: id } });
-      await qc.cancelQueries({ queryKey: key });
-      const { data } = await getAiConversation({ path: { conversationId: id }, throwOnError: true });
-      qc.setQueryData(key, data);
-      setLive((items) => items.filter((i) => i.kind === "error"));
-      // A stream that ends without "done" lost its connection or the server stopped the turn.
-      if (!done) setError("The answer stopped before the end. The saved part of the conversation shows below.");
+      await request();
+      qc.setQueryData(detailKey(id), (d: ConversationDetail | undefined) =>
+        d ? { ...d, turn_status: "running" as const, turn_error: "", turn_stop: "" } : d,
+      );
+      await qc.invalidateQueries({ queryKey: detailKey(id) });
     } catch (err) {
       setError(errorMessage(err));
+      void qc.invalidateQueries({ queryKey: detailKey(id) });
     } finally {
-      setBusy(false);
+      setStarting(false);
       void qc.invalidateQueries({ queryKey: listAiConversationsQueryKey() });
     }
   };
@@ -382,10 +416,14 @@ function Panel({ closing, onClose, requestId }: { closing: boolean; onClose: () 
     setDraft("");
     setAttached([]);
     setMention(undefined);
-    await run(id, `/api/v1/ai/conversations/${encodeURIComponent(id)}/messages`, {
-      text,
-      ...(attachments.length > 0 ? { attachments } : {}),
-    });
+    const conversationId = id;
+    await start(conversationId, () =>
+      sendAiMessage({
+        path: { conversationId },
+        body: { text, ...(attachments.length > 0 ? { attachments } : {}) },
+        throwOnError: true,
+      }),
+    );
   };
 
   const send = async (e: FormEvent) => {
@@ -463,21 +501,53 @@ function Panel({ closing, onClose, requestId }: { closing: boolean; onClose: () 
 
   const decide = (action: PendingAction, confirm: boolean) => {
     if (!convId) return;
-    const verb = confirm ? "confirm" : "reject";
-    void run(
-      convId,
-      `/api/v1/ai/conversations/${encodeURIComponent(convId)}/actions/${encodeURIComponent(action.id)}/${verb}`,
-      undefined,
+    const path = { conversationId: convId, actionId: action.id };
+    void start(convId, () =>
+      confirm ? confirmAiAction({ path, throwOnError: true }) : rejectAiAction({ path, throwOnError: true }),
     );
   };
 
-  const pending = (detail.data?.actions ?? []).filter((a) => a.status === "pending");
-  const liveActions = new Set(
-    live.filter((i) => i.kind === "action").map((i) => (i as { action: PendingAction }).action.id),
-  );
+  const retry = () => {
+    if (!convId) return;
+    void start(convId, () => retryAiTurn({ path: { conversationId: convId }, throwOnError: true }));
+  };
 
-  const messages = detail.data?.messages ?? [];
-  const empty = messages.length === 0 && live.length === 0 && pending.length === 0 && !busy;
+  const stop = async () => {
+    if (!convId) return;
+    try {
+      await stopAiTurn({ path: { conversationId: convId }, throwOnError: true });
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  };
+
+  const setAutoAccept = async (on: boolean) => {
+    try {
+      let id = convId;
+      if (!id) {
+        id = (await create.mutateAsync({ body: {} })).id;
+        setConvId(id);
+      }
+      const c = await updateAiConversation({
+        path: { conversationId: id },
+        body: { auto_accept: on },
+        throwOnError: true,
+      });
+      qc.setQueryData(detailKey(id), (d: ConversationDetail | undefined) =>
+        d ? { ...d, auto_accept: c.data.auto_accept } : d,
+      );
+      void qc.invalidateQueries({ queryKey: detailKey(id) });
+      void qc.invalidateQueries({ queryKey: listAiConversationsQueryKey() });
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  };
+
+  const d = detail.data;
+  const pending = (d?.actions ?? []).filter((a) => a.status === "pending");
+  const actionStatus = new Map((d?.actions ?? []).map((a) => [a.tool_call_id, a.status]));
+  const messages = d?.messages ?? [];
+  const empty = messages.length === 0 && pending.length === 0 && !busy;
 
   return (
     <aside
@@ -503,14 +573,13 @@ function Panel({ closing, onClose, requestId }: { closing: boolean; onClose: () 
               className="h-7 w-7"
               aria-label="New conversation"
               title="New conversation"
-              disabled={busy || create.isPending}
+              disabled={starting || create.isPending}
               onClick={() => {
                 create.mutate(
                   { body: {} },
                   {
                     onSuccess: (c) => {
                       setConvId(c.id);
-                      setLive([]);
                       setError(undefined);
                       void qc.invalidateQueries({ queryKey: listAiConversationsQueryKey() });
                     },
@@ -533,21 +602,35 @@ function Panel({ closing, onClose, requestId }: { closing: boolean; onClose: () 
             </Button>
           </div>
         </div>
-        {(list.data?.items.length ?? 0) > 0 && (
-          <Select
-            aria-label="Conversation"
-            className="h-7 text-xs"
-            value={convId ?? ""}
-            disabled={busy}
-            onChange={(e) => setConvId(e.target.value)}
+        <div className="flex items-center gap-2">
+          {(list.data?.items.length ?? 0) > 0 && (
+            <Select
+              aria-label="Conversation"
+              className="h-7 min-w-0 flex-1 text-xs"
+              value={convId ?? ""}
+              disabled={starting}
+              onChange={(e) => {
+                setConvId(e.target.value);
+                setError(undefined);
+              }}
+            >
+              {list.data?.items.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title || "New conversation"}
+                </option>
+              ))}
+            </Select>
+          )}
+          <Switch
+            checked={!!d?.auto_accept}
+            onChange={(on) => void setAutoAccept(on)}
+            className="ml-auto h-7 shrink-0 px-1.5 text-xs"
           >
-            {list.data?.items.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title || "New conversation"}
-              </option>
-            ))}
-          </Select>
-        )}
+            <span title="Actions run without a confirm in this conversation, until the assistant reads a web page in a turn.">
+              Accept all
+            </span>
+          </Switch>
+        </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
         {empty && (
@@ -556,50 +639,35 @@ function Panel({ closing, onClose, requestId }: { closing: boolean; onClose: () 
               <Sparkles className="h-5 w-5" aria-hidden />
             </span>
             <p className="text-sm text-muted-foreground">
-              Ask about flows, executions and logs. Actions that change something wait for your confirmation.
+              Ask about flows, executions and logs. Actions that change something wait for your confirmation, unless you
+              turn on Accept all.
             </p>
           </div>
         )}
         <ol aria-label="Conversation messages" className="flex flex-col gap-3">
           {messages.map((m) => (
-            <SavedMessage key={m.id} m={m} />
+            <SavedMessage key={m.id} m={m} actions={actionStatus} />
           ))}
-          {pending
-            .filter((a) => !liveActions.has(a.id))
-            .map((a) => (
-              <ActionCard key={a.id} action={a} busy={busy} onDecide={(c) => decide(a, c)} />
-            ))}
-          {live.map((item, i) => {
-            switch (item.kind) {
-              case "text":
-                return (
-                  <li key={i} className={assistantBubble} aria-live="polite">
-                    {item.text}
-                  </li>
-                );
-              case "tool_call":
-                return (
-                  <li key={i} className="animate-enter">
-                    <ToolCall name={item.name} input={item.input} mutating={item.mutating} />
-                  </li>
-                );
-              case "tool_result":
-                return (
-                  <li key={i} className="animate-enter">
-                    <ToolResult name={item.name} isError={item.isError} text={item.text} />
-                  </li>
-                );
-              case "action":
-                return <ActionCard key={i} action={item.action} busy={busy} onDecide={(c) => decide(item.action, c)} />;
-              case "error":
-                return (
-                  <li key={i} role="alert" className="flex items-start gap-2 text-sm text-destructive">
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-                    {item.code === "step_limit_reached" ? "The assistant stopped after 20 tool steps." : item.message}
-                  </li>
-                );
-            }
-          })}
+          {pending.map((a) => (
+            <ActionCard key={a.id} action={a} busy={busy} onDecide={(c) => decide(a, c)} />
+          ))}
+          {running && d?.draft_text && (
+            <li className={assistantBubble} aria-live="polite">
+              {d.draft_text}
+            </li>
+          )}
+          {d?.turn_status === "failed" && (
+            <li role="alert" className="flex animate-enter flex-col items-start gap-2 text-sm">
+              <span className="flex items-start gap-2 text-destructive">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                {d.turn_error || "The answer failed."}
+              </span>
+              <Button size="sm" variant="secondary" disabled={starting} onClick={retry}>
+                <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+                Retry
+              </Button>
+            </li>
+          )}
         </ol>
         {busy && (
           <p role="status" className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
@@ -654,10 +722,21 @@ function Panel({ closing, onClose, requestId }: { closing: boolean; onClose: () 
           />
           <div className="flex items-center justify-between gap-2 px-2 pb-2">
             <span className="pl-1 text-xs text-muted-foreground">{isMac ? "⌘↩" : "Ctrl+Enter"} to send</span>
-            <Button type="submit" size="sm" disabled={busy || create.isPending || pending.length > 0 || !draft.trim()}>
-              <Send className="h-3.5 w-3.5" aria-hidden />
-              Send
-            </Button>
+            {running ? (
+              <Button type="button" size="sm" variant="secondary" onClick={() => void stop()}>
+                <Square className="h-3 w-3 fill-current" aria-hidden />
+                Stop
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                size="sm"
+                disabled={busy || create.isPending || pending.length > 0 || !draft.trim()}
+              >
+                <Send className="h-3.5 w-3.5" aria-hidden />
+                Send
+              </Button>
+            )}
           </div>
         </div>
       </form>

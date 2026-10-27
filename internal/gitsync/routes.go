@@ -21,6 +21,7 @@ import (
 type MappingIO struct {
 	RepoPath  string `json:"repo_path" maxLength:"512" doc:"Directory in the repository. Empty is the repository root."`
 	Namespace string `json:"namespace" maxLength:"128"`
+	Adopt     bool   `json:"adopt,omitempty" doc:"Convert a managed namespace to a git namespace of this source. Its history stays."`
 }
 
 // SourceBody is the body of a git source write.
@@ -32,6 +33,7 @@ type SourceBody struct {
 	KnownHosts          string      `json:"known_hosts,omitempty" maxLength:"65536"`
 	PollInterval        int         `json:"poll_interval,omitempty" minimum:"15" maximum:"86400" doc:"Seconds between polls. Default 60."`
 	WebhookSecretKey    string      `json:"webhook_secret_key,omitempty" maxLength:"128" doc:"Global secret key with the webhook secret."`
+	Enabled             *bool       `json:"enabled,omitempty" doc:"Sync the source. A new source is disabled when this is absent; an update keeps the state."`
 	Mappings            []MappingIO `json:"mappings" minItems:"1" maxItems:"100"`
 }
 
@@ -47,6 +49,7 @@ type SourceOut struct {
 	PollInterval        int         `json:"poll_interval"`
 	WebhookSecretKey    string      `json:"webhook_secret_key"`
 	WebhookURL          string      `json:"webhook_url"`
+	Enabled             bool        `json:"enabled"`
 	LastSyncedSha       string      `json:"last_synced_sha"`
 	LastSyncAt          *time.Time  `json:"last_sync_at,omitempty" nullable:"true"`
 	LastSyncStatus      string      `json:"last_sync_status"`
@@ -83,6 +86,7 @@ type NamespaceGit struct {
 	RepoURL        string     `json:"repo_url"`
 	Branch         string     `json:"branch"`
 	RepoPath       string     `json:"repo_path"`
+	Enabled        bool       `json:"enabled"`
 	LastSyncedSha  string     `json:"last_synced_sha"`
 	LastSyncAt     *time.Time `json:"last_sync_at,omitempty" nullable:"true"`
 	LastSyncStatus string     `json:"last_sync_status"`
@@ -108,7 +112,7 @@ type PushResult struct {
 func sourceOut(s *Service, src Source) SourceOut {
 	out := SourceOut{ID: src.ID, Name: src.Name, RepoURL: src.RepoUrl, Branch: src.Branch, AuthType: src.AuthType,
 		CredentialSecretKey: src.CredentialSecretKey, KnownHosts: src.KnownHosts, PollInterval: int(src.PollInterval),
-		WebhookSecretKey: src.WebhookSecretKey, WebhookURL: s.WebhookURL(src.ID), LastSyncedSha: src.LastSyncedSha,
+		WebhookSecretKey: src.WebhookSecretKey, WebhookURL: s.WebhookURL(src.ID), Enabled: src.Enabled, LastSyncedSha: src.LastSyncedSha,
 		LastSyncAt: src.LastSyncAt, LastSyncStatus: src.LastSyncStatus, LastError: src.LastError, Mappings: []MappingIO{}}
 	for _, m := range src.Mappings {
 		out.Mappings = append(out.Mappings, MappingIO(m))
@@ -118,7 +122,7 @@ func sourceOut(s *Service, src Source) SourceOut {
 
 func input(name string, b SourceBody) SourceInput {
 	in := SourceInput{Name: name, RepoURL: b.RepoURL, Branch: b.Branch, AuthType: b.AuthType, CredentialSecretKey: b.CredentialSecretKey,
-		KnownHosts: b.KnownHosts, PollInterval: b.PollInterval, WebhookSecretKey: b.WebhookSecretKey}
+		KnownHosts: b.KnownHosts, PollInterval: b.PollInterval, WebhookSecretKey: b.WebhookSecretKey, Enabled: b.Enabled}
 	for _, m := range b.Mappings {
 		in.Mappings = append(in.Mappings, Mapping(m))
 	}
@@ -183,6 +187,19 @@ func Routes(api huma.API, r chi.Router, s *Service) {
 			}
 			return &sourceOutBody{Body: sourceOut(s, src)}, nil
 		})
+	huma.Register(api, httpx.Op("setGitSourceEnabled", http.MethodPatch, "/api/v1/git-sources/{sourceId}", admin),
+		func(ctx context.Context, in *struct {
+			SourceID uuid.UUID `path:"sourceId"`
+			Body     struct {
+				Enabled bool `json:"enabled" doc:"Sync the source. Off stops polling, webhooks and Sync now."`
+			}
+		}) (*sourceOutBody, error) {
+			src, err := s.SetEnabled(ctx, in.SourceID, in.Body.Enabled)
+			if err != nil {
+				return nil, err
+			}
+			return &sourceOutBody{Body: sourceOut(s, src)}, nil
+		})
 	del := httpx.Op("deleteGitSource", http.MethodDelete, "/api/v1/git-sources/{sourceId}", admin)
 	del.DefaultStatus = http.StatusNoContent
 	huma.Register(api, del, func(ctx context.Context, in *struct {
@@ -224,7 +241,7 @@ func Routes(api huma.API, r chi.Router, s *Service) {
 				return nil, err
 			}
 			return &struct{ Body NamespaceGit }{Body: NamespaceGit{SourceID: row.ID, SourceName: row.Name, RepoURL: row.RepoUrl, Branch: row.Branch,
-				RepoPath: row.RepoPath, LastSyncedSha: row.LastSyncedSha, LastSyncAt: row.LastSyncAt, LastSyncStatus: row.LastSyncStatus,
+				RepoPath: row.RepoPath, Enabled: row.Enabled, LastSyncedSha: row.LastSyncedSha, LastSyncAt: row.LastSyncAt, LastSyncStatus: row.LastSyncStatus,
 				LastError: row.LastError}}, nil
 		})
 	push := httpx.Op("pushNamespaceBranch", http.MethodPost, "/api/v1/namespaces/{namespace}/git/push", editor)

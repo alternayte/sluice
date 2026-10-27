@@ -246,6 +246,9 @@ import type {
   ResumeTaskData,
   ResumeTaskErrors,
   ResumeTaskResponses,
+  RetryAiTurnData,
+  RetryAiTurnErrors,
+  RetryAiTurnResponses,
   RevertVersionData,
   RevertVersionErrors,
   RevertVersionResponses,
@@ -287,6 +290,14 @@ import type {
   SaveChangesResponses,
   SendAiMessageData,
   SendAiMessageResponses,
+  SetGitSourceEnabledData,
+  SetGitSourceEnabledErrors,
+  SetGitSourceEnabledResponses,
+  StopAiTurnData,
+  StopAiTurnErrors,
+  StopAiTurnResponses,
+  StreamAiConversationData,
+  StreamAiConversationResponses,
   StreamExecutionEventsData,
   StreamExecutionEventsResponses,
   StreamExecutionLogsData,
@@ -300,6 +311,9 @@ import type {
   TriggerFlowData,
   TriggerFlowErrors,
   TriggerFlowResponses,
+  UpdateAiConversationData,
+  UpdateAiConversationErrors,
+  UpdateAiConversationResponses,
   UpdateFlowData,
   UpdateFlowErrors,
   UpdateFlowResponses,
@@ -457,32 +471,68 @@ export const getAiConversation = <ThrowOnError extends boolean = false>(
     ...options,
   });
 
+export const updateAiConversation = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateAiConversationData, ThrowOnError>,
+): RequestResult<UpdateAiConversationResponses, UpdateAiConversationErrors, ThrowOnError> =>
+  (options.client ?? client).patch<UpdateAiConversationResponses, UpdateAiConversationErrors, ThrowOnError>({
+    url: "/api/v1/ai/conversations/{conversationId}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
 export const confirmAiAction = <ThrowOnError extends boolean = false>(
-  options: Options<ConfirmAiActionData, ThrowOnError, unknown>,
-): Promise<ServerSentEventsResult<ConfirmAiActionResponses>> =>
-  (options.client ?? client).sse.post<ConfirmAiActionResponses, unknown, ThrowOnError>({
+  options: Options<ConfirmAiActionData, ThrowOnError>,
+): RequestResult<ConfirmAiActionResponses, unknown, ThrowOnError> =>
+  (options.client ?? client).post<ConfirmAiActionResponses, unknown, ThrowOnError>({
     url: "/api/v1/ai/conversations/{conversationId}/actions/{actionId}/confirm",
     ...options,
   });
 
 export const rejectAiAction = <ThrowOnError extends boolean = false>(
-  options: Options<RejectAiActionData, ThrowOnError, unknown>,
-): Promise<ServerSentEventsResult<RejectAiActionResponses>> =>
-  (options.client ?? client).sse.post<RejectAiActionResponses, unknown, ThrowOnError>({
+  options: Options<RejectAiActionData, ThrowOnError>,
+): RequestResult<RejectAiActionResponses, unknown, ThrowOnError> =>
+  (options.client ?? client).post<RejectAiActionResponses, unknown, ThrowOnError>({
     url: "/api/v1/ai/conversations/{conversationId}/actions/{actionId}/reject",
     ...options,
   });
 
+export const streamAiConversation = <ThrowOnError extends boolean = false>(
+  options: Options<StreamAiConversationData, ThrowOnError, unknown>,
+): Promise<ServerSentEventsResult<StreamAiConversationResponses>> =>
+  (options.client ?? client).sse.get<StreamAiConversationResponses, unknown, ThrowOnError>({
+    url: "/api/v1/ai/conversations/{conversationId}/events",
+    ...options,
+  });
+
 export const sendAiMessage = <ThrowOnError extends boolean = false>(
-  options: Options<SendAiMessageData, ThrowOnError, unknown>,
-): Promise<ServerSentEventsResult<SendAiMessageResponses>> =>
-  (options.client ?? client).sse.post<SendAiMessageResponses, unknown, ThrowOnError>({
+  options: Options<SendAiMessageData, ThrowOnError>,
+): RequestResult<SendAiMessageResponses, unknown, ThrowOnError> =>
+  (options.client ?? client).post<SendAiMessageResponses, unknown, ThrowOnError>({
     url: "/api/v1/ai/conversations/{conversationId}/messages",
     ...options,
     headers: {
       "Content-Type": "application/json",
       ...options.headers,
     },
+  });
+
+export const retryAiTurn = <ThrowOnError extends boolean = false>(
+  options: Options<RetryAiTurnData, ThrowOnError>,
+): RequestResult<RetryAiTurnResponses, RetryAiTurnErrors, ThrowOnError> =>
+  (options.client ?? client).post<RetryAiTurnResponses, RetryAiTurnErrors, ThrowOnError>({
+    url: "/api/v1/ai/conversations/{conversationId}/retry",
+    ...options,
+  });
+
+export const stopAiTurn = <ThrowOnError extends boolean = false>(
+  options: Options<StopAiTurnData, ThrowOnError>,
+): RequestResult<StopAiTurnResponses, StopAiTurnErrors, ThrowOnError> =>
+  (options.client ?? client).post<StopAiTurnResponses, StopAiTurnErrors, ThrowOnError>({
+    url: "/api/v1/ai/conversations/{conversationId}/stop",
+    ...options,
   });
 
 export const deleteAiProvider = <ThrowOnError extends boolean = false>(
@@ -852,6 +902,18 @@ export const getGitSource = <ThrowOnError extends boolean = false>(
   (options.client ?? client).get<GetGitSourceResponses, GetGitSourceErrors, ThrowOnError>({
     url: "/api/v1/git-sources/{sourceId}",
     ...options,
+  });
+
+export const setGitSourceEnabled = <ThrowOnError extends boolean = false>(
+  options: Options<SetGitSourceEnabledData, ThrowOnError>,
+): RequestResult<SetGitSourceEnabledResponses, SetGitSourceEnabledErrors, ThrowOnError> =>
+  (options.client ?? client).patch<SetGitSourceEnabledResponses, SetGitSourceEnabledErrors, ThrowOnError>({
+    url: "/api/v1/git-sources/{sourceId}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 
 export const updateGitSource = <ThrowOnError extends boolean = false>(

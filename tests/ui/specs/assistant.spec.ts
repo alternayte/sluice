@@ -18,6 +18,7 @@ type LLMInfo = { control: string; anthropic_url: string };
 type GitInfo = { control: string; http_base: string; token: string };
 type Reply = {
   status?: number;
+  delay_ms?: number;
   text?: string;
   tool_calls?: { id: string; name: string; input: string }[];
   json?: string;
@@ -174,6 +175,36 @@ test("SCN-AI-004 the panel shows the get_execution and get_logs calls and the an
   await expect(again.getByText("Tool call get_logs")).toBeVisible();
 });
 
+test("an assistant turn continues through a reload, and a failed turn retries without a second message", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const answer = "This answer streams slowly, so that a reload happens while the turn runs.";
+  await script([{ text: answer, delay_ms: 120 }]);
+
+  await loginUI(page, adminEmail, adminPassword);
+  const panel = await openAssistant(page);
+  await newConversation(panel);
+  await ask(panel, "Answer slowly.");
+  await expect(panel.getByRole("button", { name: "Stop" })).toBeVisible();
+  await expect(panel.getByText("This answer streams", { exact: false })).toBeVisible();
+
+  await page.reload();
+  const again = await openAssistant(page);
+  await expect(again.getByText(answer)).toBeVisible({ timeout: 30_000 });
+  await expect(again.getByRole("button", { name: "Send" })).toBeVisible();
+
+  const down = { status: 500, text: "down" };
+  await script([down, down, down]);
+  await ask(again, "Are you there?");
+  const alert = again.getByRole("alert").filter({ hasText: "status 500" });
+  await expect(alert).toBeVisible({ timeout: 30_000 });
+  await script([{ text: "Yes, I am back." }]);
+  await alert.getByRole("button", { name: "Retry" }).click();
+  await expect(again.getByText("Yes, I am back.")).toBeVisible();
+  await expect(again.getByText("Are you there?")).toHaveCount(1);
+});
+
 test("SCN-AI-005 a trigger_execution call waits for confirm or reject, reject does not run it, confirm runs it with an audit event", async ({
   page,
 }) => {
@@ -263,6 +294,7 @@ test("SCN-AI-006 an invalid proposal returns errors, a valid proposal shows the 
       branch: "main",
       auth_type: "https_token",
       credential_secret_key: key,
+      enabled: true,
       mappings: [{ repo_path: "", namespace: gitNs }],
     },
   });

@@ -20,9 +20,19 @@ components:
             - anthropic
             - openai_compatible
           type: string
+        web_access:
+          description: The assistant can fetch web pages with fetch_url.
+          type: boolean
+        web_allowed_domains:
+          description: Domains that fetch_url can read, with their subdomains. Empty allows every public domain.
+          items:
+            type: string
+          type: array
       required:
         - configured
         - auto_triage
+        - web_access
+        - web_allowed_domains
       type: object
     AIProviderPut:
       additionalProperties: true
@@ -44,6 +54,13 @@ components:
             - anthropic
             - openai_compatible
           type: string
+        web_access:
+          type: boolean
+        web_allowed_domains:
+          items:
+            type: string
+          maxItems: 100
+          type: array
       required:
         - type
         - model
@@ -197,6 +214,8 @@ components:
           type: boolean
         label:
           type: string
+        stopped:
+          type: boolean
         text:
           type: string
         tool_name:
@@ -291,17 +310,38 @@ components:
     Conversation:
       additionalProperties: true
       properties:
+        auto_accept:
+          description: Mutating tool calls run without a confirm, unless the turn fetched a web page.
+          type: boolean
         created_at:
           format: date-time
+          type: string
+        draft_text:
           type: string
         id:
           type: string
         title:
           type: string
+        turn_error:
+          type: string
+        turn_status:
+          enum:
+            - idle
+            - running
+            - failed
+          type: string
+        turn_stop:
+          description: "Why the last turn ended: end_turn, pending_action, step_limit_reached, stopped or error. Empty while it runs."
+          type: string
       required:
         - id
         - title
         - created_at
+        - auto_accept
+        - turn_status
+        - turn_stop
+        - turn_error
+        - draft_text
       type: object
     ConversationDetail:
       additionalProperties: true
@@ -310,8 +350,13 @@ components:
           items:
             $ref: "#/components/schemas/PendingAction"
           type: array
+        auto_accept:
+          description: Mutating tool calls run without a confirm, unless the turn fetched a web page.
+          type: boolean
         created_at:
           format: date-time
+          type: string
+        draft_text:
           type: string
         id:
           type: string
@@ -321,12 +366,28 @@ components:
           type: array
         title:
           type: string
+        turn_error:
+          type: string
+        turn_status:
+          enum:
+            - idle
+            - running
+            - failed
+          type: string
+        turn_stop:
+          description: "Why the last turn ended: end_turn, pending_action, step_limit_reached, stopped or error. Empty while it runs."
+          type: string
       required:
         - messages
         - actions
         - id
         - title
         - created_at
+        - auto_accept
+        - turn_status
+        - turn_stop
+        - turn_error
+        - draft_text
       type: object
     ConversationList:
       additionalProperties: true
@@ -371,6 +432,9 @@ components:
           description: Global secret key with the token or the private key.
           maxLength: 128
           type: string
+        enabled:
+          description: Sync the source. A new source is disabled when this is absent; an update keeps the state.
+          type: boolean
         known_hosts:
           maxLength: 65536
           type: string
@@ -1287,6 +1351,9 @@ components:
     MappingIO:
       additionalProperties: true
       properties:
+        adopt:
+          description: Convert a managed namespace to a git namespace of this source. Its history stays.
+          type: boolean
         namespace:
           maxLength: 128
           type: string
@@ -1456,6 +1523,8 @@ components:
       properties:
         branch:
           type: string
+        enabled:
+          type: boolean
         last_error:
           type: string
         last_sync_at:
@@ -1481,6 +1550,7 @@ components:
         - repo_url
         - branch
         - repo_path
+        - enabled
         - last_synced_sha
         - last_sync_status
         - last_error
@@ -1509,6 +1579,7 @@ components:
             - pending
             - confirmed
             - rejected
+            - auto_confirmed
           type: string
         tool:
           type: string
@@ -2085,6 +2156,15 @@ components:
           type: string
           writeOnly: true
       type: object
+    SetGitSourceEnabledRequest:
+      additionalProperties: true
+      properties:
+        enabled:
+          description: Sync the source. Off stops polling, webhooks and Sync now.
+          type: boolean
+      required:
+        - enabled
+      type: object
     Snapshot:
       additionalProperties: true
       properties:
@@ -2144,6 +2224,9 @@ components:
           description: Global secret key with the token or the private key.
           maxLength: 128
           type: string
+        enabled:
+          description: Sync the source. A new source is disabled when this is absent; an update keeps the state.
+          type: boolean
         known_hosts:
           maxLength: 65536
           type: string
@@ -2193,6 +2276,8 @@ components:
           type: string
         credential_secret_key:
           type: string
+        enabled:
+          type: boolean
         id:
           type: string
         known_hosts:
@@ -2234,6 +2319,7 @@ components:
         - poll_interval
         - webhook_secret_key
         - webhook_url
+        - enabled
         - last_synced_sha
         - last_sync_status
         - last_error
@@ -2515,6 +2601,15 @@ components:
         - cron
         - timezone
         - next_fire_at
+      type: object
+    UpdateAIConversationRequest:
+      additionalProperties: true
+      properties:
+        auto_accept:
+          description: Run mutating tool calls without a confirm, inside the role of the user.
+          type: boolean
+      required:
+        - auto_accept
       type: object
     UpdateFlowRequest:
       additionalProperties: true
@@ -3033,6 +3128,33 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
           description: Error
+    patch:
+      operationId: updateAIConversation
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAIConversationRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
   /api/v1/ai/conversations/{conversationId}/actions/{actionId}/confirm:
     post:
       operationId: confirmAIAction
@@ -3050,10 +3172,10 @@ paths:
             format: uuid
             type: string
       responses:
-        "200":
+        "202":
           content:
-            text/event-stream: {}
-          description: Events of the continued turn.
+            application/json: {}
+          description: The decision is saved and the turn continues in the background.
   /api/v1/ai/conversations/{conversationId}/actions/{actionId}/reject:
     post:
       operationId: rejectAIAction
@@ -3071,10 +3193,25 @@ paths:
             format: uuid
             type: string
       responses:
+        "202":
+          content:
+            application/json: {}
+          description: The decision is saved and the turn continues in the background.
+  /api/v1/ai/conversations/{conversationId}/events:
+    get:
+      operationId: streamAIConversation
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            format: uuid
+            type: string
+      responses:
         "200":
           content:
             text/event-stream: {}
-          description: Events of the continued turn.
+          description: A conversation event with the conversation each time it changes while a turn runs, then end.
   /api/v1/ai/conversations/{conversationId}/messages:
     post:
       operationId: sendAIMessage
@@ -3092,10 +3229,46 @@ paths:
               $ref: "#/components/schemas/MessageIn"
         required: true
       responses:
-        "200":
+        "202":
           content:
-            text/event-stream: {}
-          description: "Events of the turn: text, tool_call, tool_result, pending_action, error and done."
+            application/json: {}
+          description: The turn started. GET .../events shows its progress.
+  /api/v1/ai/conversations/{conversationId}/retry:
+    post:
+      operationId: retryAITurn
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          description: Accepted
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+  /api/v1/ai/conversations/{conversationId}/stop:
+    post:
+      operationId: stopAITurn
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          description: Accepted
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
   /api/v1/ai/provider:
     delete:
       operationId: deleteAIProvider
@@ -4280,6 +4453,33 @@ paths:
           required: true
           schema:
             type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceOut"
+          description: OK
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+          description: Error
+    patch:
+      operationId: setGitSourceEnabled
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetGitSourceEnabledRequest"
+        required: true
       responses:
         "200":
           content:

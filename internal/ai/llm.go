@@ -41,6 +41,8 @@ type Block struct {
 	IsError   bool            `json:"is_error,omitempty"`
 	// Label names an attachment, for example "flow sales/nightly-load".
 	Label string `json:"label,omitempty"`
+	// Stopped marks the text of an answer that the user stopped.
+	Stopped bool `json:"stopped,omitempty"`
 }
 
 // Message is one turn of a conversation. Role is user or assistant. Tool results are

@@ -40,6 +40,10 @@ type ProviderConfig struct {
 	Model           string `json:"model"`
 	APIKeySecretKey string `json:"api_key_secret_key"`
 	AutoTriage      bool   `json:"auto_triage"`
+	// WebAccess gives the assistant the fetch_url tool. WebAllowedDomains limits it; empty
+	// allows every public domain.
+	WebAccess         bool     `json:"web_access"`
+	WebAllowedDomains []string `json:"web_allowed_domains"`
 }
 
 // Service is the AI feature.
@@ -59,6 +63,10 @@ type Service struct {
 	Version string
 	// PublicURL is the external base URL. The MCP server card names the endpoint with it.
 	PublicURL string
+	// WebClient makes the fetch_url requests. Nil uses webClient.
+	WebClient *http.Client
+
+	turns turns
 }
 
 var secretKeyRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,127}$`)
@@ -119,6 +127,11 @@ func (s *Service) PutProvider(ctx context.Context, cfg ProviderConfig) (Provider
 	if !secretKeyRe.MatchString(cfg.APIKeySecretKey) {
 		fields = append(fields, httpx.FieldError{Field: "api_key_secret_key", Message: "use a global secret key"})
 	}
+	domains, derr := cleanDomains(cfg.WebAllowedDomains)
+	if derr != nil {
+		fields = append(fields, httpx.FieldError{Field: "web_allowed_domains", Message: derr.Error()})
+	}
+	cfg.WebAllowedDomains = domains
 	if len(fields) > 0 {
 		return ProviderConfig{}, httpx.Validation(fields...)
 	}
@@ -132,7 +145,8 @@ func (s *Service) PutProvider(ctx context.Context, cfg ProviderConfig) (Provider
 			return err
 		}
 		return s.Audit.Record(ctx, tx, audit.Event{Action: "ai.provider.update", TargetType: "setting", TargetID: providerSetting,
-			Details: map[string]any{"type": cfg.Type, "model": cfg.Model, "base_url": cfg.BaseURL, "auto_triage": cfg.AutoTriage}})
+			Details: map[string]any{"type": cfg.Type, "model": cfg.Model, "base_url": cfg.BaseURL, "auto_triage": cfg.AutoTriage,
+				"web_access": cfg.WebAccess, "web_allowed_domains": cfg.WebAllowedDomains}})
 	})
 	return cfg, err
 }

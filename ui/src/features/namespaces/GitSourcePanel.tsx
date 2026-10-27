@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, GitBranch, History, RefreshCw, XCircle } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { CheckCircle2, CirclePause, GitBranch, History, Pencil, RefreshCw, XCircle } from "lucide-react";
 import { getNamespaceGitOptions, listGitSyncRunsOptions, syncGitSourceMutation } from "@/api/@tanstack/react-query.gen";
 import type { RunOut } from "@/api/types.gen";
 import { DataState } from "@/components/data-state";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClass } from "@/components/ui/button";
 import { FormError } from "@/components/ui/field";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
 import { toast } from "@/components/ui/toast";
@@ -75,19 +76,31 @@ export function GitSourcePanel({ namespace }: { namespace: string }) {
                     This namespace comes from git. Edits go to a new branch.
                   </p>
                 </div>
-                {can(me.role, "operator") && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={sync.isPending}
-                    onClick={() => sync.mutate({ path: { sourceId: g.source_id } })}
-                  >
-                    <RefreshCw className={sync.isPending ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} aria-hidden />
-                    Sync now
-                  </Button>
-                )}
+                <div className="flex shrink-0 items-center gap-2">
+                  {!g.enabled && <Badge icon={CirclePause}>Sync off</Badge>}
+                  {can(me.role, "admin") && (
+                    <Link to="/settings/git" search={{ edit: g.source_id }} className={buttonClass("ghost", "sm")}>
+                      <Pencil className="h-3.5 w-3.5" aria-hidden />
+                      Edit source
+                    </Link>
+                  )}
+                  {can(me.role, "operator") && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={sync.isPending || !g.enabled}
+                      title={g.enabled ? undefined : "Turn on the source to sync"}
+                      onClick={() => sync.mutate({ path: { sourceId: g.source_id } })}
+                    >
+                      <RefreshCw className={sync.isPending ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} aria-hidden />
+                      Sync now
+                    </Button>
+                  )}
+                </div>
               </div>
               <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-sm">
+                <dt className="text-muted-foreground">Source</dt>
+                <dd className="font-medium">{g.source_name}</dd>
                 <dt className="text-muted-foreground">Repository</dt>
                 <dd className="truncate font-mono text-xs leading-5" title={g.repo_url}>
                   {g.repo_url}

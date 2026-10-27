@@ -14,21 +14,25 @@ import (
 
 // AIProvider is the provider configuration of the settings page.
 type AIProvider struct {
-	Configured      bool   `json:"configured"`
-	Type            string `json:"type,omitempty" enum:"anthropic,openai_compatible"`
-	BaseURL         string `json:"base_url,omitempty" doc:"Empty uses the default URL of the type."`
-	Model           string `json:"model,omitempty"`
-	APIKeySecretKey string `json:"api_key_secret_key,omitempty" doc:"Global secret key that holds the API key."`
-	AutoTriage      bool   `json:"auto_triage"`
+	Configured        bool     `json:"configured"`
+	Type              string   `json:"type,omitempty" enum:"anthropic,openai_compatible"`
+	BaseURL           string   `json:"base_url,omitempty" doc:"Empty uses the default URL of the type."`
+	Model             string   `json:"model,omitempty"`
+	APIKeySecretKey   string   `json:"api_key_secret_key,omitempty" doc:"Global secret key that holds the API key."`
+	AutoTriage        bool     `json:"auto_triage"`
+	WebAccess         bool     `json:"web_access" doc:"The assistant can fetch web pages with fetch_url."`
+	WebAllowedDomains []string `json:"web_allowed_domains" doc:"Domains that fetch_url can read, with their subdomains. Empty allows every public domain."`
 }
 
 // AIProviderPut is the body of a provider update.
 type AIProviderPut struct {
-	Type            string `json:"type" enum:"anthropic,openai_compatible"`
-	BaseURL         string `json:"base_url,omitempty" maxLength:"512"`
-	Model           string `json:"model" minLength:"1" maxLength:"200"`
-	APIKeySecretKey string `json:"api_key_secret_key" pattern:"^[A-Za-z_][A-Za-z0-9_]{0,127}$"`
-	AutoTriage      bool   `json:"auto_triage,omitempty"`
+	Type              string   `json:"type" enum:"anthropic,openai_compatible"`
+	BaseURL           string   `json:"base_url,omitempty" maxLength:"512"`
+	Model             string   `json:"model" minLength:"1" maxLength:"200"`
+	APIKeySecretKey   string   `json:"api_key_secret_key" pattern:"^[A-Za-z_][A-Za-z0-9_]{0,127}$"`
+	AutoTriage        bool     `json:"auto_triage,omitempty"`
+	WebAccess         bool     `json:"web_access,omitempty"`
+	WebAllowedDomains []string `json:"web_allowed_domains,omitempty" maxItems:"100"`
 }
 
 // AIStatus tells the UI whether AI actions show (REQ-AI-002).
@@ -62,9 +66,14 @@ type AITestResult struct {
 
 func providerOut(cfg *ProviderConfig) AIProvider {
 	if cfg == nil {
-		return AIProvider{}
+		return AIProvider{WebAllowedDomains: []string{}}
 	}
-	return AIProvider{Configured: true, Type: cfg.Type, BaseURL: cfg.BaseURL, Model: cfg.Model, APIKeySecretKey: cfg.APIKeySecretKey, AutoTriage: cfg.AutoTriage}
+	domains := cfg.WebAllowedDomains
+	if domains == nil {
+		domains = []string{}
+	}
+	return AIProvider{Configured: true, Type: cfg.Type, BaseURL: cfg.BaseURL, Model: cfg.Model, APIKeySecretKey: cfg.APIKeySecretKey, AutoTriage: cfg.AutoTriage,
+		WebAccess: cfg.WebAccess, WebAllowedDomains: domains}
 }
 
 // Routes registers the AI operations. Registration does not use s: `sluice openapi`
@@ -101,7 +110,8 @@ func Routes(api huma.API, r chi.Router, s *Service) {
 	huma.Register(api, httpx.Op("putAIProvider", http.MethodPut, "/api/v1/ai/provider", admin),
 		func(ctx context.Context, in *struct{ Body AIProviderPut }) (*struct{ Body AIProvider }, error) {
 			cfg, err := s.PutProvider(ctx, ProviderConfig{Type: in.Body.Type, BaseURL: in.Body.BaseURL, Model: in.Body.Model,
-				APIKeySecretKey: in.Body.APIKeySecretKey, AutoTriage: in.Body.AutoTriage})
+				APIKeySecretKey: in.Body.APIKeySecretKey, AutoTriage: in.Body.AutoTriage, WebAccess: in.Body.WebAccess,
+				WebAllowedDomains: in.Body.WebAllowedDomains})
 			if err != nil {
 				return nil, err
 			}

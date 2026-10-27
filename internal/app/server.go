@@ -314,6 +314,7 @@ func (s *Server) Run(ctx context.Context) error {
 	s.goBG(func() { s.Registry.Run(bg, s.Instance) })
 	s.goBG(func() { s.Engine.Run(bg) })
 	s.goBG(func() { s.AI.RunTriage(bg) })
+	s.goBG(func() { s.AI.RunTurns(bg) })
 	maintenance := &lease.Leader{Store: s.Leases, Name: lease.Maintenance, Log: s.Log, Work: s.leaderWork}
 	s.goBG(func() { maintenance.Run(bg) })
 	scheduler := &lease.Leader{Store: s.Leases, Name: lease.Scheduler, Log: s.Log, Work: s.schedulerWork}

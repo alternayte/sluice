@@ -17,6 +17,14 @@ export type AiProvider = {
   configured: boolean;
   model?: string;
   type?: "anthropic" | "openai_compatible";
+  /**
+   * The assistant can fetch web pages with fetch_url.
+   */
+  web_access: boolean;
+  /**
+   * Domains that fetch_url can read, with their subdomains. Empty allows every public domain.
+   */
+  web_allowed_domains: Array<string>;
   [key: string]: unknown;
 };
 
@@ -26,6 +34,8 @@ export type AiProviderPut = {
   base_url?: string;
   model: string;
   type: "anthropic" | "openai_compatible";
+  web_access?: boolean;
+  web_allowed_domains?: Array<string>;
   [key: string]: unknown;
 };
 
@@ -104,6 +114,7 @@ export type Block = {
   input?: unknown;
   is_error?: boolean;
   label?: string;
+  stopped?: boolean;
   text?: string;
   tool_name?: string;
   tool_use_id?: string;
@@ -141,18 +152,40 @@ export type CheckSecretProviderRequest = {
 };
 
 export type Conversation = {
+  /**
+   * Mutating tool calls run without a confirm, unless the turn fetched a web page.
+   */
+  auto_accept: boolean;
   created_at: string;
+  draft_text: string;
   id: string;
   title: string;
+  turn_error: string;
+  turn_status: "idle" | "running" | "failed";
+  /**
+   * Why the last turn ended: end_turn, pending_action, step_limit_reached, stopped or error. Empty while it runs.
+   */
+  turn_stop: string;
   [key: string]: unknown;
 };
 
 export type ConversationDetail = {
   actions: Array<PendingAction>;
+  /**
+   * Mutating tool calls run without a confirm, unless the turn fetched a web page.
+   */
+  auto_accept: boolean;
   created_at: string;
+  draft_text: string;
   id: string;
   messages: Array<StoredMessage>;
   title: string;
+  turn_error: string;
+  turn_status: "idle" | "running" | "failed";
+  /**
+   * Why the last turn ended: end_turn, pending_action, step_limit_reached, stopped or error. Empty while it runs.
+   */
+  turn_stop: string;
   [key: string]: unknown;
 };
 
@@ -178,6 +211,10 @@ export type CreateGitSourceRequest = {
    * Global secret key with the token or the private key.
    */
   credential_secret_key?: string;
+  /**
+   * Sync the source. A new source is disabled when this is absent; an update keeps the state.
+   */
+  enabled?: boolean;
   known_hosts?: string;
   mappings: Array<MappingIo>;
   name: string;
@@ -558,6 +595,10 @@ export type LoginRequest = {
 };
 
 export type MappingIo = {
+  /**
+   * Convert a managed namespace to a git namespace of this source. Its history stays.
+   */
+  adopt?: boolean;
   namespace: string;
   /**
    * Directory in the repository. Empty is the repository root.
@@ -634,6 +675,7 @@ export type Namespace = {
 
 export type NamespaceGit = {
   branch: string;
+  enabled: boolean;
   last_error: string;
   last_sync_at?: string | null;
   last_sync_status: string;
@@ -654,7 +696,7 @@ export type PendingAction = {
   arguments: unknown;
   created_at: string;
   id: string;
-  status: "pending" | "confirmed" | "rejected";
+  status: "pending" | "confirmed" | "rejected" | "auto_confirmed";
   tool: string;
   tool_call_id: string;
   [key: string]: unknown;
@@ -927,6 +969,14 @@ export type SecretPut = {
   [key: string]: unknown;
 };
 
+export type SetGitSourceEnabledRequest = {
+  /**
+   * Sync the source. Off stops polling, webhooks and Sync now.
+   */
+  enabled: boolean;
+  [key: string]: unknown;
+};
+
 export type Snapshot = {
   author: string;
   created_at: string;
@@ -951,6 +1001,10 @@ export type SourceBody = {
    * Global secret key with the token or the private key.
    */
   credential_secret_key?: string;
+  /**
+   * Sync the source. A new source is disabled when this is absent; an update keeps the state.
+   */
+  enabled?: boolean;
   known_hosts?: string;
   mappings: Array<MappingIo>;
   /**
@@ -977,6 +1031,7 @@ export type SourceOut = {
   auth_type: string;
   branch: string;
   credential_secret_key: string;
+  enabled: boolean;
   id: string;
   known_hosts: string;
   last_error: string;
@@ -1105,6 +1160,14 @@ export type UpcomingSchedule = {
   next_fire_at: string;
   timezone: string;
   trigger_id: string;
+  [key: string]: unknown;
+};
+
+export type UpdateAiConversationRequest = {
+  /**
+   * Run mutating tool calls without a confirm, inside the role of the user.
+   */
+  auto_accept: boolean;
   [key: string]: unknown;
 };
 
@@ -1543,6 +1606,33 @@ export type GetAiConversationResponses = {
 
 export type GetAiConversationResponse = GetAiConversationResponses[keyof GetAiConversationResponses];
 
+export type UpdateAiConversationData = {
+  body: UpdateAiConversationRequest;
+  path: {
+    conversationId: string;
+  };
+  query?: never;
+  url: "/api/v1/ai/conversations/{conversationId}";
+};
+
+export type UpdateAiConversationErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type UpdateAiConversationError = UpdateAiConversationErrors[keyof UpdateAiConversationErrors];
+
+export type UpdateAiConversationResponses = {
+  /**
+   * OK
+   */
+  200: Conversation;
+};
+
+export type UpdateAiConversationResponse = UpdateAiConversationResponses[keyof UpdateAiConversationResponses];
+
 export type ConfirmAiActionData = {
   body?: never;
   path: {
@@ -1555,9 +1645,9 @@ export type ConfirmAiActionData = {
 
 export type ConfirmAiActionResponses = {
   /**
-   * Events of the continued turn.
+   * The decision is saved and the turn continues in the background.
    */
-  200: unknown;
+  202: unknown;
 };
 
 export type RejectAiActionData = {
@@ -1572,7 +1662,23 @@ export type RejectAiActionData = {
 
 export type RejectAiActionResponses = {
   /**
-   * Events of the continued turn.
+   * The decision is saved and the turn continues in the background.
+   */
+  202: unknown;
+};
+
+export type StreamAiConversationData = {
+  body?: never;
+  path: {
+    conversationId: string;
+  };
+  query?: never;
+  url: "/api/v1/ai/conversations/{conversationId}/events";
+};
+
+export type StreamAiConversationResponses = {
+  /**
+   * A conversation event with the conversation each time it changes while a turn runs, then end.
    */
   200: unknown;
 };
@@ -1588,9 +1694,59 @@ export type SendAiMessageData = {
 
 export type SendAiMessageResponses = {
   /**
-   * Events of the turn: text, tool_call, tool_result, pending_action, error and done.
+   * The turn started. GET .../events shows its progress.
    */
-  200: unknown;
+  202: unknown;
+};
+
+export type RetryAiTurnData = {
+  body?: never;
+  path: {
+    conversationId: string;
+  };
+  query?: never;
+  url: "/api/v1/ai/conversations/{conversationId}/retry";
+};
+
+export type RetryAiTurnErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type RetryAiTurnError = RetryAiTurnErrors[keyof RetryAiTurnErrors];
+
+export type RetryAiTurnResponses = {
+  /**
+   * Accepted
+   */
+  202: unknown;
+};
+
+export type StopAiTurnData = {
+  body?: never;
+  path: {
+    conversationId: string;
+  };
+  query?: never;
+  url: "/api/v1/ai/conversations/{conversationId}/stop";
+};
+
+export type StopAiTurnErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type StopAiTurnError = StopAiTurnErrors[keyof StopAiTurnErrors];
+
+export type StopAiTurnResponses = {
+  /**
+   * Accepted
+   */
+  202: unknown;
 };
 
 export type DeleteAiProviderData = {
@@ -2753,6 +2909,33 @@ export type GetGitSourceResponses = {
 };
 
 export type GetGitSourceResponse = GetGitSourceResponses[keyof GetGitSourceResponses];
+
+export type SetGitSourceEnabledData = {
+  body: SetGitSourceEnabledRequest;
+  path: {
+    sourceId: string;
+  };
+  query?: never;
+  url: "/api/v1/git-sources/{sourceId}";
+};
+
+export type SetGitSourceEnabledErrors = {
+  /**
+   * Error
+   */
+  default: ErrorEnvelope;
+};
+
+export type SetGitSourceEnabledError = SetGitSourceEnabledErrors[keyof SetGitSourceEnabledErrors];
+
+export type SetGitSourceEnabledResponses = {
+  /**
+   * OK
+   */
+  200: SourceOut;
+};
+
+export type SetGitSourceEnabledResponse = SetGitSourceEnabledResponses[keyof SetGitSourceEnabledResponses];
 
 export type UpdateGitSourceData = {
   body: SourceBody;

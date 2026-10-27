@@ -67,6 +67,7 @@ test("SCN-GIT-005 an editor pushes an edit of a git namespace to a new branch an
       branch: "main",
       auth_type: "https_token",
       credential_secret_key: key,
+      enabled: true,
       mappings: [{ repo_path: "", namespace: ns }],
     },
   });

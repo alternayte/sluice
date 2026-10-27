@@ -36,6 +36,16 @@ func (s *Service) CreateGitNamespace(ctx context.Context, tx pgx.Tx, name string
 		Details: map[string]any{"source_type": "git"}})
 }
 
+// AdoptNamespace converts a managed namespace to a git namespace of a source, in tx. Its
+// snapshots, flows and executions stay as history; the next sync moves the head.
+func (s *Service) AdoptNamespace(ctx context.Context, tx pgx.Tx, nsID uuid.UUID, name string, sourceID uuid.UUID) error {
+	if err := namespacedb.New(tx).AdoptNamespace(ctx, namespacedb.AdoptNamespaceParams{GitSourceID: &sourceID, ID: nsID}); err != nil {
+		return err
+	}
+	return s.Audit.Record(ctx, tx, audit.Event{Action: "namespace.adopt", TargetType: "namespace", TargetID: name,
+		Details: map[string]any{"git_source_id": sourceID.String()}})
+}
+
 // CommitGit creates a snapshot of a git namespace from the files of one commit, moves the
 // head and refreshes flows and triggers. It returns false and changes nothing when the
 // manifest equals the head (REQ-GIT-002).

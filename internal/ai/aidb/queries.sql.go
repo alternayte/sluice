@@ -51,7 +51,7 @@ func (q *Queries) ClaimInsight(ctx context.Context) (AiInsight, error) {
 }
 
 const createConversation = `-- name: CreateConversation :one
-INSERT INTO ai_conversations (id, user_id, title, created_at) VALUES ($1, $2, $3, $4) RETURNING id, user_id, title, created_at
+INSERT INTO ai_conversations (id, user_id, title, created_at) VALUES ($1, $2, $3, $4) RETURNING id, user_id, title, created_at, turn_status, turn_stop, turn_error, draft_text, turn_heartbeat_at, stop_requested, auto_accept
 `
 
 type CreateConversationParams struct {
@@ -74,6 +74,13 @@ func (q *Queries) CreateConversation(ctx context.Context, arg CreateConversation
 		&i.UserID,
 		&i.Title,
 		&i.CreatedAt,
+		&i.TurnStatus,
+		&i.TurnStop,
+		&i.TurnError,
+		&i.DraftText,
+		&i.TurnHeartbeatAt,
+		&i.StopRequested,
+		&i.AutoAccept,
 	)
 	return i, err
 }
@@ -144,6 +151,29 @@ func (q *Queries) DeleteSetting(ctx context.Context, key string) (int64, error) 
 	return result.RowsAffected(), nil
 }
 
+const endTurn = `-- name: EndTurn :exec
+UPDATE ai_conversations SET turn_status = $1, turn_stop = $2, turn_error = $3,
+    draft_text = '', stop_requested = false
+WHERE id = $4
+`
+
+type EndTurnParams struct {
+	Status string
+	Stop   string
+	Error  string
+	ID     uuid.UUID
+}
+
+func (q *Queries) EndTurn(ctx context.Context, arg EndTurnParams) error {
+	_, err := q.db.Exec(ctx, endTurn,
+		arg.Status,
+		arg.Stop,
+		arg.Error,
+		arg.ID,
+	)
+	return err
+}
+
 const failStaleInsights = `-- name: FailStaleInsights :execrows
 UPDATE ai_insights SET status = 'failed', error = 'the triage stopped before it ended'
 WHERE status = 'running' AND created_at < $1
@@ -151,6 +181,21 @@ WHERE status = 'running' AND created_at < $1
 
 func (q *Queries) FailStaleInsights(ctx context.Context, createdAt time.Time) (int64, error) {
 	result, err := q.db.Exec(ctx, failStaleInsights, createdAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const failStaleTurns = `-- name: FailStaleTurns :execrows
+UPDATE ai_conversations SET turn_status = 'failed', turn_stop = 'error', turn_error = 'the turn stopped before it ended',
+    draft_text = '', stop_requested = false
+WHERE turn_status = 'running' AND turn_heartbeat_at < $1
+`
+
+// A turn whose instance stopped writes no heartbeat. It fails, so that the user can retry.
+func (q *Queries) FailStaleTurns(ctx context.Context, turnHeartbeatAt *time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, failStaleTurns, turnHeartbeatAt)
 	if err != nil {
 		return 0, err
 	}
@@ -191,7 +236,7 @@ func (q *Queries) FinishInsight(ctx context.Context, arg FinishInsightParams) er
 }
 
 const getConversation = `-- name: GetConversation :one
-SELECT id, user_id, title, created_at FROM ai_conversations WHERE id = $1 AND user_id = $2
+SELECT id, user_id, title, created_at, turn_status, turn_stop, turn_error, draft_text, turn_heartbeat_at, stop_requested, auto_accept FROM ai_conversations WHERE id = $1 AND user_id = $2
 `
 
 type GetConversationParams struct {
@@ -207,6 +252,13 @@ func (q *Queries) GetConversation(ctx context.Context, arg GetConversationParams
 		&i.UserID,
 		&i.Title,
 		&i.CreatedAt,
+		&i.TurnStatus,
+		&i.TurnStop,
+		&i.TurnError,
+		&i.DraftText,
+		&i.TurnHeartbeatAt,
+		&i.StopRequested,
+		&i.AutoAccept,
 	)
 	return i, err
 }
@@ -220,6 +272,34 @@ func (q *Queries) GetSetting(ctx context.Context, key string) (json.RawMessage, 
 	var value json.RawMessage
 	err := row.Scan(&value)
 	return value, err
+}
+
+const insertAutoAction = `-- name: InsertAutoAction :exec
+INSERT INTO ai_pending_actions (id, conversation_id, tool_call_id, tool, arguments, status, decided_by, decided_at, created_at)
+VALUES ($1, $2, $3, $4, $5, 'auto_confirmed', $6, $7, $7)
+`
+
+type InsertAutoActionParams struct {
+	ID             uuid.UUID
+	ConversationID uuid.UUID
+	ToolCallID     string
+	Tool           string
+	Arguments      json.RawMessage
+	DecidedBy      *uuid.UUID
+	DecidedAt      *time.Time
+}
+
+func (q *Queries) InsertAutoAction(ctx context.Context, arg InsertAutoActionParams) error {
+	_, err := q.db.Exec(ctx, insertAutoAction,
+		arg.ID,
+		arg.ConversationID,
+		arg.ToolCallID,
+		arg.Tool,
+		arg.Arguments,
+		arg.DecidedBy,
+		arg.DecidedAt,
+	)
+	return err
 }
 
 const insertInsight = `-- name: InsertInsight :exec
@@ -287,7 +367,7 @@ func (q *Queries) InsertPendingAction(ctx context.Context, arg InsertPendingActi
 }
 
 const listConversations = `-- name: ListConversations :many
-SELECT id, user_id, title, created_at FROM ai_conversations WHERE user_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2
+SELECT id, user_id, title, created_at, turn_status, turn_stop, turn_error, draft_text, turn_heartbeat_at, stop_requested, auto_accept FROM ai_conversations WHERE user_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2
 `
 
 type ListConversationsParams struct {
@@ -309,6 +389,13 @@ func (q *Queries) ListConversations(ctx context.Context, arg ListConversationsPa
 			&i.UserID,
 			&i.Title,
 			&i.CreatedAt,
+			&i.TurnStatus,
+			&i.TurnStop,
+			&i.TurnError,
+			&i.DraftText,
+			&i.TurnHeartbeatAt,
+			&i.StopRequested,
+			&i.AutoAccept,
 		); err != nil {
 			return nil, err
 		}
@@ -443,6 +530,52 @@ func (q *Queries) PutSetting(ctx context.Context, arg PutSettingParams) error {
 	return err
 }
 
+const requestStop = `-- name: RequestStop :execrows
+UPDATE ai_conversations SET stop_requested = true WHERE id = $1 AND user_id = $2 AND turn_status = 'running'
+`
+
+type RequestStopParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) RequestStop(ctx context.Context, arg RequestStopParams) (int64, error) {
+	result, err := q.db.Exec(ctx, requestStop, arg.ID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const setAutoAccept = `-- name: SetAutoAccept :one
+UPDATE ai_conversations SET auto_accept = $3 WHERE id = $1 AND user_id = $2 RETURNING id, user_id, title, created_at, turn_status, turn_stop, turn_error, draft_text, turn_heartbeat_at, stop_requested, auto_accept
+`
+
+type SetAutoAcceptParams struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	AutoAccept bool
+}
+
+func (q *Queries) SetAutoAccept(ctx context.Context, arg SetAutoAcceptParams) (AiConversation, error) {
+	row := q.db.QueryRow(ctx, setAutoAccept, arg.ID, arg.UserID, arg.AutoAccept)
+	var i AiConversation
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Title,
+		&i.CreatedAt,
+		&i.TurnStatus,
+		&i.TurnStop,
+		&i.TurnError,
+		&i.DraftText,
+		&i.TurnHeartbeatAt,
+		&i.StopRequested,
+		&i.AutoAccept,
+	)
+	return i, err
+}
+
 const setConversationTitle = `-- name: SetConversationTitle :exec
 UPDATE ai_conversations SET title = $2 WHERE id = $1 AND title = ''
 `
@@ -455,4 +588,52 @@ type SetConversationTitleParams struct {
 func (q *Queries) SetConversationTitle(ctx context.Context, arg SetConversationTitleParams) error {
 	_, err := q.db.Exec(ctx, setConversationTitle, arg.ID, arg.Title)
 	return err
+}
+
+const startTurn = `-- name: StartTurn :execrows
+UPDATE ai_conversations SET turn_status = 'running', turn_stop = '', turn_error = '', draft_text = '',
+    stop_requested = false, turn_heartbeat_at = $1
+WHERE id = $2 AND user_id = $3 AND turn_status <> 'running'
+    AND (NOT $4::boolean OR turn_status = 'failed')
+`
+
+type StartTurnParams struct {
+	Now    *time.Time
+	ID     uuid.UUID
+	UserID uuid.UUID
+	Retry  bool
+}
+
+// One turn runs at a time in a conversation, on any instance. A retry starts only a failed turn.
+func (q *Queries) StartTurn(ctx context.Context, arg StartTurnParams) (int64, error) {
+	result, err := q.db.Exec(ctx, startTurn,
+		arg.Now,
+		arg.ID,
+		arg.UserID,
+		arg.Retry,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const tickTurn = `-- name: TickTurn :one
+UPDATE ai_conversations SET draft_text = $1, turn_heartbeat_at = $2
+WHERE id = $3 AND turn_status = 'running'
+RETURNING stop_requested
+`
+
+type TickTurnParams struct {
+	DraftText string
+	Now       *time.Time
+	ID        uuid.UUID
+}
+
+// The running turn writes its streamed text and its heartbeat, and reads a stop request.
+func (q *Queries) TickTurn(ctx context.Context, arg TickTurnParams) (bool, error) {
+	row := q.db.QueryRow(ctx, tickTurn, arg.DraftText, arg.Now, arg.ID)
+	var stop_requested bool
+	err := row.Scan(&stop_requested)
+	return stop_requested, err
 }

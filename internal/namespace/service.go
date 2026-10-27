@@ -38,6 +38,7 @@ var (
 	ErrExists            = httpx.Errorf(http.StatusConflict, "namespace_exists", "a namespace with this name exists")
 	ErrVersionConflict   = httpx.Errorf(http.StatusConflict, "version_conflict", "the namespace changed since the base version")
 	ErrExecutionsRunning = httpx.Errorf(http.StatusConflict, "executions_running", "executions of this namespace are running")
+	ErrMapped            = httpx.Errorf(http.StatusConflict, "namespace_mapped", "a git source maps this namespace: remove the mapping from the source first")
 	ErrNoChanges         = httpx.Validation(httpx.FieldError{Field: "changes", Message: "the changes do not change any file"})
 )
 
@@ -607,18 +608,22 @@ func isText(b []byte) bool {
 	return utf8.Valid(b) && !bytes.ContainsRune(b, 0)
 }
 
-// Delete deletes a managed namespace. It fails while executions run (REQ-NS-008).
+// Delete deletes a managed namespace, or a git namespace that no git source maps. It fails
+// while executions run (REQ-NS-008).
 func (s *Service) Delete(ctx context.Context, name string) error {
 	ns, err := s.Get(ctx, name)
 	if err != nil {
 		return err
 	}
-	if ns.SourceType != "managed" {
-		return ErrReadOnly
-	}
 	return pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := namespacedb.New(tx)
 		if _, err := q.LockNamespace(ctx, ns.ID); err != nil {
+			return err
+		}
+		// A soft delete keeps the mapping row, so a sync would write to the deleted namespace.
+		if source, err := q.MappingSourceName(ctx, ns.ID); err == nil {
+			return ErrMapped.WithDetails(map[string]string{"source": source})
+		} else if !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
 		n, err := q.CountActiveExecutions(ctx, ns.ID)

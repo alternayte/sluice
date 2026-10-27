@@ -46,6 +46,8 @@ function ProviderForm({ provider }: { provider: AiProvider }) {
   const [model, setModel] = useState(provider.model ?? "");
   const [keyName, setKeyName] = useState(provider.api_key_secret_key ?? "");
   const [autoTriage, setAutoTriage] = useState(provider.auto_triage);
+  const [webAccess, setWebAccess] = useState(provider.web_access);
+  const [domains, setDomains] = useState((provider.web_allowed_domains ?? []).join("\n"));
   const [removing, setRemoving] = useState(false);
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: getAiProviderQueryKey() });
@@ -78,6 +80,11 @@ function ProviderForm({ provider }: { provider: AiProvider }) {
         model: model.trim(),
         api_key_secret_key: keyName.trim(),
         auto_triage: autoTriage,
+        web_access: webAccess,
+        web_allowed_domains: domains
+          .split(/[\s,]+/)
+          .map((d) => d.trim())
+          .filter(Boolean),
       },
     });
   };
@@ -125,6 +132,35 @@ function ProviderForm({ provider }: { provider: AiProvider }) {
         >
           <Input required value={keyName} onChange={(e) => setKeyName(e.target.value)} className="font-mono" />
         </SettingsRow>
+      </SettingsGroup>
+      <SettingsGroup title="Web access">
+        <SettingsRow label="Fetch web pages">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={webAccess}
+              onChange={(e) => setWebAccess(e.target.checked)}
+              className="h-4 w-4 accent-accent"
+            />
+            The assistant can read public web pages with fetch_url
+          </label>
+        </SettingsRow>
+        {webAccess && (
+          <SettingsRow
+            id="ai-web-domains"
+            label="Allowed domains"
+            hint="One domain on each line. A domain allows its subdomains. Empty allows every public domain. Sluice never fetches private or internal addresses."
+            error={fields.web_allowed_domains}
+          >
+            <textarea
+              value={domains}
+              onChange={(e) => setDomains(e.target.value)}
+              rows={3}
+              placeholder={"docs.example.com\ngithub.com"}
+              className="w-full rounded-control border border-input/80 bg-panel px-3 py-2 font-mono text-sm focus-visible:border-accent focus-visible:outline-none"
+            />
+          </SettingsRow>
+        )}
       </SettingsGroup>
       <SettingsGroup title="Failure triage">
         <SettingsRow label="Automatic triage">

@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-27
+
 ### Added
 
 - A git source has a sync switch. A new source is off unless the create request sets `"enabled": true`. Sources from before the upgrade stay on. `PATCH /api/v1/git-sources/{id}` with `{"enabled": bool}` turns it on or off, and turning it on starts a sync. A source that is off does not poll, answers a webhook with `{"queued":false}` and answers **Sync now** with 409 `git_source_disabled`. Its namespaces keep their last synced version, and their flows and triggers keep running.
@@ -236,7 +238,8 @@ The first version of Sluice. It is one Go binary with an embedded React UI, and 
 - A CI workflow with the jobs `check`, `e2e` and `image`.
 - A release workflow. A `v*.*.*` tag attaches the binaries for Linux and macOS to a GitHub release, and pushes the `sluice` and `sluice-uv` images to `ghcr.io/alternayte` for amd64 and arm64.
 
-[Unreleased]: https://github.com/alternayte/sluice/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/alternayte/sluice/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/alternayte/sluice/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/alternayte/sluice/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/alternayte/sluice/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/alternayte/sluice/compare/v0.2.2...v0.2.3
